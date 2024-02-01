@@ -1,0 +1,60 @@
+{
+  "name": "tsarg",
+  "version": "0.1.0",
+  "description": "Truly simple argument parser for TypeScript",
+  "homepage": "https://github.com/disog/clang-webgen#readme",
+  "main": "dist/index.js",
+  "types": "dist/index.d.js",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "url": "https://github.com/disog/clang-webgen"
+  },
+  "author": {
+    "name": "Diego Sogari",
+    "email": "diego.sogari@gmail.com"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.10",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
+    "cspell": "^8.3.2",
+    "eslint": "^8.56.0",
+    "husky": "^9.0.6",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "prepublishOnly": "npm version patch",
+    "test": "vitest run --dir lib",
+    "lint": "eslint lib && cspell lint .",
+    "dist": "tsc -p tsconfig.build.json"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ]
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint",
+      "cspell lint",
+      "prettier --write"
+    ]
+  }
+}

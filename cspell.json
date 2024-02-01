@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/@cspell/cspell-types/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "dictionaries": ["cpp", "typescript"],
+  "ignoreRegExpList": ["compilation-flag"],
+  "ignoreWords": ["tsarg", "Niladic", "Sogari"],
+  "patterns": [
+    {
+      "name": "compilation-flag",
+      "pattern": "/-f[^-\\s]+/g"
+    }
+  ],
+  "useGitignore": true
+}

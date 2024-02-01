@@ -1,2 +1,3 @@
 # tsarg
-Truly simple argument parser for TypeScript
+
+Truly simple argument parser for TypeScript.
