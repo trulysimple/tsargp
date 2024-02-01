@@ -2,7 +2,8 @@
   "name": "tsarg",
   "version": "0.1.0",
   "description": "Truly simple argument parser for TypeScript",
-  "homepage": "https://github.com/disog/clang-webgen#readme",
+  "homepage": "https://github.com/disog/tsarg#readme",
+  "bin": "dist/tsarg.cjs",
   "main": "dist/index.js",
   "types": "dist/index.d.js",
   "type": "module",
@@ -10,7 +11,7 @@
     "dist"
   ],
   "repository": {
-    "url": "https://github.com/disog/clang-webgen"
+    "url": "https://github.com/disog/tsarg"
   },
   "author": {
     "name": "Diego Sogari",

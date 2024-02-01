@@ -84,33 +84,33 @@ describe('HelpFormatter', () => {
       expect(message).toMatch(/-d, --deprecated.+A deprecated option\. Deprecated for reason\./s);
     });
 
-    it('with a string option that accepts a set of values', () => {
+    it('with a string enumeration option', () => {
       const options = {
-        stringAccepts: {
-          names: ['-sa', '--stringAccepts'],
-          desc: 'A string option that accepts a set of values',
+        stringEnum: {
+          names: ['-se', '--stringEnum'],
+          desc: 'A string enumeration option',
           type: 'string',
           accepts: ['one', 'two'],
         },
       } as const satisfies Options;
       const message = new HelpFormatter(options).formatHelp(80);
       expect(message).toMatch(
-        /-sa, --stringAccepts.+A string option that accepts a set of values\..+Accepts values in \[one,two\]\./s,
+        /-se, --stringEnum.+A string enumeration option\. Accepts values in.+\[one,two\]\./s,
       );
     });
 
-    it('with a number option that accepts a set of values', () => {
+    it('with a number enumeration option', () => {
       const options = {
-        numberAccepts: {
-          names: ['-na', '--numberAccepts'],
-          desc: 'A number option that accepts a set of values',
+        numberEnum: {
+          names: ['-ne', '--numberEnum'],
+          desc: 'A number enumeration option',
           type: 'number',
           accepts: [1, 2],
         },
       } as const satisfies Options;
       const message = new HelpFormatter(options).formatHelp(80);
       expect(message).toMatch(
-        /-na, --numberAccepts.+A number option that accepts a set of values\..+Accepts values in \[1,2\]\./s,
+        /-ne, --numberEnum.+A number enumeration option\. Accepts values in.+\[1,2\]\./s,
       );
     });
 
@@ -144,33 +144,33 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('with a strings option that accepts a set of values', () => {
+    it('with a strings enumeration option', () => {
       const options = {
-        stringsAccepts: {
-          names: ['-ssa', '--stringsAccepts'],
-          desc: 'A strings option that accepts a set of values',
+        stringsEnum: {
+          names: ['-sse', '--stringsEnum'],
+          desc: 'A strings enumeration option',
           type: 'strings',
           accepts: ['one', 'two'],
         },
       } as const satisfies Options;
       const message = new HelpFormatter(options).formatHelp(80);
       expect(message).toMatch(
-        /-ssa, --stringsAccepts.+A strings option that accepts a set of.+values\. Values are comma-separated\. Accepts.+values in \[one,two\]\./s,
+        /-sse, --stringsEnum.+A strings enumeration option\. Values are.+comma-separated\. Accepts values in.+\[one,two\]\./s,
       );
     });
 
-    it('with a numbers option that accepts a set of values', () => {
+    it('with a numbers enumeration option', () => {
       const options = {
-        numbersAccepts: {
-          names: ['-nsa', '--numbersAccepts'],
-          desc: 'A numbers option that accepts a set of values',
+        numbersEnum: {
+          names: ['-nse', '--numbersEnum'],
+          desc: 'A numbers enumeration option',
           type: 'numbers',
           accepts: [1, 2],
         },
       } as const satisfies Options;
       const message = new HelpFormatter(options).formatHelp(80);
       expect(message).toMatch(
-        /-nsa, --numbersAccepts.+A numbers option that accepts a set of.+values\. Values are comma-separated\. Accepts.+values in \[1,2\]\./s,
+        /-nse, --numbersEnum.+A numbers enumeration option\. Values are.+comma-separated\. Accepts values in.+\[1,2\]\./s,
       );
     });
   });

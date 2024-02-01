@@ -2,6 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 export {
+  colors,
   Color,
   Option,
   Options,
@@ -16,46 +17,32 @@ export {
   HelpOption,
 };
 
-export {
-  noColor,
-  black,
-  red,
-  green,
-  yellow,
-  blue,
-  magenta,
-  cyan,
-  white,
-  brightBlack,
-  brightRed,
-  brightGreen,
-  brightYellow,
-  brightBlue,
-  brightMagenta,
-  brightCyan,
-  brightWhite,
-};
-
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const noColor = '\x1b[0m';
-const black = '\x1b[30m';
-const red = '\x1b[31m';
-const green = '\x1b[32m';
-const yellow = '\x1b[33m';
-const blue = '\x1b[34m';
-const magenta = '\x1b[35m';
-const cyan = '\x1b[36m';
-const white = '\x1b[37m';
-const brightBlack = '\x1b[90m';
-const brightRed = '\x1b[91m';
-const brightGreen = '\x1b[92m';
-const brightYellow = '\x1b[93m';
-const brightBlue = '\x1b[94m';
-const brightMagenta = '\x1b[95m';
-const brightCyan = '\x1b[96m';
-const brightWhite = '\x1b[97m';
+/**
+ * The list of available foreground text colors.
+ * @see https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
+ */
+const colors = {
+  reset: '\x1b[0m',
+  black: '\x1b[30m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m',
+  brightBlack: '\x1b[90m',
+  brightRed: '\x1b[91m',
+  brightGreen: '\x1b[92m',
+  brightYellow: '\x1b[93m',
+  brightBlue: '\x1b[94m',
+  brightMagenta: '\x1b[95m',
+  brightCyan: '\x1b[96m',
+  brightWhite: '\x1b[97m',
+} as const;
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -63,24 +50,7 @@ const brightWhite = '\x1b[97m';
 /**
  * Represents a foreground text color (on terminals that support colors).
  */
-type Color =
-  | typeof noColor
-  | typeof black
-  | typeof red
-  | typeof green
-  | typeof yellow
-  | typeof blue
-  | typeof magenta
-  | typeof cyan
-  | typeof white
-  | typeof brightBlack
-  | typeof brightRed
-  | typeof brightGreen
-  | typeof brightYellow
-  | typeof brightBlue
-  | typeof brightMagenta
-  | typeof brightCyan
-  | typeof brightWhite;
+type Color = (typeof colors)[keyof typeof colors];
 
 /**
  * An option's attributes.
@@ -209,8 +179,9 @@ type HelpEntry = {
  */
 class HelpFormatter {
   private readonly entries: Array<HelpEntry> = [];
-  private nameWidth: number = 0;
-  private typeWidth: number = 0;
+  private readonly nameWidths: Array<number> = [];
+  private readonly nameWidth: number = 0;
+  private readonly typeWidth: number = 0;
 
   /**
    * Creates a help message formatter.
@@ -221,31 +192,57 @@ class HelpFormatter {
    */
   constructor(
     options: Options = {},
-    private readonly nameColor: Color = noColor,
-    private readonly typeColor: Color = brightBlack,
-    private readonly descColor: Color = noColor,
+    private readonly nameColor: Color = colors.reset,
+    private readonly typeColor: Color = colors.brightBlack,
+    private readonly descColor: Color = colors.reset,
   ) {
     for (const option of Object.values(options)) {
-      this.addOption(option);
+      option.names.forEach((name, i) => {
+        if (i == this.nameWidths.length) {
+          this.nameWidths.push(name.length);
+        } else if (name.length > this.nameWidths[i]) {
+          this.nameWidths[i] = name.length;
+        }
+      });
+    }
+    for (const option of Object.values(options)) {
+      const name = this.formatName(option);
+      const type = HelpFormatter.formatType(option);
+      const desc = HelpFormatter.formatDescription(option);
+      const color = option.color ?? this.nameColor;
+      this.entries.push({ name, type, desc, color });
+      this.nameWidth = Math.max(this.nameWidth, name.length);
+      this.typeWidth = Math.max(this.typeWidth, type.length);
     }
   }
 
   /**
-   * Adds an option to the list of option help entries.
    * @param option The option definition
+   * @returns The formatted option name (or set of names)
    */
-  addOption(option: Option) {
-    const hasValue =
-      option.type !== 'function' && option.type !== 'help' && option.type !== 'boolean';
-    const name = option.names.join(', ');
-    const type = hasValue ? `[${option.type}]` : '';
-    const desc = HelpFormatter.formatDescription(option);
-    const color = option.color ?? this.nameColor;
-    this.entries.push({ name, type, desc, color });
-    this.nameWidth = Math.max(this.nameWidth, name.length);
-    this.typeWidth = Math.max(this.typeWidth, type.length);
+  private formatName(option: Option): string {
+    function formatColumn(name: string, width: number, i: number) {
+      const sep = name.length == 0 ? ' ' : i < option.names.length - 1 ? ',' : '';
+      return name + sep + ' '.repeat(width - name.length);
+    }
+    return option.names.map((name, i) => formatColumn(name, this.nameWidths[i], i)).join(' ');
   }
 
+  /**
+   * @param option The option definition
+   * @returns The formatted option type
+   */
+  private static formatType(option: Option): string {
+    function isNiladic(option: Option): option is NiladicOption {
+      return new Array<Option['type']>('function', 'help', 'boolean').includes(option.type);
+    }
+    return !isNiladic(option) ? `[${option.type}]` : '';
+  }
+
+  /**
+   * @param option The option definition
+   * @returns The formatted option description
+   */
   private static formatDescription(option: Option): string {
     const isFunction = option.type === 'function' || option.type === 'help';
     const isArray = option.type === 'strings' || option.type === 'numbers';
@@ -285,8 +282,12 @@ class HelpFormatter {
     const nameColumn = formatColumn(entry.color, entry.name, this.nameWidth);
     const typeColumn = formatColumn(this.typeColor, entry.type, this.typeWidth);
     const prefix = nameColumn + typeColumn + indent + this.descColor;
-    const prefixLen = indent.length * 3 + this.nameWidth + this.typeWidth;
-    HelpFormatter.wrapText(lines, entry.desc, width - prefixLen, prefix, ' '.repeat(prefixLen));
+    if (width <= this.nameWidth + this.typeWidth) {
+      lines.push(prefix + entry.desc); // no space left for the description: use native wrapping
+    } else {
+      const prefixLen = indent.length * 3 + this.nameWidth + this.typeWidth;
+      HelpFormatter.wrapText(lines, entry.desc, width - prefixLen, prefix, ' '.repeat(prefixLen));
+    }
   }
 
   /**
@@ -307,12 +308,13 @@ class HelpFormatter {
   ) {
     let line = '';
     for (const word of text.split(' ')) {
-      if (line.length + word.length > width) {
+      if (line.length + word.length < width) {
+        // important: use strict less
+        line += (line ? ' ' : '') + word;
+      } else {
         lines.push(prefix + line);
         prefix = indent;
         line = word;
-      } else {
-        line += (line ? ' ' : '') + word;
       }
     }
     lines.push(prefix + line);
@@ -335,6 +337,9 @@ class ArgumentParser<T extends Options> {
     this.options = options;
     for (const key in options) {
       for (const name of options[key].names) {
+        if (name.length == 0) {
+          continue; // ignore empty names
+        }
         if (this.nameToKey.has(name)) {
           throw Error(`Duplicate option name: ${name}`);
         }
