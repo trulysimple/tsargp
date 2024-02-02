@@ -1,23 +1,29 @@
 {
-  "name": "tsarg",
-  "version": "0.1.0",
-  "description": "Truly simple argument parser for TypeScript",
-  "homepage": "https://github.com/disog/tsarg#readme",
-  "bin": "dist/tsarg.cjs",
-  "main": "dist/index.js",
-  "types": "dist/index.d.js",
+  "name": "tsargp",
+  "version": "0.1.11",
+  "description": "Argument parser for TypeScript",
+  "homepage": "https://github.com/trulysimple/tsargp#readme",
+  "license": "MIT",
+  "keywords": [
+    "args",
+    "argument",
+    "option",
+    "parser"
+  ],
+  "bin": {
+    "tsargp": "dist/demo.js"
+  },
+  "module": "dist/index.js",
+  "types": "dist/types/index.d.ts",
   "type": "module",
   "files": [
     "dist"
   ],
   "repository": {
-    "url": "https://github.com/disog/tsarg"
-  },
-  "author": {
-    "name": "Diego Sogari",
-    "email": "diego.sogari@gmail.com"
+    "url": "git+https://github.com/trulysimple/tsargp.git"
   },
   "devDependencies": {
+    "@types/bun": "^1.0.4",
     "@types/node": "^20.11.10",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
@@ -32,9 +38,8 @@
   "scripts": {
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
-    "test": "vitest run --dir lib",
     "lint": "eslint lib && cspell lint .",
-    "dist": "tsc -p tsconfig.build.json"
+    "dist": "tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --minify --target node --sourcemap=external && bun build lib/demo.ts --outdir dist --minify --target node"
   },
   "prettier": {
     "printWidth": 100,

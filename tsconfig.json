@@ -1,12 +1,27 @@
 {
   "compilerOptions": {
-    "declaration": true,
-    "module": "NodeNext",
-    "outDir": "dist",
+    "target": "ESNext",
+    "module": "ESNext",
+    "outDir": "dist/types",
     "rootDir": "lib",
-    "types": ["node"],
+    "types": ["bun", "node"],
+
+    // Bundling
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    
+    // Best practices
+    "strict": true,
     "skipLibCheck": true,
-    "strict": true
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Some stricter flags
+    "useUnknownInCatchVariables": true,
+    "noPropertyAccessFromIndexSignature": true
   },
-  "include": ["lib/**/*"]
+  "include": ["lib"]
 }

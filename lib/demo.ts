@@ -1,110 +1,118 @@
+#!/usr/bin/env node
+
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Options } from './index.js';
-
-import { colors, ArgumentParser } from './index.js';
+import { ArgumentParser, HelpFormatter, type Options, fg, tf, resetStyle } from './index.js';
 import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
-
-export { OptionValues };
+import { promises } from 'fs';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const usage = `${colors.reset}Truly simple argument parser for TypeScript.
+const usage = `
+${tf.bold}Argument parser for TypeScript.${resetStyle}
 
-  ${colors.yellow}tsarg ${colors.brightBlack}--help ${colors.green}# print help
+  ${fg.yellow}tsargp ${fg.brightBlack}--help ${fg.green}# print help${fg.default}
 
-${colors.reset}Options:
+${tf.bold}Options:${resetStyle}
 
 `;
 
-const footer = `${colors.reset}
+const footer = `
 
 MIT License
-Copyright (c) 2024 Diego Sogari
+Copyright (c) 2024 ${fg.cyan}TrulySimple${fg.default}
 
-Report a bug: ${colors.brightBlack}https://github.com/disog/tsarg/issues${colors.reset}
-`;
+Report a bug: ${fg.brightBlack}https://github.com/trulysimple/tsargp/issues
+${resetStyle}`;
 
 const options = {
   help: {
     names: ['-h', '--help'],
     desc: 'Print this help message',
-    type: 'help',
-    default: (help) => {
-      throw `${usage}${help.formatHelp(process.stdout.columns)}${footer}`;
+    type: 'function',
+    default: () => {
+      const help = new HelpFormatter(options).formatHelp();
+      throw `${usage}${help}${footer}`;
     },
   },
   version: {
     names: ['-v', '--version'],
     desc: 'Print the package version',
     type: 'function',
-    default: () => {
-      const path = join(dirname(import.meta.dirname), 'package.json');
-      throw JSON.parse(readFileSync(path).toString()).version;
+    default: async () => {
+      const packageJsonPath = join(dirname(import.meta.dirname), 'package.json');
+      const packageJsonData = await promises.readFile(packageJsonPath);
+      const { version: packageVersion } = JSON.parse(packageJsonData.toString());
+      throw packageVersion;
     },
   },
   boolean: {
     names: ['-b', '--boolean'],
-    desc: 'A boolean option',
+    desc: 'A boolean option with custom styling',
     type: 'boolean',
-  },
-  string: {
-    names: ['-s', '--string'],
-    desc: 'A string option',
-    type: 'string',
-    default: 'default',
-  },
-  number: {
-    names: ['-n', '--number'],
-    desc: 'A number option',
-    type: 'number',
-    default: -1.23,
-  },
-  deprecated: {
-    names: ['-d', '--deprecated'],
-    desc: 'A deprecated option with custom highlighting',
-    type: 'string',
     deprecated: 'some reason',
-    color: colors.red,
+    styles: {
+      name: [fg.red],
+      desc: [tf.invert, tf.strike, tf.italic],
+    },
+  },
+  stringRegex: {
+    names: ['-s', '--stringRegex'],
+    desc: 'A string option with a default value and a regex constraint',
+    type: 'string',
+    regex: /\d+/s,
+    default: '123',
+  },
+  numberRange: {
+    names: ['-n', '--numberRange'],
+    desc: 'A number option with a default value and a range constraint',
+    type: 'number',
+    range: [-Infinity, 0],
+    default: -1.23,
   },
   stringEnum: {
     names: ['-se', '--stringEnum'],
-    desc: 'A string enumeration option',
+    desc: 'A string enumeration option with an example value',
     type: 'string',
-    accepts: ['one', 'two'],
+    enums: ['one', 'two'],
+    example: 'one',
   },
   numberEnum: {
     names: ['-ne', '--numberEnum'],
-    desc: 'A number enumeration option',
+    desc: 'A number enumeration option with an example value',
     type: 'number',
-    accepts: [1, 2],
+    enums: [1, 2],
+    example: 1,
   },
-  strings: {
+  stringsRegex: {
     names: ['-ss', '--strings'],
-    desc: 'A strings option',
+    desc: 'A strings option with a default value and a regex constraint',
     type: 'strings',
+    regex: /\w+/s,
     default: ['one', 'two'],
   },
-  numbers: {
+  numbersRange: {
     names: ['-ns', '--numbers'],
-    desc: 'A numbers option',
+    desc: 'A numbers option with a default value and a range constraint',
     type: 'numbers',
+    range: [0, Infinity],
     default: [1, 2],
   },
   stringsEnum: {
     names: ['', '--stringsEnum'],
-    desc: 'A strings enumeration option',
+    desc: 'A strings enumeration option with an example value',
     type: 'strings',
-    accepts: ['one', 'two'],
+    enums: ['one', 'two'],
+    example: ['one', 'one'],
   },
   numbersEnum: {
     names: ['', '--numbersEnum'],
-    desc: 'A numbers enumeration option',
+    desc: 'A numbers enumeration option with an example value',
     type: 'numbers',
-    accepts: [1, 2],
+    enums: [1, 2],
+    example: [1, 1],
   },
 } as const satisfies Options;
 
@@ -113,33 +121,22 @@ const options = {
 //--------------------------------------------------------------------------------------------------
 interface CommandOptions {
   get boolean(): boolean;
-  get string(): string;
-  get number(): number;
-  get deprecated(): string;
-  get stringEnum(): string;
-  get numberEnum(): number;
-  get strings(): Array<string>;
-  get numbers(): Array<number>;
-  get stringsEnum(): Array<string>;
-  get numbersEnum(): Array<number>;
+  get stringRegex(): string;
+  get numberRange(): number;
+  get stringEnum(): 'one' | 'two' | undefined;
+  get numberEnum(): 1 | 2 | undefined;
+  get stringsRegex(): Array<string>;
+  get numbersRange(): Array<number>;
+  get stringsEnum(): Array<'one' | 'two'> | undefined;
+  get numbersEnum(): Array<1 | 2> | undefined;
 }
 
 //--------------------------------------------------------------------------------------------------
-// Classes
+// Main script
 //--------------------------------------------------------------------------------------------------
-class OptionValues implements CommandOptions {
-  boolean!: boolean;
-  string!: string;
-  number!: number;
-  deprecated!: string;
-  stringEnum!: string;
-  numberEnum!: number;
-  strings!: Array<string>;
-  numbers!: Array<number>;
-  stringsEnum!: Array<string>;
-  numbersEnum!: Array<number>;
-
-  constructor() {
-    new ArgumentParser(options).parseInto(this);
-  }
+try {
+  const values: CommandOptions = await new ArgumentParser(options).asyncParse();
+  console.log(values);
+} catch (err) {
+  console.error(err);
 }
