@@ -1,17 +1,16 @@
-#!/usr/bin/env node
-
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { ArgumentParser, HelpFormatter, type Options, fg, tf, resetStyle } from './index.js';
+import { ArgumentParser, HelpFormatter, type Options, fg, tf, resetStyle } from 'tsargp';
 import { dirname, join } from 'path';
 import { promises } from 'fs';
+
+export { type CommandOptions, values };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const usage = `
-${tf.bold}Argument parser for TypeScript.${resetStyle}
+const usage = `${tf.bold}Argument parser for TypeScript.${resetStyle}
 
   ${fg.yellow}tsargp ${fg.brightBlack}--help ${fg.green}# print help${fg.default}
 
@@ -116,6 +115,8 @@ const options = {
   },
 } as const satisfies Options;
 
+const values: CommandOptions = await new ArgumentParser(options).asyncParse();
+
 //--------------------------------------------------------------------------------------------------
 // Interfaces
 //--------------------------------------------------------------------------------------------------
@@ -129,14 +130,4 @@ interface CommandOptions {
   get numbersRange(): Array<number>;
   get stringsEnum(): Array<'one' | 'two'> | undefined;
   get numbersEnum(): Array<1 | 2> | undefined;
-}
-
-//--------------------------------------------------------------------------------------------------
-// Main script
-//--------------------------------------------------------------------------------------------------
-try {
-  const values: CommandOptions = await new ArgumentParser(options).asyncParse();
-  console.log(values);
-} catch (err) {
-  console.error(err);
 }

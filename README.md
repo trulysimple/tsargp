@@ -1,6 +1,8 @@
 # tsargp
 
-![terminal](terminal.png "PowerShell 7.4.1")
+![screen capture gif](data/screen-capture.gif "screen capture gif")
+
+![screen capture gif](https://drive.google.com/uc?export=view&id=1bGzVFLEy3mUk1uBPeVGOiGv_1fBdOCUR "screen capture gif")
 
 ## Features
 
@@ -9,7 +11,7 @@
 - Value constraints (enums, regex and range)
 - Help message formatting with proper wrapping
 - Wide range of display attributes from [SGR]
-- Zero-dependency and small footprint (7KB)
+- Zero-dependency and small footprint (12KB bundled and 7KB minified)
 
 ## Demo
 
@@ -20,7 +22,7 @@ tsargp     # see the options' default values
 tsargp ... # play with option values
 ```
 
-See the [source](lib/demo.ts).
+See the [source](examples/demo.ts).
 
 ## Usage
 

@@ -1,6 +1,6 @@
 {
   "name": "tsargp",
-  "version": "0.1.11",
+  "version": "0.1.16",
   "description": "Argument parser for TypeScript",
   "homepage": "https://github.com/trulysimple/tsargp#readme",
   "license": "MIT",
@@ -11,11 +11,14 @@
     "parser"
   ],
   "bin": {
-    "tsargp": "dist/demo.js"
+    "tsargp": "dist/tsargp.js"
   },
-  "module": "dist/index.js",
-  "types": "dist/types/index.d.ts",
   "type": "module",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    "types": "./dist/types/index.d.ts",
+    "default": "./dist/index.js"
+  },
   "files": [
     "dist"
   ],
@@ -32,14 +35,15 @@
     "husky": "^9.0.6",
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
+    "publint": "^0.2.7",
     "typescript": "^5.3.3",
     "vitest": "^1.2.2"
   },
   "scripts": {
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
-    "lint": "eslint lib && cspell lint .",
-    "dist": "tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --minify --target node --sourcemap=external && bun build lib/demo.ts --outdir dist --minify --target node"
+    "lint": "publint --strict && eslint lib && cspell lint .",
+    "dist": "tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
   },
   "prettier": {
     "printWidth": 100,
