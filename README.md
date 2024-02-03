@@ -1,7 +1,5 @@
 # tsargp
 
-![screen capture gif](data/screen-capture.gif "screen capture gif")
-
 ![screen capture gif](https://drive.google.com/uc?export=view&id=1bGzVFLEy3mUk1uBPeVGOiGv_1fBdOCUR "screen capture gif")
 
 ## Features
