@@ -11,7 +11,7 @@
     "parser"
   ],
   "bin": {
-    "tsargp": "dist/tsargp.js"
+    "tsargp": "dist/demo.js"
   },
   "type": "module",
   "types": "./dist/types/index.d.ts",

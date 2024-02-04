@@ -10,7 +10,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
+    // "verbatimModuleSyntax": true, // https://github.com/microsoft/TypeScript/issues/40344
     
     // Best practices
     "strict": true,
