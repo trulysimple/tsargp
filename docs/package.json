@@ -1,0 +1,30 @@
+{
+  "name": "@trulysimple/tsargp-docs",
+  "version": "0.1.0",
+  "description": "Documentation for tsargp",
+  "homepage": "https://github.com/trulysimple/tsargp/tree/main/docs#readme",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "docs"
+  ],
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "url": "git+https://github.com/trulysimple/tsargp.git"
+  },
+  "devDependencies": {
+    "next": "^14.1.0",
+    "nextra": "^2.13.3",
+    "nextra-theme-docs": "^2.13.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "scripts": {
+    "dev": "next",
+    "dist": "next build"
+  }
+}

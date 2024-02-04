@@ -1,6 +1,6 @@
 # tsargp
 
-![screen capture gif](https://drive.google.com/uc?export=view&id=1bGzVFLEy3mUk1uBPeVGOiGv_1fBdOCUR "screen capture gif")
+![screen capture gif](https://drive.google.com/uc?export=view&id=1bGzVFLEy3mUk1uBPeVGOiGv_1fBdOCUR 'screen capture gif')
 
 ## Features
 
@@ -42,17 +42,10 @@ const values = new ArgumentParser(options).parse();
 ## Build
 
 ```sh
-curl -fsSL https://bun.sh/install | bash
-bun install
-bun run dist
-```
-
-## Publish
-
-```sh
-wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-nvm install --lts && nvm use --lts
-npm publish
+npm install     # install dependencies
+npm test        # run unit tests
+npm run dist    # build JS bundle
+npm publish     # publish to npm registry
 ```
 
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

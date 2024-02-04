@@ -3,7 +3,16 @@
   "version": "0.2",
   "language": "en",
   "dictionaries": ["cpp", "typescript"],
-  "ignoreWords": ["lockb", "tsargp", "overlined", "Niladic"],
+  "ignoreWords": [
+    "lockb",
+    "tsargp",
+    "overlined",
+    "outdir",
+    "publint",
+    "trulysimple",
+    "nextra",
+    "niladic"
+  ],
   "ignorePaths": ["bun.lockb"],
   "useGitignore": true
 }
