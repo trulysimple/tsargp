@@ -12,15 +12,17 @@ describe('ArgumentParser', () => {
     it('should ignore empty option names', () => {
       const options = {
         empty: {
-          names: ['', 'empty', ''],
+          names: ['', 'name', ''],
           type: 'string',
           desc: '',
         },
       } as const satisfies Options;
-      expect(new ArgumentParser(options).parse(['empty', '123'])).toMatchObject({ empty: '123' });
+      expect(new ArgumentParser(options).parse(['name', '123'])).toMatchObject({
+        empty: '123',
+      });
     });
 
-    it('should throw an error on option with no name', () => {
+    it('should throw an error on option with no valid name', () => {
       const options = {
         nameless: {
           names: ['', ''],
@@ -28,7 +30,9 @@ describe('ArgumentParser', () => {
           desc: '',
         },
       } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrowError(`Option 'nameless' has no name.`);
+      expect(() => new ArgumentParser(options)).toThrowError(
+        `Option 'nameless' has no valid name.`,
+      );
     });
 
     it('should throw an error on duplicate option name in the same option', () => {
@@ -59,6 +63,54 @@ describe('ArgumentParser', () => {
     });
   });
 
+  it('should throw an error on unknown required option with requiresAll', () => {
+    const options = {
+      requires: {
+        names: ['req'],
+        type: 'string',
+        desc: '',
+        requiresAll: ['required'],
+      },
+    } as const satisfies Options;
+    expect(() => new ArgumentParser(options)).toThrowError(`Unknown required option 'required'.`);
+  });
+
+  it('should throw an error on unknown required option with requiresOne', () => {
+    const options = {
+      requires: {
+        names: ['req'],
+        type: 'string',
+        desc: '',
+        requiresOne: ['required'],
+      },
+    } as const satisfies Options;
+    expect(() => new ArgumentParser(options)).toThrowError(`Unknown required option 'required'.`);
+  });
+
+  it('should throw an error on option required by itself with requiresAll', () => {
+    const options = {
+      requires: {
+        names: ['req'],
+        type: 'string',
+        desc: '',
+        requiresAll: ['requires'],
+      },
+    } as const satisfies Options;
+    expect(() => new ArgumentParser(options)).toThrowError(`Option 'requires' requires itself.`);
+  });
+
+  it('should throw an error on option required by itself with requiresOne', () => {
+    const options = {
+      requires: {
+        names: ['req'],
+        type: 'string',
+        desc: '',
+        requiresOne: ['requires'],
+      },
+    } as const satisfies Options;
+    expect(() => new ArgumentParser(options)).toThrowError(`Option 'requires' requires itself.`);
+  });
+
   describe('parse', () => {
     it('should throw an error on unknown option name specified in arguments', () => {
       const options = {
@@ -84,6 +136,60 @@ describe('ArgumentParser', () => {
       expect(() => new ArgumentParser(options).parse(['--monadic'])).toThrowError(
         `Missing parameter to '--monadic'.`,
       );
+    });
+
+    it('should throw an error when required option with requiresAll is not specified', () => {
+      const options = {
+        requires: {
+          names: ['req1'],
+          type: 'boolean',
+          desc: '',
+          requiresAll: ['required1', 'required2'],
+        },
+        required1: {
+          names: ['req2'],
+          type: 'boolean',
+          desc: '',
+        },
+        required2: {
+          names: ['req3'],
+          type: 'boolean',
+          desc: '',
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options).parse(['req1'])).toThrowError(
+        `Option 'req1' requires option 'req2'.`,
+      );
+      expect(() => new ArgumentParser(options).parse(['req1', 'req2'])).toThrowError(
+        `Option 'req1' requires option 'req3'.`,
+      );
+      expect(() => new ArgumentParser(options).parse(['req1', 'req2', 'req3'])).not.toThrowError();
+    });
+
+    it('should throw an error when required option with requiresOne is not specified', () => {
+      const options = {
+        requires: {
+          names: ['req1'],
+          type: 'boolean',
+          desc: '',
+          requiresOne: ['required1', 'required2'],
+        },
+        required1: {
+          names: ['req2'],
+          type: 'boolean',
+          desc: '',
+        },
+        required2: {
+          names: ['req3'],
+          type: 'boolean',
+          desc: '',
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options).parse(['req1'])).toThrowError(
+        `Option 'req1' requires one of [req2,req3].`,
+      );
+      expect(() => new ArgumentParser(options).parse(['req1', 'req2'])).not.toThrowError();
+      expect(() => new ArgumentParser(options).parse(['req1', 'req3'])).not.toThrowError();
     });
 
     describe('fuction', () => {

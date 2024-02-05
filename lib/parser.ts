@@ -5,6 +5,7 @@ import type {
   MonadicOption,
   NumberOption,
   NumbersOption,
+  Option,
   Options,
   OptionValues,
   StringOption,
@@ -23,36 +24,43 @@ export { ArgumentParser };
  * @template T The type of the options' definitions
  */
 class ArgumentParser<T extends Options> {
-  private nameToKey = new Map<string, keyof T>();
-  private options: T;
+  private readonly nameToKey = new Map<string, keyof T>();
 
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The predefined options
    */
-  constructor(options: T) {
-    this.options = options;
-    this.initializeKeyMap();
+  constructor(private readonly options: T) {
+    this.initialize();
   }
 
   /**
-   * Initializes the map of options names to option keys
+   * Initializes the parser internal state.
    */
-  private initializeKeyMap() {
+  private initialize() {
     for (const key in this.options) {
-      let hasName = false;
-      for (const name of this.options[key].names) {
-        if (name.length == 0) {
-          continue; // ignore empty names
-        }
+      const option = this.options[key];
+      const names = option.names.filter((name) => name);
+      if (names.length == 0) {
+        throw Error(`Option '${key}' has no valid name.`);
+      }
+      for (const name of names) {
         if (this.nameToKey.has(name)) {
           throw Error(`Duplicate option name '${name}'.`);
         }
         this.nameToKey.set(name, key);
-        hasName = true;
       }
-      if (!hasName) {
-        throw Error(`Option '${key}' has no name.`);
+      const requiredKeys = [
+        ...('requiresAll' in option ? option.requiresAll ?? [] : []),
+        ...('requiresOne' in option ? option.requiresOne ?? [] : []),
+      ];
+      for (const requiredKey of requiredKeys) {
+        if (requiredKey === key) {
+          throw Error(`Option '${key}' requires itself.`);
+        }
+        if (!(requiredKey in this.options)) {
+          throw Error(`Unknown required option '${requiredKey}'.`);
+        }
       }
     }
   }
@@ -102,7 +110,7 @@ class ArgumentParser<T extends Options> {
     for (const key in this.options) {
       const opt = this.options[key];
       if ('example' in opt) {
-        const name = opt.names.find((name) => name.length > 0)!;
+        const name = opt.names.find((name) => name)!;
         result.push(name, opt.example.toString());
       }
     }
@@ -117,13 +125,16 @@ class ArgumentParser<T extends Options> {
     for (const key in this.options) {
       const opt = this.options[key];
       if (opt.type !== 'function' && 'default' in opt) {
-        const name = opt.names.find((name) => name.length > 0)!;
+        const name = opt.names.find((name) => name)!;
         result.push(name, opt.default.toString());
       }
     }
     return result;
   }
 
+  /**
+   * @see parseInto
+   */
   private internalParseInto(values: OptionValues<T>, args: Array<string>) {
     for (let i = 0; i < args.length; ++i) {
       const name = args[i];
@@ -131,13 +142,14 @@ class ArgumentParser<T extends Options> {
       if (!key) {
         throw Error(`Unknown option '${name}'.`);
       }
-      const opt = this.options[key];
-      switch (opt.type) {
+      const option = this.options[key];
+      this.checkRequired(name, option, args);
+      switch (option.type) {
         case 'function':
-          if (opt.default) {
-            const result = opt.default(values, args.slice(i + 1));
+          if (option.default) {
+            const result = option.default(values, args.slice(i + 1));
             if (result === null) {
-              return;
+              return; // requirements cannot be verified when exiting early
             } else if (typeof result === 'object') {
               throw Error('Use `asyncParse` to handle async functions.');
             }
@@ -150,7 +162,42 @@ class ArgumentParser<T extends Options> {
           if (i + 1 == args.length) {
             throw Error(`Missing parameter to '${name}'.`);
           }
-          this.parseValue(values, key, opt, name, args[++i]);
+          this.parseValue(values, key, option, name, args[++i]);
+      }
+    }
+  }
+
+  /**
+   * Checks if the options required by an option were specified.
+   * @param name The option
+   * @param option The option name
+   * @param args The command-line arguments
+   */
+  private checkRequired(name: string, option: Option, args: Array<string>) {
+    if ('requiresAll' in option && option.requiresAll) {
+      for (const requiredKey of option.requiresAll) {
+        const required = this.options[requiredKey];
+        const names = required.names.filter((name) => name);
+        if (names.find((name) => args.includes(name)) === undefined) {
+          throw Error(`Option '${name}' requires option '${names[0]}'.`);
+        }
+      }
+    }
+    if ('requiresOne' in option && option.requiresOne) {
+      let found = false;
+      const requiredNames = [];
+      for (const requiredKey of option.requiresOne) {
+        const required = this.options[requiredKey];
+        const names = required.names.filter((name) => name);
+        if (names.find((name) => args.includes(name)) !== undefined) {
+          found = true;
+          break;
+        } else {
+          requiredNames.push(names[0]);
+        }
+      }
+      if (!found) {
+        throw Error(`Option '${name}' requires one of [${requiredNames}].`);
       }
     }
   }
@@ -185,13 +232,14 @@ class ArgumentParser<T extends Options> {
       if (!key) {
         throw Error(`Unknown option '${name}'.`);
       }
-      const opt = this.options[key];
-      switch (opt.type) {
+      const option = this.options[key];
+      this.checkRequired(name, option, args);
+      switch (option.type) {
         case 'function':
-          if (opt.default) {
-            const result = opt.default(values, args.slice(i + 1));
+          if (option.default) {
+            const result = option.default(values, args.slice(i + 1));
             if (result === null || (typeof result === 'object' && (await result) === null)) {
-              return;
+              return; // requirements cannot be verified when exiting early
             }
           }
           break;
@@ -202,7 +250,7 @@ class ArgumentParser<T extends Options> {
           if (i + 1 == args.length) {
             throw Error(`Missing parameter to '${name}'.`);
           }
-          this.parseValue(values, key, opt, name, args[++i]);
+          this.parseValue(values, key, option, name, args[++i]);
       }
     }
   }

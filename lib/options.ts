@@ -28,7 +28,7 @@ export { isNiladic, isArray, setValue };
  * A set of styles for displaying an option on the terminal.
  */
 type Styles = {
-  name?: Style;
+  names?: Style;
   type?: Style;
   desc?: Style;
 };
@@ -40,6 +40,9 @@ type Styles = {
 type WithAttributes<T> = {
   /**
    * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
+   * For best interoperability, names should match the regular expression /[\w-+]+/.
+   * Empty names can be specified to "skip" a sub-column in the help message name column, though
+   * there must be at least one non-empty name.
    */
   readonly names: Array<string>;
   /**
@@ -51,7 +54,7 @@ type WithAttributes<T> = {
    */
   readonly type: T;
   /**
-   * The option styles.
+   * The option display styles.
    */
   readonly styles?: Styles;
   /**
@@ -130,9 +133,32 @@ type WithRange = {
 };
 
 /**
- * An flag which is enabled if specified. Always defaults to false.
+ * An option with a requiresOne constraint.
  */
-type BooleanOption = WithAttributes<'boolean'>;
+type WithRequiresOne = {
+  /**
+   * The options required by this option.
+   */
+  readonly requiresOne: Array<string>;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly requiresAll?: never;
+};
+
+/**
+ * An option with a requiresAll constraint.
+ */
+type WithRequiresAll = {
+  /**
+   * The options required by this option.
+   */
+  readonly requiresAll: Array<string>;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly requiresOne?: never;
+};
 
 /**
  * A helper type for optional objects.
@@ -141,12 +167,18 @@ type BooleanOption = WithAttributes<'boolean'>;
 type Optional<T extends object> = T | Record<never, never>;
 
 /**
+ * An flag which is enabled if specified. Always defaults to false.
+ */
+type BooleanOption = WithAttributes<'boolean'> & Optional<WithRequiresOne | WithRequiresAll>;
+
+/**
  * An option that accepts a single string value.
  */
 type StringOption = WithAttributes<'string'> &
   Optional<WithDefault<string>> &
   Optional<WithExample<string>> &
-  Optional<WithEnums<string> | WithRegex>;
+  Optional<WithEnums<string> | WithRegex> &
+  Optional<WithRequiresOne | WithRequiresAll>;
 
 /**
  * An option that accepts a single number value.
@@ -154,7 +186,8 @@ type StringOption = WithAttributes<'string'> &
 type NumberOption = WithAttributes<'number'> &
   Optional<WithDefault<number>> &
   Optional<WithExample<number>> &
-  Optional<WithEnums<number> | WithRange>;
+  Optional<WithEnums<number> | WithRange> &
+  Optional<WithRequiresOne | WithRequiresAll>;
 
 /**
  * An option that accepts a comma-separated list of strings.
@@ -162,7 +195,8 @@ type NumberOption = WithAttributes<'number'> &
 type StringsOption = WithAttributes<'strings'> &
   Optional<WithDefault<Array<string>>> &
   Optional<WithExample<Array<string>>> &
-  Optional<WithEnums<string> | WithRegex>;
+  Optional<WithEnums<string> | WithRegex> &
+  Optional<WithRequiresOne | WithRequiresAll>;
 
 /**
  * An option that accepts a comma-separated list of numbers.
@@ -170,7 +204,8 @@ type StringsOption = WithAttributes<'strings'> &
 type NumbersOption = WithAttributes<'numbers'> &
   Optional<WithDefault<Array<number>>> &
   Optional<WithExample<Array<number>>> &
-  Optional<WithEnums<number> | WithRange>;
+  Optional<WithEnums<number> | WithRange> &
+  Optional<WithRequiresOne | WithRequiresAll>;
 
 /**
  * A callback for function options.
@@ -183,12 +218,16 @@ type Callback<R> = (values: OptionValues<Options>, args: Array<string>) => R;
 /**
  * An option that executes a function. Return `null` to break the parsing loop.
  */
-type FunctionOption = WithAttributes<'function'> & WithDefault<Callback<void | null>>;
+type FunctionOption = WithAttributes<'function'> &
+  WithDefault<Callback<void | null>> &
+  Optional<WithRequiresOne | WithRequiresAll>;
 
 /**
  * An option that executes an asynchronous function. Return `null` to break the parsing loop.
  */
-type AsyncFunctionOption = WithAttributes<'function'> & WithDefault<Callback<Promise<void | null>>>;
+type AsyncFunctionOption = WithAttributes<'function'> &
+  WithDefault<Callback<Promise<void | null>>> &
+  Optional<WithRequiresOne | WithRequiresAll>;
 
 /**
  * An option that accepts no parameters.

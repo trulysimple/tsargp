@@ -47,11 +47,11 @@ const options = {
   },
   boolean: {
     names: ['-b', '--boolean'],
-    desc: 'A boolean option with custom styling',
+    desc: 'A boolean option with custom styling.',
     type: 'boolean',
     deprecated: 'some reason',
     styles: {
-      name: [fg.red],
+      names: [fg.red],
       desc: [tf.invert, tf.strike, tf.italic],
     },
   },
@@ -111,6 +111,18 @@ const options = {
     enums: [1, 2],
     example: [1, 1],
   },
+  requiresAll: {
+    names: ['', '--requiresAll'],
+    desc: 'An option that requires all of a set of other options',
+    type: 'boolean',
+    requiresAll: ['stringEnum', 'numberEnum'],
+  },
+  requiresOne: {
+    names: ['', '--requiresOne'],
+    desc: 'An option that requires one of a set of other options',
+    type: 'boolean',
+    requiresOne: ['stringRegex', 'numberRange'],
+  },
 } as const satisfies Options;
 
 //--------------------------------------------------------------------------------------------------
@@ -126,6 +138,8 @@ interface CommandOptions {
   get numbersRange(): Array<number>;
   get stringsEnum(): Array<'one' | 'two'> | undefined;
   get numbersEnum(): Array<1 | 2> | undefined;
+  get requiresAll(): boolean;
+  get requiresOne(): boolean;
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -7,19 +7,74 @@ import type { Style } from './styles.js';
 import { isArray, isNiladic } from './options.js';
 import { applyAndReset, fg, resetStyle } from './styles.js';
 
-export { HelpFormatter };
+export { type HelpConfig, HelpFormatter };
 
 //--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * Help-related information about an option.
+ * Pre-computed information about an option.
  */
 type HelpEntry = {
-  name: string;
-  type: string;
-  desc: string;
-  styles: Styles;
+  readonly names: string;
+  readonly type: string;
+  readonly desc: string;
+  readonly styles: Styles;
+};
+
+/**
+ * Pre-computed indentation.
+ */
+type HelpIndent = {
+  readonly names: string;
+  readonly type: string;
+  readonly desc: string;
+  readonly wrap: string;
+};
+
+/**
+ * Help format configuration.
+ */
+type HelpConfig = {
+  /**
+   * The desired indentation level for each column.
+   */
+  readonly indent?: {
+    readonly names?: number;
+    readonly type?: number;
+    readonly desc?: number;
+  };
+  /**
+   * The number of line breaks to insert before each column.
+   */
+  readonly breaks?: {
+    readonly names?: number;
+    readonly type?: number;
+    readonly desc?: number;
+  };
+  /**
+   * The default option styles.
+   */
+  readonly styles?: Styles;
+};
+
+//--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+const defaultConfig: HelpConfig = {
+  indent: {
+    names: 2,
+    type: 2,
+    desc: 2,
+  },
+  breaks: {
+    names: 0,
+    type: 0,
+    desc: 0,
+  },
+  styles: {
+    type: [fg.brightBlack],
+  },
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -30,37 +85,67 @@ type HelpEntry = {
  */
 class HelpFormatter {
   private readonly entries: Array<HelpEntry> = [];
-  private readonly nameWidths: Array<number> = [];
-  private readonly nameWidth: number = 0;
+  private readonly namesWidth: number = 0;
   private readonly typeWidth: number = 0;
+  private readonly config: HelpConfig;
+  private readonly indent: HelpIndent;
 
   /**
    * Creates a help message formatter.
    * @param options The option definitions
-   * @param styles The default option styles
+   * @param config The format configuration
    */
   constructor(
-    options: Options,
-    private readonly styles = { type: [fg.brightBlack] },
+    private readonly options: Options,
+    config: HelpConfig = {},
   ) {
+    this.config = {
+      indent: Object.assign({}, defaultConfig.indent, config.indent),
+      breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
+      styles: Object.assign({}, defaultConfig.styles, config.styles),
+    };
+    const nameWidths = this.getNameWidths();
     for (const option of Object.values(options)) {
+      const names = HelpFormatter.formatNames(option, nameWidths);
+      const type = HelpFormatter.formatType(option);
+      const desc = this.formatDescription(option);
+      const styles = Object.assign({}, this.config.styles, option.styles);
+      this.entries.push({ names, type, desc, styles });
+      this.namesWidth = Math.max(this.namesWidth, names.length);
+      this.typeWidth = Math.max(this.typeWidth, type.length);
+    }
+    const breaks = {
+      names: '\n'.repeat(this.config.breaks!.names!),
+      type: '\n'.repeat(this.config.breaks!.type!),
+      desc: '\n'.repeat(this.config.breaks!.desc!),
+    };
+    const blanks = {
+      names: ' '.repeat(this.config.indent!.names! + this.namesWidth),
+      type: ' '.repeat(this.config.indent!.type! + this.typeWidth),
+    };
+    this.indent = {
+      names: breaks.names + ' '.repeat(this.config.indent!.names!),
+      type: (breaks.type ? breaks.type + blanks.names : '') + ' '.repeat(this.config.indent!.type!),
+      desc: (breaks.desc ? breaks.desc + blanks.type : '') + ' '.repeat(this.config.indent!.desc!),
+      wrap: ' '.repeat(blanks.names.length + blanks.type.length + this.config.indent!.desc!),
+    };
+  }
+
+  /**
+   * @returns The maximum width of each name
+   */
+  private getNameWidths(): Array<number> {
+    const result = new Array<number>();
+    for (const option of Object.values(this.options)) {
       option.names.forEach((name, i) => {
-        if (i == this.nameWidths.length) {
-          this.nameWidths.push(name.length);
-        } else if (name.length > this.nameWidths[i]) {
-          this.nameWidths[i] = name.length;
+        if (i == result.length) {
+          result.push(name.length);
+        } else if (name.length > result[i]) {
+          result[i] = name.length;
         }
       });
     }
-    for (const option of Object.values(options)) {
-      const name = this.formatName(option);
-      const type = HelpFormatter.formatType(option);
-      const desc = HelpFormatter.formatDescription(option);
-      const styles = Object.assign({}, this.styles, option.styles);
-      this.entries.push({ name, type, desc, styles });
-      this.nameWidth = Math.max(this.nameWidth, name.length);
-      this.typeWidth = Math.max(this.typeWidth, type.length);
-    }
+    return result;
   }
 
   /**
@@ -77,21 +162,22 @@ class HelpFormatter {
 
   /**
    * @param option The option definition
-   * @returns The formatted option name (or set of names)
+   * @param nameWidths The maximum width of each name
+   * @returns The formatted option names
    */
-  private formatName(option: Option): string {
-    function formatColumn(name: string, width: number, i: number) {
+  private static formatNames(option: Option, nameWidths: Array<number>): string {
+    function formatName(name: string, width: number, i: number) {
       const sep = name.length == 0 ? ' ' : i < option.names.length - 1 ? ',' : '';
       return name + sep + ' '.repeat(width - name.length);
     }
-    return option.names.map((name, i) => formatColumn(name, this.nameWidths[i], i)).join(' ');
+    return option.names.map((name, i) => formatName(name, nameWidths[i], i)).join(' ');
   }
 
   /**
    * @param option The option definition
    * @returns The formatted option description
    */
-  private static formatDescription(option: Option): string {
+  private formatDescription(option: Option): string {
     return [
       option.desc + (option.desc.endsWith('.') ? '' : '.'),
       isArray(option) ? ' Values are comma-separated.' : '',
@@ -99,45 +185,47 @@ class HelpFormatter {
       'enums' in option && option.enums ? ` Accepts values of [${option.enums}].` : '',
       'regex' in option && option.regex ? ` Accepts values matching ${String(option.regex)}.` : '',
       'range' in option && option.range ? ` Accepts values in the range [${option.range}].` : '',
+      'requiresAll' in option && option.requiresAll
+        ? ` Requires all of [${option.requiresAll.map((key) => this.getRequiredName(key))}].`
+        : '',
+      'requiresOne' in option && option.requiresOne
+        ? ` Requires one of [${option.requiresOne.map((key) => this.getRequiredName(key))}].`
+        : '',
       option.deprecated ? ` Deprecated for ${option.deprecated}.` : '',
     ].join('');
   }
 
   /**
-   * Formats a help message to be printed on the console.
-   * @param width The desired console width
-   * @returns The formatted help message
+   * @param key The required option key
+   * @returns The first valid name of the option
    */
-  formatHelp(width: number = process.stdout.columns): string {
-    const lines = new Array<string>();
-    for (const entry of this.entries) {
-      this.formatOption(lines, entry, width, '  ');
-    }
-    return resetStyle + lines.join('\n');
+  private getRequiredName(key: string) {
+    return this.options[key].names.find((name) => name)!;
   }
 
   /**
-   * Formats an option to be printed on the console.
-   * @param lines The help lines
-   * @param entry The option help entry
-   * @param width The desired console width
-   * @param indent The indentation at the start of the line
-   * @returns The formatted option
+   * Formats a help message to be printed on the console.
+   * @param consoleWidth The desired console width
+   * @returns The formatted help message
    */
-  private formatOption(lines: Array<string>, entry: HelpEntry, width: number, indent: string) {
-    function formatColumn(text: string, width: number, style?: Style) {
+  formatHelp(consoleWidth = process.stdout.columns): string {
+    function formatCol(indent: string, text: string, width: number, style?: Style) {
       return indent + applyAndReset(text, style) + ' '.repeat(width - text.length);
     }
-    const nameColumn = formatColumn(entry.name, this.nameWidth, entry.styles.name);
-    const typeColumn = formatColumn(entry.type, this.typeWidth, entry.styles.type);
-    const prefix = nameColumn + typeColumn + indent;
-    if (width <= this.nameWidth + this.typeWidth) {
-      // no space left: use native wrapping
-      lines.push(prefix + applyAndReset(entry.desc, entry.styles.desc));
-    } else {
-      const prefixLen = indent.length * 3 + this.nameWidth + this.typeWidth;
-      HelpFormatter.wrapDesc(lines, entry, width - prefixLen, prefix, ' '.repeat(prefixLen));
+    const lines = new Array<string>();
+    for (const entry of this.entries) {
+      const names = formatCol(this.indent.names, entry.names, this.namesWidth, entry.styles.names);
+      const type = formatCol(this.indent.type, entry.type, this.typeWidth, entry.styles.type);
+      const prefix = names + type + this.indent.desc;
+      if (this.indent.wrap.length >= consoleWidth) {
+        // no space left: use native wrapping
+        lines.push(prefix + applyAndReset(entry.desc, entry.styles.desc));
+      } else {
+        const width = consoleWidth - this.indent.wrap.length;
+        HelpFormatter.wrapDesc(lines, entry, width, prefix, this.indent.wrap);
+      }
     }
+    return resetStyle + lines.join('\n');
   }
 
   /**
