@@ -50,6 +50,16 @@ class ArgumentParser<T extends Options> {
         }
         this.nameToKey.set(name, key);
       }
+      if ('enums' in option && option.enums) {
+        const set = new Set<string | number>(option.enums);
+        if (set.size !== option.enums.length) {
+          for (const value of option.enums) {
+            if (!set.delete(value)) {
+              throw Error(`Option '${key}' has duplicate enum '${value}'.`);
+            }
+          }
+        }
+      }
       const requiredKeys = [
         ...('requiresAll' in option ? option.requiresAll ?? [] : []),
         ...('requiresOne' in option ? option.requiresOne ?? [] : []),

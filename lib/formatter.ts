@@ -5,7 +5,7 @@ import type { Option, Options, Styles } from './options.js';
 import type { Style } from './styles.js';
 
 import { isArray, isNiladic } from './options.js';
-import { applyAndReset, fg, resetStyle } from './styles.js';
+import { fg, isStyle, noStyle, StyledString } from './styles.js';
 
 export { type HelpConfig, HelpFormatter };
 
@@ -16,10 +16,9 @@ export { type HelpConfig, HelpFormatter };
  * Pre-computed information about an option.
  */
 type HelpEntry = {
-  readonly names: string;
-  readonly type: string;
-  readonly desc: string;
-  readonly styles: Styles;
+  readonly names: StyledString;
+  readonly type: StyledString;
+  readonly desc: StyledString;
 };
 
 /**
@@ -30,6 +29,13 @@ type HelpIndent = {
   readonly type: string;
   readonly desc: string;
   readonly wrap: string;
+};
+
+/**
+ * The styles for the help message.
+ */
+type HelpStyles = Styles & {
+  whitespace: Style;
 };
 
 /**
@@ -54,9 +60,9 @@ type HelpConfig = {
     readonly desc?: number;
   };
   /**
-   * The default option styles.
+   * The default styles.
    */
-  readonly styles?: Styles;
+  readonly styles?: HelpStyles;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -74,13 +80,20 @@ const defaultConfig: HelpConfig = {
     desc: 0,
   },
   styles: {
-    type: [fg.brightBlack],
+    names: [noStyle],
+    type: [noStyle, fg.brightBlack],
+    desc: [noStyle],
+    default: [noStyle, fg.green],
+    constraints: [noStyle, fg.cyan],
+    requires: [noStyle, fg.brightMagenta],
+    whitespace: [noStyle],
   },
 };
 
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
+
 /**
  * Implements formatting of help messages for predefined options.
  */
@@ -96,22 +109,19 @@ class HelpFormatter {
    * @param options The option definitions
    * @param config The format configuration
    */
-  constructor(
-    private readonly options: Options,
-    config: HelpConfig = {},
-  ) {
+  constructor(options: Options, config: HelpConfig = {}) {
     this.config = {
       indent: Object.assign({}, defaultConfig.indent, config.indent),
       breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
       styles: Object.assign({}, defaultConfig.styles, config.styles),
     };
-    const nameWidths = this.getNameWidths();
+    const nameWidths = HelpFormatter.getNameWidths(options);
     for (const option of Object.values(options)) {
-      const names = HelpFormatter.formatNames(option, nameWidths);
-      const type = HelpFormatter.formatType(option);
-      const desc = this.formatDescription(option);
       const styles = Object.assign({}, this.config.styles, option.styles);
-      this.entries.push({ names, type, desc, styles });
+      const names = HelpFormatter.formatNames(option, nameWidths, styles);
+      const type = HelpFormatter.formatType(option, styles);
+      const desc = HelpFormatter.formatDescription(option, options, styles);
+      this.entries.push({ names, type, desc });
       this.namesWidth = Math.max(this.namesWidth, names.length);
       this.typeWidth = Math.max(this.typeWidth, type.length);
     }
@@ -141,11 +151,12 @@ class HelpFormatter {
   }
 
   /**
+   * @param options The option definitions
    * @returns The maximum width of each name
    */
-  private getNameWidths(): Array<number> {
+  private static getNameWidths(options: Options): Array<number> {
     const result = new Array<number>();
-    for (const option of Object.values(this.options)) {
+    for (const option of Object.values(options)) {
       option.names.forEach((name, i) => {
         if (i == result.length) {
           result.push(name.length);
@@ -159,57 +170,111 @@ class HelpFormatter {
 
   /**
    * @param option The option definition
-   * @returns The formatted option type (or examples)
-   */
-  private static formatType(option: Option): string {
-    return 'example' in option
-      ? `'${option.example}'`
-      : isNiladic(option)
-        ? ''
-        : `[${option.type}]`;
-  }
-
-  /**
-   * @param option The option definition
-   * @param nameWidths The maximum width of each name
+   * @param widths The maximum width of each name
+   * @param styles The styles to apply
    * @returns The formatted option names
    */
-  private static formatNames(option: Option, nameWidths: Array<number>): string {
-    function formatName(name: string, width: number, i: number) {
-      const sep = name.length == 0 ? ' ' : i < option.names.length - 1 ? ',' : '';
-      return name + sep + ' '.repeat(width - name.length);
+  private static formatNames(
+    option: Option,
+    widths: Array<number>,
+    styles: HelpStyles,
+  ): StyledString {
+    const result = new StyledString();
+    let sep = '';
+    let prefix = '';
+    function formatName(name: string, width: number) {
+      if (name) {
+        if (sep || prefix) {
+          result.style(styles.whitespace).append(sep + prefix);
+        }
+        result.style(styles.names).append(name);
+        sep = ', ';
+      } else {
+        result.append(prefix);
+        sep = '  ';
+      }
+      prefix = ' '.repeat(width - name.length);
     }
-    return option.names.map((name, i) => formatName(name, nameWidths[i], i)).join(' ');
+    option.names.forEach((name, i) => formatName(name, widths[i]));
+    return result;
   }
 
   /**
    * @param option The option definition
-   * @returns The formatted option description
+   * @param styles The styles to apply
+   * @returns The formatted option type (or examples)
    */
-  private formatDescription(option: Option): string {
-    return [
-      option.desc + (option.desc.endsWith('.') ? '' : '.'),
-      isArray(option) ? ' Values are comma-separated.' : '',
-      'default' in option && option.type !== 'function' ? ` Defaults to '${option.default}'.` : '',
-      'enums' in option && option.enums ? ` Accepts values of [${option.enums}].` : '',
-      'regex' in option && option.regex ? ` Accepts values matching ${String(option.regex)}.` : '',
-      'range' in option && option.range ? ` Accepts values in the range [${option.range}].` : '',
-      'requiresAll' in option && option.requiresAll
-        ? ` Requires all of [${option.requiresAll.map((key) => this.getRequiredName(key))}].`
-        : '',
-      'requiresOne' in option && option.requiresOne
-        ? ` Requires one of [${option.requiresOne.map((key) => this.getRequiredName(key))}].`
-        : '',
-      option.deprecated ? ` Deprecated for ${option.deprecated}.` : '',
-    ].join('');
+  private static formatType(option: Option, styles: HelpStyles): StyledString {
+    const text =
+      'example' in option ? `'${option.example}'` : isNiladic(option) ? '' : `<${option.type}>`;
+    return new StyledString().style(text ? styles.type : []).append(text);
   }
 
   /**
-   * @param key The required option key
-   * @returns The first valid name of the option
+   * @param option The option definition
+   * @param options The option definitions
+   * @param styles The styles to apply
+   * @returns The formatted option description
    */
-  private getRequiredName(key: string) {
-    return this.options[key].names.find((name) => name)!;
+  private static formatDescription(
+    option: Option,
+    options: Options,
+    styles: HelpStyles,
+  ): StyledString {
+    function getRequiredName(key: string) {
+      return options[key].names.find((name) => name)!;
+    }
+    const result = new StyledString().style(styles.desc);
+    if (option.desc.length > 0) {
+      const desc = option.desc + (option.desc.endsWith('.') ? '' : '.');
+      result.append(...desc.split(' '));
+    }
+    if (isArray(option)) {
+      result.append('Values', 'are', 'comma-separated.');
+    }
+    if ('default' in option && option.type !== 'function') {
+      result.append('Defaults', 'to').style(styles.default).append(`'${option.default}'.`);
+    }
+    if ('enums' in option && option.enums) {
+      result
+        .style(styles.desc)
+        .append('Accepts', 'values', 'of')
+        .style(styles.constraints)
+        .append(`{${option.enums}}.`);
+    }
+    if ('regex' in option && option.regex) {
+      result
+        .style(styles.desc)
+        .append('Accepts', 'values', 'matching')
+        .style(styles.constraints)
+        .append(`${String(option.regex)}.`);
+    }
+    if ('range' in option && option.range) {
+      result
+        .style(styles.desc)
+        .append('Accepts', 'values', 'in', 'the', 'range')
+        .style(styles.constraints)
+        .append(`[${option.range}].`);
+    }
+    if ('requiresAll' in option && option.requiresAll) {
+      result
+        .style(styles.desc)
+        .append('Requires', 'all', 'of')
+        .style(styles.requires)
+        .append(`${option.requiresAll.map((key) => getRequiredName(key))}.`);
+    }
+    if ('requiresOne' in option && option.requiresOne) {
+      result
+        .style(styles.desc)
+        .append('Requires', 'one', 'of')
+        .style(styles.requires)
+        .append(`${option.requiresOne.map((key) => getRequiredName(key))}.`);
+    }
+    if (option.deprecated) {
+      const reason = option.deprecated + (option.deprecated.endsWith('.') ? '' : '.');
+      result.style(styles.desc).append('Deprecated', 'for', ...reason.split(' '));
+    }
+    return result;
   }
 
   /**
@@ -218,29 +283,38 @@ class HelpFormatter {
    * @returns The formatted help message
    */
   formatHelp(consoleWidth = process.stdout.columns): string {
-    function formatCol(indent: string, text: string, width: number, style?: Style) {
-      return indent + applyAndReset(text, style) + ' '.repeat(width - text.length);
+    function formatCol(line: StyledString, indent: string, text: StyledString, width: number) {
+      line
+        .append(indent)
+        .append(text.string)
+        .style(whitespaceStyle)
+        .append(' '.repeat(width - text.length));
     }
+
     const lines = new Array<string>();
+    const whitespaceStyle = this.config.styles!.whitespace;
+    const wrap = new StyledString().style(whitespaceStyle).append(this.indent.wrap).string;
+    const width = consoleWidth - this.indent.wrap.length;
     for (const entry of this.entries) {
-      const names = formatCol(this.indent.names, entry.names, this.namesWidth, entry.styles.names);
-      const type = formatCol(this.indent.type, entry.type, this.typeWidth, entry.styles.type);
-      const prefix = names + type + this.indent.desc;
+      const line = new StyledString().style(whitespaceStyle);
+      formatCol(line, this.indent.names, entry.names, this.namesWidth);
+      formatCol(line, this.indent.type, entry.type, this.typeWidth);
+      line.append(this.indent.desc);
+
       if (this.indent.wrap.length >= consoleWidth) {
         // no space left: use native wrapping
-        lines.push(prefix + applyAndReset(entry.desc, entry.styles.desc));
+        lines.push(line.string + entry.desc.strings.join(' '));
       } else {
-        const width = consoleWidth - this.indent.wrap.length;
-        HelpFormatter.wrapDesc(lines, entry, width, prefix, this.indent.wrap);
+        HelpFormatter.wrapDesc(lines, entry.desc, width, line.string, wrap);
       }
     }
-    return resetStyle + lines.join('\n');
+    return lines.join('\n') + noStyle;
   }
 
   /**
    * Wraps the option description to fit in the console.
    * @param lines The console lines
-   * @param entry The help entry
+   * @param desc The description
    * @param width The desired console width
    * @param prefix The prefix at the start of the first line
    * @param indent The indentation at the start of each wrapped line
@@ -248,22 +322,34 @@ class HelpFormatter {
    */
   private static wrapDesc(
     lines: Array<string>,
-    entry: HelpEntry,
+    desc: StyledString,
     width: number,
     prefix: string,
     indent: string,
   ) {
     let line = '';
-    for (const word of entry.desc.split(' ')) {
-      if (line.length + word.length < width) {
+    let style = '';
+    let space = '';
+    let length = 0;
+    for (const word of desc.strings) {
+      if (isStyle(word)) {
+        line += space + word;
+        length += space.length;
+        style = word;
+        space = '';
+      } else if (length + word.length < width) {
         // important: use strict less
-        line += (line ? ' ' : '') + word;
+        line += space + word;
+        length += space.length + word.length;
+        space = ' ';
       } else {
-        lines.push(prefix + applyAndReset(line, entry.styles.desc));
-        prefix = indent;
+        lines.push(prefix + line);
+        prefix = indent + style;
         line = word;
+        length = word.length;
+        space = ' ';
       }
     }
-    lines.push(prefix + applyAndReset(line, entry.styles.desc));
+    lines.push(prefix + line);
   }
 }

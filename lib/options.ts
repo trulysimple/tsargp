@@ -31,6 +31,9 @@ type Styles = {
   names?: Style;
   type?: Style;
   desc?: Style;
+  default?: Style;
+  constraints?: Style;
+  requires?: Style;
 };
 
 /**

@@ -2,12 +2,12 @@ import type { Options } from './options.js';
 
 import { describe, expect, it } from 'vitest';
 import { HelpFormatter } from './formatter.js';
-import { resetStyle } from './styles.js';
+import { noStyle } from './styles.js';
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
     it('should handle no options', () => {
-      expect(new HelpFormatter({}).formatHelp()).toEqual(resetStyle);
+      expect(new HelpFormatter({}).formatHelp()).toEqual(noStyle);
     });
 
     describe('fuction', () => {
@@ -21,7 +21,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
-        expect(message).toMatch(/-f, --function.+A function option\./s);
+        expect(message).toMatch(/-f.+,.+--function.+A function option\./s);
       });
     });
 
@@ -36,7 +36,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
-        expect(message).toMatch(/-b, --boolean.+A boolean option\. Deprecated for reason\./s);
+        expect(message).toMatch(/-b.+,.+--boolean.+A boolean option\..+Deprecated for reason\./s);
       });
 
       it('should handle a boolean option with requiresAll', () => {
@@ -60,7 +60,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-b,[ ]+--boolean.+A boolean option\. Requires all of \[req1,req2\]\./s,
+          /-b.+,.+--boolean.+A boolean option\..+Requires all of.+req1,req2\./s,
         );
       });
 
@@ -85,7 +85,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-b,[ ]+--boolean.+A boolean option\. Requires one of \[req1,req2\]\./s,
+          /-b.+,.+--boolean.+A boolean option\..+Requires one of.+req1,req2\./s,
         );
       });
     });
@@ -101,7 +101,9 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
-        expect(message).toMatch(/-s, --string.+\[string\].+A string option\. Defaults to '123'\./s);
+        expect(message).toMatch(
+          /-s.+,.+--string.+<string>.+A string option\..+Defaults to.+'123'\./s,
+        );
       });
 
       it('should handle a string option with an example value', () => {
@@ -114,7 +116,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
-        expect(message).toMatch(/-s, --string.+'123'.+A string option\./s);
+        expect(message).toMatch(/-s.+,.+--string.+'123'.+A string option\./s);
       });
 
       it('should handle a string option with enumeration constraint', () => {
@@ -128,7 +130,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-se, --stringEnum.+A string option\. Accepts values of \[one,two\]\./s,
+          /-se.+,.+--stringEnum.+A string option\..+Accepts values of.+\{one,two\}\./s,
         );
       });
 
@@ -143,7 +145,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-sr, --stringRegex.+\[string\].+A string option\. Accepts values matching \/\\d\+\/s\./s,
+          /-sr.+,.+--stringRegex.+<string>.+A string option\..+Accepts values matching.+\/\\d\+\/s\./s,
         );
       });
     });
@@ -159,7 +161,9 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
-        expect(message).toMatch(/-n, --number.+\[number\].+A number option\. Defaults to '123'\./s);
+        expect(message).toMatch(
+          /-n.+,.+--number.+<number>.+A number option\..+Defaults to.+'123'\./s,
+        );
       });
 
       it('should handle a number option with an example value', () => {
@@ -172,7 +176,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
-        expect(message).toMatch(/-n, --number.+'123'.+A number option\./s);
+        expect(message).toMatch(/-n.+,.+--number.+'123'.+A number option\./s);
       });
 
       it('should handle a number option with enumeration constraint', () => {
@@ -186,7 +190,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ne, --numberEnum.+A number option\. Accepts values of \[1,2\]\./s,
+          /-ne.+,.+--numberEnum.+A number option\..+Accepts values of.+\{1,2\}\./s,
         );
       });
 
@@ -201,7 +205,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-nr, --numberRange.+\[number\].+A number option\. Accepts values in the range.+\[0,Infinity\]\./s,
+          /-nr.+,.+--numberRange.+<number>.+A number option\..+Accepts values in the range.+\[0,Infinity\]\./s,
         );
       });
     });
@@ -218,7 +222,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ss, --strings.+\[strings\].+A strings option\. Values are comma-separated\..+Defaults to 'one,two'\./s,
+          /-ss.+,.+--strings.+<strings>.+A strings option\..+Values are comma-separated\..+Defaults to.+'one,two'\./s,
         );
       });
 
@@ -233,7 +237,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ss, --strings.+'one,two'.+A strings option\. Values are comma-separated\./s,
+          /-ss.+,.+--strings.+'one,two'.+A strings option\..+Values are comma-separated\./s,
         );
       });
 
@@ -248,7 +252,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-sse, --stringsEnum.+\[strings\].+A strings option\. Values are comma-separated\..+Accepts values of.+\[one,two\]\./s,
+          /-sse.+,.+--stringsEnum.+<strings>.+A strings option\..+Values are comma-separated\..+Accepts values of.+\{one,two\}\./s,
         );
       });
 
@@ -263,7 +267,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ssr, --stringsRegex.+\[strings\].+A strings option\. Values are comma-separated\..+Accepts values matching \/\\d\+\/s\./s,
+          /-ssr.+,.+--stringsRegex.+<strings>.+A strings option\..+Values are comma-separated\..+Accepts values matching.+\/\\d\+\/s\./s,
         );
       });
     });
@@ -280,7 +284,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ns, --numbers.+\[numbers\].+A numbers option\. Values are.+comma-separated\..+Defaults to '1,2'\./s,
+          /-ns.+,.+--numbers.+<numbers>.+A numbers option\..+Values are.+comma-separated\..+Defaults to.+'1,2'\./s,
         );
       });
 
@@ -295,7 +299,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ns, --numbers.+'1,2'.+A numbers option\. Values are.+comma-separated\./s,
+          /-ns.+,.+--numbers.+'1,2'.+A numbers option\..+Values are.+comma-separated\./s,
         );
       });
 
@@ -310,7 +314,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-nse, --numbersEnum.+\[numbers\].+A numbers option\. Values are comma-separated\..+Accepts values of.+\[1,2\]\./s,
+          /-nse.+,.+--numbersEnum.+<numbers>.+A numbers option\..+Values are comma-separated\..+Accepts values of.+\{1,2\}\./s,
         );
       });
 
@@ -325,7 +329,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-nsr, --numbersRange.+\[numbers\].+A numbers option\. Values are comma-separated\..+Accepts values in the range.+\[0,Infinity\]\./s,
+          /-nsr.+,.+--numbersRange.+<numbers>.+A numbers option\..+Values are comma-separated\..+Accepts values in the range.+\[0,Infinity\]\./s,
         );
       });
     });

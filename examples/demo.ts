@@ -1,28 +1,28 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { ArgumentParser, HelpFormatter, type Options, fg, tf, resetStyle } from 'tsargp';
+import { ArgumentParser, HelpFormatter, type Options, fg, tf, noStyle } from 'tsargp';
 import { dirname, join } from 'path';
 import { promises } from 'fs';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const usage = `${tf.bold}Argument parser for TypeScript.${resetStyle}
+const usage = `${tf.bold}Argument parser for TypeScript.${noStyle}
 
-  ${fg.yellow}tsargp ${fg.brightBlack}--help ${fg.green}# print help${fg.default}
+  ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}
 
-${tf.bold}Options:${resetStyle}
+${tf.bold}Options:${noStyle}
 
 `;
 
 const footer = `
 
 MIT License
-Copyright (c) 2024 ${fg.cyan}TrulySimple${fg.default}
+Copyright (c) 2024 ${tf.italic}${tf.bold}TrulySimple${noStyle}
 
-Report a bug: ${fg.brightBlack}https://github.com/trulysimple/tsargp/issues
-${resetStyle}`;
+Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues
+${noStyle}`;
 
 const options = {
   help: {
@@ -47,12 +47,12 @@ const options = {
   },
   boolean: {
     names: ['-b', '--boolean'],
-    desc: 'A boolean option with custom styling.',
+    desc: 'A deprecated boolean option with custom styling.',
     type: 'boolean',
     deprecated: 'some reason',
     styles: {
-      names: [fg.red],
-      desc: [tf.invert, tf.strike, tf.italic],
+      names: [noStyle, fg.red],
+      desc: [noStyle, tf.invert, tf.strike, tf.italic],
     },
   },
   stringRegex: {
@@ -112,13 +112,13 @@ const options = {
     example: [1, 1],
   },
   requiresAll: {
-    names: ['', '--requiresAll'],
+    names: ['-ra', ''],
     desc: 'An option that requires all of a set of other options',
     type: 'boolean',
     requiresAll: ['stringEnum', 'numberEnum'],
   },
   requiresOne: {
-    names: ['', '--requiresOne'],
+    names: ['-ro', ''],
     desc: 'An option that requires one of a set of other options',
     type: 'boolean',
     requiresOne: ['stringRegex', 'numberRange'],

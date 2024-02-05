@@ -3,12 +3,12 @@
 //--------------------------------------------------------------------------------------------------
 export type { Style };
 
-export { resetStyle, fg, bg, tf, ff, applyStyle, applyAndReset, resetAfter, resetBefore };
+export { noStyle, fg, bg, tf, ff, StyledString, isStyle };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const resetStyle = '\x1b[0m';
+const noStyle = '\x1b[0m';
 
 /**
  * The list of available foreground colors.
@@ -114,23 +114,41 @@ const enum ff {
 /**
  * A style for displaying text (on terminals that support it).
  */
-type Style = Array<fg | bg | tf | ff>;
+type Style = Array<fg | bg | tf | ff | typeof noStyle>;
+
+//--------------------------------------------------------------------------------------------------
+// Classes
+//--------------------------------------------------------------------------------------------------
+/**
+ * Implements concatenation of styled strings.
+ */
+class StyledString {
+  readonly strings = new Array<string>();
+
+  get string(): string {
+    return this.strings.join('');
+  }
+
+  get length(): number {
+    return this.strings.reduce((sum, str) => sum + (isStyle(str) ? 0 : str.length), 0);
+  }
+
+  style(style: Style = []): this {
+    if (style.length > 0) {
+      this.strings.push(style.join(''));
+    }
+    return this;
+  }
+
+  append(...texts: Array<string>): this {
+    this.strings.push(...texts);
+    return this;
+  }
+}
 
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
-function applyStyle(text: string, style: Style): string {
-  return style.join('') + text;
-}
-
-function applyAndReset(text: string, style: Style = []): string {
-  return resetAfter(applyStyle(text, style));
-}
-
-function resetAfter(text: string): string {
-  return text + resetStyle;
-}
-
-function resetBefore(text: string): string {
-  return resetStyle + text;
+function isStyle(text: string): boolean {
+  return text.startsWith('\x1b');
 }

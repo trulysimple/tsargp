@@ -10,7 +10,7 @@
 - Dependency between options and deprecation
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
-- Zero-dependency and small footprint (10KB minified)
+- Zero-dependency and small footprint (11KB minified)
 
 ## Demo
 

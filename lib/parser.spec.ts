@@ -421,6 +421,20 @@ describe('ArgumentParser', () => {
           `Invalid parameter to '-se': abc. Possible values are [one,two].`,
         );
       });
+
+      it('should throw an error on duplicate enumeration value', () => {
+        const options = {
+          stringEnum: {
+            names: ['-se'],
+            type: 'string',
+            desc: '',
+            enums: ['dup', 'dup'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'stringEnum' has duplicate enum 'dup'.`,
+        );
+      });
     });
 
     describe('number', () => {
@@ -558,6 +572,20 @@ describe('ArgumentParser', () => {
           `Invalid parameter to '-ne': 3. Possible values are [1,2].`,
         );
       });
+
+      it('should throw an error on duplicate enumeration value', () => {
+        const options = {
+          numberEnum: {
+            names: ['-ne'],
+            type: 'number',
+            desc: '',
+            enums: [1, 1],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'numberEnum' has duplicate enum '1'.`,
+        );
+      });
     });
 
     describe('strings', () => {
@@ -688,6 +716,20 @@ describe('ArgumentParser', () => {
           `Invalid parameter to '-sse': abc. Possible values are [one,two].`,
         );
       });
+
+      it('should throw an error on duplicate enumeration value', () => {
+        const options = {
+          stringsEnum: {
+            names: ['-sse'],
+            type: 'strings',
+            desc: '',
+            enums: ['dup', 'dup'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'stringsEnum' has duplicate enum 'dup'.`,
+        );
+      });
     });
 
     describe('numbers', () => {
@@ -815,6 +857,20 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         expect(() => new ArgumentParser(options).parse(['-nse', '3'])).toThrowError(
           `Invalid parameter to '-nse': 3. Possible values are [1,2].`,
+        );
+      });
+
+      it('should throw an error on duplicate enumeration value', () => {
+        const options = {
+          numbersEnum: {
+            names: ['-nse'],
+            type: 'numbers',
+            desc: '',
+            enums: [1, 1],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'numbersEnum' has duplicate enum '1'.`,
         );
       });
     });
