@@ -38,6 +38,7 @@ type HelpIndent = {
 type HelpConfig = {
   /**
    * The desired indentation level for each column.
+   * Negative numbers can be used in conjunction with line breaks to achieve a nesting effect.
    */
   readonly indent?: {
     readonly names?: number;
@@ -114,20 +115,28 @@ class HelpFormatter {
       this.namesWidth = Math.max(this.namesWidth, names.length);
       this.typeWidth = Math.max(this.typeWidth, type.length);
     }
+    const indent = {
+      names: ' '.repeat(Math.max(0, this.config.indent!.names!)),
+      type: ' '.repeat(Math.max(0, this.config.indent!.type!)),
+      desc: ' '.repeat(Math.max(0, this.config.indent!.desc!)),
+    };
     const breaks = {
       names: '\n'.repeat(this.config.breaks!.names!),
       type: '\n'.repeat(this.config.breaks!.type!),
       desc: '\n'.repeat(this.config.breaks!.desc!),
     };
+    const len0 = this.config.indent!.names!;
+    const len1 = this.namesWidth + this.config.indent!.type!;
+    const len2 = this.typeWidth + this.config.indent!.desc!;
     const blanks = {
-      names: ' '.repeat(this.config.indent!.names! + this.namesWidth),
-      type: ' '.repeat(this.config.indent!.type! + this.typeWidth),
+      type: ' '.repeat(Math.max(0, len0 + len1)),
+      desc: ' '.repeat(Math.max(0, len0 + len1 + len2)),
     };
     this.indent = {
-      names: breaks.names + ' '.repeat(this.config.indent!.names!),
-      type: (breaks.type ? breaks.type + blanks.names : '') + ' '.repeat(this.config.indent!.type!),
-      desc: (breaks.desc ? breaks.desc + blanks.type : '') + ' '.repeat(this.config.indent!.desc!),
-      wrap: ' '.repeat(blanks.names.length + blanks.type.length + this.config.indent!.desc!),
+      names: breaks.names + indent.names,
+      type: breaks.type ? breaks.type + blanks.type : indent.type,
+      desc: breaks.desc ? breaks.desc + blanks.desc : indent.desc,
+      wrap: blanks.desc,
     };
   }
 
