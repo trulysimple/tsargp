@@ -13,6 +13,7 @@ export type {
   StringsOption,
   NumbersOption,
   FunctionOption,
+  ArrayOption,
   NiladicOption,
   MonadicOption,
   ValuedOption,
@@ -225,17 +226,19 @@ type NumbersOption = WithAttributes<'numbers'> &
 
 /**
  * A callback for function options.
- * @template R The return type
  * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`)
  * @param args The remaining arguments
+ * @returns `null` to break the parsing loop
  */
-type Callback<R> = (values: OptionValues<Options>, args: Array<string>) => R;
+type Callback = (
+  values: OptionValues<Options>,
+  args: Array<string>,
+) => void | null | Promise<void | null>;
 
 /**
- * An option that executes a function. Return `null` to break the parsing loop.
+ * An option that executes a function.
  */
-type FunctionOption = WithAttributes<'function'> &
-  WithDefault<Callback<void | null | Promise<void | null>>>;
+type FunctionOption = WithAttributes<'function'> & WithDefault<Callback>;
 
 /**
  * An option that accepts no parameters.

@@ -8,17 +8,16 @@
 - Boolean, string, number and function types
 - Value constraints (enums, regex and range)
 - Arbitrary dependencies between options
-- Deprecation, multi-valued
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
-- Zero-dependency and small footprint (12KB minified)
+- Zero-dependency and small footprint
 
 ## Demo
 
 ```sh
 npm install -g tsargp
 tsargp -h  # print the help message
-tsargp     # see the options' default values
+tsargp     # see the default values
 tsargp ... # play with option values
 ```
 
@@ -31,7 +30,7 @@ npm install -D tsargp
 ```
 
 ```ts
-import { type Options, ArgumentParser } from 'tsargp';
+import * from 'tsargp';
 
 const options = {
   // define options' attributes...
