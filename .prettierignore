@@ -1,3 +1,4 @@
 .gitignore
 .prettierignore
-bun.lockb
+*.lockb
+*.dvc
