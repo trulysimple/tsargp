@@ -222,6 +222,21 @@ describe('HelpFormatter', () => {
     });
 
     describe('strings', () => {
+      it('should handle a strings option that can be specified multiple times', () => {
+        const options = {
+          strings: {
+            names: ['-ss', '--strings'],
+            desc: 'A strings option',
+            type: 'strings',
+            append: true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(80);
+        expect(message).toMatch(
+          /-ss.+,.+--strings.+<strings>.+A strings option\..+Values are comma-separated\..+May.*be specified multiple times\./s,
+        );
+      });
+
       it('should handle a strings option with a default value', () => {
         const options = {
           strings: {
@@ -283,7 +298,22 @@ describe('HelpFormatter', () => {
       });
     });
 
-    describe('strings', () => {
+    describe('numbers', () => {
+      it('should handle a numbers option that can be specified multiple times', () => {
+        const options = {
+          numbers: {
+            names: ['-ns', '--numbers'],
+            desc: 'A numbers option',
+            type: 'numbers',
+            append: true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(80);
+        expect(message).toMatch(
+          /-ns.+,.+--numbers.+<numbers>.+A numbers option\..+Values are comma-separated\..+May.*be specified multiple times\./s,
+        );
+      });
+
       it('should handle a numbers option with a default value', () => {
         const options = {
           numbers: {
@@ -295,7 +325,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ns.+,.+--numbers.+<numbers>.+A numbers option\..+Values are.+comma-separated\..+Defaults to.+'1,2'\./s,
+          /-ns.+,.+--numbers.+<numbers>.+A numbers option\..+Values are comma-separated\..+Defaults to.+'1,2'\./s,
         );
       });
 
@@ -310,7 +340,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-ns.+,.+--numbers.+'1,2'.+A numbers option\..+Values are.+comma-separated\./s,
+          /-ns.+,.+--numbers.+'1,2'.+A numbers option\..+Values are comma-separated\./s,
         );
       });
 

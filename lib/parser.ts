@@ -308,14 +308,14 @@ class ArgumentParser<T extends Options> {
         setValue(values, key, this.parseNumber(opt, name, value));
         break;
       case 'strings':
-        if ('multi' in opt && opt.multi) {
+        if ('append' in opt && opt.append) {
           appendValue(values, key, this.parseStrings(opt, name, value));
         } else {
           setValue(values, key, this.parseStrings(opt, name, value));
         }
         break;
       case 'numbers':
-        if ('multi' in opt && opt.multi) {
+        if ('append' in opt && opt.append) {
           appendValue(values, key, this.parseNumbers(opt, name, value));
         } else {
           setValue(values, key, this.parseNumbers(opt, name, value));

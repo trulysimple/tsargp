@@ -738,7 +738,7 @@ describe('ArgumentParser', () => {
             names: ['-ssm', '--stringsMulti'],
             desc: 'A mutiple strings option',
             type: 'strings',
-            multi: true,
+            append: true,
           },
         } as const satisfies Options;
         expect(new ArgumentParser(options).parse(['-ssm', 'one', '-ssm', 'two'])).toMatchObject({
@@ -898,7 +898,7 @@ describe('ArgumentParser', () => {
             names: ['-nsm', '--numbersMulti'],
             desc: 'A mutiple numbers option',
             type: 'numbers',
-            multi: true,
+            append: true,
           },
         } as const satisfies Options;
         expect(new ArgumentParser(options).parse(['-nsm', '1', '-nsm', '2'])).toMatchObject({

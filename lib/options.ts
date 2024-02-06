@@ -171,11 +171,11 @@ type WithRange = {
 /**
  * An option that can be specified multiple times.
  */
-type WithMulti = {
+type WithAppend = {
   /**
    * If true, allows appending values if specified multiple times.
    */
-  readonly multi: boolean;
+  readonly append: boolean;
 };
 
 /**
@@ -212,7 +212,7 @@ type StringsOption = WithAttributes<'strings'> &
   Optional<WithDefault<Array<string>>> &
   Optional<WithExample<Array<string>>> &
   Optional<WithEnums<string> | WithRegex> &
-  Optional<WithMulti>;
+  Optional<WithAppend>;
 
 /**
  * An option that accepts a comma-separated list of numbers.
@@ -221,7 +221,7 @@ type NumbersOption = WithAttributes<'numbers'> &
   Optional<WithDefault<Array<number>>> &
   Optional<WithExample<Array<number>>> &
   Optional<WithEnums<number> | WithRange> &
-  Optional<WithMulti>;
+  Optional<WithAppend>;
 
 /**
  * A callback for function options.

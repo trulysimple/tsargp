@@ -71,14 +71,14 @@ const options = {
   },
   stringEnum: {
     names: ['-se', '--stringEnum'],
-    desc: 'A string enumeration option with an example value',
+    desc: 'A string option with an example value and an enumeration constraint',
     type: 'string',
     enums: ['one', 'two'],
     example: 'one',
   },
   numberEnum: {
     names: ['-ne', '--numberEnum'],
-    desc: 'A number enumeration option with an example value',
+    desc: 'A number option with an example value and an enumeration constraint',
     type: 'number',
     enums: [1, 2],
     example: 1,
@@ -99,17 +99,19 @@ const options = {
   },
   stringsEnum: {
     names: ['', '--stringsEnum'],
-    desc: 'A strings enumeration option with an example value',
+    desc: 'A strings option with an example value and an enumeration constraint',
     type: 'strings',
     enums: ['one', 'two'],
     example: ['one', 'one'],
+    append: true,
   },
   numbersEnum: {
     names: ['', '--numbersEnum'],
-    desc: 'A numbers enumeration option with an example value',
+    desc: 'A numbers option with an example value and an enumeration constraint',
     type: 'numbers',
     enums: [1, 2],
     example: [1, 1],
+    append: true,
   },
   requires: {
     names: ['-req', ''],

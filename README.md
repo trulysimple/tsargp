@@ -7,10 +7,11 @@
 - Fully declarative style with type checking
 - Boolean, string, number and function types
 - Value constraints (enums, regex and range)
-- Dependency between options and deprecation
+- Arbitrary dependencies between options
+- Deprecation, multi-valued
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
-- Zero-dependency and small footprint (11KB minified)
+- Zero-dependency and small footprint (12KB minified)
 
 ## Demo
 
