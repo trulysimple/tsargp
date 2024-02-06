@@ -3,12 +3,12 @@
 //--------------------------------------------------------------------------------------------------
 export type { Style };
 
-export { noStyle, fg, bg, tf, ff, StyledString, isStyle };
+export { clearStyle, fg, bg, tf, ff, StyledString, isStyle };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const noStyle = '\x1b[0m';
+const clearStyle = '\x1b[0m';
 
 /**
  * The list of available foreground colors.
@@ -114,7 +114,7 @@ const enum ff {
 /**
  * A style for displaying text (on terminals that support it).
  */
-type Style = Array<fg | bg | tf | ff | typeof noStyle>;
+type Style = Array<fg | bg | tf | ff | typeof clearStyle>;
 
 //--------------------------------------------------------------------------------------------------
 // Classes

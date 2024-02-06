@@ -1,11 +1,11 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, Styles } from './options.js';
+import type { Option, Options, Requires, Styles } from './options.js';
 import type { Style } from './styles.js';
 
 import { isArray, isNiladic } from './options.js';
-import { fg, isStyle, noStyle, StyledString } from './styles.js';
+import { fg, isStyle, clearStyle, StyledString } from './styles.js';
 
 export { type HelpConfig, HelpFormatter };
 
@@ -80,13 +80,13 @@ const defaultConfig: HelpConfig = {
     desc: 0,
   },
   styles: {
-    names: [noStyle],
-    type: [noStyle, fg.brightBlack],
-    desc: [noStyle],
-    default: [noStyle, fg.green],
-    constraints: [noStyle, fg.cyan],
-    requires: [noStyle, fg.brightMagenta],
-    whitespace: [noStyle],
+    names: [clearStyle],
+    type: [clearStyle, fg.brightBlack],
+    desc: [clearStyle],
+    default: [clearStyle, fg.green],
+    constraints: [clearStyle, fg.cyan],
+    requires: [clearStyle, fg.brightMagenta],
+    whitespace: [clearStyle],
   },
 };
 
@@ -221,9 +221,6 @@ class HelpFormatter {
     options: Options,
     styles: HelpStyles,
   ): StyledString {
-    function getRequiredName(key: string) {
-      return options[key].names.find((name) => name)!;
-    }
     const result = new StyledString().style(styles.desc);
     if (option.desc.length > 0) {
       const desc = option.desc + (option.desc.endsWith('.') ? '' : '.');
@@ -256,25 +253,38 @@ class HelpFormatter {
         .style(styles.constraints)
         .append(`[${option.range}].`);
     }
-    if ('requiresAll' in option && option.requiresAll) {
+    if (option.requires) {
       result
         .style(styles.desc)
-        .append('Requires', 'all', 'of')
+        .append('Requires')
         .style(styles.requires)
-        .append(`${option.requiresAll.map((key) => getRequiredName(key))}.`);
-    }
-    if ('requiresOne' in option && option.requiresOne) {
-      result
-        .style(styles.desc)
-        .append('Requires', 'one', 'of')
-        .style(styles.requires)
-        .append(`${option.requiresOne.map((key) => getRequiredName(key))}.`);
+        .append(`${HelpFormatter.formatRequires(option.requires, options)}.`);
     }
     if (option.deprecated) {
       const reason = option.deprecated + (option.deprecated.endsWith('.') ? '' : '.');
       result.style(styles.desc).append('Deprecated', 'for', ...reason.split(' '));
     }
     return result;
+  }
+
+  /**
+   * @param requires The option requirements
+   * @param options The option definitions
+   * @returns The formatted requirements description
+   */
+  private static formatRequires(requires: Requires, options: Options): string {
+    function getRequiredName(key: string) {
+      return options[key].names.find((name) => name)!;
+    }
+    if (typeof requires === 'string') {
+      const [key, value] = requires.split('=');
+      if (value) {
+        return `${getRequiredName(key)}='${value}'`;
+      }
+      return getRequiredName(key);
+    }
+    const result = requires.items.map((item) => this.formatRequires(item, options));
+    return `(${result.join(` ${requires.op} `)})`;
   }
 
   /**
@@ -308,7 +318,7 @@ class HelpFormatter {
         HelpFormatter.wrapDesc(lines, entry.desc, width, line.string, wrap);
       }
     }
-    return lines.join('\n') + noStyle;
+    return lines.join('\n') + clearStyle;
   }
 
   /**
@@ -327,29 +337,29 @@ class HelpFormatter {
     prefix: string,
     indent: string,
   ) {
-    let line = '';
+    let line = new Array<string>();
     let style = '';
     let space = '';
     let length = 0;
     for (const word of desc.strings) {
       if (isStyle(word)) {
-        line += space + word;
+        line.push(space + word);
         length += space.length;
         style = word;
         space = '';
       } else if (length + word.length < width) {
         // important: use strict less
-        line += space + word;
+        line.push(space + word);
         length += space.length + word.length;
         space = ' ';
       } else {
-        lines.push(prefix + line);
+        lines.push(prefix + line.join(''));
         prefix = indent + style;
-        line = word;
+        line = [word];
         length = word.length;
         space = ' ';
       }
     }
-    lines.push(prefix + line);
+    lines.push(prefix + line.join(''));
   }
 }

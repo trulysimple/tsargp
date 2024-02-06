@@ -1,28 +1,28 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { ArgumentParser, HelpFormatter, type Options, fg, tf, noStyle } from 'tsargp';
+import { ArgumentParser, HelpFormatter, type Options, fg, tf, clearStyle, req } from 'tsargp';
 import { dirname, join } from 'path';
 import { promises } from 'fs';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const usage = `${tf.bold}Argument parser for TypeScript.${noStyle}
+const usage = `${tf.bold}Argument parser for TypeScript.${clearStyle}
 
   ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}
 
-${tf.bold}Options:${noStyle}
+${tf.bold}Options:${clearStyle}
 
 `;
 
 const footer = `
 
 MIT License
-Copyright (c) 2024 ${tf.italic}${tf.bold}TrulySimple${noStyle}
+Copyright (c) 2024 ${tf.italic}${tf.bold}TrulySimple${clearStyle}
 
 Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues
-${noStyle}`;
+${clearStyle}`;
 
 const options = {
   help: {
@@ -51,8 +51,8 @@ const options = {
     type: 'boolean',
     deprecated: 'some reason',
     styles: {
-      names: [noStyle, fg.red],
-      desc: [noStyle, tf.invert, tf.strike, tf.italic],
+      names: [clearStyle, fg.red],
+      desc: [clearStyle, tf.invert, tf.strike, tf.italic],
     },
   },
   stringRegex: {
@@ -60,7 +60,7 @@ const options = {
     desc: 'A string option with a default value and a regex constraint',
     type: 'string',
     regex: /\d+/s,
-    default: '123',
+    default: '123456789',
   },
   numberRange: {
     names: ['-n', '--numberRange'],
@@ -111,17 +111,15 @@ const options = {
     enums: [1, 2],
     example: [1, 1],
   },
-  requiresAll: {
-    names: ['-ra', ''],
-    desc: 'An option that requires all of a set of other options',
+  requires: {
+    names: ['-req', ''],
+    desc: 'An option that requires other options',
     type: 'boolean',
-    requiresAll: ['stringEnum', 'numberEnum'],
-  },
-  requiresOne: {
-    names: ['-ro', ''],
-    desc: 'An option that requires one of a set of other options',
-    type: 'boolean',
-    requiresOne: ['stringRegex', 'numberRange'],
+    requires: req.and(
+      'stringEnum=one',
+      'numberEnum=2',
+      req.or('stringsRegex=a,b', 'numbersRange=3,4'),
+    ),
   },
 } as const satisfies Options;
 
@@ -138,8 +136,7 @@ interface CommandOptions {
   get numbersRange(): Array<number>;
   get stringsEnum(): Array<'one' | 'two'> | undefined;
   get numbersEnum(): Array<1 | 2> | undefined;
-  get requiresAll(): boolean;
-  get requiresOne(): boolean;
+  get requires(): boolean;
 }
 
 //--------------------------------------------------------------------------------------------------

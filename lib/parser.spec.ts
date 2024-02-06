@@ -1,4 +1,4 @@
-import type { Options } from './options.js';
+import { req, type Options } from './options.js';
 
 import { describe, expect, it } from 'vitest';
 import { ArgumentParser } from './parser.js';
@@ -35,164 +35,238 @@ describe('ArgumentParser', () => {
       );
     });
 
-    it('should throw an error on duplicate option name in the same option', () => {
-      const options = {
-        duplicate: {
-          names: ['dup', 'dup'],
-          type: 'string',
-          desc: '',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrowError(`Duplicate option name 'dup'.`);
+    describe('duplicates', () => {
+      it('should throw an error on duplicate option name in the same option', () => {
+        const options = {
+          duplicate: {
+            names: ['dup', 'dup'],
+            type: 'string',
+            desc: '',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(`Duplicate option name 'dup'.`);
+      });
+
+      it('should throw an error on duplicate option name across different options', () => {
+        const options = {
+          duplicate1: {
+            names: ['dup'],
+            type: 'string',
+            desc: '',
+          },
+          duplicate2: {
+            names: ['dup'],
+            type: 'string',
+            desc: '',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(`Duplicate option name 'dup'.`);
+      });
+
+      it('should throw an error on duplicate enumeration value in string option', () => {
+        const options = {
+          stringEnum: {
+            names: ['-se'],
+            type: 'string',
+            desc: '',
+            enums: ['dup', 'dup'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'stringEnum' has duplicate enum 'dup'.`,
+        );
+      });
+
+      it('should throw an error on duplicate enumeration value in number option', () => {
+        const options = {
+          numberEnum: {
+            names: ['-ne'],
+            type: 'number',
+            desc: '',
+            enums: [1, 1],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'numberEnum' has duplicate enum '1'.`,
+        );
+      });
+
+      it('should throw an error on duplicate enumeration value in strings option', () => {
+        const options = {
+          stringsEnum: {
+            names: ['-sse'],
+            type: 'strings',
+            desc: '',
+            enums: ['dup', 'dup'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'stringsEnum' has duplicate enum 'dup'.`,
+        );
+      });
+
+      it('should throw an error on duplicate enumeration value in numbers option', () => {
+        const options = {
+          numbersEnum: {
+            names: ['-nse'],
+            type: 'numbers',
+            desc: '',
+            enums: [1, 1],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'numbersEnum' has duplicate enum '1'.`,
+        );
+      });
     });
 
-    it('should throw an error on duplicate option name across different options', () => {
-      const options = {
-        duplicate1: {
-          names: ['dup'],
-          type: 'string',
-          desc: '',
-        },
-        duplicate2: {
-          names: ['dup'],
-          type: 'string',
-          desc: '',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrowError(`Duplicate option name 'dup'.`);
+    describe('requires', () => {
+      it('should throw an error on unknown required option', () => {
+        const options = {
+          requires: {
+            names: ['req1'],
+            type: 'string',
+            desc: '',
+            requires: req.and('required=o', req.or('unknown=o')),
+          },
+          required: {
+            names: ['req2'],
+            type: 'string',
+            desc: '',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Unknown required option 'unknown'.`,
+        );
+      });
+
+      it('should throw an error on option required by itself', () => {
+        const options = {
+          requires: {
+            names: ['req1'],
+            type: 'string',
+            desc: '',
+            requires: req.and('required=o', req.or('requires=o')),
+          },
+          required: {
+            names: ['req2'],
+            type: 'string',
+            desc: '',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Option 'requires' requires itself.`,
+        );
+      });
+
+      it('should throw an error on boolean option required with a value', () => {
+        const options = {
+          requires: {
+            names: ['req1'],
+            type: 'string',
+            desc: '',
+            requires: 'required=true',
+          },
+          required: {
+            names: ['req2'],
+            type: 'boolean',
+            desc: '',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Required option 'required' does not accept values.`,
+        );
+      });
+
+      it('should throw an error on function option required with a value', () => {
+        const options = {
+          requires: {
+            names: ['req1'],
+            type: 'string',
+            desc: '',
+            requires: 'required=abc',
+          },
+          required: {
+            names: ['req2'],
+            type: 'function',
+            desc: '',
+            default: () => {},
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Required option 'required' does not accept values.`,
+        );
+      });
     });
-  });
-
-  it('should throw an error on unknown required option with requiresAll', () => {
-    const options = {
-      requires: {
-        names: ['req'],
-        type: 'string',
-        desc: '',
-        requiresAll: ['required'],
-      },
-    } as const satisfies Options;
-    expect(() => new ArgumentParser(options)).toThrowError(`Unknown required option 'required'.`);
-  });
-
-  it('should throw an error on unknown required option with requiresOne', () => {
-    const options = {
-      requires: {
-        names: ['req'],
-        type: 'string',
-        desc: '',
-        requiresOne: ['required'],
-      },
-    } as const satisfies Options;
-    expect(() => new ArgumentParser(options)).toThrowError(`Unknown required option 'required'.`);
-  });
-
-  it('should throw an error on option required by itself with requiresAll', () => {
-    const options = {
-      requires: {
-        names: ['req'],
-        type: 'string',
-        desc: '',
-        requiresAll: ['requires'],
-      },
-    } as const satisfies Options;
-    expect(() => new ArgumentParser(options)).toThrowError(`Option 'requires' requires itself.`);
-  });
-
-  it('should throw an error on option required by itself with requiresOne', () => {
-    const options = {
-      requires: {
-        names: ['req'],
-        type: 'string',
-        desc: '',
-        requiresOne: ['requires'],
-      },
-    } as const satisfies Options;
-    expect(() => new ArgumentParser(options)).toThrowError(`Option 'requires' requires itself.`);
   });
 
   describe('parse', () => {
     it('should throw an error on unknown option name specified in arguments', () => {
-      const options = {
-        unknown: {
-          names: ['unknown'],
-          type: 'string',
-          desc: '',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options).parse(['abc'])).toThrowError(
-        `Unknown option 'abc'.`,
-      );
+      expect(() => new ArgumentParser({}).parse(['abc'])).toThrowError(`Unknown option 'abc'.`);
     });
 
-    it('should throw an error on monadic option with no parameter specified in arguments', () => {
-      const options = {
-        monadic: {
-          names: ['--monadic'],
-          type: 'string',
-          desc: '',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options).parse(['--monadic'])).toThrowError(
-        `Missing parameter to '--monadic'.`,
-      );
-    });
-
-    it('should throw an error when required option with requiresAll is not specified', () => {
+    it('should throw an error when required option is not specified', () => {
       const options = {
         requires: {
-          names: ['req1'],
+          names: ['req0'],
           type: 'boolean',
           desc: '',
-          requiresAll: ['required1', 'required2'],
+          requires: req.and(
+            'required1',
+            'required2',
+            req.or('required3= a, b ', 'required3= b, a '),
+          ),
         },
         required1: {
-          names: ['req2'],
+          names: ['req1'],
           type: 'boolean',
           desc: '',
         },
         required2: {
-          names: ['req3'],
-          type: 'boolean',
-          desc: '',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options).parse(['req1'])).toThrowError(
-        `Option 'req1' requires option 'req2'.`,
-      );
-      expect(() => new ArgumentParser(options).parse(['req1', 'req2'])).toThrowError(
-        `Option 'req1' requires option 'req3'.`,
-      );
-      expect(() => new ArgumentParser(options).parse(['req1', 'req2', 'req3'])).not.toThrowError();
-    });
-
-    it('should throw an error when required option with requiresOne is not specified', () => {
-      const options = {
-        requires: {
-          names: ['req1'],
-          type: 'boolean',
-          desc: '',
-          requiresOne: ['required1', 'required2'],
-        },
-        required1: {
           names: ['req2'],
-          type: 'boolean',
+          type: 'function',
           desc: '',
+          default: () => {},
         },
-        required2: {
+        required3: {
           names: ['req3'],
-          type: 'boolean',
+          type: 'strings',
           desc: '',
         },
       } as const satisfies Options;
-      expect(() => new ArgumentParser(options).parse(['req1'])).toThrowError(
-        `Option 'req1' requires one of [req2,req3].`,
+      expect(() => new ArgumentParser(options).parse([])).not.toThrowError();
+      expect(() => new ArgumentParser(options).parse(['req0'])).toThrowError(
+        `Option 'req0' requires req1.`,
       );
-      expect(() => new ArgumentParser(options).parse(['req1', 'req2'])).not.toThrowError();
-      expect(() => new ArgumentParser(options).parse(['req1', 'req3'])).not.toThrowError();
+      expect(() => new ArgumentParser(options).parse(['req0', 'req1'])).toThrowError(
+        `Option 'req0' requires req2.`,
+      );
+      expect(() => new ArgumentParser(options).parse(['req0', 'req1', 'req2'])).toThrowError(
+        `Option 'req0' requires req3.`,
+      );
+      expect(() =>
+        new ArgumentParser(options).parse(['req0', 'req1', 'req2', 'req3', 'c']),
+      ).toThrowError(`Option 'req0' requires req3='a,b' (was 'c') or req3='b,a' (was 'c').`);
+      expect(() =>
+        new ArgumentParser(options).parse(['req0', 'req1', 'req2', 'req3', 'a,b']),
+      ).not.toThrowError();
     });
 
     describe('fuction', () => {
+      it('should throw an error on function option specified with value', () => {
+        const options = {
+          function: {
+            names: ['-f', '--function'],
+            desc: 'A function option',
+            type: 'function',
+            default: () => {},
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f=a'])).toThrowError(
+          `Option '-f' does not accept any value.`,
+        );
+      });
+
       it('should handle a function option', () => {
         const options = {
           function: {
@@ -272,6 +346,19 @@ describe('ArgumentParser', () => {
     });
 
     describe('boolean', () => {
+      it('should throw an error on boolean option specified with value', () => {
+        const options = {
+          function: {
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            type: 'boolean',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-b=a'])).toThrowError(
+          `Option '-b' does not accept any value.`,
+        );
+      });
+
       it('should handle a boolean option', () => {
         const options = {
           boolean: {
@@ -287,6 +374,19 @@ describe('ArgumentParser', () => {
     });
 
     describe('string', () => {
+      it('should throw an error on string option with missing parameter', () => {
+        const options = {
+          monadic: {
+            names: ['-s', '--string'],
+            desc: 'A string option',
+            type: 'string',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-s'])).toThrowError(
+          `Missing parameter to '-s'.`,
+        );
+      });
+
       it('should handle a string option with default and example values', () => {
         const options = {
           string: {
@@ -300,6 +400,7 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse([])).toMatchObject({ string: '123' });
         expect(new ArgumentParser(options).parse(['-s', '789'])).toMatchObject({ string: '789' });
         expect(new ArgumentParser(options).parse(['--string', ''])).toMatchObject({ string: '' });
+        expect(new ArgumentParser(options).parse(['-s=1', '-s=2'])).toMatchObject({ string: '2' });
       });
 
       it('should handle a string option with a regex constraint', () => {
@@ -421,23 +522,22 @@ describe('ArgumentParser', () => {
           `Invalid parameter to '-se': abc. Possible values are [one,two].`,
         );
       });
-
-      it('should throw an error on duplicate enumeration value', () => {
-        const options = {
-          stringEnum: {
-            names: ['-se'],
-            type: 'string',
-            desc: '',
-            enums: ['dup', 'dup'],
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrowError(
-          `Option 'stringEnum' has duplicate enum 'dup'.`,
-        );
-      });
     });
 
     describe('number', () => {
+      it('should throw an error on number option with missing parameter', () => {
+        const options = {
+          monadic: {
+            names: ['-n', '--number'],
+            desc: 'A number option',
+            type: 'number',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-n'])).toThrowError(
+          `Missing parameter to '-n'.`,
+        );
+      });
+
       it('should handle a number option with default and example values', () => {
         const options = {
           number: {
@@ -451,6 +551,7 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse([])).toMatchObject({ number: 123 });
         expect(new ArgumentParser(options).parse(['-n', '789'])).toMatchObject({ number: 789 });
         expect(new ArgumentParser(options).parse(['--number', '0'])).toMatchObject({ number: 0 });
+        expect(new ArgumentParser(options).parse(['-n=1', '-n=2'])).toMatchObject({ number: 2 });
       });
 
       it('should handle a number option with a range constraint', () => {
@@ -572,23 +673,22 @@ describe('ArgumentParser', () => {
           `Invalid parameter to '-ne': 3. Possible values are [1,2].`,
         );
       });
-
-      it('should throw an error on duplicate enumeration value', () => {
-        const options = {
-          numberEnum: {
-            names: ['-ne'],
-            type: 'number',
-            desc: '',
-            enums: [1, 1],
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrowError(
-          `Option 'numberEnum' has duplicate enum '1'.`,
-        );
-      });
     });
 
     describe('strings', () => {
+      it('should throw an error on strings option with missing parameter', () => {
+        const options = {
+          monadic: {
+            names: ['-ss', '--strings'],
+            desc: 'A strings option',
+            type: 'strings',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-ss'])).toThrowError(
+          `Missing parameter to '-ss'.`,
+        );
+      });
+
       it('should handle a strings option with default and example values', () => {
         const options = {
           strings: {
@@ -605,6 +705,9 @@ describe('ArgumentParser', () => {
         });
         expect(new ArgumentParser(options).parse(['--strings', '   '])).toMatchObject({
           strings: [],
+        });
+        expect(new ArgumentParser(options).parse(['-ss=one', '-ss=two'])).toMatchObject({
+          strings: ['two'],
         });
       });
 
@@ -626,6 +729,20 @@ describe('ArgumentParser', () => {
         });
         expect(new ArgumentParser(options).parse(['--stringsEnum', '   '])).toMatchObject({
           stringsEnum: [],
+        });
+      });
+
+      it('should handle a strings option specified multiple times', () => {
+        const options = {
+          strings: {
+            names: ['-ssm', '--stringsMulti'],
+            desc: 'A mutiple strings option',
+            type: 'strings',
+            multi: true,
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-ssm', 'one', '-ssm', 'two'])).toMatchObject({
+          strings: ['one', 'two'],
         });
       });
 
@@ -716,23 +833,22 @@ describe('ArgumentParser', () => {
           `Invalid parameter to '-sse': abc. Possible values are [one,two].`,
         );
       });
-
-      it('should throw an error on duplicate enumeration value', () => {
-        const options = {
-          stringsEnum: {
-            names: ['-sse'],
-            type: 'strings',
-            desc: '',
-            enums: ['dup', 'dup'],
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrowError(
-          `Option 'stringsEnum' has duplicate enum 'dup'.`,
-        );
-      });
     });
 
     describe('numbers', () => {
+      it('should throw an error on numbers option with missing parameter', () => {
+        const options = {
+          monadic: {
+            names: ['-ns', '--numbers'],
+            desc: 'A numbers option',
+            type: 'numbers',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-ns'])).toThrowError(
+          `Missing parameter to '-ns'.`,
+        );
+      });
+
       it('should handle a numbers option with default and example values', () => {
         const options = {
           numbers: {
@@ -749,6 +865,9 @@ describe('ArgumentParser', () => {
         });
         expect(new ArgumentParser(options).parse(['--numbers', '   '])).toMatchObject({
           numbers: [],
+        });
+        expect(new ArgumentParser(options).parse(['-ns=456', '-ns=123'])).toMatchObject({
+          numbers: [123],
         });
       });
 
@@ -770,6 +889,20 @@ describe('ArgumentParser', () => {
         });
         expect(new ArgumentParser(options).parse(['--numbersEnum', '   '])).toMatchObject({
           numbersEnum: [],
+        });
+      });
+
+      it('should handle a numbers option specified multiple times', () => {
+        const options = {
+          numbers: {
+            names: ['-nsm', '--numbersMulti'],
+            desc: 'A mutiple numbers option',
+            type: 'numbers',
+            multi: true,
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-nsm', '1', '-nsm', '2'])).toMatchObject({
+          numbers: [1, 2],
         });
       });
 
@@ -857,20 +990,6 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         expect(() => new ArgumentParser(options).parse(['-nse', '3'])).toThrowError(
           `Invalid parameter to '-nse': 3. Possible values are [1,2].`,
-        );
-      });
-
-      it('should throw an error on duplicate enumeration value', () => {
-        const options = {
-          numbersEnum: {
-            names: ['-nse'],
-            type: 'numbers',
-            desc: '',
-            enums: [1, 1],
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrowError(
-          `Option 'numbersEnum' has duplicate enum '1'.`,
         );
       });
     });

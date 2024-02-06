@@ -16,10 +16,23 @@ export type {
   NiladicOption,
   MonadicOption,
   ValuedOption,
+  Requires,
   Styles,
 };
 
-export { isNiladic, isArray, setValue };
+export { req, isNiladic, isArray, setValue, appendValue };
+
+//--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+const req = {
+  and(...items: Array<Requires>): Requires {
+    return { items, op: 'and' };
+  },
+  or(...items: Array<Requires>): Requires {
+    return { items, op: 'or' };
+  },
+} as const;
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -35,6 +48,22 @@ type Styles = {
   constraints?: Style;
   requires?: Style;
 };
+
+/**
+ * A requires constraint can be a key-value pair or an array of nested requires.
+ */
+type Requires =
+  | string
+  | {
+      /**
+       * The required options.
+       */
+      readonly items: Array<Requires>;
+      /**
+       * The logical operator.
+       */
+      readonly op: 'and' | 'or';
+    };
 
 /**
  * An option with basic attributes.
@@ -64,6 +93,10 @@ type WithAttributes<T> = {
    * The option deprecation reason.
    */
   readonly deprecated?: string;
+  /**
+   * The option requirements.
+   */
+  readonly requires?: Requires;
 };
 
 /**
@@ -112,7 +145,7 @@ type WithEnums<T> = {
  */
 type WithRegex = {
   /**
-   * The option regex.
+   * The option regular expression.
    */
   readonly regex: RegExp;
   /**
@@ -126,7 +159,7 @@ type WithRegex = {
  */
 type WithRange = {
   /**
-   * The option regex.
+   * The option numeric range.
    */
   readonly range: [number, number];
   /**
@@ -136,31 +169,13 @@ type WithRange = {
 };
 
 /**
- * An option with a requiresOne constraint.
+ * An option that can be specified multiple times.
  */
-type WithRequiresOne = {
+type WithMulti = {
   /**
-   * The options required by this option.
+   * If true, allows appending values if specified multiple times.
    */
-  readonly requiresOne: Array<string>;
-  /**
-   * @deprecated mutually exclusive property
-   */
-  readonly requiresAll?: never;
-};
-
-/**
- * An option with a requiresAll constraint.
- */
-type WithRequiresAll = {
-  /**
-   * The options required by this option.
-   */
-  readonly requiresAll: Array<string>;
-  /**
-   * @deprecated mutually exclusive property
-   */
-  readonly requiresOne?: never;
+  readonly multi: boolean;
 };
 
 /**
@@ -172,7 +187,7 @@ type Optional<T extends object> = T | Record<never, never>;
 /**
  * An flag which is enabled if specified. Always defaults to false.
  */
-type BooleanOption = WithAttributes<'boolean'> & Optional<WithRequiresOne | WithRequiresAll>;
+type BooleanOption = WithAttributes<'boolean'>;
 
 /**
  * An option that accepts a single string value.
@@ -180,8 +195,7 @@ type BooleanOption = WithAttributes<'boolean'> & Optional<WithRequiresOne | With
 type StringOption = WithAttributes<'string'> &
   Optional<WithDefault<string>> &
   Optional<WithExample<string>> &
-  Optional<WithEnums<string> | WithRegex> &
-  Optional<WithRequiresOne | WithRequiresAll>;
+  Optional<WithEnums<string> | WithRegex>;
 
 /**
  * An option that accepts a single number value.
@@ -189,8 +203,7 @@ type StringOption = WithAttributes<'string'> &
 type NumberOption = WithAttributes<'number'> &
   Optional<WithDefault<number>> &
   Optional<WithExample<number>> &
-  Optional<WithEnums<number> | WithRange> &
-  Optional<WithRequiresOne | WithRequiresAll>;
+  Optional<WithEnums<number> | WithRange>;
 
 /**
  * An option that accepts a comma-separated list of strings.
@@ -199,7 +212,7 @@ type StringsOption = WithAttributes<'strings'> &
   Optional<WithDefault<Array<string>>> &
   Optional<WithExample<Array<string>>> &
   Optional<WithEnums<string> | WithRegex> &
-  Optional<WithRequiresOne | WithRequiresAll>;
+  Optional<WithMulti>;
 
 /**
  * An option that accepts a comma-separated list of numbers.
@@ -208,7 +221,7 @@ type NumbersOption = WithAttributes<'numbers'> &
   Optional<WithDefault<Array<number>>> &
   Optional<WithExample<Array<number>>> &
   Optional<WithEnums<number> | WithRange> &
-  Optional<WithRequiresOne | WithRequiresAll>;
+  Optional<WithMulti>;
 
 /**
  * A callback for function options.
@@ -222,25 +235,22 @@ type Callback<R> = (values: OptionValues<Options>, args: Array<string>) => R;
  * An option that executes a function. Return `null` to break the parsing loop.
  */
 type FunctionOption = WithAttributes<'function'> &
-  WithDefault<Callback<void | null>> &
-  Optional<WithRequiresOne | WithRequiresAll>;
-
-/**
- * An option that executes an asynchronous function. Return `null` to break the parsing loop.
- */
-type AsyncFunctionOption = WithAttributes<'function'> &
-  WithDefault<Callback<Promise<void | null>>> &
-  Optional<WithRequiresOne | WithRequiresAll>;
+  WithDefault<Callback<void | null | Promise<void | null>>>;
 
 /**
  * An option that accepts no parameters.
  */
-type NiladicOption = BooleanOption | FunctionOption | AsyncFunctionOption;
+type NiladicOption = BooleanOption | FunctionOption;
+
+/**
+ * An option that represents an array of values.
+ */
+type ArrayOption = StringsOption | NumbersOption;
 
 /**
  * An option that accepts a single parameter.
  */
-type MonadicOption = StringOption | NumberOption | StringsOption | NumbersOption;
+type MonadicOption = StringOption | NumberOption | ArrayOption;
 
 /**
  * An option that has a value.
@@ -301,7 +311,7 @@ type NumbersDataType<T extends NumbersOption> =
  * The data type of an option that has a value.
  * @template T The actual type of the option
  */
-type OptionDataType<T extends Option = ValuedOption> = T extends BooleanOption
+type OptionDataType<T extends Option> = T extends BooleanOption
   ? boolean
   : T extends StringOption
     ? StringDataType<T>
@@ -328,11 +338,29 @@ function isNiladic(option: Option): option is NiladicOption {
   return option.type === 'boolean' || option.type === 'function';
 }
 
-function isArray(option: Option): option is StringsOption | NumbersOption {
+function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
 }
 
-function setValue<T extends Options>(values: OptionValues<T>, key: keyof T, value: OptionDataType) {
+function setValue<T extends Options>(
+  values: OptionValues<T>,
+  key: keyof T,
+  value: OptionDataType<ValuedOption>,
+) {
   type Values = OptionValues<Readonly<Record<string, ValuedOption>>>;
   (values as Values)[key as keyof Values] = value;
+}
+
+function appendValue<T extends Options>(
+  values: OptionValues<T>,
+  key: keyof T,
+  value: Exclude<OptionDataType<ArrayOption>, undefined>,
+) {
+  type Values = OptionValues<Readonly<Record<string, ArrayOption>>>;
+  const previousValue = (values as Values)[key as keyof Values];
+  if (previousValue) {
+    (previousValue as Array<string | number>).push(...value);
+  } else {
+    (values as Values)[key as keyof Values] = value;
+  }
 }

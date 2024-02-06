@@ -1,13 +1,13 @@
-import type { Options } from './options.js';
+import { req, type Options } from './options.js';
 
 import { describe, expect, it } from 'vitest';
 import { HelpFormatter } from './formatter.js';
-import { noStyle } from './styles.js';
+import { clearStyle } from './styles.js';
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
     it('should handle no options', () => {
-      expect(new HelpFormatter({}).formatHelp()).toEqual(noStyle);
+      expect(new HelpFormatter({}).formatHelp()).toEqual(clearStyle);
     });
 
     describe('fuction', () => {
@@ -39,53 +39,64 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(/-b.+,.+--boolean.+A boolean option\..+Deprecated for reason\./s);
       });
 
-      it('should handle a boolean option with requiresAll', () => {
+      it('should handle a boolean option with a single required option', () => {
         const options = {
           boolean: {
             names: ['-b', '--boolean'],
             desc: 'A boolean option',
             type: 'boolean',
-            requiresAll: ['required1', 'required2'],
+            requires: 'required',
           },
-          required1: {
-            names: ['req1'],
-            desc: '',
-            type: 'boolean',
-          },
-          required2: {
-            names: ['req2'],
+          required: {
+            names: ['-req', '--req'],
             desc: '',
             type: 'boolean',
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
-        expect(message).toMatch(
-          /-b.+,.+--boolean.+A boolean option\..+Requires all of.+req1,req2\./s,
-        );
+        expect(message).toMatch(/-b.+,.+--boolean.+A boolean option\..+Requires.+-req\./s);
       });
 
-      it('should handle a boolean option with requiresOne', () => {
+      it('should handle a boolean option with a single required option with a value', () => {
         const options = {
           boolean: {
             names: ['-b', '--boolean'],
             desc: 'A boolean option',
             type: 'boolean',
-            requiresOne: ['required1', 'required2'],
+            requires: 'required=abc',
+          },
+          required: {
+            names: ['-req', '--req'],
+            desc: '',
+            type: 'string',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(80);
+        expect(message).toMatch(/-b.+,.+--boolean.+A boolean option\..+Requires.+-req='abc'\./s);
+      });
+
+      it('should handle a boolean option with many required options with values', () => {
+        const options = {
+          boolean: {
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            type: 'boolean',
+            requires: req.and('required1', req.or('required2=1', 'required2=2')),
           },
           required1: {
-            names: ['req1'],
+            names: ['-req1', '--req1'],
             desc: '',
             type: 'boolean',
           },
           required2: {
-            names: ['req2'],
+            names: ['-req2', '--req2'],
             desc: '',
-            type: 'boolean',
+            type: 'number',
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(80);
         expect(message).toMatch(
-          /-b.+,.+--boolean.+A boolean option\..+Requires one of.+req1,req2\./s,
+          /-b.+,.+--boolean.+A boolean option\..+Requires.+\(-req1 and \(-req2='1' or -req2='2'\)\)\./s,
         );
       });
     });
