@@ -35,6 +35,20 @@ describe('ArgumentParser', () => {
       );
     });
 
+    it('should throw an error on option with zero enumeration values', () => {
+      const options = {
+        stringEnum: {
+          names: ['-se'],
+          type: 'string',
+          desc: '',
+          enums: [],
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options)).toThrowError(
+        `Option 'stringEnum' has zero enum values.`,
+      );
+    });
+
     describe('duplicates', () => {
       it('should throw an error on duplicate option name in the same option', () => {
         const options = {
@@ -116,6 +130,20 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrowError(
           `Option 'numbersEnum' has duplicate enum '1'.`,
+        );
+      });
+
+      it('should throw an error on duplicate positional option', () => {
+        const options = {
+          positional1: {
+            type: 'positional',
+          },
+          positional2: {
+            type: 'positional',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(
+          `Duplicate positional option 'positional2'.`,
         );
       });
     });
@@ -203,6 +231,33 @@ describe('ArgumentParser', () => {
   describe('parse', () => {
     it('should throw an error on unknown option name specified in arguments', () => {
       expect(() => new ArgumentParser({}).parse(['abc'])).toThrowError(`Unknown option 'abc'.`);
+    });
+
+    it('should handle positional arguments', () => {
+      const options = {
+        positional: {
+          type: 'positional',
+        },
+      } as const satisfies Options;
+      expect(new ArgumentParser(options).parse(['abc', '123'])).toMatchObject({
+        positional: ['abc', '123'],
+      });
+    });
+
+    it('should handle positional arguments after non-positional options', () => {
+      const options = {
+        boolean: {
+          names: ['-b'],
+          type: 'boolean',
+          desc: '',
+        },
+        positional: {
+          type: 'positional',
+        },
+      } as const satisfies Options;
+      expect(new ArgumentParser(options).parse(['-b', 'abc', '123'])).toMatchObject({
+        positional: ['abc', '123'],
+      });
     });
 
     it('should throw an error when required option is not specified', () => {
@@ -715,7 +770,7 @@ describe('ArgumentParser', () => {
         const options = {
           stringsEnum: {
             names: ['-sse', '--stringsEnum'],
-            desc: 'A strings enumeration option',
+            desc: 'A strings option',
             type: 'strings',
             enums: ['one', 'two'],
           },
@@ -735,14 +790,58 @@ describe('ArgumentParser', () => {
       it('should handle a strings option specified multiple times', () => {
         const options = {
           strings: {
-            names: ['-ssm', '--stringsMulti'],
-            desc: 'A mutiple strings option',
+            names: ['-ssa', '--stringsAppend'],
+            desc: 'A strings option',
             type: 'strings',
             append: true,
           },
         } as const satisfies Options;
-        expect(new ArgumentParser(options).parse(['-ssm', 'one', '-ssm', 'two'])).toMatchObject({
+        expect(new ArgumentParser(options).parse(['-ssa', 'one', '-ssa', 'two'])).toMatchObject({
           strings: ['one', 'two'],
+        });
+      });
+
+      it('should handle a strings option specified with multiple parameters', () => {
+        const options = {
+          strings: {
+            names: ['-ssm', '--stringsMulti'],
+            desc: 'A strings option',
+            type: 'strings',
+            multi: true,
+          },
+          boolean: {
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            type: 'boolean',
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-ssm', 'one', 'two'])).toMatchObject({
+          strings: ['one', 'two'],
+        });
+        expect(new ArgumentParser(options).parse(['-ssm', 'one', 'two', '-b'])).toMatchObject({
+          strings: ['one', 'two'],
+        });
+        expect(
+          new ArgumentParser(options).parse(['-ssm', 'one', 'two', '-ssm', 'two', 'one']),
+        ).toMatchObject({
+          strings: ['two', 'one'],
+        });
+      });
+
+      it('should handle a strings option specified multiple times with multiple parameters', () => {
+        const options = {
+          strings: {
+            names: ['-ssm', '--stringsMulti'],
+            desc: 'A strings option',
+            type: 'strings',
+            append: true,
+            multi: true,
+          },
+        } as const satisfies Options;
+        expect(
+          new ArgumentParser(options).parse(['-ssm', 'one', 'two', '-ssm', 'two', 'one']),
+        ).toMatchObject({
+          strings: ['one', 'two', 'two', 'one'],
         });
       });
 
@@ -750,7 +849,7 @@ describe('ArgumentParser', () => {
         const options = {
           stringsEnum: {
             names: ['-sse', '--stringsEnum'],
-            desc: 'A strings enumeration option',
+            desc: 'A strings option',
             type: 'strings',
             regex: /\d+/s,
           },
@@ -764,7 +863,7 @@ describe('ArgumentParser', () => {
         const options = {
           stringsEnum: {
             names: ['-sse', '--stringsEnum'],
-            desc: 'A strings enumeration option',
+            desc: 'A strings option',
             type: 'strings',
             regex: /\d+/s,
             example: ['abc'],
@@ -779,7 +878,7 @@ describe('ArgumentParser', () => {
         const options = {
           stringsEnum: {
             names: ['-sse', '--stringsEnum'],
-            desc: 'A strings enumeration option',
+            desc: 'A strings option',
             type: 'strings',
             regex: /\d+/s,
             default: ['abc'],
@@ -794,7 +893,7 @@ describe('ArgumentParser', () => {
         const options = {
           stringsEnum: {
             names: ['-sse', '--stringsEnum'],
-            desc: 'A strings enumeration option',
+            desc: 'A strings option',
             type: 'strings',
             enums: ['one', 'two'],
           },
@@ -808,7 +907,7 @@ describe('ArgumentParser', () => {
         const options = {
           stringsEnum: {
             names: ['-sse', '--stringsEnum'],
-            desc: 'A strings enumeration option',
+            desc: 'A strings option',
             type: 'strings',
             enums: ['one', 'two'],
             example: ['abc'],
@@ -823,7 +922,7 @@ describe('ArgumentParser', () => {
         const options = {
           stringsEnum: {
             names: ['-sse', '--stringsEnum'],
-            desc: 'A strings enumeration option',
+            desc: 'A strings option',
             type: 'strings',
             enums: ['one', 'two'],
             default: ['abc'],
@@ -875,7 +974,7 @@ describe('ArgumentParser', () => {
         const options = {
           numbersEnum: {
             names: ['-nse', '--numbersEnum'],
-            desc: 'A numbers enumeration option',
+            desc: 'A numbers option',
             type: 'numbers',
             enums: [1, 2],
           },
@@ -895,14 +994,58 @@ describe('ArgumentParser', () => {
       it('should handle a numbers option specified multiple times', () => {
         const options = {
           numbers: {
-            names: ['-nsm', '--numbersMulti'],
-            desc: 'A mutiple numbers option',
+            names: ['-nsa', '--numbersAppend'],
+            desc: 'A numbers option',
             type: 'numbers',
             append: true,
           },
         } as const satisfies Options;
-        expect(new ArgumentParser(options).parse(['-nsm', '1', '-nsm', '2'])).toMatchObject({
+        expect(new ArgumentParser(options).parse(['-nsa', '1', '-nsa', '2'])).toMatchObject({
           numbers: [1, 2],
+        });
+      });
+
+      it('should handle a numbers option specified with multiple parameters', () => {
+        const options = {
+          numbers: {
+            names: ['-nsm', '--numbersMulti'],
+            desc: 'A numbers option',
+            type: 'numbers',
+            multi: true,
+          },
+          boolean: {
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            type: 'boolean',
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-nsm', '1', '2'])).toMatchObject({
+          numbers: [1, 2],
+        });
+        expect(new ArgumentParser(options).parse(['-nsm', '1', '2', '-b'])).toMatchObject({
+          numbers: [1, 2],
+        });
+        expect(
+          new ArgumentParser(options).parse(['-nsm', '1', '2', '-nsm', '2', '1']),
+        ).toMatchObject({
+          numbers: [2, 1],
+        });
+      });
+
+      it('should handle a numbers option specified multiple times with multiple parameters', () => {
+        const options = {
+          numbers: {
+            names: ['-nsm', '--numbersMulti'],
+            desc: 'A numbers option',
+            type: 'numbers',
+            append: true,
+            multi: true,
+          },
+        } as const satisfies Options;
+        expect(
+          new ArgumentParser(options).parse(['-nsm', '1', '2', '-nsm', '2', '1']),
+        ).toMatchObject({
+          numbers: [1, 2, 2, 1],
         });
       });
 
@@ -910,7 +1053,7 @@ describe('ArgumentParser', () => {
         const options = {
           numbersEnum: {
             names: ['-nse', '--numbersEnum'],
-            desc: 'A numbers enumeration option',
+            desc: 'A numbers option',
             type: 'numbers',
             range: [0, Infinity],
           },
@@ -924,7 +1067,7 @@ describe('ArgumentParser', () => {
         const options = {
           numbersEnum: {
             names: ['-nse', '--numbersEnum'],
-            desc: 'A numbers enumeration option',
+            desc: 'A numbers option',
             type: 'numbers',
             range: [0, Infinity],
             example: [-3],
@@ -939,7 +1082,7 @@ describe('ArgumentParser', () => {
         const options = {
           numbersEnum: {
             names: ['-nse', '--numbersEnum'],
-            desc: 'A numbers enumeration option',
+            desc: 'A numbers option',
             type: 'numbers',
             range: [0, Infinity],
             default: [-3],
@@ -953,7 +1096,7 @@ describe('ArgumentParser', () => {
         const options = {
           numbersEnum: {
             names: ['-nse', '--numbersEnum'],
-            desc: 'A numbers enumeration option',
+            desc: 'A numbers option',
             type: 'numbers',
             enums: [1, 2],
           },
@@ -967,7 +1110,7 @@ describe('ArgumentParser', () => {
         const options = {
           numbersEnum: {
             names: ['-nse', '--numbersEnum'],
-            desc: 'A numbers enumeration option',
+            desc: 'A numbers option',
             type: 'numbers',
             enums: [1, 2],
             example: [3],
@@ -982,7 +1125,7 @@ describe('ArgumentParser', () => {
         const options = {
           numbersEnum: {
             names: ['-nse', '--numbersEnum'],
-            desc: 'A numbers enumeration option',
+            desc: 'A numbers option',
             type: 'numbers',
             enums: [1, 2],
             default: [3],

@@ -15,7 +15,8 @@ export type {
   FunctionOption,
   ArrayOption,
   NiladicOption,
-  MonadicOption,
+  ParamsOption,
+  PositionalOption,
   ValuedOption,
   Requires,
   Styles,
@@ -45,9 +46,6 @@ type Styles = {
   names?: Style;
   type?: Style;
   desc?: Style;
-  default?: Style;
-  constraints?: Style;
-  requires?: Style;
 };
 
 /**
@@ -180,6 +178,16 @@ type WithAppend = {
 };
 
 /**
+ * An option that accepts multiple parameters.
+ */
+type WithMulti = {
+  /**
+   * If true, allows multiple parameters.
+   */
+  readonly multi: boolean;
+};
+
+/**
  * A helper type for optional objects.
  * @template T The actual object type
  */
@@ -213,7 +221,8 @@ type StringsOption = WithAttributes<'strings'> &
   Optional<WithDefault<Array<string>>> &
   Optional<WithExample<Array<string>>> &
   Optional<WithEnums<string> | WithRegex> &
-  Optional<WithAppend>;
+  Optional<WithAppend> &
+  Optional<WithMulti>;
 
 /**
  * An option that accepts a comma-separated list of numbers.
@@ -222,7 +231,8 @@ type NumbersOption = WithAttributes<'numbers'> &
   Optional<WithDefault<Array<number>>> &
   Optional<WithExample<Array<number>>> &
   Optional<WithEnums<number> | WithRange> &
-  Optional<WithAppend>;
+  Optional<WithAppend> &
+  Optional<WithMulti>;
 
 /**
  * A callback for function options.
@@ -251,19 +261,24 @@ type NiladicOption = BooleanOption | FunctionOption;
 type ArrayOption = StringsOption | NumbersOption;
 
 /**
- * An option that accepts a single parameter.
+ * An option that accepts parameters.
  */
-type MonadicOption = StringOption | NumberOption | ArrayOption;
+type ParamsOption = StringOption | NumberOption | ArrayOption;
+
+/**
+ * An special option that holds the positional arguments.
+ */
+type PositionalOption = { readonly type: 'positional' };
 
 /**
  * An option that has a value.
  */
-type ValuedOption = BooleanOption | MonadicOption;
+type ValuedOption = BooleanOption | ParamsOption | PositionalOption;
 
 /**
  * An option definition.
  */
-type Option = NiladicOption | MonadicOption;
+type Option = NiladicOption | ParamsOption | PositionalOption;
 
 /**
  * A collection of option definitions.
@@ -314,17 +329,19 @@ type NumbersDataType<T extends NumbersOption> =
  * The data type of an option that has a value.
  * @template T The actual type of the option
  */
-type OptionDataType<T extends Option> = T extends BooleanOption
-  ? boolean
-  : T extends StringOption
-    ? StringDataType<T>
-    : T extends NumberOption
-      ? NumberDataType<T>
-      : T extends StringsOption
-        ? StringsDataType<T>
-        : T extends NumbersOption
-          ? NumbersDataType<T>
-          : never;
+type OptionDataType<T extends Option> = T extends PositionalOption
+  ? Array<string>
+  : T extends BooleanOption
+    ? boolean
+    : T extends StringOption
+      ? StringDataType<T>
+      : T extends NumberOption
+        ? NumberDataType<T>
+        : T extends StringsOption
+          ? StringsDataType<T>
+          : T extends NumbersOption
+            ? NumbersDataType<T>
+            : never;
 
 /**
  * A collection of option values.

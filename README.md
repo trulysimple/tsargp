@@ -17,7 +17,7 @@
 ```sh
 npm install -g tsargp
 tsargp -h  # print the help message
-tsargp     # see the default values
+tsargp     # view options' default values
 tsargp ... # play with option values
 ```
 
@@ -43,10 +43,10 @@ const values = new ArgumentParser(options).parse();
 ## Build
 
 ```sh
-npm install     # install dependencies
-npm test        # run unit tests
-npm run dist    # build JS bundle
-npm publish     # publish to npm registry
+curl -fsSL https://bun.sh/install | bash
+bun install   # install dependencies
+bun test      # run unit tests
+npm publish   # build JS bundle and publish to npm registry
 ```
 
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
