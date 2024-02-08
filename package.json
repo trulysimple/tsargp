@@ -41,9 +41,9 @@
   },
   "scripts": {
     "prepare": "husky",
-    "prepublishOnly": "npm run dist && npm version patch",
+    "prepublishOnly": "npm version patch",
     "test": "vitest run --dir lib",
-    "lint": "publint --strict && eslint lib && cspell lint .",
+    "lint": "publint . && publint docs && eslint lib && cspell lint .",
     "dist": "tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
   },
   "prettier": {

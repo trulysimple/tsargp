@@ -1,11 +1,11 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, Requires, Styles } from './options.js';
+import type { Option, Options, ParamOption, Requires, Styles } from './options.js';
 import type { Style } from './styles.js';
 
-import { isArray, isNiladic } from './options.js';
-import { fg, isStyle, clearStyle, StyledString } from './styles.js';
+import { isNiladic } from './options.js';
+import { fg, isStyle, clearStyle, StyledString, styleToString } from './styles.js';
 
 export { type HelpConfig, HelpFormatter, HelpItem };
 
@@ -32,10 +32,17 @@ type HelpIndent = {
 };
 
 /**
- * The styles for the help message.
+ * Pre-computed styles.
  */
-type HelpStyles = Styles & {
-  whitespace?: Style;
+type HelpStyles = {
+  readonly names: string;
+  readonly type: string;
+  readonly desc: string;
+  readonly regex: string;
+  readonly string: string;
+  readonly number: string;
+  readonly option: string;
+  readonly whitespace: string;
 };
 
 /**
@@ -43,14 +50,19 @@ type HelpStyles = Styles & {
  */
 const enum HelpItem {
   desc,
-  array,
-  append,
-  default,
-  regex,
-  range,
-  enums,
-  requires,
-  deprecated,
+  separator = 'Values are delimited by',
+  multivalued = 'Accepts multiple parameters.',
+  positional = 'Accepts positional parameters.',
+  append = 'May be specified multiple times.',
+  unique = 'Duplicate values will be removed.',
+  limit = 'Value count is limited to',
+  trim = 'Values will be trimmed.',
+  regex = 'Values must match the regex',
+  range = 'Values must be in the range',
+  enums = 'Values must be one of',
+  requires = 'Requires',
+  default = 'Defaults to',
+  deprecated = 'Deprecated for',
 }
 
 /**
@@ -86,7 +98,17 @@ type HelpConfig = {
   /**
    * The default styles.
    */
-  readonly styles?: HelpStyles;
+  readonly styles?: Styles & {
+    example?: Style;
+    default?: Style;
+    regex?: Style;
+    range?: Style;
+    enum?: Style;
+    string?: Style;
+    number?: Style;
+    option?: Style;
+    whitespace?: Style;
+  };
   /**
    * The order of items to be shown in the option description.
    */
@@ -111,20 +133,26 @@ const defaultConfig: HelpConfig = {
     names: [clearStyle],
     type: [clearStyle, fg.brightBlack],
     desc: [clearStyle],
-    default: [clearStyle, fg.green],
-    constraints: [clearStyle, fg.cyan],
-    requires: [clearStyle, fg.brightMagenta],
+    regex: [fg.red],
+    string: [fg.green],
+    number: [fg.yellow],
+    option: [fg.magenta],
     whitespace: [clearStyle],
   },
   items: [
     HelpItem.desc,
-    HelpItem.array,
+    HelpItem.separator,
+    HelpItem.multivalued,
+    HelpItem.positional,
     HelpItem.append,
-    HelpItem.default,
+    HelpItem.unique,
+    HelpItem.limit,
+    HelpItem.trim,
     HelpItem.regex,
     HelpItem.range,
     HelpItem.enums,
     HelpItem.requires,
+    HelpItem.default,
     HelpItem.deprecated,
   ],
 };
@@ -138,10 +166,12 @@ const defaultConfig: HelpConfig = {
  */
 class HelpFormatter {
   private readonly entries: Array<HelpEntry> = [];
+  private readonly nameWidths: Array<number> = [];
   private readonly namesWidth: number = 0;
   private readonly typeWidth: number = 0;
   private readonly config: HelpConfig;
   private readonly indent: HelpIndent;
+  private readonly styles: HelpStyles;
 
   /**
    * Creates a help message formatter.
@@ -152,23 +182,45 @@ class HelpFormatter {
     private readonly options: Options,
     config: HelpConfig = {},
   ) {
-    this.config = {
+    this.config = HelpFormatter.getConfig(config);
+    this.styles = this.getStyles();
+    this.nameWidths = this.getNameWidths();
+    for (const key in options) {
+      const option = options[key];
+      const names = this.formatNames(option);
+      const type = this.formatType(option);
+      const desc = this.formatDescription(option);
+      this.entries.push({ names, type, desc });
+      this.namesWidth = Math.max(this.namesWidth, names.length);
+      this.typeWidth = Math.max(this.typeWidth, type.length);
+    }
+    this.indent = this.getIndent();
+  }
+
+  private static getConfig(config: HelpConfig): HelpConfig {
+    return {
       indent: Object.assign({}, defaultConfig.indent, config.indent),
       breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
       styles: Object.assign({}, defaultConfig.styles, config.styles),
       hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
       items: config.items ?? defaultConfig.items,
     };
-    const nameWidths = this.getNameWidths();
-    for (const option of Object.values(options)) {
-      const styles = Object.assign({}, this.config.styles, option.styles);
-      const names = this.formatNames(option, nameWidths, styles);
-      const type = this.formatType(option, styles);
-      const desc = this.formatDescription(option, styles);
-      this.entries.push({ names, type, desc });
-      this.namesWidth = Math.max(this.namesWidth, names.length);
-      this.typeWidth = Math.max(this.typeWidth, type.length);
-    }
+  }
+
+  private getStyles(): HelpStyles {
+    return {
+      names: styleToString(this.config.styles?.names),
+      type: styleToString(this.config.styles?.type),
+      desc: styleToString(this.config.styles?.desc),
+      regex: styleToString(this.config.styles?.regex),
+      string: styleToString(this.config.styles?.string),
+      number: styleToString(this.config.styles?.number),
+      option: styleToString(this.config.styles?.option),
+      whitespace: styleToString(this.config.styles?.whitespace),
+    };
+  }
+
+  private getIndent(): HelpIndent {
     const indent = {
       names: ' '.repeat(Math.max(0, this.config.indent!.names!)),
       type: ' '.repeat(Math.max(0, this.config.indent!.type!)),
@@ -188,7 +240,7 @@ class HelpFormatter {
       type: ' '.repeat(Math.max(0, len1)),
       desc: ' '.repeat(Math.max(0, len2)),
     };
-    this.indent = {
+    return {
       names: breaks.names + indent.names,
       type: breaks.type ? breaks.type + blanks.type : indent.type,
       desc: breaks.desc ? breaks.desc + blanks.desc : indent.desc,
@@ -196,12 +248,10 @@ class HelpFormatter {
     };
   }
 
-  /**
-   * @returns The maximum width of each name
-   */
   private getNameWidths(): Array<number> {
     const result = new Array<number>();
-    for (const option of Object.values(this.options)) {
+    for (const key in this.options) {
+      const option = this.options[key];
       option.names.forEach((name, i) => {
         if (i == result.length) {
           result.push(name.length);
@@ -215,126 +265,199 @@ class HelpFormatter {
 
   /**
    * @param option The option definition
-   * @param widths The maximum width of each name
-   * @param styles The styles to apply
    * @returns The formatted option names
    */
-  private formatNames(option: Option, widths: Array<number>, styles: HelpStyles): StyledString {
+  private formatNames(option: Option): StyledString {
     const result = new StyledString();
     if (this.config.hidden?.names) {
       return result;
     }
+    const whitespaceStyle = this.styles.whitespace;
+    const namesStyle = option.styles?.names
+      ? styleToString(option.styles?.names)
+      : this.styles.names;
     let sep = '';
     let prefix = '';
     function formatName(name: string, width: number) {
+      if (sep || prefix) {
+        result.style(whitespaceStyle).append((name ? sep : '  ') + prefix);
+      }
       if (name) {
-        if (sep || prefix) {
-          result.style(styles.whitespace).append(sep + prefix);
-        }
-        result.style(styles.names).append(name);
+        result.style(namesStyle).append(name);
         sep = ', ';
       } else {
-        result.append(prefix);
         sep = '  ';
       }
       prefix = ' '.repeat(width - name.length);
     }
-    option.names.forEach((name, i) => formatName(name, widths[i]));
+    option.names.forEach((name, i) => formatName(name, this.nameWidths[i]));
     return result;
   }
 
   /**
    * @param option The option definition
-   * @param styles The styles to apply
    * @returns The formatted option type (or examples)
    */
-  private formatType(option: Option, styles: HelpStyles): StyledString {
+  private formatType(option: Option): StyledString {
     const result = new StyledString();
     if (this.config.hidden?.type) {
       return result;
     }
-    const text =
-      'example' in option ? `'${option.example}'` : isNiladic(option) ? '' : `<${option.type}>`;
-    return result.style(text ? styles.type : []).append(text);
+    if ('example' in option && option.example !== undefined) {
+      this.formatValue(option, 'example', result);
+    } else if (!isNiladic(option)) {
+      const typeStyle = option.styles?.type ? styleToString(option.styles?.type) : this.styles.type;
+      result.style(typeStyle).append(`<${option.type}>`);
+    }
+    return result;
+  }
+
+  /**
+   * @param value The option value
+   * @param prop The option property
+   * @param result The resulting string
+   */
+  private formatValue(option: ParamOption, prop: 'default' | 'example', result: StyledString) {
+    if (option.type === 'string') {
+      result.style(this.styles.string).append(`'${option[prop]!}'`);
+    } else if (option.type === 'number') {
+      result.style(this.styles.number).append(option[prop]!.toString());
+    } else if (option.separator) {
+      const values = option[prop]!.map((value) => value.toString());
+      result.style(this.styles.string).append(`'${values.join(option.separator)}'`);
+    } else {
+      let values: Array<string>;
+      if (option.type === 'strings') {
+        values = option[prop]!.map((value) => `'${value}'`);
+        result.style(this.styles.string);
+      } else {
+        values = option[prop]!.map((value) => value.toString());
+        result.style(this.styles.number);
+      }
+      if (prop === 'example') {
+        result.append(values.join(' '));
+      } else {
+        result.append(...values);
+      }
+    }
   }
 
   /**
    * @param option The option definition
-   * @param styles The styles to apply
    * @returns The formatted option description
    */
-  private formatDescription(option: Option, styles: HelpStyles): StyledString {
+  private formatDescription(option: Option): StyledString {
     const result = new StyledString();
     if (this.config.hidden?.desc || !this.config.items) {
       return result;
     }
+    const descStyle = option.styles?.desc ? styleToString(option.styles?.desc) : this.styles.desc;
     for (const item of this.config.items) {
       switch (item) {
         case HelpItem.desc:
-          if (option.desc.length > 0) {
-            const desc = option.desc + (option.desc.endsWith('.') ? '' : '.');
-            result.style(styles.desc).append(...desc.split(' '));
+          if (option.desc) {
+            const words = option.desc.split(' ');
+            if (!words.at(-1)!.endsWith('.')) {
+              words[words.length - 1] += '.';
+            }
+            result.style(descStyle).append(...words);
           }
           break;
-        case HelpItem.array:
-          if (isArray(option)) {
-            result.style(styles.desc).append('Values', 'are', 'comma-separated.');
+        case HelpItem.separator:
+          if ('separator' in option && option.separator) {
+            const words = HelpItem.separator.split(' ');
+            result.style(descStyle).append(...words);
+            result.style(this.styles.string).append(`'${option.separator}'`);
+            result.style(descStyle).append('.');
+          }
+          break;
+        case HelpItem.multivalued:
+          if ('multivalued' in option && option.multivalued) {
+            const words = HelpItem.multivalued.split(' ');
+            result.style(descStyle).append(...words);
+          }
+          break;
+        case HelpItem.positional:
+          if ('positional' in option && option.positional) {
+            const words = HelpItem.positional.split(' ');
+            result.style(descStyle).append(...words);
           }
           break;
         case HelpItem.append:
           if ('append' in option && option.append) {
-            result.style(styles.desc).append('May', 'be', 'specified', 'multiple', 'times.');
+            const words = HelpItem.append.split(' ');
+            result.style(descStyle).append(...words);
           }
           break;
-        case HelpItem.default:
-          if ('default' in option && option.type !== 'function') {
-            result
-              .style(styles.desc)
-              .append('Defaults', 'to')
-              .style(styles.default)
-              .append(`'${option.default}'.`);
+        case HelpItem.unique:
+          if ('unique' in option && option.unique) {
+            const words = HelpItem.unique.split(' ');
+            result.style(descStyle).append(...words);
+          }
+          break;
+        case HelpItem.limit:
+          if ('limit' in option && option.limit !== undefined) {
+            const words = HelpItem.limit.split(' ');
+            result.style(descStyle).append(...words, `${option.limit}.`);
+          }
+          break;
+        case HelpItem.trim:
+          if ('trim' in option && option.trim) {
+            const words = HelpItem.trim.split(' ');
+            result.style(descStyle).append(...words);
           }
           break;
         case HelpItem.regex:
           if ('regex' in option && option.regex) {
-            result
-              .style(styles.desc)
-              .append('Accepts', 'values', 'matching')
-              .style(styles.constraints)
-              .append(`${String(option.regex)}.`);
+            const words = HelpItem.regex.split(' ');
+            result.style(descStyle).append(...words);
+            result.style(this.styles.regex).append(String(option.regex));
+            result.style(descStyle).append('.');
           }
           break;
         case HelpItem.range:
           if ('range' in option && option.range) {
-            result
-              .style(styles.desc)
-              .append('Accepts', 'values', 'in', 'the', 'range')
-              .style(styles.constraints)
-              .append(`[${option.range}].`);
+            const words = HelpItem.range.split(' ');
+            result.style(descStyle).append(...words, '[');
+            this.formatNumbers(option.range, descStyle, result);
+            result.style(descStyle).append('].');
           }
           break;
         case HelpItem.enums:
           if ('enums' in option && option.enums) {
-            result
-              .style(styles.desc)
-              .append('Accepts', 'values', 'of')
-              .style(styles.constraints)
-              .append(`{${option.enums}}.`);
+            const words = HelpItem.enums.split(' ');
+            result.style(descStyle).append(...words, '{');
+            if (option.type === 'string' || option.type === 'strings') {
+              this.formatStrings(option.enums, descStyle, result);
+            } else {
+              this.formatNumbers(option.enums, descStyle, result);
+            }
+            result.style(descStyle).append('}.');
           }
           break;
         case HelpItem.requires:
           if (option.requires) {
-            result
-              .style(styles.desc)
-              .append('Requires')
-              .style(styles.requires)
-              .append(`${HelpFormatter.formatRequires(option.requires, this.options)}.`);
+            const words = HelpItem.requires.split(' ');
+            result.style(descStyle).append(...words);
+            this.formatRequires(option.requires, descStyle, result);
+            result.style(descStyle).append('.');
+          }
+          break;
+        case HelpItem.default:
+          if ('default' in option && option.default !== undefined) {
+            const words = HelpItem.default.split(' ');
+            result.style(descStyle).append(...words);
+            this.formatValue(option, 'default', result);
+            result.style(descStyle).append('.');
           }
           break;
         case HelpItem.deprecated:
           if (option.deprecated) {
-            const reason = option.deprecated + (option.deprecated.endsWith('.') ? '' : '.');
-            result.style(styles.desc).append('Deprecated', 'for', ...reason.split(' '));
+            const words = (HelpItem.deprecated + ' ' + option.deprecated).split(' ');
+            if (!words.at(-1)!.endsWith('.')) {
+              words[words.length - 1] += '.';
+            }
+            result.style(descStyle).append(...words);
           }
           break;
         default: {
@@ -347,55 +470,78 @@ class HelpFormatter {
   }
 
   /**
-   * @param requires The option requirements
-   * @param options The option definitions
-   * @returns The formatted requirements description
+   * @param values The string values
+   * @param descStyle The custom description style
+   * @param result The resulting text
    */
-  private static formatRequires(requires: Requires, options: Options): string {
-    function getRequiredName(key: string) {
-      return options[key].names.find((name) => name)!;
-    }
-    if (typeof requires === 'string') {
-      const [key, value] = requires.split('=');
-      if (value) {
-        return `${getRequiredName(key)}='${value}'`;
+  private formatStrings(values: Array<string>, descStyle: string, result: StyledString) {
+    values.forEach((value, i) => {
+      result.style(this.styles.string).append(`'${value}'`);
+      if (i < values.length - 1) {
+        result.style(descStyle).append(',');
       }
-      return getRequiredName(key);
+    });
+  }
+
+  /**
+   * @param values The number values
+   * @param descStyle The custom description style
+   * @param result The resulting text
+   */
+  private formatNumbers(values: Array<number>, descStyle: string, result: StyledString) {
+    values.forEach((value, i) => {
+      result.style(this.styles.number).append(value.toString());
+      if (i < values.length - 1) {
+        result.style(descStyle).append(',');
+      }
+    });
+  }
+
+  /**
+   * @param requires The option requirements
+   * @param descStyle The custom description style
+   * @param result The resulting text
+   */
+  private formatRequires(requires: Requires, descStyle: string, result: StyledString) {
+    if (typeof requires === 'string') {
+      const [key, value] = requires.split(/=(.*)/, 2);
+      const option = this.options[key];
+      const preferredName = option.preferredName ?? option.names.find((name) => name)!;
+      result.style(this.styles.option).append(`${preferredName}`);
+      if (value) {
+        result.style(descStyle).append('=');
+        result.style(this.styles.string).append(`'${value}'`);
+      }
+    } else {
+      result.style(descStyle).append('(');
+      requires.items.forEach((item, i) => {
+        this.formatRequires(item, descStyle, result);
+        if (i < requires.items.length - 1) {
+          result.style(descStyle).append(requires.op);
+        }
+      });
+      result.style(descStyle).append(')');
     }
-    const result = requires.items.map((item) => this.formatRequires(item, options));
-    return `(${result.join(` ${requires.op} `)})`;
   }
 
   /**
    * Formats a help message to be printed on the console.
-   * @param consoleWidth The desired console width
+   * @param width The desired console width
    * @returns The formatted help message
    */
-  formatHelp(consoleWidth = process.stdout.columns): string {
+  formatHelp(width = process.stdout.columns): string {
     function formatCol(line: StyledString, indent: string, text: StyledString, width: number) {
-      line
-        .append(indent)
-        .append(text.string)
-        .style(whitespaceStyle)
-        .append(' '.repeat(width - text.length));
+      line.append(indent).append(text.string);
+      line.style(whitespaceStyle).append(' '.repeat(width - text.length));
     }
-
+    const whitespaceStyle = this.styles.whitespace;
     const lines = new Array<string>();
-    const whitespaceStyle = this.config.styles!.whitespace;
-    const wrap = new StyledString().style(whitespaceStyle).append(this.indent.wrap).string;
-    const width = consoleWidth - this.indent.wrap.length;
     for (const entry of this.entries) {
       const line = new StyledString().style(whitespaceStyle);
       formatCol(line, this.indent.names, entry.names, this.namesWidth);
       formatCol(line, this.indent.type, entry.type, this.typeWidth);
       line.append(this.indent.desc);
-
-      if (this.indent.wrap.length >= consoleWidth) {
-        // no space left: use native wrapping
-        lines.push(line.string + entry.desc.strings.join(' '));
-      } else {
-        HelpFormatter.wrapDesc(lines, entry.desc, width, line.string, wrap);
-      }
+      this.wrapDesc(lines, entry.desc, width, line.string, this.indent.wrap);
     }
     return lines.join('\n') + clearStyle;
   }
@@ -409,36 +555,77 @@ class HelpFormatter {
    * @param indent The indentation at the start of each wrapped line
    * @returns The wrapped text
    */
-  private static wrapDesc(
+  private wrapDesc(
     lines: Array<string>,
     desc: StyledString,
     width: number,
     prefix: string,
     indent: string,
   ) {
-    let line = new Array<string>();
-    let style = '';
-    let space = '';
-    let length = 0;
-    for (const word of desc.strings) {
-      if (isStyle(word)) {
-        line.push(space + word);
-        length += space.length;
-        style = word;
-        space = '';
-      } else if (length + word.length < width) {
-        // important: use strict less
-        line.push(space + word);
-        length += space.length + word.length;
-        space = ' ';
-      } else {
-        lines.push(prefix + line.join(''));
-        prefix = indent + style;
-        line = [word];
-        length = word.length;
-        space = ' ';
+    const maxWordLen = desc.strings.reduce(
+      (acc, word) => (isStyle(word) ? acc : Math.max(acc, word.length)),
+      0,
+    );
+    if (width >= indent.length + maxWordLen) {
+      width -= indent.length;
+      indent = this.styles.whitespace + indent;
+    } else {
+      prefix += '\n';
+      indent = '';
+    }
+    const punctuation = '.,;!?';
+    const closingBrackets = [...')]}'];
+    const openingBrackets = [...'{[('];
+    let line = [prefix];
+    let merge = false;
+    let lineLength = 0;
+    let currentLen = 0;
+    let currentWord = '';
+    let currentStyle = '';
+    let nextStyle = '';
+    let lastStyle = '';
+    function addWord() {
+      if (currentLen > 0) {
+        const space = lineLength ? ' ' : '';
+        if (lineLength + space.length + currentLen <= width) {
+          line.push(space + currentWord);
+          lineLength += space.length + currentLen;
+        } else {
+          lines.push(line.join(''));
+          line = [indent, lastStyle, currentWord];
+          lineLength = currentLen;
+        }
       }
     }
-    lines.push(prefix + line.join(''));
+    for (const word of desc.strings) {
+      if (isStyle(word)) {
+        nextStyle = word;
+        continue;
+      }
+      if (
+        merge ||
+        punctuation.includes(word) ||
+        closingBrackets.find((char) => word.startsWith(char))
+      ) {
+        currentWord += nextStyle + word;
+        currentLen += word.length;
+        merge = false;
+      } else {
+        addWord();
+        if (currentStyle) {
+          lastStyle = currentStyle;
+          currentStyle = '';
+        }
+        currentWord = nextStyle + word;
+        currentLen = word.length;
+        merge = openingBrackets.findIndex((char) => word.startsWith(char)) >= 0;
+      }
+      if (nextStyle) {
+        currentStyle = nextStyle;
+        nextStyle = '';
+      }
+    }
+    addWord();
+    lines.push(line.join(''));
   }
 }

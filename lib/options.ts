@@ -4,8 +4,10 @@
 import type { Style } from './styles.js';
 
 export type {
+  Callback,
   Option,
   Options,
+  OptionDataType,
   OptionValues,
   StringOption,
   NumberOption,
@@ -15,14 +17,14 @@ export type {
   FunctionOption,
   ArrayOption,
   NiladicOption,
-  ParamsOption,
-  PositionalOption,
+  ParamOption,
   ValuedOption,
   Requires,
+  RequireExp,
   Styles,
 };
 
-export { req, isNiladic, isArray, setValue, appendValue };
+export { req, isNiladic, isArray };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -49,41 +51,57 @@ type Styles = {
 };
 
 /**
- * A requires constraint can be a key-value pair or an array of nested requires.
+ * A requirement expression.
  */
-type Requires =
-  | string
-  | {
-      /**
-       * The required options.
-       */
-      readonly items: Array<Requires>;
-      /**
-       * The logical operator.
-       */
-      readonly op: 'and' | 'or';
-    };
+type RequireExp = {
+  /**
+   * The list of requirements.
+   */
+  readonly items: Array<Requires>;
+  /**
+   * The logical operator.
+   */
+  readonly op: 'and' | 'or';
+};
 
 /**
- * An option with basic attributes.
+ * A requirement constraint: can be a key-value pair or a requirement expression.
+ */
+type Requires = string | RequireExp;
+
+/**
+ * A callback for function options.
+ * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`)
+ * @param args The remaining arguments
+ */
+type Callback = (values: OptionValues<Options>, args: Array<string>) => void | Promise<void>;
+
+/**
+ * Defines attributes common to all options.
  * @template T The option type
  */
-type WithAttributes<T> = {
-  /**
-   * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
-   * For best interoperability, names should match the regular expression /[\w-+]+/.
-   * Empty names can be specified to "skip" a sub-column in the help message name column, though
-   * there must be at least one non-empty name.
-   */
-  readonly names: Array<string>;
-  /**
-   * The option description.
-   */
-  readonly desc: string;
+type WithType<T extends string> = {
   /**
    * The option type. Booleans always default to false.
    */
   readonly type: T;
+  /**
+   * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
+   *
+   * Names cannot contain spaces or the equals sign (`=`), as it may be used for passing values in
+   * the command-line. Empty names may be specified in order to "skip" the respective sub-column in
+   * the help message. There must be at least one valid name.
+   */
+  readonly names: Array<string>;
+  /**
+   * A name to be displayed in error and help messages when evaluating option requirements. If not
+   * specified, the first name in the `names` array will be used.
+   */
+  readonly preferredName?: string;
+  /**
+   * The option description.
+   */
+  readonly desc?: string;
   /**
    * The option display styles.
    */
@@ -99,34 +117,49 @@ type WithAttributes<T> = {
 };
 
 /**
- * An option with a default value.
- * @template T The default value data type
+ * Defines attributes common to all options that accept parameters.
+ * @template D The parameter data type
  */
-type WithDefault<T> = {
+type WithParam<D> = {
   /**
    * The option default value.
    */
-  readonly default: T;
-};
-
-/**
- * An option with an example value.
- * @template T The example value data type
- */
-type WithExample<T> = {
+  readonly default?: D;
   /**
    * The option example value.
    */
-  readonly example: T;
+  readonly example?: D;
+  /**
+   * Allows positional arguments. There may be at most one option with this setting.
+   */
+  readonly positional?: true;
 };
 
 /**
- * An option with enumeration values.
+ * Defines attributes common to all options that accept array parameters.
+ */
+type WithArray = (WithMultivalued | WithSeparator) & {
+  /**
+   * True if duplicate elements should be removed.
+   */
+  readonly unique?: true;
+  /**
+   * Allows appending values if specified multiple times.
+   */
+  readonly append?: true;
+  /**
+   * The maximum number of option values.
+   */
+  readonly limit?: number;
+};
+
+/**
+ * Defines attributes for an enumeration constraint.
  * @template T The enumeration data type
  */
 type WithEnums<T> = {
   /**
-   * The option enumeration values.
+   * The option enumerated values.
    */
   readonly enums: Array<T>;
   /**
@@ -140,7 +173,7 @@ type WithEnums<T> = {
 };
 
 /**
- * An option with a regex constraint.
+ * Defines attributes for a regex constraint.
  */
 type WithRegex = {
   /**
@@ -154,7 +187,7 @@ type WithRegex = {
 };
 
 /**
- * An option with a range constraint.
+ * Defines attributes for a range constraint.
  */
 type WithRange = {
   /**
@@ -168,23 +201,55 @@ type WithRange = {
 };
 
 /**
- * An option that can be specified multiple times.
+ * Defines attributes for a multivalued array option.
  */
-type WithAppend = {
+type WithMultivalued = {
   /**
-   * If true, allows appending values if specified multiple times.
+   * Allows multiple parameters.
    */
-  readonly append: boolean;
+  readonly multivalued: true;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly separator?: never;
 };
 
 /**
- * An option that accepts multiple parameters.
+ * Defines attributes for a delimited array option.
  */
-type WithMulti = {
+type WithSeparator = {
   /**
-   * If true, allows multiple parameters.
+   * The option value separator.
    */
-  readonly multi: boolean;
+  readonly separator: string;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly multivalued?: never;
+};
+
+/**
+ * Defines attributes for a function option.
+ */
+type WithCallback = {
+  /**
+   * The callback function.
+   */
+  readonly exec: Callback;
+  /**
+   * True to break the parsing loop.
+   */
+  readonly break?: true;
+};
+
+/**
+ * Defines attributes for a trimmed option.
+ */
+type WithTrim = {
+  /**
+   * True if the values should be trimmed.
+   */
+  readonly trim?: true;
 };
 
 /**
@@ -194,61 +259,44 @@ type WithMulti = {
 type Optional<T extends object> = T | Record<never, never>;
 
 /**
- * An flag which is enabled if specified. Always defaults to false.
+ * Defines an option with attributes common to all options that accept string parameters.
  */
-type BooleanOption = WithAttributes<'boolean'>;
+type WithString = Optional<WithEnums<string> | WithRegex> & WithTrim;
 
 /**
- * An option that accepts a single string value.
+ * Defines an option with attributes common to all options that accept number parameters.
  */
-type StringOption = WithAttributes<'string'> &
-  Optional<WithDefault<string>> &
-  Optional<WithExample<string>> &
-  Optional<WithEnums<string> | WithRegex>;
+type WithNumber = Optional<WithEnums<number> | WithRange>;
 
 /**
- * An option that accepts a single number value.
+ * An option which which is enabled if specified. Always defaults to false.
  */
-type NumberOption = WithAttributes<'number'> &
-  Optional<WithDefault<number>> &
-  Optional<WithExample<number>> &
-  Optional<WithEnums<number> | WithRange>;
+type BooleanOption = WithType<'boolean'>;
 
 /**
- * An option that accepts a comma-separated list of strings.
+ * An option that accepts a single string parameter.
  */
-type StringsOption = WithAttributes<'strings'> &
-  Optional<WithDefault<Array<string>>> &
-  Optional<WithExample<Array<string>>> &
-  Optional<WithEnums<string> | WithRegex> &
-  Optional<WithAppend> &
-  Optional<WithMulti>;
+type StringOption = WithType<'string'> & WithParam<string> & WithString;
 
 /**
- * An option that accepts a comma-separated list of numbers.
+ * An option that accepts a single number parameter.
  */
-type NumbersOption = WithAttributes<'numbers'> &
-  Optional<WithDefault<Array<number>>> &
-  Optional<WithExample<Array<number>>> &
-  Optional<WithEnums<number> | WithRange> &
-  Optional<WithAppend> &
-  Optional<WithMulti>;
+type NumberOption = WithType<'number'> & WithParam<number> & WithNumber;
 
 /**
- * A callback for function options.
- * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`)
- * @param args The remaining arguments
- * @returns `null` to break the parsing loop
+ * An option that accepts a list of string parameters.
  */
-type Callback = (
-  values: OptionValues<Options>,
-  args: Array<string>,
-) => void | null | Promise<void | null>;
+type StringsOption = WithType<'strings'> & WithParam<Array<string>> & WithString & WithArray;
+
+/**
+ * An option that accepts a list of number parameters.
+ */
+type NumbersOption = WithType<'numbers'> & WithParam<Array<number>> & WithNumber & WithArray;
 
 /**
  * An option that executes a function.
  */
-type FunctionOption = WithAttributes<'function'> & WithDefault<Callback>;
+type FunctionOption = WithType<'function'> & WithCallback;
 
 /**
  * An option that accepts no parameters.
@@ -256,29 +304,24 @@ type FunctionOption = WithAttributes<'function'> & WithDefault<Callback>;
 type NiladicOption = BooleanOption | FunctionOption;
 
 /**
- * An option that represents an array of values.
+ * An option that accepts an array of parameters.
  */
 type ArrayOption = StringsOption | NumbersOption;
 
 /**
  * An option that accepts parameters.
  */
-type ParamsOption = StringOption | NumberOption | ArrayOption;
-
-/**
- * An special option that holds the positional arguments.
- */
-type PositionalOption = { readonly type: 'positional' };
+type ParamOption = StringOption | NumberOption | ArrayOption;
 
 /**
  * An option that has a value.
  */
-type ValuedOption = BooleanOption | ParamsOption | PositionalOption;
+type ValuedOption = BooleanOption | ParamOption;
 
 /**
- * An option definition.
+ * Defines an option.
  */
-type Option = NiladicOption | ParamsOption | PositionalOption;
+type Option = NiladicOption | ParamOption;
 
 /**
  * A collection of option definitions.
@@ -286,66 +329,42 @@ type Option = NiladicOption | ParamsOption | PositionalOption;
 type Options = Readonly<Record<string, Option>>;
 
 /**
- * Checks if an option value is allowed to be undefined.
- * This is to support cases where a zero value means something to the application.
- * @template T The actual type of the option
- * @template D The default value data type
+ * The data type of an option.
+ * @template T The option definition type
+ * @template D The option value data type
  */
-type MaybeUndefined<T extends Option, D> = T extends WithDefault<D> ? never : undefined;
+type DataType<T extends Option, D> =
+  | (T extends { enums: Array<D> } ? T['enums'][number] : D)
+  | (T extends { default: D } ? never : undefined);
 
 /**
- * The data type of a string option.
- * @template T The actual type of the option
+ * The data type of an array option.
+ * @template T The option definition type
+ * @template D The option value data type
  */
-type StringDataType<T extends StringOption> =
-  | (T extends WithEnums<string> ? T['enums'][number] : string)
-  | MaybeUndefined<T, string>;
+type ArrayDataType<T extends Option, D> =
+  | (T extends { enums: Array<D> } ? Array<T['enums'][number]> : Array<D>)
+  | (T extends { default: Array<D> } ? never : undefined);
 
 /**
- * The data type of a number option.
- * @template T The actual type of the option
+ * The data type of an option.
+ * @template T The option definition type
  */
-type NumberDataType<T extends NumberOption> =
-  | (T extends WithEnums<number> ? T['enums'][number] : number)
-  | MaybeUndefined<T, number>;
-
-/**
- * The data type of a strings option.
- * @template T The actual type of the option
- */
-type StringsDataType<T extends StringsOption> =
-  | (T extends WithEnums<string> ? Array<T['enums'][number]> : Array<string>)
-  | MaybeUndefined<T, Array<string>>;
-
-/**
- * The data type of a numbers option.
- * @template T The actual type of the option
- */
-type NumbersDataType<T extends NumbersOption> =
-  | (T extends WithEnums<number> ? Array<T['enums'][number]> : Array<number>)
-  | MaybeUndefined<T, Array<number>>;
-
-/**
- * The data type of an option that has a value.
- * @template T The actual type of the option
- */
-type OptionDataType<T extends Option> = T extends PositionalOption
-  ? Array<string>
-  : T extends BooleanOption
-    ? boolean
-    : T extends StringOption
-      ? StringDataType<T>
-      : T extends NumberOption
-        ? NumberDataType<T>
-        : T extends StringsOption
-          ? StringsDataType<T>
-          : T extends NumbersOption
-            ? NumbersDataType<T>
-            : never;
+type OptionDataType<T extends Option> = T extends { type: 'boolean' }
+  ? boolean
+  : T extends { type: 'string' }
+    ? DataType<T, string>
+    : T extends { type: 'number' }
+      ? DataType<T, number>
+      : T extends { type: 'strings' }
+        ? ArrayDataType<T, string>
+        : T extends { type: 'numbers' }
+          ? ArrayDataType<T, number>
+          : never;
 
 /**
  * A collection of option values.
- * @template T The actual type of the option
+ * @template T The option definitions type
  */
 type OptionValues<T extends Options> = {
   -readonly [key in keyof T as T[key] extends ValuedOption ? key : never]: OptionDataType<T[key]>;
@@ -360,27 +379,4 @@ function isNiladic(option: Option): option is NiladicOption {
 
 function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
-}
-
-function setValue<T extends Options>(
-  values: OptionValues<T>,
-  key: keyof T,
-  value: OptionDataType<ValuedOption>,
-) {
-  type Values = OptionValues<Readonly<Record<string, ValuedOption>>>;
-  (values as Values)[key as keyof Values] = value;
-}
-
-function appendValue<T extends Options>(
-  values: OptionValues<T>,
-  key: keyof T,
-  value: Exclude<OptionDataType<ArrayOption>, undefined>,
-) {
-  type Values = OptionValues<Readonly<Record<string, ArrayOption>>>;
-  const previousValue = (values as Values)[key as keyof Values];
-  if (previousValue) {
-    (previousValue as Array<string | number>).push(...value);
-  } else {
-    (values as Values)[key as keyof Values] = value;
-  }
 }

@@ -11,7 +11,8 @@
     "publint",
     "trulysimple",
     "nextra",
-    "niladic"
+    "niladic",
+    "multivalued"
   ],
   "ignorePaths": ["bun.lockb"],
   "useGitignore": true

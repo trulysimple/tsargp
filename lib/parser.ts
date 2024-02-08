@@ -3,9 +3,10 @@
 //--------------------------------------------------------------------------------------------------
 import type {
   ArrayOption,
-  ParamsOption,
+  ParamOption,
   NumberOption,
   NumbersOption,
+  Option,
   Options,
   OptionValues,
   Requires,
@@ -13,7 +14,7 @@ import type {
   StringsOption,
 } from './options.js';
 
-import { appendValue, isNiladic, setValue } from './options.js';
+import { isArray, isNiladic } from './options.js';
 
 export { ArgumentParser };
 
@@ -26,25 +27,34 @@ export { ArgumentParser };
  */
 class ArgumentParser<T extends Options> {
   private readonly nameToKey = new Map<string, keyof T>();
-  private readonly positionalKey: string | undefined;
+  private readonly positional:
+    | {
+        key: keyof T;
+        option: ParamOption;
+      }
+    | undefined;
 
   /**
    * Creates an argument parser based on a set of option definitions.
-   * @param options The predefined options
+   * @param options The option definitions
    */
   constructor(private readonly options: T) {
     for (const key in this.options) {
       const option = this.options[key];
-      if (option.type === 'positional') {
-        if (this.positionalKey) {
-          throw Error(`Duplicate positional option '${key}'.`);
+      this.checkNames(key, option);
+      if (!isNiladic(option)) {
+        if (option.positional) {
+          if (this.positional) {
+            throw Error(`Duplicate positional option '${key}'.`);
+          }
+          this.positional = { key, option };
         }
-        this.positionalKey = key;
-        continue;
-      }
-      this.checkNames(key, option.names);
-      if ('enums' in option && option.enums) {
-        this.checkEnums(key, option.enums);
+        if (isArray(option) && !option.separator && !option.multivalued) {
+          throw Error(`Option '${key}' should either be multivalued or have a separator.`);
+        }
+        this.checkEnums(key, option);
+        this.checkValue(key, option, 'default');
+        this.checkValue(key, option, 'example');
       }
       if (option.requires) {
         this.checkRequires(key, option.requires);
@@ -55,14 +65,17 @@ class ArgumentParser<T extends Options> {
   /**
    * Checks the sanity of the option names.
    * @param key The option key
-   * @param names The option names
+   * @param option The option definition
    */
-  private checkNames(key: string, names: Array<string>) {
-    names = names.filter((name) => name);
-    if (names.length == 0) {
-      throw Error(`Option '${key}' has no valid name.`);
+  private checkNames(key: string, option: Option) {
+    const names = option.names.filter((name) => name);
+    if (!names.length) {
+      throw Error(`Option '${key}' has no name.`);
     }
     for (const name of names) {
+      if (name.match(/[=\s]/)) {
+        throw Error(`Invalid option name '${name}'.`);
+      }
       if (this.nameToKey.has(name)) {
         throw Error(`Duplicate option name '${name}'.`);
       }
@@ -71,20 +84,44 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Checks the sanity of the option enumerations.
+   * Checks the sanity of the option's enumerated values.
    * @param key The option key
-   * @param enums The option enumerations
+   * @param option The option definition
    */
-  private checkEnums(key: string, enums: Array<string | number>) {
-    if (enums.length == 0) {
-      throw Error(`Option '${key}' has zero enum values.`);
-    }
-    const set = new Set(enums);
-    if (set.size !== enums.length) {
-      for (const value of enums) {
-        if (!set.delete(value)) {
-          throw Error(`Option '${key}' has duplicate enum '${value}'.`);
+  private checkEnums(key: string, option: ParamOption) {
+    if ('enums' in option && option.enums) {
+      if (!option.enums.length) {
+        throw Error(`Option '${key}' has zero enum values.`);
+      }
+      const set = new Set<string | number>(option.enums);
+      if (set.size !== option.enums.length) {
+        for (const value of option.enums) {
+          if (!set.delete(value)) {
+            throw Error(`Option '${key}' has duplicate enum '${value}'.`);
+          }
         }
+      }
+    }
+  }
+
+  /**
+   * Checks the sanity of the option's default or example value.
+   * @param key The option key
+   * @param option The option definition
+   * @param prop The option property
+   */
+  private checkValue(key: string, option: ParamOption, prop: 'default' | 'example') {
+    if (prop in option && option[prop] !== undefined) {
+      const test = {} as OptionValues<T>;
+      if (isArray(option)) {
+        if (!option[prop]!.length) {
+          throw Error(`Option '${key}' has zero ${prop} values.`);
+        }
+        for (const value of option[prop]!) {
+          this.parseValue(test, key, option, key, value.toString());
+        }
+      } else {
+        this.parseValue(test, key, option, key, option[prop]!.toString());
       }
     }
   }
@@ -107,7 +144,7 @@ class ArgumentParser<T extends Options> {
   /**
    * Checks the sanity of an option requirement.
    * @param key The option key
-   * @param requires The required option
+   * @param required The requirement specification
    */
   private checkRequired(key: string, required: string) {
     const [requiredKey, requiredValue] = required.split(/=(.*)/, 2);
@@ -117,14 +154,19 @@ class ArgumentParser<T extends Options> {
     if (!(requiredKey in this.options)) {
       throw Error(`Unknown required option '${requiredKey}'.`);
     }
-    if (requiredValue && isNiladic(this.options[requiredKey])) {
-      throw Error(`Required option '${requiredKey}' does not accept values.`);
+    if (requiredValue) {
+      const option = this.options[requiredKey];
+      if (isNiladic(option)) {
+        throw Error(`Required option '${requiredKey}' does not accept values.`);
+      }
+      this.parseValue({} as OptionValues<T>, requiredKey, option, requiredKey, requiredValue);
     }
   }
 
   /**
    * Convenience method to parse command-line arguments into option values.
    * @param args The command-line arguments
+   * @returns The option values
    */
   parse(args = process.argv.slice(2)): OptionValues<T> {
     const result = {} as OptionValues<T>;
@@ -133,68 +175,53 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Parses command-line arguments into option values.
-   * @param values The options' values to parse into
-   * @param args The command-line arguments
+   * Async version
+   * @returns A promise that resolves to the option values
+   * @see parse
    */
-  parseInto(values: OptionValues<T>, args = process.argv.slice(2)) {
-    this.internalParseInto(values, this.getExampleArgs());
-    this.resetValues(values);
-    this.internalParseInto(values, this.getDefaultArgs());
-    const required = this.internalParseInto(values, args);
-    this.checkAllRequired(values, args, required);
+  async asyncParse(args = process.argv.slice(2)): Promise<OptionValues<T>> {
+    const result = {} as OptionValues<T>;
+    await this.parseInto(result, args);
+    return result;
   }
 
   /**
-   * Reset option values to either false or undefined.
+   * Parses command-line arguments into option values.
+   * @param values The options' values to parse into
+   * @param args The command-line arguments
+   * @returns A promise that can be awaited in order to await any async callbacks
+   */
+  parseInto(values: OptionValues<T>, args = process.argv.slice(2)): Promise<Array<void>> {
+    this.resetValues(values);
+    return this.parseLoop(values, args);
+  }
+
+  /**
+   * Reset option values to false, undefined or the default value.
    * @param values The options' values
    */
   private resetValues(values: OptionValues<T>) {
     for (const key in this.options) {
       const option = this.options[key];
       if (option.type === 'boolean') {
-        setValue(values, key, false);
+        (values as Record<string, false>)[key] = false;
+      } else if ('default' in option && option.default) {
+        (values as Record<string, typeof option.default>)[key] = option.default;
       } else if (option.type !== 'function') {
-        setValue(values, key, undefined);
+        (values as Record<string, undefined>)[key] = undefined;
       }
     }
   }
 
   /**
-   * @returns A list of arguments that can be used to set option values to their example value.
+   * The main parser loop.
+   * @param values The options' values
+   * @param args The command-line arguments
+   * @returns A promise that can be awaited in order to await any async callbacks
    */
-  private getExampleArgs(): Array<string> {
-    const result = new Array<string>();
-    for (const key in this.options) {
-      const option = this.options[key];
-      if ('example' in option) {
-        const name = option.names.find((name) => name)!;
-        result.push(name, option.example.toString());
-      }
-    }
-    return result;
-  }
-
-  /**
-   * @returns A list of arguments that can be used to set option values to their default value.
-   */
-  private getDefaultArgs(): Array<string> {
-    const result = new Array<string>();
-    for (const key in this.options) {
-      const option = this.options[key];
-      if (option.type !== 'function' && 'default' in option) {
-        const name = option.names.find((name) => name)!;
-        result.push(name, option.default.toString());
-      }
-    }
-    return result;
-  }
-
-  /**
-   * @see parseInto
-   */
-  private internalParseInto(values: OptionValues<T>, args: Array<string>): Set<keyof T> {
-    const required = new Set<keyof T>();
+  private parseLoop(values: OptionValues<T>, args: Array<string>): Promise<Array<void>> {
+    const promises = new Array<Promise<void>>();
+    const specifiedKeys = new Set<keyof T>();
     const multi: {
       key?: keyof T;
       name?: string;
@@ -209,9 +236,14 @@ class ArgumentParser<T extends Options> {
           this.parseValue(values, multi.key, multi.option!, multi.name!, value ?? arg);
           continue;
         }
-        if (this.positionalKey) {
-          setValue(values, this.positionalKey, args.slice(i));
-          return required;
+        if (this.positional) {
+          const { key, option } = this.positional;
+          specifiedKeys.add(key);
+          const preferredName = option.preferredName ?? option.names.find((name) => name)!;
+          for (const arg of args.slice(i)) {
+            this.parseValue(values, key, option, preferredName, arg);
+          }
+          break;
         }
         throw Error(`Unknown option '${name}'.`);
       }
@@ -222,60 +254,81 @@ class ArgumentParser<T extends Options> {
           throw Error(`Option '${name}' does not accept any value.`);
         }
         if (option.type === 'boolean') {
-          setValue(values, key, true);
-        } else if (option.default) {
-          const result = option.default(values, args.slice(i + 1));
-          if (result === null) {
-            return required;
-          } else if (typeof result === 'object') {
-            throw Error('Use `asyncParse` to handle async functions.');
+          (values as Record<string, true>)[key as string] = true;
+        } else {
+          if (option.break) {
+            specifiedKeys.add(key);
+            this.checkAllRequires(values, specifiedKeys);
+          }
+          const result = option.exec(values, args.slice(i + 1));
+          if (typeof result === 'object') {
+            promises.push(result);
+          }
+          if (option.break) {
+            return Promise.all(promises);
           }
         }
-      } else if ('multi' in option && option.multi) {
-        multi.key = key;
-        multi.name = name;
-        multi.option = option;
-        if (!('append' in option) || !option.append) {
-          setValue(values, key, []);
-        }
       } else {
-        if (value === undefined && i + 1 == args.length) {
-          throw Error(`Missing parameter to '${name}'.`);
+        if (isArray(option) && !(option.append && specifiedKeys.has(key))) {
+          (values as Record<string, []>)[key as string] = [];
         }
-        assert(option.type !== 'positional');
-        this.parseValue(values, key, option, name, value ?? args[++i]);
+        if (value !== undefined) {
+          this.parseValue(values, key, option, name, value);
+        } else if ('multivalued' in option && option.multivalued) {
+          multi.key = key;
+          multi.name = name;
+          multi.option = option;
+        } else {
+          if (i + 1 == args.length) {
+            throw Error(`Missing parameter to '${name}'.`);
+          }
+          this.parseValue(values, key, option, name, args[++i]);
+        }
       }
-      if (option.requires) {
-        required.add(key);
-      }
+      specifiedKeys.add(key);
     }
-    return required;
+    this.checkAllRequires(values, specifiedKeys);
+    return Promise.all(promises);
   }
 
-  private checkAllRequired(values: OptionValues<T>, args: Array<string>, required: Set<keyof T>) {
-    for (const key of required) {
+  /**
+   * Checks the requirements of the options that were specified.
+   * @param values The options' values
+   * @param keys The set of specified option keys
+   */
+  private checkAllRequires(values: OptionValues<T>, keys: Set<keyof T>) {
+    for (const key of keys) {
       const option = this.options[key];
-      assert(option.type !== 'positional');
-      const name = option.names.find((name) => name)!;
-      const error = this.checkOneRequires(values, option.requires!, name, args);
-      if (error) {
-        throw Error(`Option '${name}' requires ${error}.`);
+      if (option.requires) {
+        const preferredName = option.preferredName ?? option.names.find((name) => name)!;
+        const error = this.checkOneRequires(values, option.requires, preferredName, keys);
+        if (error) {
+          throw Error(`Option '${preferredName}' requires ${error}.`);
+        }
       }
     }
   }
 
+  /**
+   * Checks the requirements of single option that was specified.
+   * @param values The options' values
+   * @param requires The option requirements
+   * @param name The option name
+   * @param keys The set of specified option keys
+   * @returns An error reason or null if no error
+   */
   private checkOneRequires(
     values: OptionValues<T>,
     requires: Requires,
     name: string,
-    args: Array<string>,
+    keys: Set<keyof T>,
   ): string | null {
     if (typeof requires === 'string') {
-      return this.checkOneRequired(values, requires, name, args);
+      return this.checkOneRequired(values, requires, name, keys);
     }
     if (requires.op === 'and') {
       for (const item of requires.items) {
-        const error = this.checkOneRequires(values, item, name, args);
+        const error = this.checkOneRequires(values, item, name, keys);
         if (error) {
           return error;
         }
@@ -284,45 +337,77 @@ class ArgumentParser<T extends Options> {
     }
     const errors = new Set<string>();
     for (const item of requires.items) {
-      const error = this.checkOneRequires(values, item, name, args);
+      const error = this.checkOneRequires(values, item, name, keys);
       if (!error) {
         return null;
       }
       errors.add(error);
     }
-    return [...errors].join(' or ');
+    return `(${[...errors].join(' or ')})`;
   }
 
+  /**
+   * Checks if a required option was specified with correct values.
+   * @param values The options' values
+   * @param required The required option
+   * @param name The option name
+   * @param keys The set of specified option keys
+   * @returns An error reason or null if no error
+   */
   private checkOneRequired(
     values: OptionValues<T>,
     required: string,
     name: string,
-    args: Array<string>,
+    keys: Set<keyof T>,
   ): string | null {
     const [requiredKey, requiredValue] = required.split(/=(.*)/, 2);
     const requiredOpt = this.options[requiredKey];
-    assert(requiredOpt.type !== 'positional');
     const requiredNames = requiredOpt.names.filter((name) => name);
+    const preferredName = requiredOpt.preferredName ?? requiredNames[0];
+    let error = `'${preferredName}'`;
     if (requiredOpt.type === 'function') {
-      return requiredNames.find((name) => args.includes(name)) ? null : requiredNames[0];
+      return requiredNames.find((name) => keys.has(name)) ? null : error;
     }
     const actualValue = values[requiredKey as keyof OptionValues<T>];
     if (actualValue === undefined || actualValue === false) {
-      return requiredNames[0];
+      return error;
     }
     if (requiredOpt.type !== 'boolean' && requiredValue !== undefined) {
+      error += `='${requiredValue}'`;
       const test = {} as OptionValues<T>;
       this.parseValue(test, requiredKey, requiredOpt, name, requiredValue);
-      const testValue = test[requiredKey as keyof OptionValues<T>]!;
-      if (actualValue.toString() !== testValue.toString()) {
-        return `${requiredNames[0]}='${testValue}' (was '${actualValue}')`;
+      const expectedValue = test[requiredKey as keyof OptionValues<T>]!;
+      if (typeof actualValue === 'object' && typeof expectedValue === 'object') {
+        if (actualValue.length !== expectedValue.length) {
+          return error;
+        }
+        if ('unique' in requiredOpt && requiredOpt.unique) {
+          const actualSet = new Set<string | number>(actualValue);
+          const expectedSet = new Set<string | number>(expectedValue);
+          for (const actual of actualSet) {
+            if (!expectedSet.delete(actual)) {
+              return error;
+            }
+          }
+          if (expectedSet.size > 0) {
+            return error;
+          }
+        } else {
+          for (let i = 0; i < actualValue.length; ++i) {
+            if (actualValue[i] !== expectedValue[i]) {
+              return error;
+            }
+          }
+        }
+      } else if (actualValue !== expectedValue) {
+        return error;
       }
     }
     return null;
   }
 
   /**
-   * Parses the value of a monadic option.
+   * Parses the value of an option parameter.
    * @param values The options' values to parse into
    * @param key The option key
    * @param option The option definition
@@ -332,30 +417,24 @@ class ArgumentParser<T extends Options> {
   private parseValue(
     values: OptionValues<T>,
     key: keyof T,
-    option: ParamsOption,
+    option: ParamOption,
     name: string,
     value: string,
   ) {
     switch (option.type) {
-      case 'string':
-        setValue(values, key, this.parseString(option, name, value));
+      case 'string': {
+        (values as Record<string, string>)[key as string] = this.parseString(option, name, value);
         break;
-      case 'number':
-        setValue(values, key, this.parseNumber(option, name, value));
+      }
+      case 'number': {
+        (values as Record<string, number>)[key as string] = this.parseNumber(option, name, value);
         break;
+      }
       case 'strings':
-        if (('append' in option && option.append) || ('multi' in option && option.multi)) {
-          appendValue(values, key, this.parseStrings(option, name, value));
-        } else {
-          setValue(values, key, this.parseStrings(option, name, value));
-        }
+        this.setArrayValue(values, key, option, name, this.parseStrings(option, name, value));
         break;
       case 'numbers':
-        if (('append' in option && option.append) || ('multi' in option && option.multi)) {
-          appendValue(values, key, this.parseNumbers(option, name, value));
-        } else {
-          setValue(values, key, this.parseNumbers(option, name, value));
-        }
+        this.setArrayValue(values, key, option, name, this.parseNumbers(option, name, value));
         break;
       default: {
         const _exhaustiveCheck: never = option;
@@ -365,12 +444,49 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
+   * Sets the value of an array option.
+   * @param values The options' values to parse into
+   * @param key The option key
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   */
+  private setArrayValue(
+    values: OptionValues<T>,
+    key: keyof T,
+    option: ArrayOption,
+    name: string,
+    value: Array<string | number>,
+  ) {
+    if (option.append || option.multivalued) {
+      const previous = (values as Record<string, typeof value | undefined>)[key as string];
+      if (previous) {
+        previous.push(...value);
+        value = previous;
+      }
+    }
+    if (option.unique) {
+      value = [...new Set(value)];
+    }
+    if (option.limit !== undefined && value.length > option.limit) {
+      throw Error(
+        `Option '${name}' has too many values (${value.length}). ` +
+          `Should have at most ${option.limit}.`,
+      );
+    }
+    (values as Record<string, typeof value>)[key as string] = value;
+  }
+
+  /**
    * Parses the value of a string option.
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
   private parseString(option: StringOption | StringsOption, name: string, value: string): string {
+    if (option.trim) {
+      value = value.trim();
+    }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`,
@@ -413,9 +529,10 @@ class ArgumentParser<T extends Options> {
    * @param value The option value
    */
   private parseStrings(option: StringsOption, name: string, value: string): Array<string> {
-    return value.trim().length > 0
-      ? value.split(',').map((val) => this.parseString(option, name, val.trim()))
-      : [];
+    if ('separator' in option && option.separator) {
+      return value.split(option.separator).map((val) => this.parseString(option, name, val));
+    }
+    return [value];
   }
 
   /**
@@ -425,97 +542,9 @@ class ArgumentParser<T extends Options> {
    * @param value The option value
    */
   private parseNumbers(option: NumbersOption, name: string, value: string): Array<number> {
-    return value.trim().length > 0
-      ? value.split(',').map((val) => this.parseNumber(option, name, val.trim()))
-      : [];
-  }
-
-  /**
-   * Async version
-   * @see parse
-   */
-  async asyncParse(args = process.argv.slice(2)): Promise<OptionValues<T>> {
-    const result = {} as OptionValues<T>;
-    await this.asyncParseInto(result, args);
-    return result;
-  }
-
-  /**
-   * Async version
-   * @see parseInto
-   */
-  async asyncParseInto(values: OptionValues<T>, args = process.argv.slice(2)) {
-    this.parseInto(values, []);
-    const required = await this.asyncInternalParseInto(values, args);
-    this.checkAllRequired(values, args, required);
-  }
-
-  /**
-   * Async version
-   * @see internalParseInto
-   */
-  private async asyncInternalParseInto(
-    values: OptionValues<T>,
-    args: Array<string>,
-  ): Promise<Set<keyof T>> {
-    const required = new Set<keyof T>();
-    const multi: {
-      key?: keyof T;
-      name?: string;
-      option?: ArrayOption;
-    } = {};
-    for (let i = 0; i < args.length; ++i) {
-      const arg = args[i];
-      const [name, value] = arg.split(/=(.*)/, 2);
-      const key = this.nameToKey.get(name);
-      if (!key) {
-        if (multi.key) {
-          this.parseValue(values, multi.key, multi.option!, multi.name!, value ?? arg);
-          continue;
-        }
-        if (this.positionalKey) {
-          setValue(values, this.positionalKey, args.slice(i));
-          return required;
-        }
-        throw Error(`Unknown option '${name}'.`);
-      }
-      delete multi.key;
-      const option = this.options[key];
-      if (isNiladic(option)) {
-        if (value !== undefined) {
-          throw Error(`Option '${name}' does not accept any value.`);
-        }
-        if (option.type === 'boolean') {
-          setValue(values, key, true);
-        } else if (option.default) {
-          const result = option.default(values, args.slice(i + 1));
-          if (result === null || (typeof result === 'object' && (await result) === null)) {
-            return required;
-          }
-        }
-      } else if ('multi' in option && option.multi) {
-        multi.key = key;
-        multi.name = name;
-        multi.option = option;
-        if (!('append' in option) || !option.append) {
-          setValue(values, key, []);
-        }
-      } else {
-        if (value === undefined && i + 1 == args.length) {
-          throw Error(`Missing parameter to '${name}'.`);
-        }
-        assert(option.type !== 'positional');
-        this.parseValue(values, key, option, name, value ?? args[++i]);
-      }
-      if (option.requires) {
-        required.add(key);
-      }
+    if ('separator' in option && option.separator) {
+      return value.split(option.separator).map((val) => this.parseNumber(option, name, val));
     }
-    return required;
+    return [Number(value)];
   }
 }
-
-//--------------------------------------------------------------------------------------------------
-// Functions
-//--------------------------------------------------------------------------------------------------
-function assert(condition: unknown): asserts condition {}

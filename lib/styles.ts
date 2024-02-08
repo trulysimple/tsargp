@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 export type { Style };
 
-export { clearStyle, fg, bg, tf, ff, StyledString, isStyle };
+export { clearStyle, fg, bg, tf, ff, StyledString, isStyle, styleToString };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -120,10 +120,11 @@ type Style = Array<fg | bg | tf | ff | typeof clearStyle>;
 // Classes
 //--------------------------------------------------------------------------------------------------
 /**
- * Implements concatenation of styled strings.
+ * Implements concatenation of strings with styles.
  */
 class StyledString {
   readonly strings = new Array<string>();
+  private lastStyle = '';
 
   get string(): string {
     return this.strings.join('');
@@ -133,9 +134,10 @@ class StyledString {
     return this.strings.reduce((sum, str) => sum + (isStyle(str) ? 0 : str.length), 0);
   }
 
-  style(style: Style = []): this {
-    if (style.length > 0) {
-      this.strings.push(style.join(''));
+  style(style: string): this {
+    if (style && style != this.lastStyle) {
+      this.strings.push(style);
+      this.lastStyle = style;
     }
     return this;
   }
@@ -149,6 +151,10 @@ class StyledString {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+function styleToString(style: Style = []): string {
+  return style.join('');
+}
+
 function isStyle(text: string): boolean {
   return text.startsWith('\x1b');
 }
