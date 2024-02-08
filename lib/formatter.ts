@@ -400,7 +400,9 @@ class HelpFormatter {
         case HelpItem.limit:
           if ('limit' in option && option.limit !== undefined) {
             const words = HelpItem.limit.split(' ');
-            result.style(descStyle).append(...words, `${option.limit}.`);
+            result.style(descStyle).append(...words);
+            result.style(this.styles.number).append(`${option.limit}`);
+            result.style(descStyle).append('.');
           }
           break;
         case HelpItem.trim:

@@ -30,7 +30,7 @@ const options = {
   help: {
     type: 'function',
     names: ['-h', '--help'],
-    desc: 'Print this help message',
+    desc: 'A function option. Prints this help message',
     exec: () => {
       const help = new HelpFormatter(options).formatHelp();
       throw `${usage}${help}${footer}`;
@@ -39,7 +39,7 @@ const options = {
   version: {
     type: 'function',
     names: ['-v', '--version'],
-    desc: 'Print the package version',
+    desc: 'A function option. Prints the package version',
     exec: async () => {
       const packageJsonPath = join(dirname(import.meta.dirname), 'package.json');
       const packageJsonData = await promises.readFile(packageJsonPath);
@@ -50,7 +50,7 @@ const options = {
   boolean: {
     type: 'boolean',
     names: ['-b', '--boolean'],
-    desc: 'A deprecated boolean option with custom styling.',
+    desc: 'A boolean option',
     deprecated: 'some reason',
     styles: {
       names: [clearStyle, fg.red],
@@ -60,44 +60,45 @@ const options = {
   stringRegex: {
     type: 'string',
     names: ['-s', '--stringRegex'],
-    desc: 'A string option with a default value and a regex constraint',
+    desc: 'A string option',
     regex: /\d+/s,
     default: '123456789',
   },
   numberRange: {
     type: 'number',
     names: ['-n', '--numberRange'],
-    desc: 'A number option with a default value and a range constraint',
+    desc: 'A number option',
     range: [-Infinity, 0],
     default: -1.23,
   },
   stringEnum: {
     type: 'string',
     names: ['-se', '--stringEnum'],
-    desc: 'A string option with an example value and an enumeration constraint',
+    desc: 'A string option',
     enums: ['one', 'two'],
     example: 'one',
   },
   numberEnum: {
     type: 'number',
     names: ['-ne', '--numberEnum'],
-    desc: 'A number option with an example value and an enumeration constraint',
+    desc: 'A number option',
     enums: [1, 2],
     example: 1,
   },
   stringsRegex: {
     type: 'strings',
     names: ['-ss', '--strings'],
-    desc: 'A strings option with a default value and a regex constraint',
+    desc: 'A strings option',
     regex: /\w+/s,
     default: ['one', 'two'],
     separator: ',',
     trim: true,
+    case: 'upper',
   },
   numbersRange: {
     type: 'numbers',
     names: ['-ns', '--numbers'],
-    desc: 'A numbers option with a default value and a range constraint',
+    desc: 'A numbers option',
     range: [0, Infinity],
     default: [1, 2],
     multivalued: true,
@@ -106,7 +107,7 @@ const options = {
   stringsEnum: {
     type: 'strings',
     names: ['', '--stringsEnum'],
-    desc: 'A strings option with an example value and an enumeration constraint',
+    desc: 'A strings option',
     enums: ['one', 'two'],
     example: ['one', 'one'],
     multivalued: true,
@@ -116,7 +117,7 @@ const options = {
   numbersEnum: {
     type: 'numbers',
     names: ['', '--numbersEnum'],
-    desc: 'A numbers option with an example value and an enumeration constraint',
+    desc: 'A numbers option',
     enums: [1, 2],
     example: [1, 1],
     separator: ',',
@@ -125,7 +126,7 @@ const options = {
   requires: {
     type: 'boolean',
     names: ['-req', ''],
-    desc: 'An option that requires other options',
+    desc: 'A boolean option',
     requires: req.and(
       'stringEnum=one',
       'numberEnum=2',

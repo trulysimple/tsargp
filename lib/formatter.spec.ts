@@ -421,7 +421,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-ss.*,.+--strings.+<strings>.+A strings option\..+Accepts multiple parameters\..+Value count is limited to 2\./s,
+          /-ss.*,.+--strings.+<strings>.+A strings option\..+Accepts multiple parameters\..+Value count is limited to.+2.+\./s,
         );
       });
 
@@ -567,7 +567,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-ns.*,.+--numbers.+<numbers>.+A numbers option\..+Accepts multiple parameters\..+Value count is limited to 2\./s,
+          /-ns.*,.+--numbers.+<numbers>.+A numbers option\..+Accepts multiple parameters\..+Value count is limited to.+2.+\./s,
         );
       });
     });
