@@ -6,8 +6,10 @@
 
 - Fully declarative style with type checking
 - Boolean, string, number and function types
-- Value constraints (enums, regex and range)
-- Arbitrary dependencies between options
+- Value constraints: enums, regex, range, limit
+- Value normalization: unique, trim, case
+- Delimited, multivalued and positional args
+- Arbitrary interdependencies between options
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
 - Zero-dependency and small footprint

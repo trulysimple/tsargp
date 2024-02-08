@@ -487,6 +487,9 @@ class ArgumentParser<T extends Options> {
     if (option.trim) {
       value = value.trim();
     }
+    if (option.case) {
+      value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
+    }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`,

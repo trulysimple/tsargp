@@ -243,16 +243,6 @@ type WithCallback = {
 };
 
 /**
- * Defines attributes for a trimmed option.
- */
-type WithTrim = {
-  /**
-   * True if the values should be trimmed.
-   */
-  readonly trim?: true;
-};
-
-/**
  * A helper type for optional objects.
  * @template T The actual object type
  */
@@ -261,7 +251,16 @@ type Optional<T extends object> = T | Record<never, never>;
 /**
  * Defines an option with attributes common to all options that accept string parameters.
  */
-type WithString = Optional<WithEnums<string> | WithRegex> & WithTrim;
+type WithString = Optional<WithEnums<string> | WithRegex> & {
+  /**
+   * True if the values should be trimmed.
+   */
+  readonly trim?: true;
+  /**
+   * The kind of case normalization to apply.
+   */
+  readonly case?: 'lower' | 'upper';
+};
 
 /**
  * Defines an option with attributes common to all options that accept number parameters.

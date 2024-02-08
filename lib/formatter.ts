@@ -57,6 +57,7 @@ const enum HelpItem {
   unique = 'Duplicate values will be removed.',
   limit = 'Value count is limited to',
   trim = 'Values will be trimmed.',
+  case = 'Values will be converted to',
   regex = 'Values must match the regex',
   range = 'Values must be in the range',
   enums = 'Values must be one of',
@@ -148,6 +149,7 @@ const defaultConfig: HelpConfig = {
     HelpItem.unique,
     HelpItem.limit,
     HelpItem.trim,
+    HelpItem.case,
     HelpItem.regex,
     HelpItem.range,
     HelpItem.enums,
@@ -405,6 +407,12 @@ class HelpFormatter {
           if ('trim' in option && option.trim) {
             const words = HelpItem.trim.split(' ');
             result.style(descStyle).append(...words);
+          }
+          break;
+        case HelpItem.case:
+          if ('case' in option && option.case) {
+            const words = HelpItem.case.split(' ');
+            result.style(descStyle).append(...words, option.case + '-case.');
           }
           break;
         case HelpItem.regex:

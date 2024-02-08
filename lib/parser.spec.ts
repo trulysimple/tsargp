@@ -906,6 +906,39 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse(['-s', 'one'])).toMatchObject({ string: 'one' });
       });
 
+      it('should handle a string option with trimming normalization', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            trim: true,
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-s', ' one '])).toMatchObject({ string: 'one' });
+      });
+
+      it('should handle a string option with lowercase normalization', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            case: 'lower',
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-s', 'OnE'])).toMatchObject({ string: 'one' });
+      });
+
+      it('should handle a string option with uppercase normalization', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            case: 'upper',
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-s', 'oNe'])).toMatchObject({ string: 'ONE' });
+      });
+
       it('should throw an error on string value not in enumeration', () => {
         const options = {
           string: {
@@ -1165,6 +1198,48 @@ describe('ArgumentParser', () => {
         expect(() => new ArgumentParser(options).parse(['-ss', '123,abc'])).toThrowError(
           `Invalid parameter to '-ss': abc. Value must match the regex /\\d+/s.`,
         );
+      });
+
+      it('should handle a strings option with trimming normalization', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            trim: true,
+            separator: ',',
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-ss', ' one, two '])).toMatchObject({
+          strings: ['one', 'two'],
+        });
+      });
+
+      it('should handle a strings option with lowercase normalization', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            case: 'lower',
+            separator: ',',
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-ss', 'OnE,T O.'])).toMatchObject({
+          strings: ['one', 't o.'],
+        });
+      });
+
+      it('should handle a strings option with uppercase normalization', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            case: 'upper',
+            separator: ',',
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-ss', 'o?Ne,2ki'])).toMatchObject({
+          strings: ['O?NE', '2KI'],
+        });
       });
 
       it('should throw an error on strings value not in enumeration', () => {
