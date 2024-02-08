@@ -14,6 +14,6 @@
     "niladic",
     "multivalued"
   ],
-  "ignorePaths": ["bun.lockb"],
+  "ignorePaths": ["*.lockb", "*.dvc"],
   "useGitignore": true
 }
