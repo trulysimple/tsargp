@@ -10,21 +10,14 @@ import { promises } from 'fs';
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const usage = `${tf.bold}Argument parser for TypeScript.${clearStyle}
+const usage = `${clearStyle}${tf.bold}Argument parser for TypeScript.${clearStyle}
 
-  ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}
+  ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`;
 
-${tf.bold}Options:${clearStyle}
-
-`;
-
-const footer = `
-
-MIT License
+const footer = `MIT License
 Copyright (c) 2024 ${tf.italic}${tf.bold}${fg.cyan}TrulySimple${clearStyle}
 
-Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues
-${clearStyle}`;
+Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyle}`;
 
 const options = {
   help: {
@@ -32,8 +25,13 @@ const options = {
     names: ['-h', '--help'],
     desc: 'A function option. Prints this help message',
     exec: () => {
-      const help = new HelpFormatter(options).formatHelp();
-      throw `${usage}${help}${footer}`;
+      const help = [usage];
+      const groups = new HelpFormatter(options).formatGroups();
+      for (const [group, message] of groups.entries()) {
+        help.push(`${tf.bold}${group || 'Global'} options:`, `${message}${clearStyle}`);
+      }
+      help.push(footer);
+      throw help.join('\n\n') + '\n';
     },
   },
   version: {
@@ -61,6 +59,7 @@ const options = {
     type: 'string',
     names: ['-s', '--stringRegex'],
     desc: 'A string option',
+    group: 'String',
     regex: /\d+/s,
     default: '123456789',
   },
@@ -68,6 +67,7 @@ const options = {
     type: 'number',
     names: ['-n', '--numberRange'],
     desc: 'A number option',
+    group: 'Number',
     range: [-Infinity, 0],
     default: -1.23,
   },
@@ -75,6 +75,7 @@ const options = {
     type: 'string',
     names: ['-se', '--stringEnum'],
     desc: 'A string option',
+    group: 'String',
     enums: ['one', 'two'],
     example: 'one',
   },
@@ -82,6 +83,7 @@ const options = {
     type: 'number',
     names: ['-ne', '--numberEnum'],
     desc: 'A number option',
+    group: 'Number',
     enums: [1, 2],
     example: 1,
   },
@@ -89,6 +91,7 @@ const options = {
     type: 'strings',
     names: ['-ss', '--strings'],
     desc: 'A strings option',
+    group: 'String',
     regex: /\w+/s,
     default: ['one', 'two'],
     separator: ',',
@@ -99,6 +102,7 @@ const options = {
     type: 'numbers',
     names: ['-ns', '--numbers'],
     desc: 'A numbers option',
+    group: 'Number',
     range: [0, Infinity],
     default: [1, 2],
     unique: true,
@@ -107,6 +111,7 @@ const options = {
     type: 'strings',
     names: ['', '--stringsEnum'],
     desc: 'A strings option',
+    group: 'String',
     enums: ['one', 'two'],
     example: ['one', 'one'],
     positional: true,
@@ -116,6 +121,7 @@ const options = {
     type: 'numbers',
     names: ['', '--numbersEnum'],
     desc: 'A numbers option',
+    group: 'Number',
     enums: [1, 2],
     example: [1, 1],
     separator: ',',

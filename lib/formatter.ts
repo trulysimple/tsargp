@@ -4,7 +4,7 @@
 import type { Option, Options, ParamOption, Requires, Styles } from './options.js';
 import type { Style } from './styles.js';
 
-import { isNiladic } from './options.js';
+import { isArray, isNiladic } from './options.js';
 import { fg, isStyle, clearStyle, StyledString, styleToString } from './styles.js';
 
 export { type HelpConfig, HelpFormatter, HelpItem };
@@ -383,7 +383,7 @@ class HelpFormatter {
           }
           break;
         case HelpItem.multivalued:
-          if (!('separator' in option && option.separator)) {
+          if (isArray(option) && !('separator' in option && option.separator)) {
             const words = HelpItem.multivalued.split(' ');
             result.style(descStyle).append(...words);
           }
@@ -585,7 +585,7 @@ class HelpFormatter {
       line.append(this.indent.desc);
       this.wrapDesc(lines, entry.desc, width, line.string, this.indent.wrap);
     }
-    return lines.join('\n') + clearStyle;
+    return lines.join('\n');
   }
 
   /**
