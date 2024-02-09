@@ -1,6 +1,6 @@
 # tsargp
 
-![screen capture gif](https://drive.google.com/uc?export=view&id=1eckDPBDaXc355BY9s9LeTc2niTZaeKYZ 'screen capture gif')
+![screen capture gif](https://drive.google.com/uc?export=view&id=1BLxK1wbCjLfK3ym3iZpKFMdoYLInPRz_ 'screen capture gif')
 
 ## Features
 
@@ -9,7 +9,7 @@
 - Value constraints: enums, regex, range, limit
 - Value normalization: unique, trim, case
 - Delimited, multivalued and positional args
-- Arbitrary interdependencies between options
+- Option grouping, hiding and interdependency
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
 - Zero-dependency and small footprint
