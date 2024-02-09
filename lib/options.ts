@@ -9,6 +9,7 @@ export type {
   Options,
   OptionDataType,
   OptionValues,
+  OptionStyles,
   StringOption,
   NumberOption,
   BooleanOption,
@@ -21,7 +22,6 @@ export type {
   ValuedOption,
   Requires,
   RequireExp,
-  Styles,
 };
 
 export { req, isNiladic, isArray };
@@ -29,11 +29,25 @@ export { req, isNiladic, isArray };
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
+/**
+ * A helper to create option requirement expressions.
+ */
 const req = {
-  and(...items: Array<Requires>): Requires {
+  /**
+   * Creates a requirement expression that is satisfied only when all items are satisfied.
+   * @param items The requirement items
+   * @returns The combined requirement
+   */
+  and(...items: Array<Requires>): RequireExp {
     return { items, op: 'and' };
   },
-  or(...items: Array<Requires>): Requires {
+
+  /**
+   * Creates a requirement expression that is satisfied when at least one item is satisfied.
+   * @param items The requirement items
+   * @returns The combined requirement
+   */
+  or(...items: Array<Requires>): RequireExp {
     return { items, op: 'or' };
   },
 } as const;
@@ -42,9 +56,9 @@ const req = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * A set of styles for displaying an option on the terminal.
+ * A set of styles for displaying an option on the console.
  */
-type Styles = {
+type OptionStyles = {
   names?: Style;
   type?: Style;
   desc?: Style;
@@ -65,7 +79,7 @@ type RequireExp = {
 };
 
 /**
- * A requirement constraint: can be a key-value pair or a requirement expression.
+ * An option requirement: can be a key-value pair or a requirement expression.
  */
 type Requires = string | RequireExp;
 
@@ -89,8 +103,8 @@ type WithType<T extends string> = {
    * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
    *
    * Names cannot contain spaces or the equals sign (`=`), as it may be used for passing values in
-   * the command-line. Empty names may be specified in order to "skip" the respective sub-column in
-   * the help message. There must be at least one valid name.
+   * the command-line. Empty names may be specified in order to skip the respective "slot" in the
+   * help message name column. There must be at least one valid name.
    */
   readonly names: Array<string>;
   /**
@@ -113,7 +127,7 @@ type WithType<T extends string> = {
   /**
    * The option display styles.
    */
-  readonly styles?: Styles;
+  readonly styles?: OptionStyles;
   /**
    * The option deprecation reason.
    */
@@ -148,7 +162,7 @@ type WithParam<D> = {
  */
 type WithArray = {
   /**
-   * The option value separator. If not specified, the option is multivalued.
+   * The element separator. If not specified, the option is multivalued.
    */
   readonly separator?: string;
   /**
@@ -156,11 +170,11 @@ type WithArray = {
    */
   readonly unique?: true;
   /**
-   * Allows appending values if specified multiple times.
+   * Allows appending elements if specified multiple times.
    */
   readonly append?: true;
   /**
-   * The maximum number of option values.
+   * The maximum number of elements.
    */
   readonly limit?: number;
 };
@@ -171,7 +185,7 @@ type WithArray = {
  */
 type WithEnums<T> = {
   /**
-   * The option enumerated values.
+   * The enumerated values.
    */
   readonly enums: Array<T>;
   /**
@@ -189,7 +203,7 @@ type WithEnums<T> = {
  */
 type WithRegex = {
   /**
-   * The option regular expression.
+   * The regular expression.
    */
   readonly regex: RegExp;
   /**
@@ -203,7 +217,7 @@ type WithRegex = {
  */
 type WithRange = {
   /**
-   * The option numeric range.
+   * The (closed) numeric range.
    */
   readonly range: [number, number];
   /**
@@ -213,7 +227,7 @@ type WithRange = {
 };
 
 /**
- * Defines attributes for a function option.
+ * Defines attributes for a callback function.
  */
 type WithCallback = {
   /**
@@ -233,7 +247,7 @@ type WithCallback = {
 type Optional<T extends object> = T | Record<never, never>;
 
 /**
- * Defines an option with attributes common to all options that accept string parameters.
+ * Defines attributes common to all options that accept string parameters.
  */
 type WithString = Optional<WithEnums<string> | WithRegex> & {
   /**
@@ -247,12 +261,12 @@ type WithString = Optional<WithEnums<string> | WithRegex> & {
 };
 
 /**
- * Defines an option with attributes common to all options that accept number parameters.
+ * Defines attributes common to all options that accept number parameters.
  */
 type WithNumber = Optional<WithEnums<number> | WithRange>;
 
 /**
- * An option which which is enabled if specified. Always defaults to false.
+ * An option which is enabled if specified. Always defaults to false.
  */
 type BooleanOption = WithType<'boolean'>;
 
@@ -277,7 +291,7 @@ type StringsOption = WithType<'strings'> & WithParam<Array<string>> & WithString
 type NumbersOption = WithType<'numbers'> & WithParam<Array<number>> & WithNumber & WithArray;
 
 /**
- * An option that executes a function.
+ * An option that executes a callback function.
  */
 type FunctionOption = WithType<'function'> & WithCallback;
 
@@ -287,12 +301,12 @@ type FunctionOption = WithType<'function'> & WithCallback;
 type NiladicOption = BooleanOption | FunctionOption;
 
 /**
- * An option that accepts an array of parameters.
+ * An option that accepts a list of parameters.
  */
 type ArrayOption = StringsOption | NumbersOption;
 
 /**
- * An option that accepts parameters.
+ * An option that accepts any kind of parameter.
  */
 type ParamOption = StringOption | NumberOption | ArrayOption;
 
@@ -302,7 +316,7 @@ type ParamOption = StringOption | NumberOption | ArrayOption;
 type ValuedOption = BooleanOption | ParamOption;
 
 /**
- * Defines an option.
+ * An option definition. (finally)
  */
 type Option = NiladicOption | ParamOption;
 
@@ -312,7 +326,7 @@ type Option = NiladicOption | ParamOption;
 type Options = Readonly<Record<string, Option>>;
 
 /**
- * The data type of an option.
+ * The data type of a non-array option.
  * @template T The option definition type
  * @template D The option value data type
  */
@@ -347,7 +361,7 @@ type OptionDataType<T extends Option> = T extends { type: 'boolean' }
 
 /**
  * A collection of option values.
- * @template T The option definitions type
+ * @template T The type of the option definitions
  */
 type OptionValues<T extends Options> = {
   -readonly [key in keyof T as T[key] extends ValuedOption ? key : never]: OptionDataType<T[key]>;
@@ -356,10 +370,20 @@ type OptionValues<T extends Options> = {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Tests if an option is niladic (i.e., accepts no parameter).
+ * @param option The option definition
+ * @returns True if the option is niladic
+ */
 function isNiladic(option: Option): option is NiladicOption {
   return option.type === 'boolean' || option.type === 'function';
 }
 
+/**
+ * Tests if an option is an array option (i.e., accepts a list of parameters).
+ * @param option The option definition
+ * @returns True if the option is an array option
+ */
 function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
 }

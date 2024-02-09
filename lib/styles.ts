@@ -1,13 +1,16 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-export type { FgColor, BgColor, Style };
+export type { Color, FgColor, BgColor, Style };
 
 export { clearStyle, fg, bg, tf, ff, StyledString, isStyle, styleToString, fgColor, bgColor };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
+/**
+ * A special style that clears any previous style attributes.
+ */
 const clearStyle = '\x1b[0m';
 
 /**
@@ -108,13 +111,21 @@ const enum ff {
   gothic = '\x1b[20m',
 }
 
-type Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+//--------------------------------------------------------------------------------------------------
+// Types
+//--------------------------------------------------------------------------------------------------
+type UpToFour = '0' | '1' | '2' | '3' | '4';
+type Digit = UpToFour | '5' | '6' | '7' | '8' | '9';
+
+/**
+ * An 8-bit color.
+ */
 type Color =
   | Digit
   | `${Exclude<Digit, '0'>}${Digit}`
   | `1${Digit}${Digit}`
-  | `2${'0' | '1' | '2' | '3' | '4'}${Digit}`
-  | `25${'0' | '1' | '2' | '3' | '4' | '5'}`;
+  | `2${UpToFour}${Digit}`
+  | `25${UpToFour | '5'}`;
 
 /**
  * An 8-bit foreground color.
@@ -126,9 +137,6 @@ type FgColor = `\x1b[38;5;${Color}m`;
  */
 type BgColor = `\x1b[48;5;${Color}m`;
 
-//--------------------------------------------------------------------------------------------------
-// Types
-//--------------------------------------------------------------------------------------------------
 /**
  * A style for displaying text (on terminals that support it).
  */
@@ -141,17 +149,32 @@ type Style = Array<typeof clearStyle | fg | bg | tf | ff | FgColor | BgColor>;
  * Implements concatenation of strings with styles.
  */
 class StyledString {
-  readonly strings = new Array<string>();
   private lastStyle = '';
 
+  /**
+   * The list of strings that have been appended (styles and text).
+   */
+  readonly strings = new Array<string>();
+
+  /**
+   * @returns The concatenation of all strings, including styles.
+   */
   get string(): string {
     return this.strings.join('');
   }
 
+  /**
+   * @returns The length of the concatenated string, excluding the lengths of styles.
+   */
   get length(): number {
     return this.strings.reduce((sum, str) => sum + (isStyle(str) ? 0 : str.length), 0);
   }
 
+  /**
+   * Appends a style to the list of strings.
+   * @param style The style string. Should be the result of calling {@link styleToString}
+   * @returns This
+   */
   style(style: string): this {
     if (style && style != this.lastStyle) {
       this.strings.push(style);
@@ -160,6 +183,11 @@ class StyledString {
     return this;
   }
 
+  /**
+   * Appends texts to the list of strings.
+   * @param texts The texts to be appended. Should not contain any style.
+   * @returns This
+   */
   append(...texts: Array<string>): this {
     this.strings.push(...texts);
     return this;
@@ -169,18 +197,38 @@ class StyledString {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Converts a style to a string, for use with {@link StyledString}
+ * @param style The style array
+ * @returns The style string
+ */
 function styleToString(style: Style = []): string {
   return style.join('');
 }
 
+/**
+ * Tests if a string is a style.
+ * @param text The text to be checked
+ * @returns True if the text is a style string
+ */
 function isStyle(text: string): boolean {
   return text.startsWith('\x1b');
 }
 
+/**
+ * Gets a foreground color from an 8-bit color.
+ * @param color The 8-bit color
+ * @returns The foreground color
+ */
 function fgColor(color: Color): FgColor {
   return `\x1b[38;5;${color}m`;
 }
 
+/**
+ * Gets a background color from an 8-bit color.
+ * @param color The 8-bit color
+ * @returns The background color
+ */
 function bgColor(color: Color): BgColor {
   return `\x1b[48;5;${color}m`;
 }
