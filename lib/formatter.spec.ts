@@ -10,6 +10,18 @@ describe('HelpFormatter', () => {
       expect(new HelpFormatter({}).formatHelp()).toEqual(clearStyle);
     });
 
+    it('should hide an option from the help message when it asks so', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option',
+          hide: true,
+        },
+      } as const satisfies Options;
+      expect(new HelpFormatter(options).formatHelp()).toEqual(clearStyle);
+    });
+
     describe('fuction', () => {
       it('should handle a function option', () => {
         const options = {
@@ -288,7 +300,6 @@ describe('HelpFormatter', () => {
             names: ['-ss', '--strings'],
             desc: 'A strings option',
             default: ['one', 'two'],
-            multivalued: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
@@ -320,7 +331,6 @@ describe('HelpFormatter', () => {
             names: ['-ss', '--strings'],
             desc: 'A strings option',
             enums: ['one', 'two'],
-            multivalued: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
@@ -351,7 +361,6 @@ describe('HelpFormatter', () => {
             type: 'strings',
             names: ['-ss', '--strings'],
             desc: 'A strings option',
-            multivalued: true,
             positional: true,
           },
         } as const satisfies Options;
@@ -415,7 +424,6 @@ describe('HelpFormatter', () => {
             type: 'strings',
             names: ['-ss', '--strings'],
             desc: 'A strings option',
-            multivalued: true,
             limit: 2,
           },
         } as const satisfies Options;
@@ -466,7 +474,6 @@ describe('HelpFormatter', () => {
             names: ['-ns', '--numbers'],
             desc: 'A numbers option',
             default: [1, 2],
-            multivalued: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
@@ -498,7 +505,6 @@ describe('HelpFormatter', () => {
             names: ['-ns', '--numbers'],
             desc: 'A numbers option',
             enums: [1, 2],
-            multivalued: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
@@ -529,7 +535,6 @@ describe('HelpFormatter', () => {
             type: 'numbers',
             names: ['-ns', '--numbers'],
             desc: 'A numbers option',
-            multivalued: true,
             positional: true,
           },
         } as const satisfies Options;
@@ -561,7 +566,6 @@ describe('HelpFormatter', () => {
             type: 'numbers',
             names: ['-ns', '--numbers'],
             desc: 'A numbers option',
-            multivalued: true,
             limit: 2,
           },
         } as const satisfies Options;

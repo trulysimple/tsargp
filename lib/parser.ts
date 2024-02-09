@@ -49,8 +49,8 @@ class ArgumentParser<T extends Options> {
           }
           this.positional = { key, option };
         }
-        if (isArray(option) && !option.separator && !option.multivalued) {
-          throw Error(`Option '${key}' should either be multivalued or have a separator.`);
+        if ('separator' in option && option.separator === '') {
+          throw Error(`Option '${key}' must have a non-empty separator.`);
         }
         this.checkEnums(key, option);
         this.checkValue(key, option, 'default');
@@ -274,7 +274,7 @@ class ArgumentParser<T extends Options> {
         }
         if (value !== undefined) {
           this.parseValue(values, key, option, name, value);
-        } else if ('multivalued' in option && option.multivalued) {
+        } else if (isArray(option) && !('separator' in option && option.separator)) {
           multi.key = key;
           multi.name = name;
           multi.option = option;
@@ -458,7 +458,7 @@ class ArgumentParser<T extends Options> {
     name: string,
     value: Array<string | number>,
   ) {
-    if (option.append || option.multivalued) {
+    if (option.append || !('separator' in option && option.separator)) {
       const previous = (values as Record<string, typeof value | undefined>)[key as string];
       if (previous) {
         previous.push(...value);

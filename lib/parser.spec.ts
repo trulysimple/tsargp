@@ -62,7 +62,7 @@ describe('ArgumentParser', () => {
       );
     });
 
-    it('should throw an error on array option that is not multivalued nor has a separator', () => {
+    it('should throw an error on array option that has an empty separator', () => {
       const options = {
         strings: {
           type: 'strings',
@@ -71,7 +71,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       expect(() => new ArgumentParser(options)).toThrowError(
-        `Option 'strings' should either be multivalued or have a separator.`,
+        `Option 'strings' must have a non-empty separator.`,
       );
     });
 
@@ -132,7 +132,6 @@ describe('ArgumentParser', () => {
             type: 'strings',
             names: ['-sse'],
             enums: ['dup', 'dup'],
-            multivalued: true,
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrowError(
@@ -146,7 +145,6 @@ describe('ArgumentParser', () => {
             type: 'numbers',
             names: ['-nse'],
             enums: [1, 1],
-            multivalued: true,
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrowError(
@@ -723,7 +721,6 @@ describe('ArgumentParser', () => {
           type: 'strings',
           names: ['req3'],
           preferredName: 'preferred',
-          multivalued: true,
           positional: true,
           requires: 'required1',
         },
@@ -1105,7 +1102,6 @@ describe('ArgumentParser', () => {
           strings: {
             type: 'strings',
             names: ['-ss'],
-            multivalued: true,
             limit: 2,
           },
         } as const satisfies Options;
@@ -1121,7 +1117,6 @@ describe('ArgumentParser', () => {
             names: ['-ss', '--strings'],
             default: ['one', 'two'],
             example: ['three', 'four'],
-            multivalued: true,
             append: true,
           },
         } as const satisfies Options;
@@ -1166,7 +1161,6 @@ describe('ArgumentParser', () => {
           strings: {
             type: 'strings',
             names: ['-ss'],
-            multivalued: true,
           },
           boolean: {
             type: 'boolean',
@@ -1266,7 +1260,6 @@ describe('ArgumentParser', () => {
             type: 'strings',
             names: ['-ss'],
             positional: true,
-            multivalued: true,
           },
         } as const satisfies Options;
         expect(new ArgumentParser(options).parse(['abc', '123'])).toMatchObject({
@@ -1311,7 +1304,6 @@ describe('ArgumentParser', () => {
           numbers: {
             type: 'numbers',
             names: ['-ns'],
-            multivalued: true,
             limit: 2,
           },
         } as const satisfies Options;
@@ -1327,7 +1319,6 @@ describe('ArgumentParser', () => {
             names: ['-ns', '--numbers'],
             default: [1, 2],
             example: [3, 4],
-            multivalued: true,
             append: true,
           },
         } as const satisfies Options;
@@ -1371,7 +1362,6 @@ describe('ArgumentParser', () => {
           numbers: {
             type: 'numbers',
             names: ['-ns'],
-            multivalued: true,
           },
           boolean: {
             type: 'boolean',
@@ -1429,7 +1419,6 @@ describe('ArgumentParser', () => {
             type: 'numbers',
             names: ['-ns'],
             positional: true,
-            multivalued: true,
           },
         } as const satisfies Options;
         expect(new ArgumentParser(options).parse(['1', '2'])).toMatchObject({

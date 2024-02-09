@@ -103,6 +103,10 @@ type WithType<T extends string> = {
    */
   readonly desc?: string;
   /**
+   * True if the option should be hidden from the help message.
+   */
+  readonly hide?: true;
+  /**
    * The option display styles.
    */
   readonly styles?: Styles;
@@ -138,7 +142,11 @@ type WithParam<D> = {
 /**
  * Defines attributes common to all options that accept array parameters.
  */
-type WithArray = (WithMultivalued | WithSeparator) & {
+type WithArray = {
+  /**
+   * The option value separator. If not specified, the option is multivalued.
+   */
+  readonly separator?: string;
   /**
    * True if duplicate elements should be removed.
    */
@@ -198,34 +206,6 @@ type WithRange = {
    * @deprecated mutually exclusive property
    */
   readonly enums?: never;
-};
-
-/**
- * Defines attributes for a multivalued array option.
- */
-type WithMultivalued = {
-  /**
-   * Allows multiple parameters.
-   */
-  readonly multivalued: true;
-  /**
-   * @deprecated mutually exclusive property
-   */
-  readonly separator?: never;
-};
-
-/**
- * Defines attributes for a delimited array option.
- */
-type WithSeparator = {
-  /**
-   * The option value separator.
-   */
-  readonly separator: string;
-  /**
-   * @deprecated mutually exclusive property
-   */
-  readonly multivalued?: never;
 };
 
 /**

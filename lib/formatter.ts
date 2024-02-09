@@ -189,6 +189,9 @@ class HelpFormatter {
     this.nameWidths = this.getNameWidths();
     for (const key in options) {
       const option = options[key];
+      if (option.hide) {
+        continue;
+      }
       const names = this.formatNames(option);
       const type = this.formatType(option);
       const desc = this.formatDescription(option);
@@ -374,7 +377,7 @@ class HelpFormatter {
           }
           break;
         case HelpItem.multivalued:
-          if ('multivalued' in option && option.multivalued) {
+          if (!('separator' in option && option.separator)) {
             const words = HelpItem.multivalued.split(' ');
             result.style(descStyle).append(...words);
           }
@@ -595,16 +598,17 @@ class HelpFormatter {
     let nextStyle = '';
     let lastStyle = '';
     function addWord() {
-      if (currentLen > 0) {
-        const space = lineLength ? ' ' : '';
-        if (lineLength + space.length + currentLen <= width) {
-          line.push(space + currentWord);
-          lineLength += space.length + currentLen;
-        } else {
-          lines.push(line.join(''));
-          line = [indent, lastStyle, currentWord];
-          lineLength = currentLen;
-        }
+      if (!currentLen) {
+        return;
+      }
+      const space = lineLength ? ' ' : '';
+      if (lineLength + space.length + currentLen <= width) {
+        line.push(space + currentWord);
+        lineLength += space.length + currentLen;
+      } else {
+        lines.push(line.join(''));
+        line = [indent, lastStyle, currentWord];
+        lineLength = currentLen;
       }
     }
     for (const word of desc.strings) {

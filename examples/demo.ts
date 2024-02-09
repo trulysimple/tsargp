@@ -101,7 +101,6 @@ const options = {
     desc: 'A numbers option',
     range: [0, Infinity],
     default: [1, 2],
-    multivalued: true,
     unique: true,
   },
   stringsEnum: {
@@ -110,7 +109,6 @@ const options = {
     desc: 'A strings option',
     enums: ['one', 'two'],
     example: ['one', 'one'],
-    multivalued: true,
     positional: true,
     limit: 3,
   },
