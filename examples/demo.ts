@@ -3,7 +3,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { ArgumentParser, HelpFormatter, type Options, fg, tf, clearStyle, req } from 'tsargp';
+import type { Options } from 'tsargp';
+
+import { ArgumentParser, HelpFormatter, fg, tf, clearStyle, req, fgColor } from 'tsargp';
 import { dirname, join } from 'path';
 import { promises } from 'fs';
 
@@ -51,7 +53,7 @@ const options = {
     desc: 'A boolean option',
     deprecated: 'some reason',
     styles: {
-      names: [clearStyle, fg.red],
+      names: [clearStyle, fgColor('202')],
       desc: [clearStyle, tf.invert, tf.strike, tf.italic],
     },
   },

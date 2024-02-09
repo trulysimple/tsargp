@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-export type { Style };
+export type { FgColor, BgColor, Style };
 
-export { clearStyle, fg, bg, tf, ff, StyledString, isStyle, styleToString };
+export { clearStyle, fg, bg, tf, ff, StyledString, isStyle, styleToString, fgColor, bgColor };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -108,13 +108,31 @@ const enum ff {
   gothic = '\x1b[20m',
 }
 
+type Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+type Color =
+  | Digit
+  | `${Exclude<Digit, '0'>}${Digit}`
+  | `1${Digit}${Digit}`
+  | `2${'0' | '1' | '2' | '3' | '4'}${Digit}`
+  | `25${'0' | '1' | '2' | '3' | '4' | '5'}`;
+
+/**
+ * An 8-bit foreground color.
+ */
+type FgColor = `\x1b[38;5;${Color}m`;
+
+/**
+ * An 8-bit background color.
+ */
+type BgColor = `\x1b[48;5;${Color}m`;
+
 //--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
  * A style for displaying text (on terminals that support it).
  */
-type Style = Array<fg | bg | tf | ff | typeof clearStyle>;
+type Style = Array<typeof clearStyle | fg | bg | tf | ff | FgColor | BgColor>;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -157,4 +175,12 @@ function styleToString(style: Style = []): string {
 
 function isStyle(text: string): boolean {
   return text.startsWith('\x1b');
+}
+
+function fgColor(color: Color): FgColor {
+  return `\x1b[38;5;${color}m`;
+}
+
+function bgColor(color: Color): BgColor {
+  return `\x1b[48;5;${color}m`;
 }
