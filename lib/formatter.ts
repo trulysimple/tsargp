@@ -120,6 +120,7 @@ const defaultConfig: HelpConfig = {
     HelpItem.range,
     HelpItem.enums,
     HelpItem.requires,
+    HelpItem.required,
     HelpItem.default,
     HelpItem.deprecated,
   ],
@@ -364,6 +365,9 @@ class HelpFormatter {
         case HelpItem.requires:
           this.formatRequires(option, descStyle, result);
           break;
+        case HelpItem.required:
+          this.formatRequired(option, descStyle, result);
+          break;
         case HelpItem.default:
           this.formatDefault(option, descStyle, result);
           break;
@@ -422,7 +426,7 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's positional flag to be included in the description.
+   * Formats an option's positional attribute to be included in the description.
    * @param values The option definition
    * @param descStyle The description style
    * @param result The resulting string
@@ -434,7 +438,7 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's append flag to be included in the description.
+   * Formats an option's append attribute to be included in the description.
    * @param values The option definition
    * @param descStyle The description style
    * @param result The resulting string
@@ -554,6 +558,18 @@ class HelpFormatter {
       result.style(descStyle).append('Requires');
       this.formatRequiresRecursive(option.requires, descStyle, result);
       result.style(descStyle).append('.');
+    }
+  }
+
+  /**
+   * Formats an option's required attribute to be included in the description.
+   * @param values The option definition
+   * @param descStyle The description style
+   * @param result The resulting string
+   */
+  private formatRequired(option: Option, descStyle: string, result: StyledString) {
+    if (option.required) {
+      result.style(descStyle).append('Always required.');
     }
   }
 

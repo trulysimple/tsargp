@@ -117,6 +117,7 @@
         "range",
         "enums",
         "requires",
+        "required",
         "default",
         "deprecated"
       ],
@@ -134,6 +135,7 @@
         "range",
         "enums",
         "requires",
+        "required",
         "default",
         "deprecated"
       ]

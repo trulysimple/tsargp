@@ -27,6 +27,7 @@ export { ArgumentParser };
  */
 class ArgumentParser<T extends Options> {
   private readonly nameToKey = new Map<string, keyof T>();
+  private readonly required = new Array<keyof T>();
   private readonly positional:
     | undefined
     | {
@@ -42,7 +43,7 @@ class ArgumentParser<T extends Options> {
   constructor(private readonly options: T) {
     for (const key in this.options) {
       const option = this.options[key];
-      this.checkNames(key, option);
+      this.checkNamesSanity(key, option);
       if (!isNiladic(option)) {
         if (option.positional) {
           if (this.positional) {
@@ -54,12 +55,15 @@ class ArgumentParser<T extends Options> {
         if ('separator' in option && option.separator === '') {
           throw Error(`Option '${key}' must have a non-empty separator.`);
         }
-        this.checkEnums(key, option);
-        this.checkValue(key, option, 'default');
-        this.checkValue(key, option, 'example');
+        this.checkEnumsSanity(key, option);
+        this.checkValueSanity(key, option, 'default');
+        this.checkValueSanity(key, option, 'example');
       }
       if (option.requires) {
-        this.checkRequires(key, option.requires);
+        this.checkRequiresSanity(key, option.requires);
+      }
+      if (option.required) {
+        this.required.push(key);
       }
     }
   }
@@ -69,7 +73,7 @@ class ArgumentParser<T extends Options> {
    * @param key The option key
    * @param option The option definition
    */
-  private checkNames(key: string, option: Option) {
+  private checkNamesSanity(key: string, option: Option) {
     const names = option.names.filter((name) => name);
     if (!names.length) {
       throw Error(`Option '${key}' has no name.`);
@@ -90,7 +94,7 @@ class ArgumentParser<T extends Options> {
    * @param key The option key
    * @param option The option definition
    */
-  private checkEnums(key: string, option: ParamOption) {
+  private checkEnumsSanity(key: string, option: ParamOption) {
     if ('enums' in option && option.enums) {
       if (!option.enums.length) {
         throw Error(`Option '${key}' has zero enum values.`);
@@ -112,7 +116,7 @@ class ArgumentParser<T extends Options> {
    * @param option The option definition
    * @param prop The option property
    */
-  private checkValue(key: string, option: ParamOption, prop: 'default' | 'example') {
+  private checkValueSanity(key: string, option: ParamOption, prop: 'default' | 'example') {
     if (prop in option && option[prop] !== undefined) {
       const test = {} as OptionValues<T>;
       if (isArray(option)) {
@@ -133,12 +137,12 @@ class ArgumentParser<T extends Options> {
    * @param key The option key
    * @param requires The option requirements
    */
-  private checkRequires(key: string, requires: Requires) {
+  private checkRequiresSanity(key: string, requires: Requires) {
     if (typeof requires === 'string') {
-      this.checkRequired(key, requires);
+      this.checkRequirementSanity(key, requires);
     } else {
       for (const item of requires.items) {
-        this.checkRequires(key, item);
+        this.checkRequiresSanity(key, item);
       }
     }
   }
@@ -146,10 +150,10 @@ class ArgumentParser<T extends Options> {
   /**
    * Checks the sanity of an option requirement.
    * @param key The option key
-   * @param required The requirement specification
+   * @param requirement The requirement specification
    */
-  private checkRequired(key: string, required: string) {
-    const [requiredKey, requiredValue] = required.split(/=(.*)/, 2);
+  private checkRequirementSanity(key: string, requirement: string) {
+    const [requiredKey, requiredValue] = requirement.split(/=(.*)/, 2);
     if (requiredKey === key) {
       throw Error(`Option '${key}' requires itself.`);
     }
@@ -251,7 +255,7 @@ class ArgumentParser<T extends Options> {
         } else {
           if (option.break) {
             specifiedKeys.add(key);
-            this.checkAllRequires(values, specifiedKeys);
+            this.checkRequired(values, specifiedKeys);
           }
           const result = option.exec(values, args.slice(i + 1));
           if (typeof result === 'object') {
@@ -278,21 +282,28 @@ class ArgumentParser<T extends Options> {
       }
       specifiedKeys.add(key);
     }
-    this.checkAllRequires(values, specifiedKeys);
+    this.checkRequired(values, specifiedKeys);
     return Promise.all(promises);
   }
 
   /**
-   * Checks the requirements of the options that were specified.
+   * Checks if required options were correctly specified.
    * @param values The options' values
    * @param keys The set of specified option keys
    */
-  private checkAllRequires(values: OptionValues<T>, keys: Set<keyof T>) {
+  private checkRequired(values: OptionValues<T>, keys: Set<keyof T>) {
+    for (const key of this.required) {
+      if (!keys.has(key)) {
+        const option = this.options[key];
+        const preferredName = option.preferredName ?? option.names.find((name) => name)!;
+        throw Error(`Option '${preferredName}' is required.`);
+      }
+    }
     for (const key of keys) {
       const option = this.options[key];
       if (option.requires) {
         const preferredName = option.preferredName ?? option.names.find((name) => name)!;
-        const error = this.checkOneRequires(values, option.requires, preferredName, keys);
+        const error = this.checkRequires(values, option.requires, preferredName, keys);
         if (error) {
           throw Error(`Option '${preferredName}' requires ${error}.`);
         }
@@ -301,25 +312,25 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Checks the requirements of single option that was specified.
+   * Checks the requirements of an option that was specified.
    * @param values The options' values
    * @param requires The option requirements
    * @param name The option name
    * @param keys The set of specified option keys
    * @returns An error reason or null if no error
    */
-  private checkOneRequires(
+  private checkRequires(
     values: OptionValues<T>,
     requires: Requires,
     name: string,
     keys: Set<keyof T>,
   ): string | null {
     if (typeof requires === 'string') {
-      return this.checkOneRequired(values, requires, name, keys);
+      return this.checkRequirement(values, requires, name, keys);
     }
     if (requires.op === 'and') {
       for (const item of requires.items) {
-        const error = this.checkOneRequires(values, item, name, keys);
+        const error = this.checkRequires(values, item, name, keys);
         if (error) {
           return error;
         }
@@ -328,7 +339,7 @@ class ArgumentParser<T extends Options> {
     }
     const errors = new Set<string>();
     for (const item of requires.items) {
-      const error = this.checkOneRequires(values, item, name, keys);
+      const error = this.checkRequires(values, item, name, keys);
       if (!error) {
         return null;
       }
@@ -340,18 +351,18 @@ class ArgumentParser<T extends Options> {
   /**
    * Checks if a required option was specified with correct values.
    * @param values The options' values
-   * @param required The required option
+   * @param requirement The requirement specification
    * @param name The option name
    * @param keys The set of specified option keys
    * @returns An error reason or null if no error
    */
-  private checkOneRequired(
+  private checkRequirement(
     values: OptionValues<T>,
-    required: string,
+    requirement: string,
     name: string,
     keys: Set<keyof T>,
   ): string | null {
-    const [requiredKey, requiredValue] = required.split(/=(.*)/, 2);
+    const [requiredKey, requiredValue] = requirement.split(/=(.*)/, 2);
     const requiredOpt = this.options[requiredKey];
     const requiredNames = requiredOpt.names.filter((name) => name);
     const preferredName = requiredOpt.preferredName ?? requiredNames[0];

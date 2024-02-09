@@ -34,7 +34,6 @@
     "range",
     "enums",
     "requires",
-    "required",
     "default",
     "deprecated"
   ]

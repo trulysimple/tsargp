@@ -695,6 +695,20 @@ describe('ArgumentParser', () => {
       expect(() => new ArgumentParser({}).parse(['abc'])).toThrowError(`Unknown option 'abc'.`);
     });
 
+    it('should throw an error when a required option is not specified', () => {
+      const options = {
+        required: {
+          type: 'boolean',
+          names: ['-b'],
+          required: true,
+          preferredName: 'preferred',
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options).parse([])).toThrowError(
+        `Option 'preferred' is required.`,
+      );
+    });
+
     it('should throw an error when an option requirement is not satisfied', () => {
       const options = {
         requires: {

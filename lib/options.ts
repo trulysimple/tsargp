@@ -145,6 +145,10 @@ type WithType<T extends string> = {
    * The option requirements.
    */
   readonly requires?: Requires;
+  /**
+   * True if the option is always required.
+   */
+  readonly required?: true;
 };
 
 /**

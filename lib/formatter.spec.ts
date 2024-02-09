@@ -8,31 +8,6 @@ describe('HelpFormatter', () => {
       expect(new HelpFormatter({}).formatHelp()).toEqual('');
     });
 
-    it('should hide an option from the help message when it asks so', () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-b', '--boolean'],
-          desc: 'A boolean option',
-          hide: true,
-        },
-      } as const satisfies Options;
-      expect(new HelpFormatter(options).formatHelp()).toEqual('');
-    });
-
-    it('should handle an option with a group', () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-b', '--boolean'],
-          desc: 'A boolean option',
-          group: 'group',
-        },
-      } as const satisfies Options;
-      const groups = new HelpFormatter(options).formatGroups(200);
-      expect(groups.get('group')).toMatch(/-b.*,.+--boolean.+A boolean option\./s);
-    });
-
     describe('fuction', () => {
       it('should handle a function option', () => {
         const options = {
@@ -49,7 +24,32 @@ describe('HelpFormatter', () => {
     });
 
     describe('boolean', () => {
-      it('should handle a deprecated boolean option', () => {
+      it('should hide an option from the help message when it asks so', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            hide: true,
+          },
+        } as const satisfies Options;
+        expect(new HelpFormatter(options).formatHelp()).toEqual('');
+      });
+
+      it('should handle an option with a group', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            group: 'group',
+          },
+        } as const satisfies Options;
+        const groups = new HelpFormatter(options).formatGroups(200);
+        expect(groups.get('group')).toMatch(/-b.*,.+--boolean.+A boolean option\./s);
+      });
+
+      it('should handle a deprecated option', () => {
         const options = {
           boolean: {
             type: 'boolean',
@@ -62,7 +62,20 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(/-b.*,.+--boolean.+A boolean option\..+Deprecated for reason\./s);
       });
 
-      it('should handle a boolean option with a single required option', () => {
+      it('should handle a required option', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            required: true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-b.*,.+--boolean.+A boolean option\..+Always required\./s);
+      });
+
+      it('should handle an option with a single requirement', () => {
         const options = {
           boolean: {
             type: 'boolean',
@@ -79,7 +92,7 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(/-b.*,.+--boolean.+A boolean option\..+Requires.+-req.+\./s);
       });
 
-      it('should handle a boolean option with a single required option with a value', () => {
+      it('should handle a option with a requirement with a value', () => {
         const options = {
           boolean: {
             type: 'boolean',
@@ -98,7 +111,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a boolean option with many required options with values', () => {
+      it('should handle a option with a requirement expression', () => {
         const options = {
           boolean: {
             type: 'boolean',

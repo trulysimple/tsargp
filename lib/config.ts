@@ -207,6 +207,7 @@ export const enum HelpItem {
   range = 'range',
   enums = 'enums',
   requires = 'requires',
+  required = 'required',
   default = 'default',
   deprecated = 'deprecated',
 }
