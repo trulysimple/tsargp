@@ -136,6 +136,19 @@ describe('HelpFormatter', () => {
     });
 
     describe('string', () => {
+      it('should handle a string option with a parameter name', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s', '--string'],
+            desc: 'A string option',
+            paramName: 'param',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-s.*,.+--string.+<param>.+A string option\./s);
+      });
+
       it('should handle a string option with a default value', () => {
         const options = {
           string: {

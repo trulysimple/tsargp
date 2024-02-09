@@ -2,17 +2,17 @@
   "$schema": "../schema/v1.json",
   "indent": {
     "names": 2,
-    "type": 2,
+    "param": 2,
     "desc": 2
   },
   "breaks": {
     "names": 0,
-    "type": 0,
+    "param": 0,
     "desc": 0
   },
   "styles": {
     "names": { "clear": true },
-    "type": { "clear": true, "fg": "brightBlack" },
+    "param": { "clear": true, "fg": "brightBlack" },
     "desc": { "clear": true },
     "regex": { "fg": "red" },
     "string": { "fg": "green" },

@@ -64,9 +64,9 @@ type OptionStyles = {
    */
   names?: Style;
   /**
-   * The style of the option type.
+   * The style of the option paramater.
    */
-  type?: Style;
+  param?: Style;
   /**
    * The style of the option description.
    */
@@ -161,9 +161,13 @@ type WithParam<D> = {
    */
   readonly default?: D;
   /**
-   * The option example value.
+   * The option example value. Replaces the option type.
    */
   readonly example?: D;
+  /**
+   * The option parameter name. Replaces the option type.
+   */
+  readonly paramName?: string;
   /**
    * Allows positional arguments. There may be at most one option with this setting.
    */

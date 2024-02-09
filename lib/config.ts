@@ -24,17 +24,17 @@ export interface V1 {
      */
     names?: number;
     /**
-     * The indentation level for the type/examples column, relative to the end of the names column.
+     * The indentation level for the parameter column, relative to the end of the names column.
      */
-    type?: number;
+    param?: number;
     /**
-     * The indentation level for the description column, relative to the end of the type/examples column.
+     * The indentation level for the description column, relative to the end of the parameter column.
      */
     desc?: number;
     /**
-     * The indentation level for the type/examples column, relative to the beginning of the line.
+     * The indentation level for the parameter column, relative to the beginning of the line.
      */
-    typeAbsolute?: number;
+    paramAbsolute?: number;
     /**
      * The indentation level for the description column, relative to the beginning of the line.
      */
@@ -49,9 +49,9 @@ export interface V1 {
      */
     names?: number;
     /**
-     * The number of line breaks to insert before the type/examples column.
+     * The number of line breaks to insert before the parameter column.
      */
-    type?: number;
+    param?: number;
     /**
      * The number of line breaks to insert before the description column.
      */
@@ -66,9 +66,9 @@ export interface V1 {
      */
     names?: boolean;
     /**
-     * Hide the type/examples column.
+     * Hide the parameter column.
      */
-    type?: boolean;
+    param?: boolean;
     /**
      * Hide the description column.
      */
@@ -79,7 +79,7 @@ export interface V1 {
    */
   styles?: {
     names?: HelpStyle;
-    type?: HelpStyle;
+    param?: HelpStyle;
     desc?: HelpStyle;
     regex?: HelpStyle;
     string?: HelpStyle;

@@ -16,17 +16,17 @@
           "type": "integer",
           "description": "The indentation level for the names column, relative to the beginning of the line."
         },
-        "type": {
+        "param": {
           "type": "integer",
-          "description": "The indentation level for the type/examples column, relative to the end of the names column."
+          "description": "The indentation level for the parameter column, relative to the end of the names column."
         },
         "desc": {
           "type": "integer",
-          "description": "The indentation level for the description column, relative to the end of the type/examples column."
+          "description": "The indentation level for the description column, relative to the end of the parameter column."
         },
-        "typeAbsolute": {
+        "paramAbsolute": {
           "type": "integer",
-          "description": "The indentation level for the type/examples column, relative to the beginning of the line.",
+          "description": "The indentation level for the parameter column, relative to the beginning of the line.",
           "minimum": 0
         },
         "descAbsolute": {
@@ -46,9 +46,9 @@
           "description": "The number of line breaks to insert before the names column.",
           "minimum": 0
         },
-        "type": {
+        "param": {
           "type": "integer",
-          "description": "The number of line breaks to insert before the type/examples column.",
+          "description": "The number of line breaks to insert before the parameter column.",
           "minimum": 0
         },
         "desc": {
@@ -67,9 +67,9 @@
           "type": "boolean",
           "description": "Hide the names column."
         },
-        "type": {
+        "param": {
           "type": "boolean",
-          "description": "Hide the type/examples column."
+          "description": "Hide the parameter column."
         },
         "desc": {
           "type": "boolean",
@@ -83,7 +83,7 @@
       "description": "The default option styles and the styles of other elements.",
       "properties": {
         "names": { "$ref": "#/definitions/helpStyle" },
-        "type": { "$ref": "#/definitions/helpStyle" },
+        "param": { "$ref": "#/definitions/helpStyle" },
         "desc": { "$ref": "#/definitions/helpStyle" },
         "regex": { "$ref": "#/definitions/helpStyle" },
         "string": { "$ref": "#/definitions/helpStyle" },

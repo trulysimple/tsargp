@@ -20,7 +20,7 @@ export { HelpFormatter, HelpItem, defaultConfig };
  */
 type HelpEntry = {
   readonly names: StyledString;
-  readonly type: StyledString;
+  readonly param: StyledString;
   readonly desc: StyledString;
 };
 
@@ -29,7 +29,7 @@ type HelpEntry = {
  */
 type HelpIndent = {
   readonly names: string;
-  readonly type: string;
+  readonly param: string;
   readonly desc: string;
   readonly wrap: string;
 };
@@ -39,7 +39,7 @@ type HelpIndent = {
  */
 type HelpStyles = {
   readonly names: string;
-  readonly type: string;
+  readonly param: string;
   readonly desc: string;
   readonly regex: string;
   readonly string: string;
@@ -88,17 +88,17 @@ type HelpConfig = Readonly<Omit<JsonConfig, '$schema' | 'styles'>> & {
 const defaultConfig: HelpConfig = {
   indent: {
     names: 2,
-    type: 2,
+    param: 2,
     desc: 2,
   },
   breaks: {
     names: 0,
-    type: 0,
+    param: 0,
     desc: 0,
   },
   styles: {
     names: { clear: true },
-    type: { clear: true, fg: fg.brightBlack },
+    param: { clear: true, fg: fg.brightBlack },
     desc: { clear: true },
     regex: { fg: fg.red },
     string: { fg: fg.green },
@@ -136,7 +136,7 @@ class HelpFormatter {
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly nameWidths = new Array<number>();
   private readonly namesWidth: number = 0;
-  private readonly typeWidth: number = 0;
+  private readonly paramWidth: number = 0;
   private readonly config: HelpConfig;
   private readonly indent: HelpIndent;
   private readonly styles: HelpStyles;
@@ -159,9 +159,9 @@ class HelpFormatter {
         continue;
       }
       const names = this.formatNames(option);
-      const type = this.formatType(option);
+      const param = this.formatParam(option);
       const desc = this.formatDescription(option);
-      const entry: HelpEntry = { names, type, desc };
+      const entry: HelpEntry = { names, param, desc };
       const group = this.groups.get(option.group ?? '');
       if (!group) {
         this.groups.set(option.group ?? '', [entry]);
@@ -169,7 +169,7 @@ class HelpFormatter {
         group.push(entry);
       }
       this.namesWidth = Math.max(this.namesWidth, names.length);
-      this.typeWidth = Math.max(this.typeWidth, type.length);
+      this.paramWidth = Math.max(this.paramWidth, param.length);
     }
     this.indent = this.getIndent();
   }
@@ -196,7 +196,7 @@ class HelpFormatter {
   private getStyles(): HelpStyles {
     return {
       names: styleToString(this.config.styles?.names),
-      type: styleToString(this.config.styles?.type),
+      param: styleToString(this.config.styles?.param),
       desc: styleToString(this.config.styles?.desc),
       regex: styleToString(this.config.styles?.regex),
       string: styleToString(this.config.styles?.string),
@@ -211,34 +211,34 @@ class HelpFormatter {
    */
   private getIndent(): HelpIndent {
     const namesIndent = this.config.indent!.names!;
-    const typeIndent = this.config.indent!.typeAbsolute
-      ? this.config.indent!.typeAbsolute - (namesIndent + this.namesWidth)
-      : this.config.indent!.type!;
+    const paramIndent = this.config.indent!.paramAbsolute
+      ? this.config.indent!.paramAbsolute - (namesIndent + this.namesWidth)
+      : this.config.indent!.param!;
     const descIndent = this.config.indent!.descAbsolute
       ? this.config.indent!.descAbsolute -
-        (namesIndent + this.namesWidth + typeIndent + this.typeWidth)
+        (namesIndent + this.namesWidth + paramIndent + this.paramWidth)
       : this.config.indent!.desc!;
     const indent = {
       names: ' '.repeat(Math.max(0, namesIndent)),
-      type: ' '.repeat(Math.max(0, typeIndent)),
+      param: ' '.repeat(Math.max(0, paramIndent)),
       desc: ' '.repeat(Math.max(0, descIndent)),
     };
     const breaks = {
       names: '\n'.repeat(Math.max(0, this.config.breaks!.names!)),
-      type: '\n'.repeat(Math.max(0, this.config.breaks!.type!)),
+      param: '\n'.repeat(Math.max(0, this.config.breaks!.param!)),
       desc: '\n'.repeat(Math.max(0, this.config.breaks!.desc!)),
     };
-    const typeStart = namesIndent + this.namesWidth + typeIndent;
-    const descStart = typeStart + this.typeWidth + descIndent;
-    const typeBlank = this.config.indent!.typeAbsolute ?? typeStart;
+    const paramStart = namesIndent + this.namesWidth + paramIndent;
+    const descStart = paramStart + this.paramWidth + descIndent;
+    const paramBlank = this.config.indent!.paramAbsolute ?? paramStart;
     const descBlank = this.config.indent!.descAbsolute ?? descStart;
     const blanks = {
-      type: ' '.repeat(Math.max(0, typeBlank)),
+      param: ' '.repeat(Math.max(0, paramBlank)),
       desc: ' '.repeat(Math.max(0, descBlank)),
     };
     return {
       names: breaks.names + indent.names,
-      type: breaks.type ? breaks.type + blanks.type : indent.type,
+      param: breaks.param ? breaks.param + blanks.param : indent.param,
       desc: breaks.desc ? breaks.desc + blanks.desc : indent.desc,
       wrap: blanks.desc,
     };
@@ -295,20 +295,22 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's type (or example values) to be printed on the console.
+   * Formats an option's parameter to be printed on the console.
    * @param option The option definition
-   * @returns A styled string with the formatted option type (or examples)
+   * @returns A styled string with the formatted option parameter
    */
-  private formatType(option: Option): StyledString {
+  private formatParam(option: Option): StyledString {
     const result = new StyledString();
-    if (this.config.hidden?.type) {
+    if (this.config.hidden?.param || isNiladic(option)) {
       return result;
     }
-    if ('example' in option && option.example !== undefined) {
+    if (option.example !== undefined) {
       this.formatValue(option, 'example', result);
-    } else if (!isNiladic(option)) {
-      const typeStyle = option.styles?.type ? styleToString(option.styles?.type) : this.styles.type;
-      result.style(typeStyle).append(`<${option.type}>`);
+    } else {
+      const paramStyle = option.styles?.param
+        ? styleToString(option.styles?.param)
+        : this.styles.param;
+      result.style(paramStyle).append(`<${option.paramName ?? option.type}>`);
     }
     return result;
   }
@@ -730,7 +732,7 @@ class HelpFormatter {
     for (const entry of entries) {
       const line = new StyledString().style(whitespaceStyle);
       formatCol(line, this.indent.names, entry.names, this.namesWidth);
-      formatCol(line, this.indent.type, entry.type, this.typeWidth);
+      formatCol(line, this.indent.param, entry.param, this.paramWidth);
       line.append(this.indent.desc);
       this.wrapDesc(lines, entry.desc, width, line.string, this.indent.wrap);
     }

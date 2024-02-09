@@ -9,10 +9,11 @@
 - Value constraints: enums, regex, range, limit
 - Value normalization: unique, trim, case
 - Delimited, multivalued and positional args
-- Option grouping, hiding and interdependency
+- Option requirements, grouping and hiding
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
-- Zero-dependency and small footprint
+- Reusable help format configuration in JSON
+- Zero-dependency with a moderate footprint
 
 ## Demo
 
