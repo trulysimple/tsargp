@@ -103,6 +103,10 @@ type WithType<T extends string> = {
    */
   readonly desc?: string;
   /**
+   * The option group to display in the help message.
+   */
+  readonly group?: string;
+  /**
    * True if the option should be hidden from the help message.
    */
   readonly hide?: true;

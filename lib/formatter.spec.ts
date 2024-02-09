@@ -2,12 +2,11 @@ import { req, type Options } from './options.js';
 
 import { describe, expect, it } from 'vitest';
 import { HelpFormatter } from './formatter.js';
-import { clearStyle } from './styles.js';
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
     it('should handle no options', () => {
-      expect(new HelpFormatter({}).formatHelp()).toEqual(clearStyle);
+      expect(new HelpFormatter({}).formatHelp()).toEqual('');
     });
 
     it('should hide an option from the help message when it asks so', () => {
@@ -19,7 +18,20 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      expect(new HelpFormatter(options).formatHelp()).toEqual(clearStyle);
+      expect(new HelpFormatter(options).formatHelp()).toEqual('');
+    });
+
+    it('should handle an option with a group', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option',
+          group: 'group',
+        },
+      } as const satisfies Options;
+      const groups = new HelpFormatter(options).formatGroups(200);
+      expect(groups.get('group')).toMatch(/-b.*,.+--boolean.+A boolean option\./s);
     });
 
     describe('fuction', () => {

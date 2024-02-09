@@ -167,8 +167,8 @@ const defaultConfig: HelpConfig = {
  * Implements formatting of help messages for predefined options.
  */
 class HelpFormatter {
-  private readonly entries: Array<HelpEntry> = [];
-  private readonly nameWidths: Array<number> = [];
+  private readonly groups = new Map<string, Array<HelpEntry>>();
+  private readonly nameWidths = new Array<number>();
   private readonly namesWidth: number = 0;
   private readonly typeWidth: number = 0;
   private readonly config: HelpConfig;
@@ -195,7 +195,13 @@ class HelpFormatter {
       const names = this.formatNames(option);
       const type = this.formatType(option);
       const desc = this.formatDescription(option);
-      this.entries.push({ names, type, desc });
+      const entry: HelpEntry = { names, type, desc };
+      const group = this.groups.get(option.group ?? '');
+      if (!group) {
+        this.groups.set(option.group ?? '', [entry]);
+      } else {
+        group.push(entry);
+      }
       this.namesWidth = Math.max(this.namesWidth, names.length);
       this.typeWidth = Math.max(this.typeWidth, type.length);
     }
@@ -538,18 +544,41 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a help message to be printed on the console.
+   * Formats a help message for the default option group.
    * @param width The desired console width
    * @returns The formatted help message
    */
   formatHelp(width = process.stdout.columns): string {
+    const entries = this.groups.get('');
+    return entries ? this.formatEntries(width, entries) : '';
+  }
+
+  /**
+   * Formats help messages for all option groups.
+   * @param width The desired console width
+   * @returns The formatted help messages
+   */
+  formatGroups(width = process.stdout.columns): Map<string, string> {
+    const groups = new Map<string, string>();
+    for (const [group, entries] of this.groups.entries()) {
+      groups.set(group, this.formatEntries(width, entries));
+    }
+    return groups;
+  }
+
+  /**
+   * Formats a help message from a list of help entries.
+   * @param width The desired console width
+   * @returns The formatted help message
+   */
+  private formatEntries(width: number, entries: Array<HelpEntry>): string {
     function formatCol(line: StyledString, indent: string, text: StyledString, width: number) {
       line.append(indent).append(text.string);
       line.style(whitespaceStyle).append(' '.repeat(width - text.length));
     }
     const whitespaceStyle = this.styles.whitespace;
     const lines = new Array<string>();
-    for (const entry of this.entries) {
+    for (const entry of entries) {
       const line = new StyledString().style(whitespaceStyle);
       formatCol(line, this.indent.names, entry.names, this.namesWidth);
       formatCol(line, this.indent.type, entry.type, this.typeWidth);
