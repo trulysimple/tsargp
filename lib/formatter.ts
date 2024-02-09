@@ -2,12 +2,15 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type { Option, Options, ParamOption, Requires, OptionStyles } from './options.js';
+import type { V1 as JsonConfig } from './config.js';
 import type { Style } from './styles.js';
 
+import { HelpItem } from './config.js';
 import { isArray, isNiladic } from './options.js';
-import { fg, isStyle, clearStyle, StyledString, styleToString } from './styles.js';
+import { fg, isStyle, StyledString, styleToString } from './styles.js';
 
-export { type HelpConfig, HelpFormatter, HelpItem };
+export type { HelpConfig };
+export { HelpFormatter, HelpItem, defaultConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -48,81 +51,37 @@ type HelpStyles = {
 /**
  * Help format configuration.
  */
-type HelpConfig = {
+type HelpConfig = Readonly<Omit<JsonConfig, '$schema' | 'styles'>> & {
   /**
-   * The indentation level for each column.
-   */
-  readonly indent?: {
-    readonly names?: number;
-    readonly type?: number;
-    readonly desc?: number;
-    readonly typeAbsolute?: number;
-    readonly descAbsolute?: number;
-  };
-
-  /**
-   * The number of line breaks to insert before each column.
-   */
-  readonly breaks?: {
-    readonly names?: number;
-    readonly type?: number;
-    readonly desc?: number;
-  };
-
-  /**
-   * Select individual columns that should not be displayed.
-   */
-  readonly hidden?: {
-    readonly names?: boolean;
-    readonly type?: boolean;
-    readonly desc?: boolean;
-  };
-
-  /**
-   * The default styles.
+   * The default option styles and the styles of other elements.
    */
   readonly styles?: OptionStyles & {
-    example?: Style;
-    default?: Style;
+    /**
+     * The style of regular expressions.
+     */
     regex?: Style;
-    range?: Style;
-    enum?: Style;
+    /**
+     * The style of strings.
+     */
     string?: Style;
+    /**
+     * The style of numbers.
+     */
     number?: Style;
+    /**
+     * The style of option names
+     */
     option?: Style;
+    /**
+     * The style of whitespace.
+     */
     whitespace?: Style;
   };
-
-  /**
-   * The order of items to be shown in the option description.
-   */
-  readonly items?: Array<HelpItem>;
 };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-/**
- * The kind of items that can be shown in the option description.
- */
-const enum HelpItem {
-  desc,
-  separator = 'Values are delimited by',
-  multivalued = 'Accepts multiple parameters.',
-  positional = 'Accepts positional parameters.',
-  append = 'May be specified multiple times.',
-  unique = 'Duplicate values will be removed.',
-  limit = 'Value count is limited to',
-  trim = 'Values will be trimmed.',
-  case = 'Values will be converted to',
-  regex = 'Values must match the regex',
-  range = 'Values must be in the range',
-  enums = 'Values must be one of',
-  requires = 'Requires',
-  default = 'Defaults to',
-  deprecated = 'Deprecated for',
-}
-
 /**
  * The default configuration used by the formatter.
  */
@@ -138,14 +97,14 @@ const defaultConfig: HelpConfig = {
     desc: 0,
   },
   styles: {
-    names: [clearStyle],
-    type: [clearStyle, fg.brightBlack],
-    desc: [clearStyle],
-    regex: [fg.red],
-    string: [fg.green],
-    number: [fg.yellow],
-    option: [fg.magenta],
-    whitespace: [clearStyle],
+    names: { clear: true },
+    type: { clear: true, fg: fg.brightBlack },
+    desc: { clear: true },
+    regex: { fg: fg.red },
+    string: { fg: fg.green },
+    number: { fg: fg.yellow },
+    option: { fg: fg.magenta },
+    whitespace: { clear: true },
   },
   items: [
     HelpItem.desc,
@@ -444,8 +403,7 @@ class HelpFormatter {
    */
   private formatSeparator(option: Option, descStyle: string, result: StyledString) {
     if ('separator' in option && option.separator) {
-      const words = HelpItem.separator.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Values', 'are', 'delimited', 'by');
       result.style(this.styles.string).append(`'${option.separator}'`);
       result.style(descStyle).append('.');
     }
@@ -459,8 +417,7 @@ class HelpFormatter {
    */
   private formatMultivalued(option: Option, descStyle: string, result: StyledString) {
     if (isArray(option) && !('separator' in option && option.separator)) {
-      const words = HelpItem.multivalued.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Accepts', 'multiple', 'parameters.');
     }
   }
 
@@ -472,8 +429,7 @@ class HelpFormatter {
    */
   private formatPositional(option: Option, descStyle: string, result: StyledString) {
     if ('positional' in option && option.positional) {
-      const words = HelpItem.positional.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Accepts', 'positional', 'parameters.');
     }
   }
 
@@ -485,8 +441,7 @@ class HelpFormatter {
    */
   private formatAppend(option: Option, descStyle: string, result: StyledString) {
     if ('append' in option && option.append) {
-      const words = HelpItem.append.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('May', 'be', 'specified', 'multiple', 'times.');
     }
   }
 
@@ -498,8 +453,7 @@ class HelpFormatter {
    */
   private formatUnique(option: Option, descStyle: string, result: StyledString) {
     if ('unique' in option && option.unique) {
-      const words = HelpItem.unique.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Duplicate', 'values', 'will', 'be', 'removed.');
     }
   }
 
@@ -511,8 +465,7 @@ class HelpFormatter {
    */
   private formatLimit(option: Option, descStyle: string, result: StyledString) {
     if ('limit' in option && option.limit !== undefined) {
-      const words = HelpItem.limit.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Value', 'count', 'is', 'limited', 'to');
       result.style(this.styles.number).append(`${option.limit}`);
       result.style(descStyle).append('.');
     }
@@ -526,8 +479,7 @@ class HelpFormatter {
    */
   private formatTrim(option: Option, descStyle: string, result: StyledString) {
     if ('trim' in option && option.trim) {
-      const words = HelpItem.trim.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Values', 'will', 'be', 'trimmed.');
     }
   }
 
@@ -539,8 +491,9 @@ class HelpFormatter {
    */
   private formatCase(option: Option, descStyle: string, result: StyledString) {
     if ('case' in option && option.case) {
-      const words = HelpItem.case.split(' ');
-      result.style(descStyle).append(...words, option.case + '-case.');
+      result
+        .style(descStyle)
+        .append('Values', 'will', 'be', 'converted', 'to', option.case + '-case.');
     }
   }
 
@@ -552,8 +505,7 @@ class HelpFormatter {
    */
   private formatRegex(option: Option, descStyle: string, result: StyledString) {
     if ('regex' in option && option.regex) {
-      const words = HelpItem.regex.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Values', 'must', 'match', 'the', 'regex');
       result.style(this.styles.regex).append(String(option.regex));
       result.style(descStyle).append('.');
     }
@@ -567,8 +519,7 @@ class HelpFormatter {
    */
   private formatRange(option: Option, descStyle: string, result: StyledString) {
     if ('range' in option && option.range) {
-      const words = HelpItem.range.split(' ');
-      result.style(descStyle).append(...words, '[');
+      result.style(descStyle).append('Values', 'must', 'be', 'in', 'the', 'range', '[');
       this.formatNumbers(option.range, descStyle, result);
       result.style(descStyle).append('].');
     }
@@ -582,8 +533,7 @@ class HelpFormatter {
    */
   private formatEnums(option: Option, descStyle: string, result: StyledString) {
     if ('enums' in option && option.enums) {
-      const words = HelpItem.enums.split(' ');
-      result.style(descStyle).append(...words, '{');
+      result.style(descStyle).append('Values', 'must', 'be', 'one', 'of', '{');
       if (option.type === 'string' || option.type === 'strings') {
         this.formatStrings(option.enums, descStyle, result);
       } else {
@@ -601,8 +551,7 @@ class HelpFormatter {
    */
   private formatRequires(option: Option, descStyle: string, result: StyledString) {
     if (option.requires) {
-      const words = HelpItem.requires.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Requires');
       this.formatRequiresRecursive(option.requires, descStyle, result);
       result.style(descStyle).append('.');
     }
@@ -616,8 +565,7 @@ class HelpFormatter {
    */
   private formatDefault(option: Option, descStyle: string, result: StyledString) {
     if ('default' in option && option.default !== undefined) {
-      const words = HelpItem.default.split(' ');
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Defaults', 'to');
       this.formatValue(option, 'default', result);
       result.style(descStyle).append('.');
     }
@@ -631,11 +579,11 @@ class HelpFormatter {
    */
   private formatDeprecated(option: Option, descStyle: string, result: StyledString) {
     if (option.deprecated) {
-      const words = (HelpItem.deprecated + ' ' + option.deprecated).split(' ');
+      const words = option.deprecated.split(' ');
       if (!words.at(-1)!.endsWith('.')) {
         words[words.length - 1] += '.';
       }
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append('Deprecated', 'for', ...words);
     }
   }
 

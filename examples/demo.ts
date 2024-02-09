@@ -53,8 +53,8 @@ const options = {
     desc: 'A boolean option',
     deprecated: 'some reason',
     styles: {
-      names: [clearStyle, fgColor('202')],
-      desc: [clearStyle, tf.invert, tf.strike, tf.italic],
+      names: { clear: true, fg: fgColor('202') },
+      desc: { clear: true, tf: [tf.invert, tf.strike, tf.italic] },
     },
   },
   stringRegex: {

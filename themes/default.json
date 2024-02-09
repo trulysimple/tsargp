@@ -1,0 +1,40 @@
+{
+  "$schema": "../schema/v1.json",
+  "indent": {
+    "names": 2,
+    "type": 2,
+    "desc": 2
+  },
+  "breaks": {
+    "names": 0,
+    "type": 0,
+    "desc": 0
+  },
+  "styles": {
+    "names": { "clear": true },
+    "type": { "clear": true, "fg": "brightBlack" },
+    "desc": { "clear": true },
+    "regex": { "fg": "red" },
+    "string": { "fg": "green" },
+    "number": { "fg": "yellow" },
+    "option": { "fg": "magenta" },
+    "whitespace": { "clear": true }
+  },
+  "items": [
+    "desc",
+    "separator",
+    "multivalued",
+    "positional",
+    "append",
+    "unique",
+    "limit",
+    "trim",
+    "case",
+    "regex",
+    "range",
+    "enums",
+    "requires",
+    "default",
+    "deprecated"
+  ]
+}

@@ -1,7 +1,6 @@
-import { req, type Options } from './options.js';
-
 import { describe, expect, it } from 'vitest';
 import { ArgumentParser } from './parser.js';
+import { req, type Options } from './options.js';
 
 describe('ArgumentParser', () => {
   describe('constructor', () => {
@@ -1174,9 +1173,9 @@ describe('ArgumentParser', () => {
           strings: ['one', 'two'],
         });
         expect(
-          new ArgumentParser(options).parse(['-ss', 'one', 'two', '-ss', 'two', 'one']),
+          new ArgumentParser(options).parse(['-ss', 'one', 'two', '-ss', 'one=two', 'one']),
         ).toMatchObject({
-          strings: ['two', 'one'],
+          strings: ['one=two', 'one'],
         });
       });
 

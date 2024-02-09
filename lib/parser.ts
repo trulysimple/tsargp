@@ -28,11 +28,12 @@ export { ArgumentParser };
 class ArgumentParser<T extends Options> {
   private readonly nameToKey = new Map<string, keyof T>();
   private readonly positional:
+    | undefined
     | {
         key: keyof T;
+        name: string;
         option: ParamOption;
-      }
-    | undefined;
+      };
 
   /**
    * Creates an argument parser based on a set of option definitions.
@@ -47,7 +48,8 @@ class ArgumentParser<T extends Options> {
           if (this.positional) {
             throw Error(`Duplicate positional option '${key}'.`);
           }
-          this.positional = { key, option };
+          const name = option.preferredName ?? option.names.find((name) => name)!;
+          this.positional = { key, name, option };
         }
         if ('separator' in option && option.separator === '') {
           throw Error(`Option '${key}' must have a non-empty separator.`);
@@ -222,32 +224,23 @@ class ArgumentParser<T extends Options> {
   private parseLoop(values: OptionValues<T>, args: Array<string>): Promise<Array<void>> {
     const promises = new Array<Promise<void>>();
     const specifiedKeys = new Set<keyof T>();
-    const multi: {
-      key?: keyof T;
-      name?: string;
-      option?: ArrayOption;
-    } = {};
+    let multi: typeof this.positional;
     for (let i = 0; i < args.length; ++i) {
       const arg = args[i];
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = this.nameToKey.get(name);
       if (!key) {
-        if (multi.key) {
-          this.parseValue(values, multi.key, multi.option!, multi.name!, value ?? arg);
-          continue;
+        if (!multi && this.positional) {
+          multi = this.positional;
+          specifiedKeys.add(multi.key);
         }
-        if (this.positional) {
-          const { key, option } = this.positional;
-          specifiedKeys.add(key);
-          const preferredName = option.preferredName ?? option.names.find((name) => name)!;
-          for (const arg of args.slice(i)) {
-            this.parseValue(values, key, option, preferredName, arg);
-          }
-          break;
+        if (multi) {
+          this.parseValue(values, multi.key, multi.option, multi.name, arg);
+          continue;
         }
         throw Error(`Unknown option '${name}'.`);
       }
-      delete multi.key;
+      multi = undefined;
       const option = this.options[key];
       if (isNiladic(option)) {
         if (value !== undefined) {
@@ -275,9 +268,7 @@ class ArgumentParser<T extends Options> {
         if (value !== undefined) {
           this.parseValue(values, key, option, name, value);
         } else if (isArray(option) && !('separator' in option && option.separator)) {
-          multi.key = key;
-          multi.name = name;
-          multi.option = option;
+          multi = { key, name, option };
         } else {
           if (i + 1 == args.length) {
             throw Error(`Missing parameter to '${name}'.`);

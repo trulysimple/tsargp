@@ -20,7 +20,8 @@
     "default": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "schema"
   ],
   "repository": {
     "url": "git+https://github.com/trulysimple/tsargp.git"
@@ -33,6 +34,7 @@
     "cspell": "^8.3.2",
     "eslint": "^8.56.0",
     "husky": "^9.0.6",
+    "json-schema-to-typescript": "^13.1.2",
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
     "publint": "^0.2.7",
@@ -44,7 +46,8 @@
     "prepublishOnly": "npm version patch",
     "test": "vitest run --dir lib",
     "lint": "publint . && publint docs && eslint lib && cspell lint .",
-    "dist": "tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
+    "gen": "json2ts schema/v1.json lib/config.ts --enableConstEnums --style.singleQuote --style.trailingComma es5",
+    "dist": "bun run gen && tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
   },
   "prettier": {
     "printWidth": 100,

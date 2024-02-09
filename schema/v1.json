@@ -1,0 +1,321 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "The schema URI."
+    },
+    "indent": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The indentation level for each column.",
+      "properties": {
+        "names": {
+          "type": "integer",
+          "description": "The indentation level for the names column, relative to the beginning of the line."
+        },
+        "type": {
+          "type": "integer",
+          "description": "The indentation level for the type/examples column, relative to the end of the names column."
+        },
+        "desc": {
+          "type": "integer",
+          "description": "The indentation level for the description column, relative to the end of the type/examples column."
+        },
+        "typeAbsolute": {
+          "type": "integer",
+          "description": "The indentation level for the type/examples column, relative to the beginning of the line.",
+          "minimum": 0
+        },
+        "descAbsolute": {
+          "type": "integer",
+          "description": "The indentation level for the description column, relative to the beginning of the line.",
+          "minimum": 0
+        }
+      }
+    },
+    "breaks": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The number of line breaks to insert before each column.",
+      "properties": {
+        "names": {
+          "type": "integer",
+          "description": "The number of line breaks to insert before the names column.",
+          "minimum": 0
+        },
+        "type": {
+          "type": "integer",
+          "description": "The number of line breaks to insert before the type/examples column.",
+          "minimum": 0
+        },
+        "desc": {
+          "type": "integer",
+          "description": "The number of line breaks to insert before the description column.",
+          "minimum": 0
+        }
+      }
+    },
+    "hidden": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Select individual columns that should not be displayed.",
+      "properties": {
+        "names": {
+          "type": "boolean",
+          "description": "Hide the names column."
+        },
+        "type": {
+          "type": "boolean",
+          "description": "Hide the type/examples column."
+        },
+        "desc": {
+          "type": "boolean",
+          "description": "Hide the description column."
+        }
+      }
+    },
+    "styles": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The default option styles and the styles of other elements.",
+      "properties": {
+        "names": { "$ref": "#/definitions/helpStyle" },
+        "type": { "$ref": "#/definitions/helpStyle" },
+        "desc": { "$ref": "#/definitions/helpStyle" },
+        "regex": { "$ref": "#/definitions/helpStyle" },
+        "string": { "$ref": "#/definitions/helpStyle" },
+        "number": { "$ref": "#/definitions/helpStyle" },
+        "option": { "$ref": "#/definitions/helpStyle" },
+        "whitespace": { "$ref": "#/definitions/helpStyle" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "The order of items to be shown in the option description.",
+      "items": { "$ref": "#/definitions/helpItem" },
+      "uniqueItems": true
+    }
+  },
+  "definitions": {
+    "helpItem": {
+      "type": "string",
+      "description": "The kind of items that can be shown in the option description.",
+      "enum": [
+        "desc",
+        "separator",
+        "multivalued",
+        "positional",
+        "append",
+        "unique",
+        "limit",
+        "trim",
+        "case",
+        "regex",
+        "range",
+        "enums",
+        "requires",
+        "default",
+        "deprecated"
+      ],
+      "tsEnumNames": [
+        "desc",
+        "separator",
+        "multivalued",
+        "positional",
+        "append",
+        "unique",
+        "limit",
+        "trim",
+        "case",
+        "regex",
+        "range",
+        "enums",
+        "requires",
+        "default",
+        "deprecated"
+      ]
+    },
+    "helpStyle": {
+      "type": "object",
+      "description": "A style for displaying text on the console.",
+      "additionalProperties": false,
+      "properties": {
+        "clear": {
+          "type": "boolean",
+          "description": "True to clear any previous style."
+        },
+        "fg": {
+          "description": "The name or numeric value of a foreground color.",
+          "anyOf": [
+            { "$ref": "#/definitions/namedColor" },
+            { "$ref": "#/definitions/numericColor" }
+          ]
+        },
+        "bg": {
+          "description": "The name or numeric value of a background color.",
+          "anyOf": [
+            { "$ref": "#/definitions/namedColor" },
+            { "$ref": "#/definitions/numericColor" }
+          ]
+        },
+        "tf": {
+          "type": "array",
+          "description": "The names of predefined type faces.",
+          "items": { "$ref": "#/definitions/typeFace" },
+          "uniqueItems": true
+        },
+        "ff": {
+          "anyOf": [{ "$ref": "#/definitions/fontFamily" }],
+          "description": "The name of a predefined font family."
+        }
+      }
+    },
+    "namedColor": {
+      "type": "string",
+      "description": "The name of a predefined color.",
+      "enum": [
+        "black",
+        "red",
+        "green",
+        "yellow",
+        "blue",
+        "magenta",
+        "cyan",
+        "white",
+        "default",
+        "brightBlack",
+        "brightRed",
+        "brightGreen",
+        "brightYellow",
+        "brightBlue",
+        "brightMagenta",
+        "brightCyan",
+        "brightWhite"
+      ],
+      "tsEnumNames": [
+        "black",
+        "red",
+        "green",
+        "yellow",
+        "blue",
+        "magenta",
+        "cyan",
+        "white",
+        "default",
+        "brightBlack",
+        "brightRed",
+        "brightGreen",
+        "brightYellow",
+        "brightBlue",
+        "brightMagenta",
+        "brightCyan",
+        "brightWhite"
+      ]
+    },
+    "numericColor": {
+      "type": "integer",
+      "description": "The numeric value of an 8-bit color.",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "typeFace": {
+      "type": "string",
+      "description": "The name of a predefined type face.",
+      "enum": [
+        "bold",
+        "faint",
+        "italic",
+        "underline",
+        "slowBlink",
+        "rapidBlink",
+        "invert",
+        "conceal",
+        "strike",
+        "noBold",
+        "noFaint",
+        "noItalic",
+        "noUnderline",
+        "noBlink",
+        "space",
+        "noInvert",
+        "noConceal",
+        "noStrike",
+        "noSpace",
+        "frame",
+        "encircle",
+        "overline",
+        "noFrame",
+        "noEncircle",
+        "noOverline",
+        "superscript",
+        "subscript",
+        "noSuperscript",
+        "noSubscript"
+      ],
+      "tsEnumNames": [
+        "bold",
+        "faint",
+        "italic",
+        "underline",
+        "slowBlink",
+        "rapidBlink",
+        "invert",
+        "conceal",
+        "strike",
+        "noBold",
+        "noFaint",
+        "noItalic",
+        "noUnderline",
+        "noBlink",
+        "space",
+        "noInvert",
+        "noConceal",
+        "noStrike",
+        "noSpace",
+        "frame",
+        "encircle",
+        "overline",
+        "noFrame",
+        "noEncircle",
+        "noOverline",
+        "superscript",
+        "subscript",
+        "noSuperscript",
+        "noSubscript"
+      ]
+    },
+    "fontFamily": {
+      "type": "string",
+      "description": "The name of a predefined font family.",
+      "enum": [
+        "primary",
+        "alternative1",
+        "alternative2",
+        "alternative3",
+        "alternative4",
+        "alternative5",
+        "alternative6",
+        "alternative7",
+        "alternative8",
+        "alternative9",
+        "gothic"
+      ],
+      "tsEnumNames": [
+        "primary",
+        "alternative1",
+        "alternative2",
+        "alternative3",
+        "alternative4",
+        "alternative5",
+        "alternative6",
+        "alternative7",
+        "alternative8",
+        "alternative9",
+        "gothic"
+      ]
+    }
+  }
+}

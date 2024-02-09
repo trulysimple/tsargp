@@ -14,7 +14,7 @@ export { clearStyle, fg, bg, tf, ff, StyledString, isStyle, styleToString, fgCol
 const clearStyle = '\x1b[0m';
 
 /**
- * The list of available foreground colors.
+ * The list of predefined foreground colors.
  */
 const enum fg {
   black = '\x1b[30m',
@@ -37,7 +37,7 @@ const enum fg {
 }
 
 /**
- * The list of available background colors.
+ * The list of predefined background colors.
  */
 const enum bg {
   black = '\x1b[40m',
@@ -60,7 +60,7 @@ const enum bg {
 }
 
 /**
- * The list of available type faces.
+ * The list of predefined type faces.
  */
 const enum tf {
   bold = '\x1b[1m',
@@ -95,7 +95,7 @@ const enum tf {
 }
 
 /**
- * The list of available font families.
+ * The list of predefined font families.
  */
 const enum ff {
   primary = '\x1b[10m',
@@ -138,9 +138,30 @@ type FgColor = `\x1b[38;5;${Color}m`;
 type BgColor = `\x1b[48;5;${Color}m`;
 
 /**
- * A style for displaying text (on terminals that support it).
+ * A style for displaying text on the console.
  */
-type Style = Array<typeof clearStyle | fg | bg | tf | ff | FgColor | BgColor>;
+type Style = {
+  /**
+   * True to clear any previous style.
+   */
+  clear?: true;
+  /**
+   * The foreground color.
+   */
+  fg?: fg | FgColor;
+  /**
+   * The foreground color.
+   */
+  bg?: bg | BgColor;
+  /**
+   * The list of type faces.
+   */
+  tf?: Array<tf>;
+  /**
+   * The font family.
+   */
+  ff?: ff;
+};
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -199,11 +220,13 @@ class StyledString {
 //--------------------------------------------------------------------------------------------------
 /**
  * Converts a style to a string, for use with {@link StyledString}
- * @param style The style array
+ * @param style The style object
  * @returns The style string
  */
-function styleToString(style: Style = []): string {
-  return style.join('');
+function styleToString(style: Style = {}): string {
+  return [style.clear ? clearStyle : '', style.fg, style.bg, ...(style.tf ?? []), style.ff].join(
+    '',
+  );
 }
 
 /**

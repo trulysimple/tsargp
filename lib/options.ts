@@ -59,8 +59,17 @@ const req = {
  * A set of styles for displaying an option on the console.
  */
 type OptionStyles = {
+  /**
+   * The style of the option names.
+   */
   names?: Style;
+  /**
+   * The style of the option type.
+   */
   type?: Style;
+  /**
+   * The style of the option description.
+   */
   desc?: Style;
 };
 
