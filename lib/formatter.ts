@@ -250,24 +250,31 @@ class HelpFormatter {
    * @returns The precomputed indentation strings
    */
   private getIndent(): HelpIndent {
+    const namesIndent = this.config.indent!.names!;
+    const typeIndent = this.config.indent!.typeAbsolute
+      ? this.config.indent!.typeAbsolute - (namesIndent + this.namesWidth)
+      : this.config.indent!.type!;
+    const descIndent = this.config.indent!.descAbsolute
+      ? this.config.indent!.descAbsolute -
+        (namesIndent + this.namesWidth + typeIndent + this.typeWidth)
+      : this.config.indent!.desc!;
     const indent = {
-      names: ' '.repeat(Math.max(0, this.config.indent!.names!)),
-      type: ' '.repeat(Math.max(0, this.config.indent!.type!)),
-      desc: ' '.repeat(Math.max(0, this.config.indent!.desc!)),
+      names: ' '.repeat(Math.max(0, namesIndent)),
+      type: ' '.repeat(Math.max(0, typeIndent)),
+      desc: ' '.repeat(Math.max(0, descIndent)),
     };
     const breaks = {
-      names: '\n'.repeat(this.config.breaks!.names!),
-      type: '\n'.repeat(this.config.breaks!.type!),
-      desc: '\n'.repeat(this.config.breaks!.desc!),
+      names: '\n'.repeat(Math.max(0, this.config.breaks!.names!)),
+      type: '\n'.repeat(Math.max(0, this.config.breaks!.type!)),
+      desc: '\n'.repeat(Math.max(0, this.config.breaks!.desc!)),
     };
-    const len0 = this.config.indent!.names!;
-    const len1 =
-      this.config.indent!.typeAbsolute ?? len0 + this.namesWidth + this.config.indent!.type!;
-    const len2 =
-      this.config.indent!.descAbsolute ?? len1 + this.typeWidth + this.config.indent!.desc!;
+    const typeStart = namesIndent + this.namesWidth + typeIndent;
+    const descStart = typeStart + this.typeWidth + descIndent;
+    const typeBlank = this.config.indent!.typeAbsolute ?? typeStart;
+    const descBlank = this.config.indent!.descAbsolute ?? descStart;
     const blanks = {
-      type: ' '.repeat(Math.max(0, len1)),
-      desc: ' '.repeat(Math.max(0, len2)),
+      type: ' '.repeat(Math.max(0, typeBlank)),
+      desc: ' '.repeat(Math.max(0, descBlank)),
     };
     return {
       names: breaks.names + indent.names,
