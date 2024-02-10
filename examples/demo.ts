@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { ArgumentParser, fg, tf, clearStyle, req, fgColor, type Options } from 'tsargp';
+import { ArgumentParser, fg, tf, clearStyle, req, type Options, fgColor } from 'tsargp';
 
 /**
  * The option definitions
@@ -23,15 +23,27 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
     names: ['-v', '--version'],
     desc: 'A version option. Prints the package version',
   },
-  boolean: {
-    type: 'boolean',
-    names: ['-b', '--boolean'],
-    desc: 'A boolean option',
+  flag: {
+    type: 'flag',
+    names: ['-f', '--flag'],
+    negationNames: ['-no-f'],
+    desc: 'A flag option',
     deprecated: 'some reason',
     styles: {
-      names: { clear: true, fg: fgColor('202') },
-      desc: { clear: true, tf: [tf.invert, tf.strike, tf.italic] },
+      names: { clear: true, fg: fgColor('208'), tf: [tf.invert] },
+      desc: { clear: true, tf: [tf.strike, tf.italic] },
     },
+  },
+  boolean: {
+    type: 'boolean',
+    names: ['-b'],
+    desc: 'A boolean option',
+    default: false,
+    requires: req.and(
+      'stringEnum=one',
+      'numberEnum=2',
+      req.or('stringsRegex=a,b', 'numbersRange=3,4'),
+    ),
   },
   stringRegex: {
     type: 'string',
@@ -85,7 +97,7 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
     group: 'Number',
     range: [0, Infinity],
     default: [1, 2],
-    unique: true,
+    round: 'nearest',
   },
   stringsEnum: {
     type: 'strings',
@@ -93,7 +105,7 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
     desc: 'A strings option',
     group: 'String',
     enums: ['one', 'two'],
-    example: ['one', 'one'],
+    example: ['one', 'two'],
     positional: true,
     limit: 3,
   },
@@ -103,19 +115,10 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
     desc: 'A numbers option',
     group: 'Number',
     enums: [1, 2],
-    example: [1, 1],
+    example: [1, 2],
     separator: ',',
     append: true,
-  },
-  requires: {
-    type: 'boolean',
-    names: ['-req', ''],
-    desc: 'A boolean option',
-    requires: req.and(
-      'stringEnum=one',
-      'numberEnum=2',
-      req.or('stringsRegex=a,b', 'numbersRange=3,4'),
-    ),
+    unique: true,
   },
 } as const satisfies Options;
 
@@ -123,6 +126,7 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
  * An interface for the option values (to demonstrate that they conform to it).
  */
 interface CommandOptions {
+  get flag(): boolean | undefined;
   get boolean(): boolean;
   get stringRegex(): string;
   get numberRange(): number;
@@ -132,7 +136,6 @@ interface CommandOptions {
   get numbersRange(): Array<number>;
   get stringsEnum(): Array<'one' | 'two'> | undefined;
   get numbersEnum(): Array<1 | 2> | undefined;
-  get requires(): boolean;
 }
 
 // the main script

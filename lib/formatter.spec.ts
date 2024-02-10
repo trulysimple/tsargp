@@ -23,13 +23,13 @@ describe('HelpFormatter', () => {
       });
     });
 
-    describe('boolean', () => {
+    describe('flag', () => {
       it('should hide an option from the help message when it asks so', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b', '--boolean'],
-            desc: 'A boolean option',
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
             hide: true,
           },
         } as const satisfies Options;
@@ -38,49 +38,49 @@ describe('HelpFormatter', () => {
 
       it('should handle an option with a group', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b', '--boolean'],
-            desc: 'A boolean option',
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
             group: 'group',
           },
         } as const satisfies Options;
         const groups = new HelpFormatter(options).formatGroups(200);
-        expect(groups.get('group')).toMatch(/-b.*,.+--boolean.+A boolean option\./s);
+        expect(groups.get('group')).toMatch(/-f.*,.+--flag.+A flag option\./s);
       });
 
       it('should handle a deprecated option', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b', '--boolean'],
-            desc: 'A boolean option',
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
             deprecated: 'reason',
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
-        expect(message).toMatch(/-b.*,.+--boolean.+A boolean option\..+Deprecated for reason\./s);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Deprecated for reason\./s);
       });
 
       it('should handle a required option', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b', '--boolean'],
-            desc: 'A boolean option',
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
             required: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
-        expect(message).toMatch(/-b.*,.+--boolean.+A boolean option\..+Always required\./s);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Always required\./s);
       });
 
       it('should handle an option with a single requirement', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b', '--boolean'],
-            desc: 'A boolean option',
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
             requires: 'required',
           },
           required: {
@@ -89,15 +89,15 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
-        expect(message).toMatch(/-b.*,.+--boolean.+A boolean option\..+Requires.+-req.+\./s);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Requires.+-req.+\./s);
       });
 
       it('should handle a option with a requirement with a value', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b', '--boolean'],
-            desc: 'A boolean option',
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
             requires: 'required=abc',
           },
           required: {
@@ -106,17 +106,15 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
-        expect(message).toMatch(
-          /-b.*,.+--boolean.+A boolean option\..+Requires.+-req.+=.+'abc'.+\./s,
-        );
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Requires.+-req.+=.+'abc'.+\./s);
       });
 
       it('should handle a option with a requirement expression', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b', '--boolean'],
-            desc: 'A boolean option',
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
             requires: req.and('required1', req.or('required2=1', 'required2=2')),
           },
           required1: {
@@ -130,8 +128,79 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-b.*,.+--boolean.+A boolean option\..+Requires.+\(.+-req1.+and.+\(.+-req2.+=.+'1'.+or.+-req2.+=.+'2'.+\)\)\./s,
+          /-f.*,.+--flag.+A flag option\..+Requires.+\(.+-req1.+and.+\(.+-req2.+=.+'1'.+or.+-req2.+=.+'2'.+\)\)\./s,
         );
+      });
+
+      it('should handle a flag option with negation names', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
+            negationNames: ['-no-f', '--no-flag'],
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-f.*,.+--flag.+A flag option\..+May be negated with.*-no-f.+or.+--no-flag.+\./s,
+        );
+      });
+    });
+
+    describe('boolean', () => {
+      it('should handle a boolean option with a parameter name', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            paramName: 'param',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-b.*,.+--boolean.+<param>.+A boolean option\./s);
+      });
+
+      it('should handle a boolean option with a parameter name with angle brackets', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            paramName: '<token>=<value>',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-b.*,.+--boolean.+<token>=<value>.+A boolean option\./s);
+      });
+
+      it('should handle a boolean option with a default value', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            default: true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-b.*,.+--boolean.+<boolean>.+A boolean option\..+Defaults to.+true.+\./s,
+        );
+      });
+
+      it('should handle a boolean option with an example value', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            example: true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-b.*,.+--boolean.+true.+A boolean option\./s);
       });
     });
 
@@ -246,7 +315,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-s.*,.+--string.+<string>.+A string option\..+Values will be converted to lower-case\./s,
+          /-s.*,.+--string.+<string>.+A string option\..+Values will be converted to lowercase\./s,
         );
       });
 
@@ -261,7 +330,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-s.*,.+--string.+<string>.+A string option\..+Values will be converted to upper-case\./s,
+          /-s.*,.+--string.+<string>.+A string option\..+Values will be converted to uppercase\./s,
         );
       });
     });
@@ -297,31 +366,91 @@ describe('HelpFormatter', () => {
 
       it('should handle a number option with enumeration constraint', () => {
         const options = {
-          numberEnum: {
+          number: {
             type: 'number',
-            names: ['-ne', '--numberEnum'],
+            names: ['-n', '--number'],
             desc: 'A number option',
             enums: [1, 2],
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-ne.*,.+--numberEnum.+A number option\..+Values must be one of.+\{.+1.+,.+2.+\}\./s,
+          /-n.*,.+--number.+A number option\..+Values must be one of.+\{.+1.+,.+2.+\}\./s,
         );
       });
 
       it('should handle a number option with a range constraint', () => {
         const options = {
-          numberRange: {
+          number: {
             type: 'number',
-            names: ['-nr', '--numberRange'],
+            names: ['-n', '--number'],
             desc: 'A number option',
             range: [0, Infinity],
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-nr.*,.+--numberRange.+<number>.+A number option\..+Values must be in the range.+\[.+0.+,.+Infinity.+\]\./s,
+          /-n.*,.+--number.+<number>.+A number option\..+Values must be in the range.+\[.+0.+,.+Infinity.+\]\./s,
+        );
+      });
+
+      it('should handle a number option with truncation', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n', '--number'],
+            desc: 'A number option',
+            round: 'trunc',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-n.*,.+--number.+<number>.+A number option\..+Values will be truncated\./s,
+        );
+      });
+
+      it('should handle a number option with ceil rounding', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n', '--number'],
+            desc: 'A number option',
+            round: 'ceil',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-n.*,.+--number.+<number>.+A number option\..+Values will be rounded to the ceil integer\./s,
+        );
+      });
+
+      it('should handle a number option with floor rounding', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n', '--number'],
+            desc: 'A number option',
+            round: 'floor',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-n.*,.+--number.+<number>.+A number option\..+Values will be rounded to the floor integer\./s,
+        );
+      });
+
+      it('should handle a number option with nearest rounding', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n', '--number'],
+            desc: 'A number option',
+            round: 'nearest',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-n.*,.+--number.+<number>.+A number option\..+Values will be rounded to the nearest integer\./s,
         );
       });
     });
@@ -448,7 +577,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-ss.*,.+--strings.+<strings>.+A strings option\..+Values are delimited by.+','.+\..+Values will be converted to lower-case\./s,
+          /-ss.*,.+--strings.+<strings>.+A strings option\..+Values are delimited by.+','.+\..+Values will be converted to lowercase\./s,
         );
       });
 
@@ -464,7 +593,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-ss.*,.+--strings.+<strings>.+A strings option\..+Values are delimited by.+','.+\..+Values will be converted to upper-case\./s,
+          /-ss.*,.+--strings.+<strings>.+A strings option\..+Values are delimited by.+','.+\..+Values will be converted to uppercase\./s,
         );
       });
 
@@ -622,6 +751,68 @@ describe('HelpFormatter', () => {
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
           /-ns.*,.+--numbers.+<numbers>.+A numbers option\..+Accepts multiple parameters\..+Value count is limited to.+2.+\./s,
+        );
+      });
+
+      it('should handle a delimited numbers option with truncation', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            desc: 'A numbers option',
+            separator: ',',
+            round: 'trunc',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-ns.*,.+--numbers.+<numbers>.+A numbers option\..+Values are delimited by.+','.+\..+Values will be truncated\./s,
+        );
+      });
+
+      it('should handle a multivalued numbers option with ceil rounding', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            desc: 'A numbers option',
+            round: 'ceil',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-ns.*,.+--numbers.+<numbers>.+A numbers option\..+Accepts multiple parameters\..+Values will be rounded to the ceil integer\./s,
+        );
+      });
+
+      it('should handle a delimited numbers option with floor rounding', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            desc: 'A numbers option',
+            separator: ',',
+            round: 'floor',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-ns.*,.+--numbers.+<numbers>.+A numbers option\..+Values are delimited by.+','.+\..+Values will be rounded to the floor integer\./s,
+        );
+      });
+
+      it('should handle a multivalued numbers option with nearest rounding', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            desc: 'A numbers option',
+            round: 'nearest',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-ns.*,.+--numbers.+<numbers>.+A numbers option\..+Accepts multiple parameters\..+Values will be rounded to the nearest integer\./s,
         );
       });
     });

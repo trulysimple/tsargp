@@ -82,6 +82,7 @@ export interface V1 {
     param?: HelpStyle;
     desc?: HelpStyle;
     regex?: HelpStyle;
+    boolean?: HelpStyle;
     string?: HelpStyle;
     number?: HelpStyle;
     option?: HelpStyle;
@@ -195,17 +196,19 @@ export const enum FontFamily {
  */
 export const enum HelpItem {
   desc = 'desc',
+  negation = 'negation',
   separator = 'separator',
   multivalued = 'multivalued',
   positional = 'positional',
   append = 'append',
-  unique = 'unique',
-  limit = 'limit',
   trim = 'trim',
   case = 'case',
+  round = 'round',
+  enums = 'enums',
   regex = 'regex',
   range = 'range',
-  enums = 'enums',
+  unique = 'unique',
+  limit = 'limit',
   requires = 'requires',
   required = 'required',
   default = 'default',

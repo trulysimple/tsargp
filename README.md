@@ -4,23 +4,31 @@
 
 ## Features
 
-- Usability:
-  - Zero-dependency
-  - Fully declarative style
-  - Compile-time type checking
-  - Moderate footprint (~23KB minified)
-- Presentation:
-  - Fully customizable help message formatting
-  - Wide range of display attributes from [SGR]
-  - Reusable format configuration in JSON
-  - Option grouping and hiding
-- Option attributes:
-  - Types: boolean, string, number, function, help, version
-  - Parameters: single/multivalued, delimited, positional
-  - Requirements: w/o value, logic expressions (and, or)
-  - Constraints: enums, regex, range, count limit
-  - Normalization: unique, trim, case conversion
-  - Custom parsing
+- Zero-dependency
+- Fully declarative style
+- Compile-time type checking
+- Moderate footprint (~25KB minified)
+- Fully customizable help message formatting
+- Wide range of display attributes from [SGR]
+- Reusable help format configuration in JSON
+- Option grouping and hiding
+- Requirements between options (with logic expressions, w/o value)
+
+Here's a summary of the available option types and some of their attributes:
+
+| Option type | Parameters                           | Data type  | Normalization      | Constraints         |
+| ----------- | ------------------------------------ | ---------- | ------------------ | ------------------- |
+| help        | niladic                              |            |                    |                     |
+| version     | niladic                              |            |                    |                     |
+| function    | niladic                              |            |                    |                     |
+| flag        | niladic                              | `boolean`  |                    |                     |
+| boolean     | positional, single                   | `boolean`  |                    |                     |
+| string      | positional, single                   | `string`   | trim, case         | enums, regex        |
+| number      | positional, single                   | `number`   | round              | enums, range        |
+| strings     | positional, multi, delimited, append | `string[]` | unique, trim, case | enums, regex, limit |
+| numbers     | positional, multi, delimited, append | `number[]` | unique, round      | enums, range, limit |
+
+Other attributes include: default value, example value, custom value parsing, and more.
 
 ## Demo
 
@@ -47,7 +55,7 @@ const options = {
 } as const satisfies Options;
 
 const values = new ArgumentParser(options).parse();
-// use `asyncParse` if you declare async fuction options
+// use `asyncParse` if you declare async function options
 ```
 
 ## Build

@@ -14,10 +14,11 @@ import type {
   StringsOption,
   HelpOption,
   VersionOption,
+  BooleanOption,
 } from './options.js';
 
 import { HelpFormatter } from './formatter.js';
-import { isArray, isNiladic } from './options.js';
+import { isArray, isNiladic, isValued } from './options.js';
 import { tf } from './styles.js';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
@@ -58,9 +59,6 @@ class ArgumentParser<T extends Options> {
           const name = option.preferredName ?? option.names.find((name) => name)!;
           this.positional = { key, name, option };
         }
-        if ('separator' in option && option.separator === '') {
-          throw Error(`Option '${key}' must have a non-empty separator.`);
-        }
         this.checkEnumsSanity(key, option);
         this.checkValueSanity(key, option, 'default');
         this.checkValueSanity(key, option, 'example');
@@ -83,6 +81,9 @@ class ArgumentParser<T extends Options> {
     const names = option.names.filter((name) => name);
     if (!names.length) {
       throw Error(`Option '${key}' has no name.`);
+    }
+    if (option.type === 'flag' && option.negationNames) {
+      names.push(...option.negationNames);
     }
     for (const name of names) {
       if (name.match(/[=\s]/)) {
@@ -209,18 +210,30 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Reset option values to false, undefined or the default value.
+   * Reset option values to their default value.
    * @param values The options' values
    */
   private resetValues(values: OptionValues<T>) {
     for (const key in this.options) {
       const option = this.options[key];
-      if (option.type === 'boolean') {
-        (values as Record<string, false>)[key] = false;
-      } else if ('default' in option && option.default) {
-        (values as Record<string, typeof option.default>)[key] = option.default;
-      } else if (option.type !== 'function') {
-        (values as Record<string, undefined>)[key] = undefined;
+      if (isValued(option)) {
+        if (option.default === undefined) {
+          (values as Record<string, undefined>)[key] = undefined;
+        } else if (option.type === 'string') {
+          (values as Record<string, string>)[key] = this.normalizeString(option, option.default);
+        } else if (option.type === 'number') {
+          (values as Record<string, number>)[key] = this.normalizeNumber(option, option.default);
+        } else if (option.type === 'strings') {
+          (values as Record<string, Array<string>>)[key] = option.default.map((val) =>
+            this.normalizeString(option, val),
+          );
+        } else if (option.type === 'numbers') {
+          (values as Record<string, Array<number>>)[key] = option.default.map((val) =>
+            this.normalizeNumber(option, val),
+          );
+        } else {
+          (values as Record<string, boolean>)[key] = option.default;
+        }
       }
     }
   }
@@ -256,8 +269,9 @@ class ArgumentParser<T extends Options> {
         if (value !== undefined) {
           throw Error(`Option '${name}' does not accept any value.`);
         }
-        if (option.type === 'boolean') {
-          (values as Record<string, true>)[key as string] = true;
+        if (option.type === 'flag') {
+          const val = !option.negationNames?.includes(name);
+          (values as Record<string, boolean>)[key as string] = val;
         } else if (option.type === 'function') {
           if (option.break) {
             specifiedKeys.add(key);
@@ -287,10 +301,9 @@ class ArgumentParser<T extends Options> {
           this.parseValue(values, key, option, name, value);
         } else if (isArray(option) && !option.separator) {
           multi = { key, name, option };
+        } else if (i + 1 == args.length) {
+          throw Error(`Missing parameter to '${name}'.`);
         } else {
-          if (i + 1 == args.length) {
-            throw Error(`Missing parameter to '${name}'.`);
-          }
           this.parseValue(values, key, option, name, args[++i]);
         }
       }
@@ -476,6 +489,9 @@ class ArgumentParser<T extends Options> {
     value: string,
   ) {
     switch (option.type) {
+      case 'boolean':
+        (values as Record<string, boolean>)[key as string] = this.parseBoolean(option, name, value);
+        break;
       case 'string':
         (values as Record<string, string>)[key as string] = this.parseString(option, name, value);
         break;
@@ -496,14 +512,26 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
+   * Parses the value of a boolean option.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   */
+  private parseBoolean(option: BooleanOption, name: string, value: string): boolean {
+    return option.parse ? option.parse(name, value) : !value.trim().match(/^([0]*|false)$/i);
+  }
+
+  /**
    * Parses the value of a string option.
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
   private parseString(option: StringOption, name: string, value: string): string {
-    const result = option.parse ? option.parse(name, value) : value;
-    return this.normalizeString(option, name, result);
+    const string = option.parse ? option.parse(name, value) : value;
+    const result = this.normalizeString(option, string);
+    this.validateString(option, name, result);
+    return result;
   }
 
   /**
@@ -513,8 +541,10 @@ class ArgumentParser<T extends Options> {
    * @param value The option value
    */
   private parseNumber(option: NumberOption, name: string, value: string): number {
-    const result = option.parse ? option.parse(name, value) : Number(value);
-    return this.normalizeNumber(option, name, result);
+    const number = option.parse ? option.parse(name, value) : Number(value);
+    const result = this.normalizeNumber(option, number);
+    this.validateNumber(option, name, result);
+    return result;
   }
 
   /**
@@ -524,12 +554,14 @@ class ArgumentParser<T extends Options> {
    * @param value The option value
    */
   private parseStrings(option: StringsOption, name: string, value: string): Array<string> {
-    const result = option.parse
+    const strings = option.parse
       ? option.parse(name, value)
       : option.separator
         ? value.split(option.separator)
         : [value];
-    return result.map((val) => this.normalizeString(option, name, val));
+    const result = strings.map((val) => this.normalizeString(option, val));
+    result.forEach((val) => this.validateString(option, name, val));
+    return result;
   }
 
   /**
@@ -539,31 +571,38 @@ class ArgumentParser<T extends Options> {
    * @param value The option value
    */
   private parseNumbers(option: NumbersOption, name: string, value: string): Array<number> {
-    const result = option.parse
+    const numbers = option.parse
       ? option.parse(name, value)
       : option.separator
         ? value.split(option.separator).map((val) => Number(val))
         : [Number(value)];
-    return result.map((val) => this.normalizeNumber(option, name, val));
+    const result = numbers.map((val) => this.normalizeNumber(option, val));
+    result.forEach((val) => this.validateNumber(option, name, val));
+    return result;
   }
 
   /**
-   * Normalizes and checks the value of a string option.
+   * Normalizes the value of a string option.
    * @param option The option definition
-   * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private normalizeString(
-    option: StringOption | StringsOption,
-    name: string,
-    value: string,
-  ): string {
+  private normalizeString(option: StringOption | StringsOption, value: string): string {
     if (option.trim) {
       value = value.trim();
     }
     if (option.case) {
       value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
     }
+    return value;
+  }
+
+  /**
+   * Validates the value of a string option against any constraint.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   */
+  private validateString(option: StringOption | StringsOption, name: string, value: string) {
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`,
@@ -575,20 +614,38 @@ class ArgumentParser<T extends Options> {
           `Value must match the regex ${String(option.regex)}.`,
       );
     }
-    return value;
   }
 
   /**
    * Normalizes and checks the value of a number option.
    * @param option The option definition
+   * @param value The option value
+   */
+  private normalizeNumber(option: NumberOption | NumbersOption, value: number): number {
+    switch (option.round) {
+      case 'trunc':
+        value = Math.trunc(value);
+        break;
+      case 'ceil':
+        value = Math.ceil(value);
+        break;
+      case 'floor':
+        value = Math.floor(value);
+        break;
+      case 'nearest':
+        value = Math.round(value);
+        break;
+    }
+    return value;
+  }
+
+  /**
+   * Validates the value of a number option against any constraint.
+   * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private normalizeNumber(
-    option: NumberOption | NumbersOption,
-    name: string,
-    value: number,
-  ): number {
+  private validateNumber(option: NumberOption | NumbersOption, name: string, value: number) {
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`,
@@ -599,7 +656,6 @@ class ArgumentParser<T extends Options> {
         `Invalid parameter to '${name}': ${value}. Value must be in the range [${option.range}].`,
       );
     }
-    return value;
   }
 
   /**

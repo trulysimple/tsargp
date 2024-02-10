@@ -28,7 +28,7 @@ export type {
   RequireExp,
 };
 
-export { req, isNiladic, isArray };
+export { req, isNiladic, isArray, isValued };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -261,49 +261,6 @@ type WithRange = {
 };
 
 /**
- * Defines attributes for a callback function.
- */
-type WithCallback = {
-  /**
-   * The callback function.
-   */
-  readonly exec: Callback;
-  /**
-   * True to break the parsing loop.
-   */
-  readonly break?: true;
-};
-
-/**
- * Defines attributes for a help option.
- */
-type WithUsage = {
-  /**
-   * The usage message.
-   */
-  readonly usage?: string;
-  /**
-   * The footer message.
-   */
-  readonly footer?: string;
-  /**
-   * The format configuration.
-   */
-  readonly format?: HelpConfig;
-};
-
-/**
- * Defines attributes for a version option.
- */
-type WithVersion = {
-  /**
-   * The semantic version. If not specified, the `version` field from a `package.json` file in the
-   * nearest parent directory will be used.
-   */
-  readonly version?: string;
-};
-
-/**
  * A helper type for optional objects.
  * @template T The actual object type
  */
@@ -318,7 +275,7 @@ type WithString = Optional<WithEnums<string> | WithRegex> & {
    */
   readonly trim?: true;
   /**
-   * The kind of case normalization to apply.
+   * The kind of case conversion to apply.
    */
   readonly case?: 'lower' | 'upper';
 };
@@ -326,12 +283,17 @@ type WithString = Optional<WithEnums<string> | WithRegex> & {
 /**
  * Defines attributes common to all options that accept number parameters.
  */
-type WithNumber = Optional<WithEnums<number> | WithRange>;
+type WithNumber = Optional<WithEnums<number> | WithRange> & {
+  /**
+   * The kind of rounding to apply.
+   */
+  readonly round?: 'trunc' | 'ceil' | 'floor' | 'nearest';
+};
 
 /**
- * An option which is enabled if specified. Always defaults to false.
+ * An option that accepts a single boolean parameter.
  */
-type BooleanOption = WithType<'boolean'>;
+type BooleanOption = WithType<'boolean'> & WithParam<boolean>;
 
 /**
  * An option that accepts a single string parameter.
@@ -354,19 +316,61 @@ type StringsOption = WithType<'strings'> & WithParam<Array<string>> & WithString
 type NumbersOption = WithType<'numbers'> & WithParam<Array<number>> & WithNumber & WithArray;
 
 /**
+ * An option which is enabled if specified.
+ */
+type FlagOption = WithType<'flag'> & {
+  /**
+   * The default value.
+   */
+  readonly default?: boolean;
+  /**
+   * The names used for negation (e.g., '--no-flag').
+   */
+  readonly negationNames?: Array<string>;
+};
+
+/**
  * An option that executes a callback function.
  */
-type FunctionOption = WithType<'function'> & WithCallback;
+type FunctionOption = WithType<'function'> & {
+  /**
+   * The callback function.
+   */
+  readonly exec: Callback;
+  /**
+   * True to break the parsing loop.
+   */
+  readonly break?: true;
+};
 
 /**
  * An option that prints a help message.
  */
-type HelpOption = WithType<'help'> & WithUsage;
+type HelpOption = WithType<'help'> & {
+  /**
+   * The usage message.
+   */
+  readonly usage?: string;
+  /**
+   * The footer message.
+   */
+  readonly footer?: string;
+  /**
+   * The format configuration.
+   */
+  readonly format?: HelpConfig;
+};
 
 /**
  * An option that prints a semantic version.
  */
-type VersionOption = WithType<'version'> & WithVersion;
+type VersionOption = WithType<'version'> & {
+  /**
+   * The semantic version. If not specified, the `version` field from a `package.json` file in the
+   * nearest parent directory will be used.
+   */
+  readonly version?: string;
+};
 
 /**
  * An option that performs some predefined action.
@@ -376,7 +380,12 @@ type SpecialOption = HelpOption | VersionOption;
 /**
  * An option that accepts no parameters.
  */
-type NiladicOption = BooleanOption | FunctionOption | SpecialOption;
+type NiladicOption = FlagOption | FunctionOption | SpecialOption;
+
+/**
+ * An option that accepts a single parameter.
+ */
+type SingleOption = BooleanOption | StringOption | NumberOption;
 
 /**
  * An option that accepts a list of parameters.
@@ -386,12 +395,12 @@ type ArrayOption = StringsOption | NumbersOption;
 /**
  * An option that accepts any kind of parameter.
  */
-type ParamOption = StringOption | NumberOption | ArrayOption;
+type ParamOption = SingleOption | ArrayOption;
 
 /**
  * An option that has a value.
  */
-type ValuedOption = BooleanOption | ParamOption;
+type ValuedOption = FlagOption | ParamOption;
 
 /**
  * An option definition. (finally)
@@ -425,8 +434,8 @@ type ArrayDataType<T extends Option, D> =
  * The data type of an option.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option> = T extends { type: 'boolean' }
-  ? boolean
+type OptionDataType<T extends Option> = T extends { type: 'flag' | 'boolean' }
+  ? DataType<T, boolean>
   : T extends { type: 'string' }
     ? DataType<T, string>
     : T extends { type: 'number' }
@@ -454,7 +463,7 @@ type OptionValues<T extends Options> = {
  * @returns True if the option is niladic
  */
 function isNiladic(option: Option): option is NiladicOption {
-  return ['boolean', 'function', 'help', 'version'].includes(option.type);
+  return option.type === 'flag' || !isValued(option);
 }
 
 /**
@@ -464,4 +473,13 @@ function isNiladic(option: Option): option is NiladicOption {
  */
 function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
+}
+
+/**
+ * Tests if an option is valued.
+ * @param option The option definition
+ * @returns True if the option is niladic
+ */
+function isValued(option: Option): option is ValuedOption {
+  return !['function', 'help', 'version'].includes(option.type);
 }

@@ -150,7 +150,7 @@ type Style = {
    */
   fg?: fg | FgColor;
   /**
-   * The foreground color.
+   * The background color.
    */
   bg?: bg | BgColor;
   /**
@@ -211,6 +211,17 @@ class StyledString {
    */
   append(...texts: Array<string>): this {
     this.strings.push(...texts);
+    return this;
+  }
+
+  /**
+   * Appends a styled string to the list of strings.
+   * @param str The styled string to be appended.
+   * @returns This
+   */
+  appendStyled(str: StyledString): this {
+    this.strings.push(...str.strings);
+    this.lastStyle = str.lastStyle;
     return this;
   }
 }

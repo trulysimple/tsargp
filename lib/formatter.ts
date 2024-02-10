@@ -1,7 +1,14 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, ParamOption, Requires, OptionStyles } from './options.js';
+import type {
+  Option,
+  Options,
+  Requires,
+  OptionStyles,
+  ValuedOption,
+  ArrayOption,
+} from './options.js';
 import type { V1 as JsonConfig } from './config.js';
 import type { Style } from './styles.js';
 
@@ -42,6 +49,7 @@ type HelpStyles = {
   readonly param: string;
   readonly desc: string;
   readonly regex: string;
+  readonly boolean: string;
   readonly string: string;
   readonly number: string;
   readonly option: string;
@@ -60,6 +68,10 @@ type HelpConfig = Readonly<Omit<JsonConfig, '$schema' | 'styles'>> & {
      * The style of regular expressions.
      */
     regex?: Style;
+    /**
+     * The style of booleans.
+     */
+    boolean?: Style;
     /**
      * The style of strings.
      */
@@ -101,6 +113,7 @@ const defaultConfig: HelpConfig = {
     param: { clear: true, fg: fg.brightBlack },
     desc: { clear: true },
     regex: { fg: fg.red },
+    boolean: { fg: fg.yellow },
     string: { fg: fg.green },
     number: { fg: fg.yellow },
     option: { fg: fg.magenta },
@@ -108,17 +121,19 @@ const defaultConfig: HelpConfig = {
   },
   items: [
     HelpItem.desc,
+    HelpItem.negation,
     HelpItem.separator,
     HelpItem.multivalued,
     HelpItem.positional,
     HelpItem.append,
-    HelpItem.unique,
-    HelpItem.limit,
     HelpItem.trim,
     HelpItem.case,
+    HelpItem.round,
+    HelpItem.enums,
     HelpItem.regex,
     HelpItem.range,
-    HelpItem.enums,
+    HelpItem.unique,
+    HelpItem.limit,
     HelpItem.requires,
     HelpItem.required,
     HelpItem.default,
@@ -199,6 +214,7 @@ class HelpFormatter {
       param: styleToString(this.config.styles?.param),
       desc: styleToString(this.config.styles?.desc),
       regex: styleToString(this.config.styles?.regex),
+      boolean: styleToString(this.config.styles?.boolean),
       string: styleToString(this.config.styles?.string),
       number: styleToString(this.config.styles?.number),
       option: styleToString(this.config.styles?.option),
@@ -265,17 +281,28 @@ class HelpFormatter {
   /**
    * Formats an option's names to be printed on the console.
    * @param option The option definition
-   * @returns A styled string with the formatted option names
+   * @returns A styled string with the formatted names
    */
   private formatNames(option: Option): StyledString {
     const result = new StyledString();
     if (this.config.hidden?.names) {
       return result;
     }
-    const whitespaceStyle = this.styles.whitespace;
     const namesStyle = option.styles?.names
       ? styleToString(option.styles?.names)
       : this.styles.names;
+    this.formatNames2(option.names, namesStyle, result);
+    return result;
+  }
+
+  /**
+   * Formats a list of names to be printed on the console.
+   * @param names The list of names
+   * @param namesStyle The names style
+   * @param result The resulting string
+   */
+  private formatNames2(names: Array<string>, namesStyle: string, result: StyledString) {
+    const whitespaceStyle = this.styles.whitespace;
     let sep = '';
     let prefix = '';
     function formatName(name: string, width: number) {
@@ -290,8 +317,7 @@ class HelpFormatter {
       }
       prefix = ' '.repeat(width - name.length);
     }
-    option.names.forEach((name, i) => formatName(name, this.nameWidths[i]));
-    return result;
+    names.forEach((name, i) => formatName(name, this.nameWidths[i]));
   }
 
   /**
@@ -336,6 +362,9 @@ class HelpFormatter {
         case HelpItem.desc:
           this.formatDesc(option, descStyle, result);
           break;
+        case HelpItem.negation:
+          this.formatNegation(option, descStyle, result);
+          break;
         case HelpItem.separator:
           this.formatSeparator(option, descStyle, result);
           break;
@@ -348,17 +377,17 @@ class HelpFormatter {
         case HelpItem.append:
           this.formatAppend(option, descStyle, result);
           break;
-        case HelpItem.unique:
-          this.formatUnique(option, descStyle, result);
-          break;
-        case HelpItem.limit:
-          this.formatLimit(option, descStyle, result);
-          break;
         case HelpItem.trim:
           this.formatTrim(option, descStyle, result);
           break;
         case HelpItem.case:
           this.formatCase(option, descStyle, result);
+          break;
+        case HelpItem.round:
+          this.formatRound(option, descStyle, result);
+          break;
+        case HelpItem.enums:
+          this.formatEnums(option, descStyle, result);
           break;
         case HelpItem.regex:
           this.formatRegex(option, descStyle, result);
@@ -366,8 +395,11 @@ class HelpFormatter {
         case HelpItem.range:
           this.formatRange(option, descStyle, result);
           break;
-        case HelpItem.enums:
-          this.formatEnums(option, descStyle, result);
+        case HelpItem.unique:
+          this.formatUnique(option, descStyle, result);
+          break;
+        case HelpItem.limit:
+          this.formatLimit(option, descStyle, result);
           break;
         case HelpItem.requires:
           this.formatRequires(option, descStyle, result);
@@ -407,6 +439,26 @@ class HelpFormatter {
   }
 
   /**
+   * Formats an option's negation names to be included in the description.
+   * @param values The option definition
+   * @param descStyle The description style
+   * @param result The resulting string
+   */
+  private formatNegation(option: Option, descStyle: string, result: StyledString) {
+    if ('negationNames' in option && option.negationNames) {
+      result.style(descStyle).append('May', 'be', 'negated', 'with');
+      const names = option.negationNames;
+      names.forEach((name, i) => {
+        result.style(this.styles.option).append(name);
+        if (i < names.length - 1) {
+          result.style(descStyle).append('or');
+        }
+      });
+      result.style(descStyle).append('.');
+    }
+  }
+
+  /**
    * Formats an option's separator string to be included in the description.
    * @param values The option definition
    * @param descStyle The description style
@@ -427,7 +479,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatMultivalued(option: Option, descStyle: string, result: StyledString) {
-    if (isArray(option) && !('separator' in option && option.separator)) {
+    if (isArray(option) && !option.separator) {
       result.style(descStyle).append('Accepts', 'multiple', 'parameters.');
     }
   }
@@ -457,32 +509,6 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's unique constraint to be included in the description.
-   * @param values The option definition
-   * @param descStyle The description style
-   * @param result The resulting string
-   */
-  private formatUnique(option: Option, descStyle: string, result: StyledString) {
-    if ('unique' in option && option.unique) {
-      result.style(descStyle).append('Duplicate', 'values', 'will', 'be', 'removed.');
-    }
-  }
-
-  /**
-   * Formats an option's limit constraint to be included in the description.
-   * @param values The option definition
-   * @param descStyle The description style
-   * @param result The resulting string
-   */
-  private formatLimit(option: Option, descStyle: string, result: StyledString) {
-    if ('limit' in option && option.limit !== undefined) {
-      result.style(descStyle).append('Value', 'count', 'is', 'limited', 'to');
-      result.style(this.styles.number).append(`${option.limit}`);
-      result.style(descStyle).append('.');
-    }
-  }
-
-  /**
    * Formats an option's trim normalization to be included in the description.
    * @param values The option definition
    * @param descStyle The description style
@@ -504,7 +530,42 @@ class HelpFormatter {
     if ('case' in option && option.case) {
       result
         .style(descStyle)
-        .append('Values', 'will', 'be', 'converted', 'to', option.case + '-case.');
+        .append('Values', 'will', 'be', 'converted', 'to', option.case + 'case.');
+    }
+  }
+
+  /**
+   * Formats an option's rounding normalization to be included in the description.
+   * @param values The option definition
+   * @param descStyle The description style
+   * @param result The resulting string
+   */
+  private formatRound(option: Option, descStyle: string, result: StyledString) {
+    if ('round' in option && option.round) {
+      result.style(descStyle);
+      if (option.round === 'trunc') {
+        result.append('Values', 'will', 'be', 'truncated.');
+      } else {
+        result.append('Values', 'will', 'be', 'rounded', 'to', 'the', option.round, 'integer.');
+      }
+    }
+  }
+
+  /**
+   * Formats an option's enumerated values to be included in the description.
+   * @param values The option definition
+   * @param descStyle The description style
+   * @param result The resulting string
+   */
+  private formatEnums(option: Option, descStyle: string, result: StyledString) {
+    if ('enums' in option && option.enums) {
+      result.style(descStyle).append('Values', 'must', 'be', 'one', 'of', '{');
+      if (option.type === 'string' || option.type === 'strings') {
+        this.formatStrings(option.enums, descStyle, result);
+      } else {
+        this.formatNumbers(option.enums, descStyle, result);
+      }
+      result.style(descStyle).append('}.');
     }
   }
 
@@ -537,20 +598,28 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's enumerated values to be included in the description.
+   * Formats an option's unique constraint to be included in the description.
    * @param values The option definition
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatEnums(option: Option, descStyle: string, result: StyledString) {
-    if ('enums' in option && option.enums) {
-      result.style(descStyle).append('Values', 'must', 'be', 'one', 'of', '{');
-      if (option.type === 'string' || option.type === 'strings') {
-        this.formatStrings(option.enums, descStyle, result);
-      } else {
-        this.formatNumbers(option.enums, descStyle, result);
-      }
-      result.style(descStyle).append('}.');
+  private formatUnique(option: Option, descStyle: string, result: StyledString) {
+    if ('unique' in option && option.unique) {
+      result.style(descStyle).append('Duplicate', 'values', 'will', 'be', 'removed.');
+    }
+  }
+
+  /**
+   * Formats an option's limit constraint to be included in the description.
+   * @param values The option definition
+   * @param descStyle The description style
+   * @param result The resulting string
+   */
+  private formatLimit(option: Option, descStyle: string, result: StyledString) {
+    if ('limit' in option && option.limit !== undefined) {
+      result.style(descStyle).append('Value', 'count', 'is', 'limited', 'to');
+      result.style(this.styles.number).append(`${option.limit}`);
+      result.style(descStyle).append('.');
     }
   }
 
@@ -651,7 +720,7 @@ class HelpFormatter {
       const [key, value] = requires.split(/=(.*)/, 2);
       const option = this.options[key];
       const preferredName = option.preferredName ?? option.names.find((name) => name)!;
-      result.style(this.styles.option).append(`${preferredName}`);
+      result.style(this.styles.option).append(preferredName);
       if (value) {
         result.style(descStyle).append('=');
         result.style(this.styles.string).append(`'${value}'`);
@@ -674,8 +743,14 @@ class HelpFormatter {
    * @param prop The option property
    * @param result The resulting string
    */
-  private formatValue(option: ParamOption, prop: 'default' | 'example', result: StyledString) {
-    if (option.type === 'string') {
+  private formatValue(option: ValuedOption, prop: 'default' | 'example', result: StyledString) {
+    function assert(_condition: unknown): asserts _condition {}
+    if (option.type === 'flag') {
+      assert(prop === 'default');
+      result.style(this.styles.boolean).append(`${option[prop]!}`);
+    } else if (option.type === 'boolean') {
+      result.style(this.styles.boolean).append(`${option[prop]!}`);
+    } else if (option.type === 'string') {
       result.style(this.styles.string).append(`'${option[prop]!}'`);
     } else if (option.type === 'number') {
       result.style(this.styles.number).append(option[prop]!.toString());
@@ -683,19 +758,29 @@ class HelpFormatter {
       const values = option[prop]!.map((value) => value.toString());
       result.style(this.styles.string).append(`'${values.join(option.separator)}'`);
     } else {
-      let values: Array<string>;
-      if (option.type === 'strings') {
-        values = option[prop]!.map((value) => `'${value}'`);
-        result.style(this.styles.string);
-      } else {
-        values = option[prop]!.map((value) => value.toString());
-        result.style(this.styles.number);
-      }
-      if (prop === 'example') {
-        result.append(values.join(' '));
-      } else {
-        result.append(...values);
-      }
+      this.formatArrayValue(option, prop, result);
+    }
+  }
+
+  /**
+   * Formats a value from an array option's property.
+   * @param option The option definition
+   * @param prop The option property
+   * @param result The resulting string
+   */
+  private formatArrayValue(option: ArrayOption, prop: 'default' | 'example', result: StyledString) {
+    let values: Array<string>;
+    if (option.type === 'strings') {
+      values = option[prop]!.map((value) => `'${value}'`);
+      result.style(this.styles.string);
+    } else {
+      values = option[prop]!.map((value) => value.toString());
+      result.style(this.styles.number);
+    }
+    if (prop === 'example') {
+      result.append(values.join(' '));
+    } else {
+      result.append(...values);
     }
   }
 
@@ -728,9 +813,9 @@ class HelpFormatter {
    * @returns The formatted help message
    */
   private formatEntries(width: number, entries: Array<HelpEntry>): string {
-    function formatCol(line: StyledString, indent: string, text: StyledString, width: number) {
-      line.append(indent).append(text.string);
-      line.style(whitespaceStyle).append(' '.repeat(width - text.length));
+    function formatCol(line: StyledString, indent: string, str: StyledString, width: number) {
+      line.append(indent).appendStyled(str);
+      line.style(whitespaceStyle).append(' '.repeat(width - str.length));
     }
     const whitespaceStyle = this.styles.whitespace;
     const lines = new Array<string>();
