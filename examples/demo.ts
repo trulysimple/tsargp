@@ -1,15 +1,9 @@
 #!/usr/bin/env node
+import { ArgumentParser, fg, tf, clearStyle, req, fgColor, type Options } from 'tsargp';
 
-//--------------------------------------------------------------------------------------------------
-// Imports and Exports
-//--------------------------------------------------------------------------------------------------
-import type { Options } from 'tsargp';
-
-import { ArgumentParser, fg, tf, clearStyle, req, fgColor } from 'tsargp';
-
-//--------------------------------------------------------------------------------------------------
-// Constants
-//--------------------------------------------------------------------------------------------------
+/**
+ * The option definitions
+ */
 const options = {
   help: {
     type: 'help',
@@ -125,9 +119,9 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
   },
 } as const satisfies Options;
 
-//--------------------------------------------------------------------------------------------------
-// Interfaces
-//--------------------------------------------------------------------------------------------------
+/**
+ * An interface for the option values (to demonstrate that they conform to it).
+ */
 interface CommandOptions {
   get boolean(): boolean;
   get stringRegex(): string;
@@ -141,9 +135,7 @@ interface CommandOptions {
   get requires(): boolean;
 }
 
-//--------------------------------------------------------------------------------------------------
-// Main script
-//--------------------------------------------------------------------------------------------------
+// the main script
 try {
   const values: CommandOptions = await new ArgumentParser(options).asyncParse();
   console.log(values);

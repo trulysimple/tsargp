@@ -4,18 +4,23 @@
 
 ## Features
 
-- Fully declarative style with type checking
-- Boolean, string, number and function types
-- Special "help" option for convenience
-- Value constraints: enums, regex, range, limit
-- Value normalization: unique, trim, case
-- Delimited, multivalued and positional args
-- Custom parsing of option parameters
-- Option requirements, grouping and hiding
-- Fully customizable help message formatting
-- Wide range of display attributes from [SGR]
-- Reusable help format configuration in JSON
-- Zero-dependency with a moderate footprint
+- Usability:
+  - Zero-dependency
+  - Fully declarative style
+  - Compile-time type checking
+  - Moderate footprint (~23KB minified)
+- Presentation:
+  - Fully customizable help message formatting
+  - Wide range of display attributes from [SGR]
+  - Reusable format configuration in JSON
+  - Option grouping and hiding
+- Option attributes:
+  - Types: boolean, string, number, function, help, version
+  - Parameters: single/multivalued, delimited, positional
+  - Requirements: w/o value, logic expressions (and, or)
+  - Constraints: enums, regex, range, count limit
+  - Normalization: unique, trim, case conversion
+  - Custom parsing
 
 ## Demo
 
