@@ -6,8 +6,6 @@
 import type { Options } from 'tsargp';
 
 import { ArgumentParser, fg, tf, clearStyle, req, fgColor } from 'tsargp';
-import { dirname, join } from 'path';
-import { promises } from 'fs';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -16,7 +14,7 @@ const options = {
   help: {
     type: 'help',
     names: ['-h', '--help'],
-    desc: 'A function option. Prints this help message',
+    desc: 'A help option. Prints this help message',
     usage: `${clearStyle}${tf.bold}Argument parser for TypeScript.${clearStyle}
 
     ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`,
@@ -27,15 +25,9 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
 `,
   },
   version: {
-    type: 'function',
+    type: 'version',
     names: ['-v', '--version'],
-    desc: 'A function option. Prints the package version',
-    exec: async () => {
-      const packageJsonPath = join(dirname(import.meta.dirname), 'package.json');
-      const packageJsonData = await promises.readFile(packageJsonPath);
-      const { version: packageVersion } = JSON.parse(packageJsonData.toString());
-      throw packageVersion;
-    },
+    desc: 'A version option. Prints the package version',
   },
   boolean: {
     type: 'boolean',

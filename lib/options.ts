@@ -17,6 +17,9 @@ export type {
   StringsOption,
   NumbersOption,
   FunctionOption,
+  HelpOption,
+  VersionOption,
+  SpecialOption,
   ArrayOption,
   NiladicOption,
   ParamOption,
@@ -272,7 +275,7 @@ type WithCallback = {
 };
 
 /**
- * Defines attributes for a usage.
+ * Defines attributes for a help option.
  */
 type WithUsage = {
   /**
@@ -287,6 +290,17 @@ type WithUsage = {
    * The format configuration.
    */
   readonly format?: HelpConfig;
+};
+
+/**
+ * Defines attributes for a version option.
+ */
+type WithVersion = {
+  /**
+   * The semantic version. If not specified, the `version` field from a `package.json` file in the
+   * nearest parent directory will be used.
+   */
+  readonly version?: string;
 };
 
 /**
@@ -350,9 +364,19 @@ type FunctionOption = WithType<'function'> & WithCallback;
 type HelpOption = WithType<'help'> & WithUsage;
 
 /**
+ * An option that prints a semantic version.
+ */
+type VersionOption = WithType<'version'> & WithVersion;
+
+/**
+ * An option that performs some predefined action.
+ */
+type SpecialOption = HelpOption | VersionOption;
+
+/**
  * An option that accepts no parameters.
  */
-type NiladicOption = BooleanOption | FunctionOption | HelpOption;
+type NiladicOption = BooleanOption | FunctionOption | SpecialOption;
 
 /**
  * An option that accepts a list of parameters.
@@ -430,7 +454,7 @@ type OptionValues<T extends Options> = {
  * @returns True if the option is niladic
  */
 function isNiladic(option: Option): option is NiladicOption {
-  return option.type === 'boolean' || option.type === 'function' || option.type === 'help';
+  return ['boolean', 'function', 'help', 'version'].includes(option.type);
 }
 
 /**

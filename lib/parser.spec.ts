@@ -788,6 +788,19 @@ describe('ArgumentParser', () => {
       });
     });
 
+    describe('version', () => {
+      it('should throw a version message', () => {
+        const options = {
+          function: {
+            type: 'version',
+            names: ['-v'],
+            version: '0.1.0',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-v'])).toThrow('0.1.0');
+      });
+    });
+
     describe('fuction', () => {
       it('should throw an error on function option specified with value', () => {
         const options = {

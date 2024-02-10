@@ -1,7 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { HelpFormatter } from './formatter.js';
 import type {
   ArrayOption,
   ParamOption,
@@ -13,10 +12,15 @@ import type {
   Requires,
   StringOption,
   StringsOption,
+  HelpOption,
+  VersionOption,
 } from './options.js';
 
+import { HelpFormatter } from './formatter.js';
 import { isArray, isNiladic } from './options.js';
 import { tf } from './styles.js';
+import { dirname, join } from 'path';
+import { readFileSync } from 'fs';
 
 export { ArgumentParser };
 
@@ -269,16 +273,11 @@ class ArgumentParser<T extends Options> {
         } else {
           specifiedKeys.add(key);
           this.checkRequired(values, specifiedKeys);
-          const help = option.usage ? [option.usage] : [];
-          const groups = new HelpFormatter(this.options, option.format).formatGroups();
-          for (const [group, message] of groups.entries()) {
-            const header = group ? group + ' options' : 'Options';
-            help.push(`${tf.bold}${header}:`, message);
+          if (option.type === 'help') {
+            this.handleHelpOption(option);
+          } else {
+            this.handleVersionOption(option);
           }
-          if (option.footer) {
-            help.push(option.footer);
-          }
-          throw help.join('\n\n');
         }
       } else {
         if (isArray(option) && !(option.append && specifiedKeys.has(key))) {
@@ -299,6 +298,45 @@ class ArgumentParser<T extends Options> {
     }
     this.checkRequired(values, specifiedKeys);
     return Promise.all(promises);
+  }
+
+  /**
+   * Handles the special "help" option and never returns.
+   * @param option The option definition
+   */
+  private handleHelpOption(option: HelpOption): never {
+    const help = option.usage ? [option.usage] : [];
+    const groups = new HelpFormatter(this.options, option.format).formatGroups();
+    for (const [group, message] of groups.entries()) {
+      const header = group ? group + ' options' : 'Options';
+      help.push(`${tf.bold}${header}:`, message);
+    }
+    if (option.footer) {
+      help.push(option.footer);
+    }
+    throw help.join('\n\n');
+  }
+
+  /**
+   * Handles the special "version" option and never returns.
+   * @param option The option definition
+   */
+  private handleVersionOption(option: VersionOption): never {
+    if (option.version) {
+      throw option.version;
+    }
+    for (let dir = import.meta.dirname; dir != '/'; dir = dirname(dir)) {
+      try {
+        const jsonData = readFileSync(join(dir, 'package.json'));
+        const { version } = JSON.parse(jsonData.toString());
+        throw version;
+      } catch (err) {
+        if ((err as ErrnoException).code != 'ENOENT') {
+          throw err;
+        }
+      }
+    }
+    throw 'unknown';
   }
 
   /**
