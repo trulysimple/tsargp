@@ -26,7 +26,7 @@ const options = {
     type: 'function',
     names: ['-h', '--help'],
     desc: 'A function option. Prints this help message',
-    exec: async () => {
+    exec: () => {
       const help = [usage];
       const groups = new HelpFormatter(options).formatGroups();
       for (const [group, message] of groups.entries()) {
