@@ -735,7 +735,12 @@ describe('ArgumentParser', () => {
           names: ['req3'],
           preferredName: 'preferred',
           positional: true,
-          requires: 'required1',
+          requires: req.and('required1', 'required4'),
+        },
+        required4: {
+          type: 'function',
+          names: ['req4'],
+          exec: () => {},
         },
       } as const satisfies Options;
       expect(() => new ArgumentParser(options).parse([])).not.toThrowError();
@@ -751,6 +756,9 @@ describe('ArgumentParser', () => {
       expect(() => new ArgumentParser(options).parse(['a'])).toThrowError(
         `Option 'preferred' requires 'req1'.`,
       );
+      expect(() => new ArgumentParser(options).parse(['req1', 'a'])).toThrowError(
+        `Option 'preferred' requires 'req4'.`,
+      );
       expect(() => new ArgumentParser(options).parse(['req0', 'req1', 'c'])).toThrowError(
         `Option 'req0' requires ('req2' or 'preferred'='a').`,
       );
@@ -760,7 +768,24 @@ describe('ArgumentParser', () => {
       expect(() =>
         new ArgumentParser(options).parse(['req0', 'req1', 'req2', 'b|b|a']),
       ).not.toThrowError();
-      expect(() => new ArgumentParser(options).parse(['req0', 'req1', 'a'])).not.toThrowError();
+      expect(() => new ArgumentParser(options).parse(['req1', 'req4', 'a'])).not.toThrowError();
+    });
+
+    describe('help', () => {
+      it('should throw a help message', () => {
+        const options = {
+          function: {
+            type: 'help',
+            names: ['-h'],
+            usage: 'usage',
+            footer: 'footer',
+            format: { indent: { names: 3 } },
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-h'])).toThrow(
+          /usage.+Options:.+ {3}.*-h.+footer/s,
+        );
+      });
     });
 
     describe('fuction', () => {

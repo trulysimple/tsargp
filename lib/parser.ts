@@ -1,6 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
+import { HelpFormatter } from './formatter.js';
 import type {
   ArrayOption,
   ParamOption,
@@ -15,6 +16,7 @@ import type {
 } from './options.js';
 
 import { isArray, isNiladic } from './options.js';
+import { tf } from './styles.js';
 
 export { ArgumentParser };
 
@@ -252,7 +254,7 @@ class ArgumentParser<T extends Options> {
         }
         if (option.type === 'boolean') {
           (values as Record<string, true>)[key as string] = true;
-        } else {
+        } else if (option.type === 'function') {
           if (option.break) {
             specifiedKeys.add(key);
             this.checkRequired(values, specifiedKeys);
@@ -264,6 +266,19 @@ class ArgumentParser<T extends Options> {
           if (option.break) {
             return Promise.all(promises);
           }
+        } else {
+          specifiedKeys.add(key);
+          this.checkRequired(values, specifiedKeys);
+          const help = option.usage ? [option.usage] : [];
+          const groups = new HelpFormatter(this.options, option.format).formatGroups();
+          for (const [group, message] of groups.entries()) {
+            const header = group ? group + ' options' : 'Options';
+            help.push(`${tf.bold}${header}:`, message);
+          }
+          if (option.footer) {
+            help.push(option.footer);
+          }
+          throw help.join('\n\n');
         }
       } else {
         if (isArray(option) && !(option.append && specifiedKeys.has(key))) {
@@ -364,17 +379,16 @@ class ArgumentParser<T extends Options> {
   ): string | null {
     const [requiredKey, requiredValue] = requirement.split(/=(.*)/, 2);
     const requiredOpt = this.options[requiredKey];
-    const requiredNames = requiredOpt.names.filter((name) => name);
-    const preferredName = requiredOpt.preferredName ?? requiredNames[0];
+    const preferredName = requiredOpt.preferredName ?? requiredOpt.names.find((name) => name)!;
     let error = `'${preferredName}'`;
-    if (requiredOpt.type === 'function') {
-      return requiredNames.find((name) => keys.has(name)) ? null : error;
+    if (isNiladic(requiredOpt)) {
+      return keys.has(requiredKey) ? null : error;
     }
     const actualValue = values[requiredKey as keyof OptionValues<T>];
-    if (actualValue === undefined || actualValue === false) {
+    if (actualValue === undefined) {
       return error;
     }
-    if (requiredOpt.type !== 'boolean' && requiredValue !== undefined) {
+    if (requiredValue !== undefined) {
       error += `='${requiredValue}'`;
       const test = {} as OptionValues<T>;
       this.parseValue(test, requiredKey, requiredOpt, name, requiredValue);

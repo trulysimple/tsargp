@@ -6,9 +6,11 @@
 
 - Fully declarative style with type checking
 - Boolean, string, number and function types
+- Special "help" option for convenience
 - Value constraints: enums, regex, range, limit
 - Value normalization: unique, trim, case
 - Delimited, multivalued and positional args
+- Custom parsing of option parameters
 - Option requirements, grouping and hiding
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]

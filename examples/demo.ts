@@ -5,36 +5,26 @@
 //--------------------------------------------------------------------------------------------------
 import type { Options } from 'tsargp';
 
-import { ArgumentParser, HelpFormatter, fg, tf, clearStyle, req, fgColor } from 'tsargp';
+import { ArgumentParser, fg, tf, clearStyle, req, fgColor } from 'tsargp';
 import { dirname, join } from 'path';
 import { promises } from 'fs';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-const usage = `${clearStyle}${tf.bold}Argument parser for TypeScript.${clearStyle}
-
-  ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`;
-
-const footer = `MIT License
-Copyright (c) 2024 ${tf.italic}${tf.bold}${fg.cyan}TrulySimple${clearStyle}
-
-Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyle}`;
-
 const options = {
   help: {
-    type: 'function',
+    type: 'help',
     names: ['-h', '--help'],
     desc: 'A function option. Prints this help message',
-    exec: () => {
-      const help = [usage];
-      const groups = new HelpFormatter(options).formatGroups();
-      for (const [group, message] of groups.entries()) {
-        help.push(`${tf.bold}${group || 'Global'} options:`, `${message}${clearStyle}`);
-      }
-      help.push(footer);
-      throw help.join('\n\n') + '\n';
-    },
+    usage: `${clearStyle}${tf.bold}Argument parser for TypeScript.${clearStyle}
+
+    ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`,
+    footer: `MIT License
+Copyright (c) 2024 ${tf.italic}${tf.bold}${fg.cyan}TrulySimple${clearStyle}
+
+Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyle}
+`,
   },
   version: {
     type: 'function',

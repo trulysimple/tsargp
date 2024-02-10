@@ -1,6 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
+import type { HelpConfig } from './formatter.js';
 import type { Style } from './styles.js';
 
 export type {
@@ -271,6 +272,24 @@ type WithCallback = {
 };
 
 /**
+ * Defines attributes for a usage.
+ */
+type WithUsage = {
+  /**
+   * The usage message.
+   */
+  readonly usage?: string;
+  /**
+   * The footer message.
+   */
+  readonly footer?: string;
+  /**
+   * The format configuration.
+   */
+  readonly format?: HelpConfig;
+};
+
+/**
  * A helper type for optional objects.
  * @template T The actual object type
  */
@@ -326,9 +345,14 @@ type NumbersOption = WithType<'numbers'> & WithParam<Array<number>> & WithNumber
 type FunctionOption = WithType<'function'> & WithCallback;
 
 /**
+ * An option that prints a help message.
+ */
+type HelpOption = WithType<'help'> & WithUsage;
+
+/**
  * An option that accepts no parameters.
  */
-type NiladicOption = BooleanOption | FunctionOption;
+type NiladicOption = BooleanOption | FunctionOption | HelpOption;
 
 /**
  * An option that accepts a list of parameters.
@@ -406,7 +430,7 @@ type OptionValues<T extends Options> = {
  * @returns True if the option is niladic
  */
 function isNiladic(option: Option): option is NiladicOption {
-  return option.type === 'boolean' || option.type === 'function';
+  return option.type === 'boolean' || option.type === 'function' || option.type === 'help';
 }
 
 /**
