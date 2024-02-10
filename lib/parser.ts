@@ -255,6 +255,9 @@ class ArgumentParser<T extends Options> {
       if (!key) {
         if (!multi && this.positional) {
           multi = this.positional;
+          if (isArray(multi.option) && (!multi.option.append || !specifiedKeys.has(multi.key))) {
+            (values as Record<string, []>)[multi.key as string] = [];
+          }
           specifiedKeys.add(multi.key);
         }
         if (multi) {
@@ -294,7 +297,7 @@ class ArgumentParser<T extends Options> {
           }
         }
       } else {
-        if (isArray(option) && !(option.append && specifiedKeys.has(key))) {
+        if (isArray(option) && (!option.append || !specifiedKeys.has(key))) {
           (values as Record<string, []>)[key as string] = [];
         }
         if (value !== undefined) {

@@ -9,10 +9,8 @@ import type {
   ValuedOption,
   ArrayOption,
 } from './options.js';
-import type { V1 as JsonConfig } from './config.js';
 import type { Style } from './styles.js';
 
-import { HelpItem } from './config.js';
 import { isArray, isNiladic } from './options.js';
 import { fg, isStyle, StyledString, styleToString } from './styles.js';
 
@@ -59,7 +57,69 @@ type HelpStyles = {
 /**
  * Help format configuration.
  */
-type HelpConfig = Readonly<Omit<JsonConfig, '$schema' | 'styles'>> & {
+type HelpConfig = {
+  /**
+   * The indentation level for each column.
+   */
+  readonly indent?: {
+    /**
+     * The indentation level for the names column, relative to the beginning of the line.
+     */
+    readonly names?: number;
+    /**
+     * The indentation level for the parameter column, relative to the end of the names column.
+     */
+    readonly param?: number;
+    /**
+     * The indentation level for the description column, relative to the end of the parameter column.
+     */
+    readonly desc?: number;
+    /**
+     * The indentation level for the parameter column, relative to the beginning of the line.
+     */
+    readonly paramAbsolute?: number;
+    /**
+     * The indentation level for the description column, relative to the beginning of the line.
+     */
+    readonly descAbsolute?: number;
+  };
+
+  /**
+   * The number of line breaks to insert before each column.
+   */
+  readonly breaks?: {
+    /**
+     * The number of line breaks to insert before the names column.
+     */
+    readonly names?: number;
+    /**
+     * The number of line breaks to insert before the parameter column.
+     */
+    readonly param?: number;
+    /**
+     * The number of line breaks to insert before the description column.
+     */
+    readonly desc?: number;
+  };
+
+  /**
+   * Select individual columns that should not be displayed.
+   */
+  readonly hidden?: {
+    /**
+     * Hide the names column.
+     */
+    readonly names?: boolean;
+    /**
+     * Hide the parameter column.
+     */
+    readonly param?: boolean;
+    /**
+     * Hide the description column.
+     */
+    readonly desc?: boolean;
+  };
+
   /**
    * The default option styles and the styles of other elements.
    */
@@ -67,33 +127,62 @@ type HelpConfig = Readonly<Omit<JsonConfig, '$schema' | 'styles'>> & {
     /**
      * The style of regular expressions.
      */
-    regex?: Style;
+    readonly regex?: Style;
     /**
      * The style of booleans.
      */
-    boolean?: Style;
+    readonly boolean?: Style;
     /**
      * The style of strings.
      */
-    string?: Style;
+    readonly string?: Style;
     /**
      * The style of numbers.
      */
-    number?: Style;
+    readonly number?: Style;
     /**
      * The style of option names
      */
-    option?: Style;
+    readonly option?: Style;
     /**
      * The style of whitespace.
      */
-    whitespace?: Style;
+    readonly whitespace?: Style;
   };
+
+  /**
+   * The order of items to be shown in the option description.
+   */
+  readonly items?: Array<HelpItem>;
 };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
+/**
+ * The kind of items that can be shown in the option description.
+ */
+const enum HelpItem {
+  desc = 'desc',
+  negation = 'negation',
+  separator = 'separator',
+  multivalued = 'multivalued',
+  positional = 'positional',
+  append = 'append',
+  trim = 'trim',
+  case = 'case',
+  round = 'round',
+  enums = 'enums',
+  regex = 'regex',
+  range = 'range',
+  unique = 'unique',
+  limit = 'limit',
+  requires = 'requires',
+  required = 'required',
+  default = 'default',
+  deprecated = 'deprecated',
+}
+
 /**
  * The default configuration used by the formatter.
  */
@@ -446,7 +535,7 @@ class HelpFormatter {
    */
   private formatNegation(option: Option, descStyle: string, result: StyledString) {
     if ('negationNames' in option && option.negationNames) {
-      result.style(descStyle).append('May', 'be', 'negated', 'with');
+      result.style(descStyle).append('Can', 'be', 'negated', 'with');
       const names = option.negationNames;
       names.forEach((name, i) => {
         result.style(this.styles.option).append(name);

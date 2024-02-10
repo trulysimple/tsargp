@@ -7,12 +7,11 @@
 - Zero-dependency
 - Fully declarative style
 - Compile-time type checking
-- Moderate footprint (~25KB minified)
+- Moderate footprint (~21KB minified)
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
-- Reusable help format configuration in JSON
+- Arbitrary requirements between options
 - Option grouping and hiding
-- Requirements between options (with logic expressions, w/o value)
 
 Here's a summary of the available option types and some of their attributes:
 
@@ -39,7 +38,7 @@ tsargp     # view options' default values
 tsargp ... # play with option values
 ```
 
-See the [source](examples/demo.ts).
+See the [source](examples/demo.options.ts).
 
 ## Usage
 
@@ -48,7 +47,7 @@ npm install -D tsargp
 ```
 
 ```ts
-import * from 'tsargp';
+import { ArgumentParser, ... } from 'tsargp';
 
 const options = {
   // define options' attributes...

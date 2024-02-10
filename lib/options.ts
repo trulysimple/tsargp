@@ -66,15 +66,15 @@ type OptionStyles = {
   /**
    * The style of the option names.
    */
-  names?: Style;
+  readonly names?: Style;
   /**
    * The style of the option paramater.
    */
-  param?: Style;
+  readonly param?: Style;
   /**
    * The style of the option description.
    */
-  desc?: Style;
+  readonly desc?: Style;
 };
 
 /**

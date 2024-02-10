@@ -143,7 +143,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-f.*,.+--flag.+A flag option\..+May be negated with.*-no-f.+or.+--no-flag.+\./s,
+          /-f.*,.+--flag.+A flag option\..+Can be negated with.*-no-f.+or.+--no-flag.+\./s,
         );
       });
     });

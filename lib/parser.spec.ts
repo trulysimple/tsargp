@@ -950,7 +950,7 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse(['1', '0'])).toMatchObject({
           boolean2: false,
         });
-        expect(new ArgumentParser(options).parse(['-b1', 'abc', '123'])).toMatchObject({
+        expect(new ArgumentParser(options).parse(['-b1', '0', '1'])).toMatchObject({
           boolean2: true,
         });
       });
@@ -1487,6 +1487,9 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse(['-f', 'abc', '123'])).toMatchObject({
           strings: ['abc', '123'],
         });
+        expect(new ArgumentParser(options).parse(['-f', 'abc', '-f', '123'])).toMatchObject({
+          strings: ['123'],
+        });
       });
 
       it('should handle a strings option with custom parsing', () => {
@@ -1660,6 +1663,9 @@ describe('ArgumentParser', () => {
         });
         expect(new ArgumentParser(options).parse(['-f', '1', '2'])).toMatchObject({
           numbers: [1, 2],
+        });
+        expect(new ArgumentParser(options).parse(['-f', '1', '-f', '2'])).toMatchObject({
+          numbers: [2],
         });
       });
 
