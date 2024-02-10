@@ -100,6 +100,15 @@ type Requires = string | RequireExp;
 type Callback = (values: OptionValues<Options>, args: Array<string>) => void | Promise<void>;
 
 /**
+ * A callback for options that accept parameters.
+ * @template T The parameter data type
+ * @param name The option name (as specified on the command-line)
+ * @param value The parameter value
+ * @returns The parsed value
+ */
+type ParseCallback<T> = (name: string, value: string) => T;
+
+/**
  * Defines attributes common to all options.
  * @template T The option type
  */
@@ -153,17 +162,17 @@ type WithType<T extends string> = {
 
 /**
  * Defines attributes common to all options that accept parameters.
- * @template D The parameter data type
+ * @template T The parameter data type
  */
-type WithParam<D> = {
+type WithParam<T> = {
   /**
    * The option default value.
    */
-  readonly default?: D;
+  readonly default?: T;
   /**
    * The option example value. Replaces the option type.
    */
-  readonly example?: D;
+  readonly example?: T;
   /**
    * The option parameter name. Replaces the option type.
    */
@@ -172,6 +181,10 @@ type WithParam<D> = {
    * Allows positional arguments. There may be at most one option with this setting.
    */
   readonly positional?: true;
+  /**
+   * A custom function to parse the option parameter. Normalization still applies.
+   */
+  readonly parse?: ParseCallback<T>;
 };
 
 /**

@@ -271,7 +271,7 @@ class ArgumentParser<T extends Options> {
         }
         if (value !== undefined) {
           this.parseValue(values, key, option, name, value);
-        } else if (isArray(option) && !('separator' in option && option.separator)) {
+        } else if (isArray(option) && !option.separator) {
           multi = { key, name, option };
         } else {
           if (i + 1 == args.length) {
@@ -424,14 +424,12 @@ class ArgumentParser<T extends Options> {
     value: string,
   ) {
     switch (option.type) {
-      case 'string': {
+      case 'string':
         (values as Record<string, string>)[key as string] = this.parseString(option, name, value);
         break;
-      }
-      case 'number': {
+      case 'number':
         (values as Record<string, number>)[key as string] = this.parseNumber(option, name, value);
         break;
-      }
       case 'strings':
         this.setArrayValue(values, key, option, name, this.parseStrings(option, name, value));
         break;
@@ -446,46 +444,68 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Sets the value of an array option.
-   * @param values The options' values to parse into
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   */
-  private setArrayValue(
-    values: OptionValues<T>,
-    key: keyof T,
-    option: ArrayOption,
-    name: string,
-    value: Array<string | number>,
-  ) {
-    if (option.append || !('separator' in option && option.separator)) {
-      const previous = (values as Record<string, typeof value | undefined>)[key as string];
-      if (previous) {
-        previous.push(...value);
-        value = previous;
-      }
-    }
-    if (option.unique) {
-      value = [...new Set(value)];
-    }
-    if (option.limit !== undefined && value.length > option.limit) {
-      throw Error(
-        `Option '${name}' has too many values (${value.length}). ` +
-          `Should have at most ${option.limit}.`,
-      );
-    }
-    (values as Record<string, typeof value>)[key as string] = value;
-  }
-
-  /**
    * Parses the value of a string option.
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private parseString(option: StringOption | StringsOption, name: string, value: string): string {
+  private parseString(option: StringOption, name: string, value: string): string {
+    const result = option.parse ? option.parse(name, value) : value;
+    return this.normalizeString(option, name, result);
+  }
+
+  /**
+   * Parses the value of a number option.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   */
+  private parseNumber(option: NumberOption, name: string, value: string): number {
+    const result = option.parse ? option.parse(name, value) : Number(value);
+    return this.normalizeNumber(option, name, result);
+  }
+
+  /**
+   * Parses the value of a strings option.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   */
+  private parseStrings(option: StringsOption, name: string, value: string): Array<string> {
+    const result = option.parse
+      ? option.parse(name, value)
+      : option.separator
+        ? value.split(option.separator)
+        : [value];
+    return result.map((val) => this.normalizeString(option, name, val));
+  }
+
+  /**
+   * Parses the value of a numbers option.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   */
+  private parseNumbers(option: NumbersOption, name: string, value: string): Array<number> {
+    const result = option.parse
+      ? option.parse(name, value)
+      : option.separator
+        ? value.split(option.separator).map((val) => Number(val))
+        : [Number(value)];
+    return result.map((val) => this.normalizeNumber(option, name, val));
+  }
+
+  /**
+   * Normalizes and checks the value of a string option.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   */
+  private normalizeString(
+    option: StringOption | StringsOption,
+    name: string,
+    value: string,
+  ): string {
     if (option.trim) {
       value = value.trim();
     }
@@ -507,49 +527,60 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Parses the value of a number option.
+   * Normalizes and checks the value of a number option.
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private parseNumber(option: NumberOption | NumbersOption, name: string, value: string): number {
-    const val = Number(value);
-    if ('enums' in option && option.enums && !option.enums.includes(val)) {
+  private normalizeNumber(
+    option: NumberOption | NumbersOption,
+    name: string,
+    value: number,
+  ): number {
+    if ('enums' in option && option.enums && !option.enums.includes(value)) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`,
       );
     }
-    if ('range' in option && option.range && (val < option.range[0] || val > option.range[1])) {
+    if ('range' in option && option.range && (value < option.range[0] || value > option.range[1])) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Value must be in the range [${option.range}].`,
       );
     }
-    return val;
+    return value;
   }
 
   /**
-   * Parses the value of a strings option.
+   * Sets the value of an array option.
+   * @param values The options' values to parse into
+   * @param key The option key
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private parseStrings(option: StringsOption, name: string, value: string): Array<string> {
-    if ('separator' in option && option.separator) {
-      return value.split(option.separator).map((val) => this.parseString(option, name, val));
+  private setArrayValue(
+    values: OptionValues<T>,
+    key: keyof T,
+    option: ArrayOption,
+    name: string,
+    value: Array<string | number>,
+  ) {
+    if (option.append || !option.separator) {
+      const previous = (values as Record<string, typeof value | undefined>)[key as string];
+      if (previous) {
+        previous.push(...value);
+        value = previous;
+      }
     }
-    return [value];
-  }
-
-  /**
-   * Parses the value of a numbers option.
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   */
-  private parseNumbers(option: NumbersOption, name: string, value: string): Array<number> {
-    if ('separator' in option && option.separator) {
-      return value.split(option.separator).map((val) => this.parseNumber(option, name, val));
+    if (option.unique) {
+      value = [...new Set(value)];
     }
-    return [Number(value)];
+    if (option.limit !== undefined && value.length > option.limit) {
+      throw Error(
+        `Option '${name}' has too many values (${value.length}). ` +
+          `Should have at most ${option.limit}.`,
+      );
+    }
+    (values as Record<string, typeof value>)[key as string] = value;
   }
 }

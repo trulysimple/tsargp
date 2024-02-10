@@ -981,6 +981,18 @@ describe('ArgumentParser', () => {
           string: '123',
         });
       });
+
+      it('should handle a string option with custom parsing', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            case: 'upper',
+            parse: (_, value) => value.slice(2),
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-s', 'abcde'])).toMatchObject({ string: 'CDE' });
+      });
     });
 
     describe('number', () => {
@@ -1079,6 +1091,17 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse(['-b', '1', '2'])).toMatchObject({
           number: 2,
         });
+      });
+
+      it('should handle a number option with custom parsing', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            parse: (_, value) => Number(value) + 2,
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-n', '1'])).toMatchObject({ number: 3 });
       });
     });
 
@@ -1282,6 +1305,20 @@ describe('ArgumentParser', () => {
           strings: ['abc', '123'],
         });
       });
+
+      it('should handle a strings option with custom parsing', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            unique: true,
+            parse: (_, value) => value.split(',').flatMap((val) => val.split('|')),
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-ss', '1,2|2'])).toMatchObject({
+          strings: ['1', '2'],
+        });
+      });
     });
 
     describe('numbers', () => {
@@ -1438,6 +1475,21 @@ describe('ArgumentParser', () => {
           numbers: [1, 2],
         });
         expect(new ArgumentParser(options).parse(['-b', '1', '2'])).toMatchObject({
+          numbers: [1, 2],
+        });
+      });
+
+      it('should handle a numbers option with custom parsing', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            unique: true,
+            parse: (_, value) =>
+              value.split(',').flatMap((val) => val.split('|').map((val) => Number(val))),
+          },
+        } as const satisfies Options;
+        expect(new ArgumentParser(options).parse(['-ns', '1,2|2'])).toMatchObject({
           numbers: [1, 2],
         });
       });
