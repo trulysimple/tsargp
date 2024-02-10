@@ -26,7 +26,7 @@ const options = {
     type: 'function',
     names: ['-h', '--help'],
     desc: 'A function option. Prints this help message',
-    exec: () => {
+    exec: async () => {
       const help = [usage];
       const groups = new HelpFormatter(options).formatGroups();
       for (const [group, message] of groups.entries()) {
@@ -64,6 +64,7 @@ const options = {
     group: 'String',
     regex: /\d+/s,
     default: '123456789',
+    paramName: 'my string',
   },
   numberRange: {
     type: 'number',
@@ -72,6 +73,7 @@ const options = {
     group: 'Number',
     range: [-Infinity, 0],
     default: -1.23,
+    paramName: 'my number',
   },
   stringEnum: {
     type: 'string',

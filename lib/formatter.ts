@@ -310,7 +310,12 @@ class HelpFormatter {
       const paramStyle = option.styles?.param
         ? styleToString(option.styles?.param)
         : this.styles.param;
-      result.style(paramStyle).append(`<${option.paramName ?? option.type}>`);
+      const param = option.paramName
+        ? option.paramName.includes('<')
+          ? option.paramName
+          : `<${option.paramName}>`
+        : `<${option.type}>`;
+      result.style(paramStyle).append(param);
     }
     return result;
   }

@@ -149,6 +149,19 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(/-s.*,.+--string.+<param>.+A string option\./s);
       });
 
+      it('should handle a string option with a parameter name with angle brackets', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s', '--string'],
+            desc: 'A string option',
+            paramName: '<token>=<value>',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-s.*,.+--string.+<token>=<value>.+A string option\./s);
+      });
+
       it('should handle a string option with a default value', () => {
         const options = {
           string: {
