@@ -186,8 +186,8 @@ type WithParam<T> = {
    * Allows positional arguments. There may be at most one option with this setting.
    *
    * If true, then any argument not recognized as an option name will be considered positional.
-   * If string, then all arguments past this string will be considered positional, and any
-   * argument not recognized as an option name will throw an error.
+   * If string, then all arguments beyond this string (and only them) will be considered positional,
+   * and any argument not recognized as an option name will raise an error.
    */
   readonly positional?: true | string;
   /**

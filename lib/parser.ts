@@ -35,12 +35,13 @@ export { ArgumentParser };
 class ArgumentParser<T extends Options> {
   private readonly nameToKey = new Map<string, keyof T>();
   private readonly required = new Array<keyof T>();
-  private positional:
+  private readonly positional:
     | undefined
     | {
         key: keyof T;
         name: string;
         option: ParamOption;
+        marker?: string;
       };
 
   /**
@@ -52,7 +53,14 @@ class ArgumentParser<T extends Options> {
       const option = this.options[key];
       this.checkNamesSanity(key, option);
       if (!isNiladic(option)) {
-        this.checkPositionalSanity(key, option);
+        if (option.positional) {
+          if (this.positional) {
+            throw Error(`Duplicate positional option '${key}'.`);
+          }
+          const name = option.preferredName ?? option.names.find((name) => name)!;
+          const marker = typeof option.positional === 'string' ? option.positional : undefined;
+          this.positional = { key, name, option, marker };
+        }
         this.checkEnumsSanity(key, option);
         this.checkValueSanity(key, option, 'default');
         this.checkValueSanity(key, option, 'example');
@@ -77,7 +85,13 @@ class ArgumentParser<T extends Options> {
       throw Error(`Option '${key}' has no name.`);
     }
     if (option.type === 'flag' && option.negationNames) {
-      names.push(...option.negationNames);
+      names.push(...option.negationNames.filter((name) => name));
+    }
+    if ('positional' in option && typeof option.positional === 'string') {
+      if (!option.positional) {
+        throw Error(`Option '${key}' has empty positional marker.`);
+      }
+      names.push(option.positional);
     }
     for (const name of names) {
       const invalid = name.match(/[~$^&=|<>\s]+/);
@@ -88,30 +102,6 @@ class ArgumentParser<T extends Options> {
         throw Error(`Duplicate option name '${name}'.`);
       }
       this.nameToKey.set(name, key);
-    }
-  }
-
-  /**
-   * Checks the sanity of the option's positional setting.
-   * @param key The option key
-   * @param option The option definition
-   */
-  private checkPositionalSanity(key: string, option: ParamOption) {
-    if (option.positional) {
-      if (this.positional) {
-        throw Error(`Duplicate positional option '${key}'.`);
-      }
-      if (typeof option.positional === 'string') {
-        const affectedKey = this.nameToKey.get(option.positional);
-        if (affectedKey) {
-          throw Error(
-            `Option '${key}'s positional marker '${option.positional}' ` +
-              `conflicts with one of the names of option '${affectedKey as string}'.`,
-          );
-        }
-      }
-      const name = option.preferredName ?? option.names.find((name) => name)!;
-      this.positional = { key, name, option };
     }
   }
 
@@ -289,23 +279,27 @@ class ArgumentParser<T extends Options> {
     let multi: typeof this.positional;
     for (let i = 0; i < args.length; ++i) {
       const arg = args[i];
+      if (this.positional && arg === this.positional.marker) {
+        const option = this.positional.option;
+        if (isArray(option) && (!option.append || !specifiedKeys.has(this.positional.key))) {
+          (values as Record<string, []>)[this.positional.key as string] = [];
+        }
+        specifiedKeys.add(this.positional.key);
+        for (const arg of args.slice(i + 1)) {
+          this.parseValue(values, this.positional.key, option, this.positional.name, arg);
+        }
+        break;
+      }
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = this.nameToKey.get(name);
       if (!key) {
-        if (!multi && this.positional) {
+        if (!multi && this.positional && !this.positional.marker) {
           const option = this.positional.option;
           if (isArray(option) && (!option.append || !specifiedKeys.has(this.positional.key))) {
             (values as Record<string, []>)[this.positional.key as string] = [];
           }
           specifiedKeys.add(this.positional.key);
-          if (option.positional === true) {
-            multi = this.positional;
-          } else if (arg === option.positional) {
-            for (const arg of args.slice(i + 1)) {
-              this.parseValue(values, this.positional.key, option, this.positional.name, arg);
-            }
-            break;
-          }
+          multi = this.positional;
         }
         if (multi) {
           this.parseValue(values, multi.key, multi.option, multi.name, arg);

@@ -53,33 +53,16 @@ describe('ArgumentParser', () => {
       );
     });
 
-    it('should throw an error on option with positional marker conflicting with another option name', () => {
+    it('should throw an error on option with empty positional marker', () => {
       const options = {
         string: {
           type: 'string',
           names: ['-s'],
-        },
-        positional: {
-          type: 'number',
-          names: ['-pos'],
-          positional: '-s',
+          positional: '',
         },
       } as const satisfies Options;
       expect(() => new ArgumentParser(options)).toThrowError(
-        `Option 'positional's positional marker '-s' conflicts with one of the names of option 'string'.`,
-      );
-    });
-
-    it('should throw an error on option with positional marker conflicting with one of its own names', () => {
-      const options = {
-        positional: {
-          type: 'number',
-          names: ['-pos'],
-          positional: '-pos',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrowError(
-        `Option 'positional's positional marker '-pos' conflicts with one of the names of option 'positional'.`,
+        `Option 'string' has empty positional marker.`,
       );
     });
 
@@ -114,6 +97,21 @@ describe('ArgumentParser', () => {
             type: 'flag',
             names: ['dup'],
             negationNames: ['dup'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options)).toThrowError(`Duplicate option name 'dup'.`);
+      });
+
+      it('should throw an error on option with duplicate positional marker name', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['dup'],
+          },
+          positional: {
+            type: 'number',
+            names: ['-pos'],
+            positional: 'dup',
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrowError(`Duplicate option name 'dup'.`);
