@@ -35,7 +35,7 @@ export { ArgumentParser };
 class ArgumentParser<T extends Options> {
   private readonly nameToKey = new Map<string, keyof T>();
   private readonly required = new Array<keyof T>();
-  private readonly positional:
+  private positional:
     | undefined
     | {
         key: keyof T;
@@ -52,13 +52,7 @@ class ArgumentParser<T extends Options> {
       const option = this.options[key];
       this.checkNamesSanity(key, option);
       if (!isNiladic(option)) {
-        if (option.positional) {
-          if (this.positional) {
-            throw Error(`Duplicate positional option '${key}'.`);
-          }
-          const name = option.preferredName ?? option.names.find((name) => name)!;
-          this.positional = { key, name, option };
-        }
+        this.checkPositionalSanity(key, option);
         this.checkEnumsSanity(key, option);
         this.checkValueSanity(key, option, 'default');
         this.checkValueSanity(key, option, 'example');
@@ -73,7 +67,7 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Checks the sanity of the option names.
+   * Checks the sanity of the option's names.
    * @param key The option key
    * @param option The option definition
    */
@@ -94,6 +88,30 @@ class ArgumentParser<T extends Options> {
         throw Error(`Duplicate option name '${name}'.`);
       }
       this.nameToKey.set(name, key);
+    }
+  }
+
+  /**
+   * Checks the sanity of the option's positional setting.
+   * @param key The option key
+   * @param option The option definition
+   */
+  private checkPositionalSanity(key: string, option: ParamOption) {
+    if (option.positional) {
+      if (this.positional) {
+        throw Error(`Duplicate positional option '${key}'.`);
+      }
+      if (typeof option.positional === 'string') {
+        const affectedKey = this.nameToKey.get(option.positional);
+        if (affectedKey) {
+          throw Error(
+            `Option '${key}'s positional marker '${option.positional}' ` +
+              `conflicts with one of the names of option '${affectedKey as string}'.`,
+          );
+        }
+      }
+      const name = option.preferredName ?? option.names.find((name) => name)!;
+      this.positional = { key, name, option };
     }
   }
 

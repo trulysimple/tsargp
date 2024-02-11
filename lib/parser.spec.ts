@@ -53,6 +53,36 @@ describe('ArgumentParser', () => {
       );
     });
 
+    it('should throw an error on option with positional marker conflicting with another option name', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+        },
+        positional: {
+          type: 'number',
+          names: ['-pos'],
+          positional: '-s',
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options)).toThrowError(
+        `Option 'positional's positional marker '-s' conflicts with one of the names of option 'string'.`,
+      );
+    });
+
+    it('should throw an error on option with positional marker conflicting with one of its own names', () => {
+      const options = {
+        positional: {
+          type: 'number',
+          names: ['-pos'],
+          positional: '-pos',
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options)).toThrowError(
+        `Option 'positional's positional marker '-pos' conflicts with one of the names of option 'positional'.`,
+      );
+    });
+
     describe('duplicates', () => {
       it('should throw an error on duplicate option name in the same option', () => {
         const options = {
@@ -947,34 +977,55 @@ describe('ArgumentParser', () => {
 
       it('should handle a boolean option with positional arguments', () => {
         const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+          },
           boolean: {
             type: 'boolean',
-            names: ['-b1'],
-          },
-          boolean2: {
-            type: 'boolean',
-            names: ['-b2'],
+            names: ['-b'],
             positional: true,
           },
         } as const satisfies Options;
-        expect(new ArgumentParser(options).parse(['1', '0'])).toMatchObject({
-          boolean2: false,
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          boolean: true,
         });
-        expect(new ArgumentParser(options).parse(['-b1', '0', '1'])).toMatchObject({
-          boolean2: true,
+        expect(new ArgumentParser(options).parse(['-f', '0', '1'])).toMatchObject({
+          flag: true,
+          boolean: true,
+        });
+        expect(new ArgumentParser(options).parse(['0', '-f', '1'])).toMatchObject({
+          flag: true,
+          boolean: true,
+        });
+        expect(new ArgumentParser(options).parse(['0', '1', '-f'])).toMatchObject({
+          flag: true,
+          boolean: true,
         });
       });
 
       it('should handle a boolean option with positional arguments after marker', () => {
         const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+          },
           boolean: {
             type: 'boolean',
             names: ['-b'],
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
+        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
+          `Unknown option '0'.`,
+        );
         expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
+          flag: undefined,
+          boolean: true,
+        });
+        expect(new ArgumentParser(options).parse(['--', '0', '-f'])).toMatchObject({
+          flag: undefined,
           boolean: true,
         });
       });
@@ -1104,9 +1155,9 @@ describe('ArgumentParser', () => {
 
       it('should handle a string option with positional arguments', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
+          flag: {
+            type: 'flag',
+            names: ['-f'],
           },
           string: {
             type: 'string',
@@ -1114,27 +1165,46 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        expect(new ArgumentParser(options).parse(['abc', '123'])).toMatchObject({
-          string: '123',
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          string: '1',
         });
-        expect(new ArgumentParser(options).parse(['-b', 'abc', '123'])).toMatchObject({
-          string: '123',
+        expect(new ArgumentParser(options).parse(['-f', '0', '1'])).toMatchObject({
+          flag: true,
+          string: '1',
+        });
+        expect(new ArgumentParser(options).parse(['0', '-f', '1'])).toMatchObject({
+          flag: true,
+          string: '1',
+        });
+        expect(new ArgumentParser(options).parse(['0', '1', '-f'])).toMatchObject({
+          flag: true,
+          string: '1',
         });
       });
 
       it('should handle a string option with positional arguments after marker', () => {
         const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+          },
           string: {
             type: 'string',
             names: ['-s'],
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['abc'])).toThrowError(
-          `Unknown option 'abc'.`,
+        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
+          `Unknown option '0'.`,
         );
-        expect(new ArgumentParser(options).parse(['--', 'abc', '123'])).toMatchObject({
-          string: '123',
+        expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
+          flag: undefined,
+          string: '1',
+        });
+        expect(new ArgumentParser(options).parse(['--', '0', '-f'])).toMatchObject({
+          flag: undefined,
+          string: '-f',
         });
       });
 
@@ -1231,35 +1301,56 @@ describe('ArgumentParser', () => {
 
       it('should handle a number option with positional arguments', () => {
         const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
+          flag: {
+            type: 'flag',
+            names: ['-f'],
           },
           number: {
             type: 'number',
-            names: ['-n'],
+            names: ['-s'],
             positional: true,
           },
         } as const satisfies Options;
-        expect(new ArgumentParser(options).parse(['1', '2'])).toMatchObject({
-          number: 2,
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          number: 1,
         });
-        expect(new ArgumentParser(options).parse(['-b', '1', '2'])).toMatchObject({
-          number: 2,
+        expect(new ArgumentParser(options).parse(['-f', '0', '1'])).toMatchObject({
+          flag: true,
+          number: 1,
+        });
+        expect(new ArgumentParser(options).parse(['0', '-f', '1'])).toMatchObject({
+          flag: true,
+          number: 1,
+        });
+        expect(new ArgumentParser(options).parse(['0', '1', '-f'])).toMatchObject({
+          flag: true,
+          number: 1,
         });
       });
 
       it('should handle a number option with positional arguments after marker', () => {
         const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+          },
           number: {
             type: 'number',
-            names: ['-n'],
+            names: ['-s'],
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
-        expect(new ArgumentParser(options).parse(['--', '1', '2'])).toMatchObject({
-          number: 2,
+        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
+          `Unknown option '0'.`,
+        );
+        expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
+          flag: undefined,
+          number: 1,
+        });
+        expect(new ArgumentParser(options).parse(['--', '0', '-f'])).toMatchObject({
+          flag: undefined,
+          number: NaN,
         });
       });
 
@@ -1535,28 +1626,46 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        expect(new ArgumentParser(options).parse(['abc', '123'])).toMatchObject({
-          strings: ['abc', '123'],
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          strings: ['0', '1'],
         });
-        expect(new ArgumentParser(options).parse(['-f', 'abc', '123'])).toMatchObject({
-          strings: ['abc', '123'],
+        expect(new ArgumentParser(options).parse(['-f', '0', '1'])).toMatchObject({
+          flag: true,
+          strings: ['0', '1'],
         });
-        expect(new ArgumentParser(options).parse(['-f', 'abc', '-f', '123'])).toMatchObject({
-          strings: ['123'],
+        expect(new ArgumentParser(options).parse(['0', '-f', '1'])).toMatchObject({
+          flag: true,
+          strings: ['1'],
+        });
+        expect(new ArgumentParser(options).parse(['0', '1', '-f'])).toMatchObject({
+          flag: true,
+          strings: ['0', '1'],
         });
       });
 
       it('should handle a strings option with positional arguments after marker', () => {
         const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+          },
           strings: {
             type: 'strings',
             names: ['-ss'],
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
-        expect(new ArgumentParser(options).parse(['--', 'abc', '-ss', '123'])).toMatchObject({
-          strings: ['abc', '-ss', '123'],
+        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
+          `Unknown option '0'.`,
+        );
+        expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
+          flag: undefined,
+          strings: ['0', '1'],
+        });
+        expect(new ArgumentParser(options).parse(['--', '0', '-f'])).toMatchObject({
+          flag: undefined,
+          strings: ['0', '-f'],
         });
       });
 
@@ -1726,28 +1835,46 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        expect(new ArgumentParser(options).parse(['1', '2'])).toMatchObject({
-          numbers: [1, 2],
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          numbers: [0, 1],
         });
-        expect(new ArgumentParser(options).parse(['-f', '1', '2'])).toMatchObject({
-          numbers: [1, 2],
+        expect(new ArgumentParser(options).parse(['-f', '0', '1'])).toMatchObject({
+          flag: true,
+          numbers: [0, 1],
         });
-        expect(new ArgumentParser(options).parse(['-f', '1', '-f', '2'])).toMatchObject({
-          numbers: [2],
+        expect(new ArgumentParser(options).parse(['0', '-f', '1'])).toMatchObject({
+          flag: true,
+          numbers: [1],
+        });
+        expect(new ArgumentParser(options).parse(['0', '1', '-f'])).toMatchObject({
+          flag: true,
+          numbers: [0, 1],
         });
       });
 
       it('should handle a numbers option with positional arguments after marker', () => {
         const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+          },
           numbers: {
             type: 'numbers',
             names: ['-ns'],
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
-        expect(new ArgumentParser(options).parse(['--', '0', '1', '123'])).toMatchObject({
-          numbers: [0, 1, 123],
+        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
+          `Unknown option '0'.`,
+        );
+        expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
+          flag: undefined,
+          numbers: [0, 1],
+        });
+        expect(new ArgumentParser(options).parse(['--', '0', '-f'])).toMatchObject({
+          flag: undefined,
+          numbers: [0, NaN],
         });
       });
 
