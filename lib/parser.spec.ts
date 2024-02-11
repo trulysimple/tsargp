@@ -18,24 +18,16 @@ describe('ArgumentParser', () => {
       expect(() => new ArgumentParser(options)).not.toThrow();
     });
 
-    it('should throw an error on option name with spaces', () => {
+    it('should throw an error on invalid option name', () => {
       const options = {
         string: {
           type: 'string',
-          names: ['a b'],
+          names: ['a~$^&=|<> b'],
         },
       } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrowError(`Invalid option name 'a b'.`);
-    });
-
-    it('should throw an error on option name with an equals sign', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['a=b'],
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrowError(`Invalid option name 'a=b'.`);
+      expect(() => new ArgumentParser(options)).toThrowError(
+        `Option name 'a~$^&=|<> b' contains invalid characters: '~$^&=|<> '.`,
+      );
     });
 
     it('should throw an error on option with no name', () => {
@@ -690,7 +682,25 @@ describe('ArgumentParser', () => {
     });
 
     it('should throw an error on unknown option name specified in arguments', () => {
-      expect(() => new ArgumentParser({}).parse(['abc'])).toThrowError(`Unknown option 'abc'.`);
+      const options = {
+        boolean1: {
+          type: 'boolean',
+          names: ['--boolean1'],
+        },
+        boolean2: {
+          type: 'boolean',
+          names: ['--boolean2'],
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options).parse(['boo'])).toThrowError(
+        /Unknown option 'boo'.$/,
+      );
+      expect(() => new ArgumentParser(options).parse(['bool'])).toThrowError(
+        `Unknown option 'bool'. Similar names: --boolean1, --boolean2.`,
+      );
+      expect(() => new ArgumentParser(options).parse(['bool-ean'])).toThrowError(
+        `Unknown option 'bool-ean'. Similar names: --boolean1, --boolean2.`,
+      );
     });
 
     it('should throw an error when a required option is not specified', () => {

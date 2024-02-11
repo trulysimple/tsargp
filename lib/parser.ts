@@ -86,8 +86,9 @@ class ArgumentParser<T extends Options> {
       names.push(...option.negationNames);
     }
     for (const name of names) {
-      if (name.match(/[=\s]/)) {
-        throw Error(`Invalid option name '${name}'.`);
+      const invalid = name.match(/[~$^&=|<>\s]+/);
+      if (invalid) {
+        throw Error(`Option name '${name}' contains invalid characters: '${invalid[0]}'.`);
       }
       if (this.nameToKey.has(name)) {
         throw Error(`Duplicate option name '${name}'.`);
@@ -239,6 +240,26 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
+   * Gets a list of option names that are similar to a given name.
+   * @param name The option name
+   * @param threshold The similarity threshold
+   * @returns The list of similar names in decreasing order of similarity
+   */
+  private getSimilarNames(name: string, threshold = 0.6): Array<string> {
+    const searchName = name.replace(/\p{P}/gu, '').toLowerCase();
+    return [...this.nameToKey.keys()]
+      .reduce((acc, name) => {
+        const sim = gestaltPatternMatching(searchName, name.replace(/\p{P}/gu, '').toLowerCase());
+        if (sim >= threshold) {
+          acc.push([name, sim]);
+        }
+        return acc;
+      }, new Array<[string, number]>())
+      .sort(([, as], [, bs]) => bs - as)
+      .map(([str]) => str);
+  }
+
+  /**
    * The main parser loop.
    * @param values The options' values
    * @param args The command-line arguments
@@ -263,6 +284,10 @@ class ArgumentParser<T extends Options> {
         if (multi) {
           this.parseValue(values, multi.key, multi.option, multi.name, arg);
           continue;
+        }
+        const similarNames = this.getSimilarNames(name);
+        if (similarNames.length) {
+          throw Error(`Unknown option '${name}'. Similar names: ${similarNames.join(', ')}.`);
         }
         throw Error(`Unknown option '${name}'.`);
       }
@@ -694,4 +719,67 @@ class ArgumentParser<T extends Options> {
     }
     (values as Record<string, typeof value>)[key as string] = value;
   }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Functions
+//--------------------------------------------------------------------------------------------------
+/**
+ * The longest strings that are substrings of both strings.
+ * @param S The source string
+ * @param T The target string
+ * @returns The length of the largest substrings and their indices in both strings
+ * @see https://www.wikiwand.com/en/Longest_common_substring
+ */
+function longestCommonSubstrings(S: string, T: string): [number, Array<[number, number]>] {
+  const dp = new Array<number>(T.length);
+  const indices = new Array<[number, number]>();
+  let z = 0;
+  for (let i = 0, last = 0; i < S.length; ++i) {
+    for (let j = 0; j < T.length; ++j) {
+      if (S[i] == T[j]) {
+        const a = i == 0 || j == 0 ? 1 : last + 1;
+        if (a >= z) {
+          if (a > z) {
+            z = a;
+            indices.length = 0;
+          }
+          indices.push([i - z + 1, j - z + 1]);
+        }
+        last = dp[j];
+        dp[j] = a;
+      } else {
+        last = dp[j];
+        dp[j] = 0;
+      }
+    }
+  }
+  return [z, indices];
+}
+
+/**
+ * Gets the maximum number of matching characters of two strings, which are defined as some longest
+ * common substring plus (recursively) the matching characters on both sides of it.
+ * @param S The source string
+ * @param T The target string
+ * @returns The number of matching characters
+ */
+function matchingCharacters(S: string, T: string): number {
+  const [z, indices] = longestCommonSubstrings(S, T);
+  return indices.reduce((acc, [i, j]) => {
+    const l = matchingCharacters(S.slice(0, i), T.slice(0, j));
+    const r = matchingCharacters(S.slice(i + z), T.slice(j + z));
+    return Math.max(acc, z + l + r);
+  }, 0);
+}
+
+/**
+ * Gets the similarity of two strings based on the Gestalt algorithm.
+ * @param S The source string
+ * @param T The target string
+ * @returns The similarity between the two strings
+ * @see https://www.wikiwand.com/en/Gestalt_pattern_matching
+ */
+function gestaltPatternMatching(S: string, T: string): number {
+  return (2 * matchingCharacters(S, T)) / (S.length + T.length);
 }

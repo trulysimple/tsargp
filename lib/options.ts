@@ -125,8 +125,8 @@ type WithType<T extends string> = {
   /**
    * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
    *
-   * Names cannot contain spaces or the equals sign (`=`), as it may be used for passing values in
-   * the command-line. Empty names may be specified in order to skip the respective "slot" in the
+   * Names cannot contain whitespace or the following characters: `~$^&=|<>`.
+   * Empty names may be specified in order to skip the respective "slot" in the
    * help message name column. There must be at least one valid name.
    */
   readonly names: Array<string>;
