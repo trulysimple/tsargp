@@ -7,11 +7,12 @@
 - Zero-dependency
 - Fully declarative style
 - Compile-time type checking
-- Moderate footprint (~21KB minified)
+- Moderate footprint (~22KB minified)
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
 - Arbitrary requirements between options
 - Option grouping and hiding
+- Similar option name suggestions
 
 Here's a summary of the available option types and some of their attributes:
 

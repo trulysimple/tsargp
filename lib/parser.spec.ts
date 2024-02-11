@@ -965,6 +965,20 @@ describe('ArgumentParser', () => {
         });
       });
 
+      it('should handle a boolean option with positional arguments after marker', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
+        expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
+          boolean: true,
+        });
+      });
+
       it('should handle a boolean option with custom parsing', () => {
         const options = {
           boolean: {
@@ -1108,6 +1122,22 @@ describe('ArgumentParser', () => {
         });
       });
 
+      it('should handle a string option with positional arguments after marker', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['abc'])).toThrowError(
+          `Unknown option 'abc'.`,
+        );
+        expect(new ArgumentParser(options).parse(['--', 'abc', '123'])).toMatchObject({
+          string: '123',
+        });
+      });
+
       it('should handle a string option with custom parsing', () => {
         const options = {
           string: {
@@ -1215,6 +1245,20 @@ describe('ArgumentParser', () => {
           number: 2,
         });
         expect(new ArgumentParser(options).parse(['-b', '1', '2'])).toMatchObject({
+          number: 2,
+        });
+      });
+
+      it('should handle a number option with positional arguments after marker', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
+        expect(new ArgumentParser(options).parse(['--', '1', '2'])).toMatchObject({
           number: 2,
         });
       });
@@ -1502,6 +1546,20 @@ describe('ArgumentParser', () => {
         });
       });
 
+      it('should handle a strings option with positional arguments after marker', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
+        expect(new ArgumentParser(options).parse(['--', 'abc', '-ss', '123'])).toMatchObject({
+          strings: ['abc', '-ss', '123'],
+        });
+      });
+
       it('should handle a strings option with custom parsing', () => {
         const options = {
           strings: {
@@ -1676,6 +1734,20 @@ describe('ArgumentParser', () => {
         });
         expect(new ArgumentParser(options).parse(['-f', '1', '-f', '2'])).toMatchObject({
           numbers: [2],
+        });
+      });
+
+      it('should handle a numbers option with positional arguments after marker', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['1'])).toThrowError(`Unknown option '1'.`);
+        expect(new ArgumentParser(options).parse(['--', '0', '1', '123'])).toMatchObject({
+          numbers: [0, 1, 123],
         });
       });
 

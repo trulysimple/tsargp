@@ -275,16 +275,25 @@ class ArgumentParser<T extends Options> {
       const key = this.nameToKey.get(name);
       if (!key) {
         if (!multi && this.positional) {
-          multi = this.positional;
-          if (isArray(multi.option) && (!multi.option.append || !specifiedKeys.has(multi.key))) {
-            (values as Record<string, []>)[multi.key as string] = [];
+          const option = this.positional.option;
+          if (isArray(option) && (!option.append || !specifiedKeys.has(this.positional.key))) {
+            (values as Record<string, []>)[this.positional.key as string] = [];
           }
-          specifiedKeys.add(multi.key);
+          specifiedKeys.add(this.positional.key);
+          if (option.positional === true) {
+            multi = this.positional;
+          } else if (arg === option.positional) {
+            for (const arg of args.slice(i + 1)) {
+              this.parseValue(values, this.positional.key, option, this.positional.name, arg);
+            }
+            break;
+          }
         }
         if (multi) {
           this.parseValue(values, multi.key, multi.option, multi.name, arg);
           continue;
         }
+        // either there's no positional option or the argument is not a positional marker
         const similarNames = this.getSimilarNames(name);
         if (similarNames.length) {
           throw Error(`Unknown option '${name}'. Similar names: ${similarNames.join(', ')}.`);
