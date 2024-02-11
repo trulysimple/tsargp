@@ -1,6 +1,6 @@
 # tsargp
 
-![screen capture gif](https://drive.google.com/uc?export=view&id=1-3HzqcmmYICLvcgUfaoCBwOVxSLSE9ku 'screen capture gif')
+![screen capture gif](https://drive.google.com/uc?export=view&id=1kHe1xe7zAIyZDbP4C39nZYC29L8FxQex 'screen capture gif')
 
 ## Features
 
@@ -35,6 +35,7 @@ Other attributes include: default value, example value, custom value parsing, an
 ```sh
 npm install -g tsargp
 tsargp -h  # print the help message
+tsargp -v  # print the package version
 tsargp     # view options' default values
 tsargp ... # play with option values
 ```
