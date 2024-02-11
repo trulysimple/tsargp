@@ -38,11 +38,7 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
     names: ['-b'],
     desc: 'A boolean option',
     default: false,
-    requires: req.and(
-      'stringEnum=one',
-      'numberEnum=2',
-      req.or('stringsRegex=a,b', 'numbersRange=3,4'),
-    ),
+    requires: req.and('stringEnum', 'numberEnum=2', req.or('stringsRegex=a,b', 'numbersRange=3,4')),
   },
   stringRegex: {
     type: 'string',
