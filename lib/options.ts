@@ -13,6 +13,7 @@ export type {
   OptionStyles,
   StringOption,
   NumberOption,
+  FlagOption,
   BooleanOption,
   StringsOption,
   NumbersOption,

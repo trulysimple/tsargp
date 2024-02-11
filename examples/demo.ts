@@ -20,7 +20,7 @@ interface CommandOptions {
 
 // the main script
 try {
-  const values: CommandOptions = await new ArgumentParser(options).asyncParse();
+  const values: CommandOptions = await new ArgumentParser(options).parseAsync();
   console.log(values);
 } catch (err) {
   console.error(err);

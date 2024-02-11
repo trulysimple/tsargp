@@ -139,6 +139,9 @@ type BgColor = `\x1b[48;5;${Color}m`;
 
 /**
  * A style for displaying text on the console.
+ *
+ * Originally this was just an array, but it was not strict enough (for example, a user could add
+ * more that one font family, which is absurd).
  */
 type Style = {
   /**

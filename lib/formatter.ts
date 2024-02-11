@@ -15,7 +15,7 @@ import { isArray, isNiladic } from './options.js';
 import { fg, isStyle, StyledString, styleToString } from './styles.js';
 
 export type { HelpConfig };
-export { HelpFormatter, HelpItem, defaultConfig };
+export { HelpFormatter, HelpItem };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -163,24 +163,24 @@ type HelpConfig = {
  * The kind of items that can be shown in the option description.
  */
 const enum HelpItem {
-  desc = 'desc',
-  negation = 'negation',
-  separator = 'separator',
-  multivalued = 'multivalued',
-  positional = 'positional',
-  append = 'append',
-  trim = 'trim',
-  case = 'case',
-  round = 'round',
-  enums = 'enums',
-  regex = 'regex',
-  range = 'range',
-  unique = 'unique',
-  limit = 'limit',
-  requires = 'requires',
-  required = 'required',
-  default = 'default',
-  deprecated = 'deprecated',
+  desc,
+  negation,
+  separator,
+  multivalued,
+  positional,
+  append,
+  trim,
+  case,
+  round,
+  enums,
+  regex,
+  range,
+  unique,
+  limit,
+  requires,
+  required,
+  default,
+  deprecated,
 }
 
 /**
@@ -246,6 +246,30 @@ class HelpFormatter {
   private readonly styles: HelpStyles;
 
   /**
+   * Keep this in-sync with {@link HelpItem}.
+   */
+  private readonly format: Array<typeof this.formatDesc> = [
+    this.formatDesc.bind(this),
+    this.formatNegation.bind(this),
+    this.formatSeparator.bind(this),
+    this.formatMultivalued.bind(this),
+    this.formatPositional.bind(this),
+    this.formatAppend.bind(this),
+    this.formatTrim.bind(this),
+    this.formatCase.bind(this),
+    this.formatRound.bind(this),
+    this.formatEnums.bind(this),
+    this.formatRegex.bind(this),
+    this.formatRange.bind(this),
+    this.formatUnique.bind(this),
+    this.formatLimit.bind(this),
+    this.formatRequires.bind(this),
+    this.formatRequired.bind(this),
+    this.formatDefault.bind(this),
+    this.formatDeprecated.bind(this),
+  ];
+
+  /**
    * Creates a help message formatter.
    * @param options The option definitions
    * @param config The format configuration
@@ -262,18 +286,9 @@ class HelpFormatter {
       if (option.hide) {
         continue;
       }
-      const names = this.formatNames(option);
-      const param = this.formatParam(option);
-      const desc = this.formatDescription(option);
-      const entry: HelpEntry = { names, param, desc };
-      const group = this.groups.get(option.group ?? '');
-      if (!group) {
-        this.groups.set(option.group ?? '', [entry]);
-      } else {
-        group.push(entry);
-      }
-      this.namesWidth = Math.max(this.namesWidth, names.length);
-      this.paramWidth = Math.max(this.paramWidth, param.length);
+      const entry = this.formatOption(option);
+      this.namesWidth = Math.max(this.namesWidth, entry.names.length);
+      this.paramWidth = Math.max(this.paramWidth, entry.param.length);
     }
     this.indent = this.getIndent();
   }
@@ -368,6 +383,25 @@ class HelpFormatter {
   }
 
   /**
+   * Formats an option to be printed on the console.
+   * @param option The option definition
+   * @returns The help entry
+   */
+  private formatOption(option: Option): HelpEntry {
+    const names = this.formatNames(option);
+    const param = this.formatParam(option);
+    const desc = this.formatDescription(option);
+    const entry: HelpEntry = { names, param, desc };
+    const group = this.groups.get(option.group ?? '');
+    if (!group) {
+      this.groups.set(option.group ?? '', [entry]);
+    } else {
+      group.push(entry);
+    }
+    return entry;
+  }
+
+  /**
    * Formats an option's names to be printed on the console.
    * @param option The option definition
    * @returns A styled string with the formatted names
@@ -447,66 +481,7 @@ class HelpFormatter {
     }
     const descStyle = option.styles?.desc ? styleToString(option.styles?.desc) : this.styles.desc;
     for (const item of this.config.items) {
-      switch (item) {
-        case HelpItem.desc:
-          this.formatDesc(option, descStyle, result);
-          break;
-        case HelpItem.negation:
-          this.formatNegation(option, descStyle, result);
-          break;
-        case HelpItem.separator:
-          this.formatSeparator(option, descStyle, result);
-          break;
-        case HelpItem.multivalued:
-          this.formatMultivalued(option, descStyle, result);
-          break;
-        case HelpItem.positional:
-          this.formatPositional(option, descStyle, result);
-          break;
-        case HelpItem.append:
-          this.formatAppend(option, descStyle, result);
-          break;
-        case HelpItem.trim:
-          this.formatTrim(option, descStyle, result);
-          break;
-        case HelpItem.case:
-          this.formatCase(option, descStyle, result);
-          break;
-        case HelpItem.round:
-          this.formatRound(option, descStyle, result);
-          break;
-        case HelpItem.enums:
-          this.formatEnums(option, descStyle, result);
-          break;
-        case HelpItem.regex:
-          this.formatRegex(option, descStyle, result);
-          break;
-        case HelpItem.range:
-          this.formatRange(option, descStyle, result);
-          break;
-        case HelpItem.unique:
-          this.formatUnique(option, descStyle, result);
-          break;
-        case HelpItem.limit:
-          this.formatLimit(option, descStyle, result);
-          break;
-        case HelpItem.requires:
-          this.formatRequires(option, descStyle, result);
-          break;
-        case HelpItem.required:
-          this.formatRequired(option, descStyle, result);
-          break;
-        case HelpItem.default:
-          this.formatDefault(option, descStyle, result);
-          break;
-        case HelpItem.deprecated:
-          this.formatDeprecated(option, descStyle, result);
-          break;
-        default: {
-          const _exhaustiveCheck: never = item;
-          return _exhaustiveCheck;
-        }
-      }
+      this.format[item](option, descStyle, result);
     }
     return result;
   }

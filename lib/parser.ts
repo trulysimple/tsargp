@@ -192,7 +192,7 @@ class ArgumentParser<T extends Options> {
    * @returns A promise that resolves to the option values
    * @see parse
    */
-  async asyncParse(args = process.argv.slice(2)): Promise<OptionValues<T>> {
+  async parseAsync(args = process.argv.slice(2)): Promise<OptionValues<T>> {
     const result = {} as OptionValues<T>;
     await this.parseInto(result, args);
     return result;

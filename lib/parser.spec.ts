@@ -838,7 +838,7 @@ describe('ArgumentParser', () => {
             },
           },
         } as const satisfies Options;
-        await expect(new ArgumentParser(options).asyncParse(['-f'])).rejects.toThrow('function');
+        await expect(new ArgumentParser(options).parseAsync(['-f'])).rejects.toThrow('function');
       });
 
       it('should break the parsing loop when a function option explicitly asks so', () => {
