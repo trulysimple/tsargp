@@ -29,14 +29,17 @@ export default {
     desc: 'A flag option',
     deprecated: 'some reason',
     styles: {
-      names: { clear: true, fg: fgColor('208'), tf: [tf.invert] },
+      names: { clear: true, fg: fgColor('138'), tf: [tf.invert] },
       desc: { clear: true, tf: [tf.strike, tf.italic] },
     },
   },
   boolean: {
     type: 'boolean',
     names: ['-b'],
-    desc: 'A boolean option',
+    desc: `A boolean option
+    with a paragraph and ${tf.underline}${fgColor('223')}inline styles${tf.noUnderline}
+
+    `,
     default: false,
     requires: req.and('stringEnum', 'numberEnum=2', req.or('stringsRegex=a,b', 'numbersRange=3,4')),
   },

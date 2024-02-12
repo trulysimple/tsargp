@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HelpFormatter } from '../lib/formatter';
-import { req, type Options } from '../lib/options';
+import { HelpFormatter, clearStyle, req, type Options, tf, fgColor } from '../lib';
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
@@ -24,6 +23,32 @@ describe('HelpFormatter', () => {
     });
 
     describe('flag', () => {
+      it('should handle an option with styles in the description', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: `A flag option with ${tf.bold}${fgColor('123')}styles${clearStyle}.`,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option with.+styles.+\./s);
+      });
+
+      it('should handle an option with paragraphs in the description', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option with\r\nline breaks,\ttabs and\n\nparagraphs.',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-f.*,.+--flag.+A flag option with line breaks, tabs and\..+paragraphs\./s,
+        );
+      });
+
       it('should hide an option from the help message when it asks so', () => {
         const options = {
           flag: {

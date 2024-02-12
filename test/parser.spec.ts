@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ArgumentParser } from '../lib/parser';
-import { req, type Options } from '../lib/options';
+import { ArgumentParser, req, type Options } from '../lib';
 
 describe('ArgumentParser', () => {
   describe('constructor', () => {

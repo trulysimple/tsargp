@@ -517,11 +517,7 @@ class HelpFormatter {
    */
   private formatDesc(option: Option, descStyle: string, result: StyledString) {
     if (option.desc) {
-      const words = option.desc.split(' ');
-      if (!words[words.length - 1].endsWith('.')) {
-        words[words.length - 1] += '.';
-      }
-      result.style(descStyle).append(...words);
+      result.style(descStyle).append(...splitWords(option.desc));
     }
   }
 
@@ -758,11 +754,7 @@ class HelpFormatter {
    */
   private formatDeprecated(option: Option, descStyle: string, result: StyledString) {
     if (option.deprecated) {
-      const words = option.deprecated.split(' ');
-      if (!words[words.length - 1].endsWith('.')) {
-        words[words.length - 1] += '.';
-      }
-      result.style(descStyle).append('Deprecated', 'for', ...words);
+      result.style(descStyle).append('Deprecated', 'for', ...splitWords(option.deprecated));
     }
   }
 
@@ -968,10 +960,26 @@ class HelpFormatter {
         line = [indent, lastStyle, currentWord];
         lineLength = currentLen;
       }
+      if (currentStyle) {
+        lastStyle = currentStyle;
+        currentStyle = '';
+      }
     }
     for (const word of desc.strings) {
+      if (!word) {
+        continue;
+      }
       if (isStyle(word)) {
         nextStyle = word;
+        continue;
+      }
+      if (word == singleBreak) {
+        addWord();
+        lines.push(line.join(''), '');
+        line = [indent, lastStyle];
+        lineLength = 0;
+        currentWord = '';
+        currentLen = 0;
         continue;
       }
       if (
@@ -984,10 +992,6 @@ class HelpFormatter {
         merge = false;
       } else {
         addWord();
-        if (currentStyle) {
-          lastStyle = currentStyle;
-          currentStyle = '';
-        }
         currentWord = nextStyle + word;
         currentLen = word.length;
         merge = openingBrackets.findIndex((char) => word.startsWith(char)) >= 0;
@@ -1000,4 +1004,29 @@ class HelpFormatter {
     addWord();
     lines.push(line.join(''));
   }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Functions
+//--------------------------------------------------------------------------------------------------
+function splitWords(text: string): Array<string> {
+  const punctuation = '.,;!?';
+  const paragraphRegex = /(?:[ \t]*\r?\n){2,}/;
+  const wordRegex = /\s+/;
+  const styleRegex = /((?:\x1b\[[\d;]+m)+)/;
+  const paragraphs = text.split(paragraphRegex);
+  return paragraphs.reduce((acc, par, i) => {
+    par = par.trim();
+    if (par) {
+      if (!punctuation.includes(par[par.length - 1])) {
+        par += '.';
+      }
+      const words = par.split(wordRegex).flatMap((word) => word.split(styleRegex));
+      acc.push(...words);
+    }
+    if (i < paragraphs.length - 1) {
+      acc.push(singleBreak);
+    }
+    return acc;
+  }, new Array<string>());
 }
