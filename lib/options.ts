@@ -400,10 +400,6 @@ type HelpOption = WithType<'help'> & {
    * The format configuration.
    */
   readonly format?: HelpConfig;
-  /**
-   * The desired console width.
-   */
-  readonly width?: number;
 };
 
 /**

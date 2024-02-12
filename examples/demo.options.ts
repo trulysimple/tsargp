@@ -1,4 +1,4 @@
-import { fg, tf, clearStyle, req, type Options, fgColor } from 'tsargp';
+import { fg, tf, clearStyle, singleBreak, doubleBreak, req, type Options, fgColor } from 'tsargp';
 
 /**
  * The option definitions
@@ -8,14 +8,13 @@ export default {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'A help option. Prints this help message',
-    usage: `${clearStyle}${tf.bold}Argument parser for TypeScript.${clearStyle}
-
-    ${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`,
-    footer: `MIT License
-Copyright (c) 2024 ${tf.italic}${tf.bold}${fg.cyan}TrulySimple${clearStyle}
-
-Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyle}
-`,
+    usage:
+      `${clearStyle}${tf.bold}Argument parser for TypeScript.${doubleBreak}` +
+      `${clearStyle}${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`,
+    footer:
+      `MIT License${singleBreak}` +
+      `Copyright (c) 2024 ${tf.italic}${tf.bold}${fg.cyan}TrulySimple${clearStyle}${doubleBreak}` +
+      `Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyle}${singleBreak}`,
   },
   version: {
     type: 'version',

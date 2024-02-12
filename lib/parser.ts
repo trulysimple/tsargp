@@ -17,7 +17,7 @@ import type {
   VersionOption,
 } from './options';
 
-import { HelpFormatter } from './formatter';
+import { HelpFormatter, doubleBreak } from './formatter';
 import { isArray, isNiladic, isValued } from './options';
 import { tf } from './styles';
 
@@ -193,11 +193,12 @@ class ArgumentParser<T extends Options> {
   /**
    * Convenience method to parse command-line arguments into option values.
    * @param args The command-line arguments
+   * @param width The desired console width (to print help messages)
    * @returns The option values
    */
-  parse(args = process.argv.slice(2)): OptionValues<T> {
+  parse(args?: Array<string>, width?: number): OptionValues<T> {
     const result = {} as OptionValues<T>;
-    this.parseInto(result, args);
+    this.parseInto(result, args, width);
     return result;
   }
 
@@ -206,9 +207,9 @@ class ArgumentParser<T extends Options> {
    * @returns A promise that resolves to the option values
    * @see parse
    */
-  async parseAsync(args = process.argv.slice(2)): Promise<OptionValues<T>> {
+  async parseAsync(args?: Array<string>, width?: number): Promise<OptionValues<T>> {
     const result = {} as OptionValues<T>;
-    await this.parseInto(result, args);
+    await this.parseInto(result, args, width);
     return result;
   }
 
@@ -216,11 +217,12 @@ class ArgumentParser<T extends Options> {
    * Parses command-line arguments into option values.
    * @param values The options' values to parse into
    * @param args The command-line arguments
+   * @param width The desired console width (to print help messages)
    * @returns A promise that can be awaited in order to await any async callbacks
    */
-  parseInto(values: OptionValues<T>, args = process.argv.slice(2)): Promise<Array<void>> {
+  parseInto(values: OptionValues<T>, args?: Array<string>, width?: number): Promise<Array<void>> {
     this.resetValues(values);
-    return this.parseLoop(values, args);
+    return this.parseLoop(values, args, width);
   }
 
   /**
@@ -276,9 +278,14 @@ class ArgumentParser<T extends Options> {
    * The main parser loop.
    * @param values The options' values
    * @param args The command-line arguments
+   * @param width The desired console width (to print help messages)
    * @returns A promise that can be awaited in order to await any async callbacks
    */
-  private parseLoop(values: OptionValues<T>, args: Array<string>): Promise<Array<void>> {
+  private parseLoop(
+    values: OptionValues<T>,
+    args = process.argv.slice(2),
+    width?: number,
+  ): Promise<Array<void>> {
     const promises = new Array<Promise<void>>();
     const specifiedKeys = new Set<keyof T>();
     let multi: typeof this.positional;
@@ -342,7 +349,7 @@ class ArgumentParser<T extends Options> {
           specifiedKeys.add(key);
           this.checkRequired(values, specifiedKeys);
           if (option.type === 'help') {
-            this.handleHelpOption(option);
+            this.handleHelpOption(option, width);
           } else if (option.version) {
             throw option.version;
           } else {
@@ -374,10 +381,11 @@ class ArgumentParser<T extends Options> {
   /**
    * Handles the special "help" option and never returns.
    * @param option The option definition
+   * @param width The desired console width (to print the help message)
    */
-  private handleHelpOption(option: HelpOption): never {
+  private handleHelpOption(option: HelpOption, width?: number): never {
     const help = option.usage ? [option.usage] : [];
-    const groups = new HelpFormatter(this.options, option.format).formatGroups(option.width);
+    const groups = new HelpFormatter(this.options, option.format).formatGroups(width);
     for (const [group, message] of groups.entries()) {
       const header = group ? group + ' options' : 'Options';
       help.push(`${tf.bold}${header}:`, message);
@@ -385,7 +393,7 @@ class ArgumentParser<T extends Options> {
     if (option.footer) {
       help.push(option.footer);
     }
-    throw help.join('\n\n');
+    throw help.join(doubleBreak);
   }
 
   /**

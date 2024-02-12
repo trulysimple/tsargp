@@ -8,7 +8,7 @@ import { isArray, isNiladic } from './options';
 import { fg, isStyle, StyledString, styleToString } from './styles';
 
 export type { HelpConfig };
-export { HelpFormatter, HelpItem };
+export { HelpFormatter, HelpItem, singleBreak, doubleBreak };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -175,6 +175,16 @@ type HelpConfig = {
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
+/**
+ * The carriage return is needed in some terminals, like Xterm.js.
+ */
+const singleBreak = '\r\n';
+
+/**
+ * For convenience.
+ */
+const doubleBreak = '\r\n\r\n';
+
 /**
  * The kind of items that can be shown in the option description.
  */
@@ -357,9 +367,9 @@ class HelpFormatter {
       desc: ' '.repeat(Math.max(0, descIndent)),
     };
     const breaks = {
-      names: '\n'.repeat(Math.max(0, this.config.breaks.names)),
-      param: '\n'.repeat(Math.max(0, this.config.breaks.param)),
-      desc: '\n'.repeat(Math.max(0, this.config.breaks.desc)),
+      names: singleBreak.repeat(Math.max(0, this.config.breaks.names)),
+      param: singleBreak.repeat(Math.max(0, this.config.breaks.param)),
+      desc: singleBreak.repeat(Math.max(0, this.config.breaks.desc)),
     };
     const paramStart = namesIndent + this.namesWidth + paramIndent;
     const descStart = paramStart + this.paramWidth + descIndent;
@@ -905,7 +915,7 @@ class HelpFormatter {
       line.append(this.indent.desc);
       this.wrapDesc(lines, entry.desc, width, line.string, this.indent.wrap);
     }
-    return lines.join('\n');
+    return lines.join(singleBreak);
   }
 
   /**
@@ -931,7 +941,7 @@ class HelpFormatter {
       width -= indent.length;
       indent = this.styles.whitespace + indent;
     } else {
-      prefix += '\n';
+      prefix += singleBreak;
       indent = '';
     }
     const punctuation = '.,;!?';
