@@ -85,13 +85,11 @@ const enum tf {
   frame = '\x1b[51m',
   encircle = '\x1b[52m',
   overline = '\x1b[53m',
-  noFrame = '\x1b[54m',
-  noEncircle = noFrame,
+  noFrameOrEncircle = '\x1b[54m',
   noOverline = '\x1b[55m',
   superscript = '\x1b[73m',
   subscript = '\x1b[74m',
-  noSuperscript = '\x1b[75m',
-  noSubscript = noSuperscript,
+  noSuperscriptOrSubscript = '\x1b[75m',
 }
 
 /**

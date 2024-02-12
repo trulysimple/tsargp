@@ -14,6 +14,7 @@ import type {
   StringsOption,
   HelpOption,
   BooleanOption,
+  VersionOption,
 } from './options.js';
 
 import { HelpFormatter } from './formatter.js';
@@ -54,7 +55,7 @@ class ArgumentParser<T extends Options> {
           if (this.positional) {
             throw Error(`Duplicate positional option '${key}'.`);
           }
-          const name = option.preferredName ?? option.names.find((name) => name)!;
+          const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
           const marker = typeof option.positional === 'string' ? option.positional : undefined;
           this.positional = { key, name, option, marker };
         }
@@ -67,6 +68,9 @@ class ArgumentParser<T extends Options> {
       }
       if (option.required) {
         this.required.push(key);
+      }
+      if (option.type === 'version' && !option.version && !option.resolve) {
+        throw Error(`Option '${key}' contains no version or resolve function.`);
       }
     }
   }
@@ -130,17 +134,21 @@ class ArgumentParser<T extends Options> {
    * @param prop The option property
    */
   private checkValueSanity(key: string, option: ParamOption, prop: 'default' | 'example') {
-    if (prop in option && option[prop] !== undefined) {
-      const test = {} as OptionValues<T>;
-      if (isArray(option)) {
-        if (!option[prop]!.length) {
+    const test = {} as OptionValues<T>;
+    if (isArray(option)) {
+      const value = option[prop];
+      if (value !== undefined) {
+        if (!value.length) {
           throw Error(`Option '${key}' has zero ${prop} values.`);
         }
-        for (const value of option[prop]!) {
-          this.parseValue(test, key, option, key, value.toString());
+        for (const element of value) {
+          this.parseValue(test, key, option, key, element.toString());
         }
-      } else {
-        this.parseValue(test, key, option, key, option[prop]!.toString());
+      }
+    } else {
+      const value = option[prop];
+      if (value !== undefined) {
+        this.parseValue(test, key, option, key, value.toString());
       }
     }
   }
@@ -338,7 +346,8 @@ class ArgumentParser<T extends Options> {
           } else if (option.version) {
             throw option.version;
           } else {
-            promises.push(this.handleVersionOption());
+            const promise = this.handleVersionOption(option);
+            promises.push(promise);
             return Promise.all(promises);
           }
         }
@@ -381,22 +390,27 @@ class ArgumentParser<T extends Options> {
 
   /**
    * Handles the special "version" option and never returns.
+   * @param option The option definition
    */
-  private async handleVersionOption(): Promise<never> {
-    const { dirname, join } = await import('path');
+  private async handleVersionOption(option: VersionOption): Promise<never> {
+    function assert(_condition: unknown): asserts _condition {}
+    assert(option.resolve);
     const { promises } = await import('fs');
-    for (let dir = import.meta.dirname; dir != '/'; dir = dirname(dir)) {
+    for (
+      let path = './package.json', lastResolved = '', resolved = option.resolve(path);
+      resolved != lastResolved;
+      path = '../' + path, lastResolved = resolved, resolved = option.resolve(path)
+    ) {
       try {
-        const jsonData = await promises.readFile(join(dir, 'package.json'));
-        const { version } = JSON.parse(jsonData.toString());
-        throw version;
+        const jsonData = await promises.readFile(new URL(resolved));
+        throw JSON.parse(jsonData.toString()).version;
       } catch (err) {
         if ((err as ErrnoException).code != 'ENOENT') {
           throw err;
         }
       }
     }
-    throw 'unknown';
+    throw `Could not find a 'package.json' file.`;
   }
 
   /**
@@ -408,17 +422,17 @@ class ArgumentParser<T extends Options> {
     for (const key of this.required) {
       if (!keys.has(key)) {
         const option = this.options[key];
-        const preferredName = option.preferredName ?? option.names.find((name) => name)!;
-        throw Error(`Option '${preferredName}' is required.`);
+        const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+        throw Error(`Option '${name}' is required.`);
       }
     }
     for (const key of keys) {
       const option = this.options[key];
       if (option.requires) {
-        const preferredName = option.preferredName ?? option.names.find((name) => name)!;
-        const error = this.checkRequires(values, option.requires, preferredName, keys);
+        const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+        const error = this.checkRequires(values, option.requires, keys);
         if (error) {
-          throw Error(`Option '${preferredName}' requires ${error}.`);
+          throw Error(`Option '${name}' requires ${error}.`);
         }
       }
     }
@@ -428,22 +442,20 @@ class ArgumentParser<T extends Options> {
    * Checks the requirements of an option that was specified.
    * @param values The options' values
    * @param requires The option requirements
-   * @param name The option name
    * @param keys The set of specified option keys
    * @returns An error reason or null if no error
    */
   private checkRequires(
     values: OptionValues<T>,
     requires: Requires,
-    name: string,
     keys: Set<keyof T>,
   ): string | null {
     if (typeof requires === 'string') {
-      return this.checkRequirement(values, requires, name, keys);
+      return this.checkRequirement(values, requires, keys);
     }
     if (requires.op === 'and') {
       for (const item of requires.items) {
-        const error = this.checkRequires(values, item, name, keys);
+        const error = this.checkRequires(values, item, keys);
         if (error) {
           return error;
         }
@@ -452,7 +464,7 @@ class ArgumentParser<T extends Options> {
     }
     const errors = new Set<string>();
     for (const item of requires.items) {
-      const error = this.checkRequires(values, item, name, keys);
+      const error = this.checkRequires(values, item, keys);
       if (!error) {
         return null;
       }
@@ -465,20 +477,18 @@ class ArgumentParser<T extends Options> {
    * Checks if a required option was specified with correct values.
    * @param values The options' values
    * @param requirement The requirement specification
-   * @param name The option name
    * @param keys The set of specified option keys
    * @returns An error reason or null if no error
    */
   private checkRequirement(
     values: OptionValues<T>,
     requirement: string,
-    name: string,
     keys: Set<keyof T>,
   ): string | null {
     const [requiredKey, requiredValue] = requirement.split(/=(.*)/, 2);
     const requiredOpt = this.options[requiredKey];
-    const preferredName = requiredOpt.preferredName ?? requiredOpt.names.find((name) => name)!;
-    let error = `'${preferredName}'`;
+    const name = requiredOpt.preferredName ?? requiredOpt.names.find((name) => name) ?? 'unnamed';
+    let error = `'${name}'`;
     if (isNiladic(requiredOpt)) {
       return keys.has(requiredKey) ? null : error;
     }
@@ -489,8 +499,8 @@ class ArgumentParser<T extends Options> {
     if (requiredValue !== undefined) {
       error += `='${requiredValue}'`;
       const test = {} as OptionValues<T>;
-      this.parseValue(test, requiredKey, requiredOpt, name, requiredValue);
-      const expectedValue = test[requiredKey as keyof OptionValues<T>]!;
+      this.parseValue(test, requiredKey, requiredOpt, '', requiredValue);
+      const expectedValue = test[requiredKey as keyof OptionValues<T>];
       if (typeof actualValue === 'object' && typeof expectedValue === 'object') {
         if (actualValue.length !== expectedValue.length) {
           return error;

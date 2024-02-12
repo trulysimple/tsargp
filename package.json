@@ -48,7 +48,7 @@
   "scripts": {
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
-    "dist": "tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
+    "dist": "tsc && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
   },
   "prettier": {
     "printWidth": 100,
@@ -58,7 +58,7 @@
     "root": true,
     "extends": [
       "eslint:recommended",
-      "plugin:@typescript-eslint/recommended"
+      "plugin:@typescript-eslint/strict"
     ],
     "parser": "@typescript-eslint/parser",
     "plugins": [

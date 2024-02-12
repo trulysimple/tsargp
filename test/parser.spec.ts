@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ArgumentParser } from './parser.js';
-import { req, type Options } from './options.js';
+import { ArgumentParser } from '../lib/parser.js';
+import { req, type Options } from '../lib/options.js';
 
 describe('ArgumentParser', () => {
   describe('constructor', () => {
@@ -63,6 +63,19 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       expect(() => new ArgumentParser(options)).toThrowError(
         `Option 'string' has empty positional marker.`,
+      );
+    });
+
+    it('should throw an error on version option with no version and no resolve', () => {
+      const options = {
+        version: {
+          type: 'version',
+          names: ['-v'],
+          version: '',
+        },
+      } as const satisfies Options;
+      expect(() => new ArgumentParser(options)).toThrowError(
+        `Option 'version' contains no version or resolve function.`,
       );
     });
 
@@ -825,7 +838,7 @@ describe('ArgumentParser', () => {
     });
 
     describe('version', () => {
-      it('should throw a version message', () => {
+      it('should throw a version message on a version option with fixed version', () => {
         const options = {
           function: {
             type: 'version',
@@ -834,6 +847,30 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options).parse(['-v'])).toThrow('0.1.0');
+      });
+
+      it('should throw a version message on a version option with a resolve function', async () => {
+        const options = {
+          function: {
+            type: 'version',
+            names: ['-v'],
+            resolve: (str) => `file://${import.meta.dirname}/${str}`,
+          },
+        } as const satisfies Options;
+        await expect(new ArgumentParser(options).parseAsync(['-v'])).rejects.toThrow('0.1.0');
+      });
+
+      it('should throw an error on a version option that cannot resolve a package.json file', async () => {
+        const options = {
+          function: {
+            type: 'version',
+            names: ['-v'],
+            resolve: () => `file:///abc`,
+          },
+        } as const satisfies Options;
+        await expect(new ArgumentParser(options).parseAsync(['-v'])).rejects.toThrowError(
+          `Could not find a 'package.json' file.`,
+        );
       });
     });
 

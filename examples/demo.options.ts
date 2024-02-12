@@ -21,6 +21,7 @@ Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyl
     type: 'version',
     names: ['-v', '--version'],
     desc: 'A version option. Prints the package version',
+    resolve: import.meta.resolve,
   },
   flag: {
     type: 'flag',

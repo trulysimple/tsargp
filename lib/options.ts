@@ -6,6 +6,8 @@ import type { Style } from './styles.js';
 
 export type {
   Callback,
+  ParseCallback,
+  ResolveCallback,
   Option,
   Options,
   OptionDataType,
@@ -112,6 +114,11 @@ type Callback = (values: OptionValues<Options>, args: Array<string>) => void | P
  * @returns The parsed value
  */
 type ParseCallback<T> = (name: string, value: string) => T;
+
+/**
+ * A module-relative resolution function scoped to each module. Non-Web environments only.
+ */
+type ResolveCallback = (specifier: string) => string;
 
 /**
  * Defines attributes common to all options.
@@ -266,6 +273,35 @@ type WithRange = {
 };
 
 /**
+ * Defines the version attribute of a version option.
+ */
+type WithVersion = {
+  /**
+   * The semantic version.
+   */
+  readonly version: string;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly resolve?: never;
+};
+
+/**
+ * Defines the resolve attribute of a version option.
+ */
+type WithResolve = {
+  /**
+   * The resolution function scoped to the module where a `package.json` file will be searched.
+   * Use `import.meta.resolve`. Non-Web environments only.
+   */
+  readonly resolve: ResolveCallback;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly version?: never;
+};
+
+/**
  * A helper type for optional objects.
  * @template T The actual object type
  */
@@ -369,15 +405,7 @@ type HelpOption = WithType<'help'> & {
 /**
  * An option that throws a semantic version.
  */
-type VersionOption = WithType<'version'> & {
-  /**
-   * The semantic version.
-   *
-   * If not specified, the `version` field from a `package.json` file in a parent directory will be
-   * used (in this case you must call `parseAsync` instead of `parse`, and await its result).
-   */
-  readonly version?: string;
-};
+type VersionOption = WithType<'version'> & (WithVersion | WithResolve);
 
 /**
  * An option that performs some predefined action.

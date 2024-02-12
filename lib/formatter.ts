@@ -1,14 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type {
-  Option,
-  Options,
-  Requires,
-  OptionStyles,
-  ValuedOption,
-  ArrayOption,
-} from './options.js';
+import type { Option, Options, Requires, OptionStyles, ValuedOption } from './options.js';
 import type { Style } from './styles.js';
 
 import { isArray, isNiladic } from './options.js';
@@ -54,8 +47,29 @@ type HelpStyles = {
   readonly whitespace: string;
 };
 
+type Concrete<T> = {
+  [K in keyof T]-?: T[K];
+};
+
 /**
- * Help format configuration.
+ * A merged configuration.
+ */
+type MergedHelpConfig = {
+  readonly indent: {
+    readonly names: number;
+    readonly param: number;
+    readonly desc: number;
+    readonly paramAbsolute?: true;
+    readonly descAbsolute?: true;
+  };
+  readonly hidden?: HelpConfig['hidden'];
+  readonly breaks: Exclude<Concrete<HelpConfig['breaks']>, undefined>;
+  readonly styles: Exclude<Concrete<HelpConfig['styles']>, undefined>;
+  readonly items: Array<HelpItem>;
+};
+
+/**
+ * The user-provided help format configuration.
  */
 type HelpConfig = {
   /**
@@ -75,13 +89,15 @@ type HelpConfig = {
      */
     readonly desc?: number;
     /**
-     * The indentation level for the parameter column, relative to the beginning of the line.
+     * True if the indentation level for the parameter column should be relative to the beginning
+     * of the line.
      */
-    readonly paramAbsolute?: number;
+    readonly paramAbsolute?: true;
     /**
-     * The indentation level for the description column, relative to the beginning of the line.
+     * True if the indentation level for the description column should be relative to the beginning
+     * of the line.
      */
-    readonly descAbsolute?: number;
+    readonly descAbsolute?: true;
   };
 
   /**
@@ -186,7 +202,7 @@ const enum HelpItem {
 /**
  * The default configuration used by the formatter.
  */
-const defaultConfig: HelpConfig = {
+const defaultConfig: MergedHelpConfig = {
   indent: {
     names: 2,
     param: 2,
@@ -241,7 +257,7 @@ class HelpFormatter {
   private readonly nameWidths = new Array<number>();
   private readonly namesWidth: number = 0;
   private readonly paramWidth: number = 0;
-  private readonly config: HelpConfig;
+  private readonly config: MergedHelpConfig;
   private readonly indent: HelpIndent;
   private readonly styles: HelpStyles;
 
@@ -278,34 +294,32 @@ class HelpFormatter {
     private readonly options: Options,
     config: HelpConfig = {},
   ) {
-    this.config = HelpFormatter.mergeConfigs(defaultConfig, config);
+    this.config = HelpFormatter.mergeConfig(config);
     this.styles = this.getStyles();
     this.nameWidths = this.getNameWidths();
     for (const key in options) {
       const option = options[key];
-      if (option.hide) {
-        continue;
+      if (!option.hide) {
+        const entry = this.formatOption(option);
+        this.namesWidth = Math.max(this.namesWidth, entry.names.length);
+        this.paramWidth = Math.max(this.paramWidth, entry.param.length);
       }
-      const entry = this.formatOption(option);
-      this.namesWidth = Math.max(this.namesWidth, entry.names.length);
-      this.paramWidth = Math.max(this.paramWidth, entry.param.length);
     }
     this.indent = this.getIndent();
   }
 
   /**
-   * Merges two format configurations.
-   * @param configA The first configuration
-   * @param configB The second configuration, which may override settings from the first
+   * Merges a user-provided format configuration with the default configuration.
+   * @param config The user configuration, which may override default settings
    * @returns The merged configuration
    */
-  private static mergeConfigs(configA: HelpConfig, configB: HelpConfig): HelpConfig {
+  private static mergeConfig(config: HelpConfig): MergedHelpConfig {
     return {
-      indent: Object.assign({}, configA.indent, configB.indent),
-      breaks: Object.assign({}, configA.breaks, configB.breaks),
-      styles: Object.assign({}, configA.styles, configB.styles),
-      hidden: Object.assign({}, configA.hidden, configB.hidden),
-      items: configB.items ?? configA.items,
+      indent: Object.assign({}, defaultConfig.indent, config.indent),
+      breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
+      styles: Object.assign({}, defaultConfig.styles, config.styles),
+      hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
+      items: config.items ?? defaultConfig.items,
     };
   }
 
@@ -330,28 +344,27 @@ class HelpFormatter {
    * @returns The precomputed indentation strings
    */
   private getIndent(): HelpIndent {
-    const namesIndent = this.config.indent!.names!;
-    const paramIndent = this.config.indent!.paramAbsolute
-      ? this.config.indent!.paramAbsolute - (namesIndent + this.namesWidth)
-      : this.config.indent!.param!;
-    const descIndent = this.config.indent!.descAbsolute
-      ? this.config.indent!.descAbsolute -
-        (namesIndent + this.namesWidth + paramIndent + this.paramWidth)
-      : this.config.indent!.desc!;
+    const namesIndent = this.config.indent.names;
+    const paramIndent = this.config.indent.paramAbsolute
+      ? this.config.indent.param - (namesIndent + this.namesWidth)
+      : this.config.indent.param;
+    const descIndent = this.config.indent.descAbsolute
+      ? this.config.indent.desc - (namesIndent + this.namesWidth + paramIndent + this.paramWidth)
+      : this.config.indent.desc;
     const indent = {
       names: ' '.repeat(Math.max(0, namesIndent)),
       param: ' '.repeat(Math.max(0, paramIndent)),
       desc: ' '.repeat(Math.max(0, descIndent)),
     };
     const breaks = {
-      names: '\n'.repeat(Math.max(0, this.config.breaks!.names!)),
-      param: '\n'.repeat(Math.max(0, this.config.breaks!.param!)),
-      desc: '\n'.repeat(Math.max(0, this.config.breaks!.desc!)),
+      names: '\n'.repeat(Math.max(0, this.config.breaks.names)),
+      param: '\n'.repeat(Math.max(0, this.config.breaks.param)),
+      desc: '\n'.repeat(Math.max(0, this.config.breaks.desc)),
     };
     const paramStart = namesIndent + this.namesWidth + paramIndent;
     const descStart = paramStart + this.paramWidth + descIndent;
-    const paramBlank = this.config.indent!.paramAbsolute ?? paramStart;
-    const descBlank = this.config.indent!.descAbsolute ?? descStart;
+    const paramBlank = this.config.indent.paramAbsolute ? this.config.indent.param : paramStart;
+    const descBlank = this.config.indent.descAbsolute ? this.config.indent.desc : descStart;
     const blanks = {
       param: ' '.repeat(Math.max(0, paramBlank)),
       desc: ' '.repeat(Math.max(0, descBlank)),
@@ -495,7 +508,7 @@ class HelpFormatter {
   private formatDesc(option: Option, descStyle: string, result: StyledString) {
     if (option.desc) {
       const words = option.desc.split(' ');
-      if (!words.at(-1)!.endsWith('.')) {
+      if (!words[words.length - 1].endsWith('.')) {
         words[words.length - 1] += '.';
       }
       result.style(descStyle).append(...words);
@@ -736,7 +749,7 @@ class HelpFormatter {
   private formatDeprecated(option: Option, descStyle: string, result: StyledString) {
     if (option.deprecated) {
       const words = option.deprecated.split(' ');
-      if (!words.at(-1)!.endsWith('.')) {
+      if (!words[words.length - 1].endsWith('.')) {
         words[words.length - 1] += '.';
       }
       result.style(descStyle).append('Deprecated', 'for', ...words);
@@ -783,8 +796,8 @@ class HelpFormatter {
     if (typeof requires === 'string') {
       const [key, value] = requires.split(/=(.*)/, 2);
       const option = this.options[key];
-      const preferredName = option.preferredName ?? option.names.find((name) => name)!;
-      result.style(this.styles.option).append(preferredName);
+      const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+      result.style(this.styles.option).append(name);
       if (value) {
         result.style(descStyle).append('=');
         result.style(this.styles.string).append(`'${value}'`);
@@ -811,40 +824,42 @@ class HelpFormatter {
     function assert(_condition: unknown): asserts _condition {}
     if (option.type === 'flag') {
       assert(prop === 'default');
-      result.style(this.styles.boolean).append(`${option[prop]!}`);
+      const value = option[prop];
+      assert(value !== undefined);
+      result.style(this.styles.boolean).append(`${value}`);
     } else if (option.type === 'boolean') {
-      result.style(this.styles.boolean).append(`${option[prop]!}`);
+      const value = option[prop];
+      assert(value !== undefined);
+      result.style(this.styles.boolean).append(`${value}`);
     } else if (option.type === 'string') {
-      result.style(this.styles.string).append(`'${option[prop]!}'`);
+      const value = option[prop];
+      assert(value !== undefined);
+      result.style(this.styles.string).append(`'${value}'`);
     } else if (option.type === 'number') {
-      result.style(this.styles.number).append(option[prop]!.toString());
+      const value = option[prop];
+      assert(value !== undefined);
+      result.style(this.styles.number).append(value.toString());
     } else if (option.separator) {
-      const values = option[prop]!.map((value) => value.toString());
+      const value = option[prop];
+      assert(value !== undefined);
+      const values = value.map((value) => value.toString());
       result.style(this.styles.string).append(`'${values.join(option.separator)}'`);
     } else {
-      this.formatArrayValue(option, prop, result);
-    }
-  }
-
-  /**
-   * Formats a value from an array option's property.
-   * @param option The option definition
-   * @param prop The option property
-   * @param result The resulting string
-   */
-  private formatArrayValue(option: ArrayOption, prop: 'default' | 'example', result: StyledString) {
-    let values: Array<string>;
-    if (option.type === 'strings') {
-      values = option[prop]!.map((value) => `'${value}'`);
-      result.style(this.styles.string);
-    } else {
-      values = option[prop]!.map((value) => value.toString());
-      result.style(this.styles.number);
-    }
-    if (prop === 'example') {
-      result.append(values.join(' '));
-    } else {
-      result.append(...values);
+      let values: Array<string>;
+      const value = option[prop];
+      assert(value !== undefined);
+      if (option.type === 'strings') {
+        values = value.map((value) => `'${value}'`);
+        result.style(this.styles.string);
+      } else {
+        values = value.map((value) => value.toString());
+        result.style(this.styles.number);
+      }
+      if (prop === 'example') {
+        result.append(values.join(' '));
+      } else {
+        result.append(...values);
+      }
     }
   }
 
