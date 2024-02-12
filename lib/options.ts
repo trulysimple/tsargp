@@ -1,8 +1,8 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { HelpConfig } from './formatter.js';
-import type { Style } from './styles.js';
+import type { HelpConfig } from './formatter';
+import type { Style } from './styles';
 
 export type {
   Callback,
@@ -400,6 +400,10 @@ type HelpOption = WithType<'help'> & {
    * The format configuration.
    */
   readonly format?: HelpConfig;
+  /**
+   * The desired console width.
+   */
+  readonly width?: number;
 };
 
 /**

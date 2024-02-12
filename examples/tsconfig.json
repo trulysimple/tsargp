@@ -1,12 +1,9 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
     "rootDir": ".",
     "outDir": "../dist",
     "declaration": false,
-    "emitDeclarationOnly": false,
     "removeComments": true,
   },
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HelpFormatter } from '../lib/formatter.js';
-import { req, type Options } from '../lib/options.js';
+import { HelpFormatter } from '../lib/formatter';
+import { req, type Options } from '../lib/options';
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {

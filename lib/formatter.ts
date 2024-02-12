@@ -1,11 +1,11 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, Requires, OptionStyles, ValuedOption } from './options.js';
-import type { Style } from './styles.js';
+import type { Option, Options, Requires, OptionStyles, ValuedOption } from './options';
+import type { Style } from './styles';
 
-import { isArray, isNiladic } from './options.js';
-import { fg, isStyle, StyledString, styleToString } from './styles.js';
+import { isArray, isNiladic } from './options';
+import { fg, isStyle, StyledString, styleToString } from './styles';
 
 export type { HelpConfig };
 export { HelpFormatter, HelpItem };

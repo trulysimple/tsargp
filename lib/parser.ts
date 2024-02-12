@@ -15,11 +15,11 @@ import type {
   HelpOption,
   BooleanOption,
   VersionOption,
-} from './options.js';
+} from './options';
 
-import { HelpFormatter } from './formatter.js';
-import { isArray, isNiladic, isValued } from './options.js';
-import { tf } from './styles.js';
+import { HelpFormatter } from './formatter';
+import { isArray, isNiladic, isValued } from './options';
+import { tf } from './styles';
 
 export { ArgumentParser };
 
@@ -377,7 +377,7 @@ class ArgumentParser<T extends Options> {
    */
   private handleHelpOption(option: HelpOption): never {
     const help = option.usage ? [option.usage] : [];
-    const groups = new HelpFormatter(this.options, option.format).formatGroups();
+    const groups = new HelpFormatter(this.options, option.format).formatGroups(option.width);
     for (const [group, message] of groups.entries()) {
       const header = group ? group + ' options' : 'Options';
       help.push(`${tf.bold}${header}:`, message);
