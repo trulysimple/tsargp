@@ -48,7 +48,7 @@
   "scripts": {
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
-    "dist": "tsc && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
+    "dist": "bun build lib/index.ts --outdir dist && tsc -p lib && tsc -p examples"
   },
   "prettier": {
     "printWidth": 100,

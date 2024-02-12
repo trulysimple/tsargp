@@ -1,16 +1,12 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "ESNext",
     "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "rootDir": ".",
     "outDir": "../dist",
-
-    // Bundling
     "declaration": false,
     "emitDeclarationOnly": false,
-    "moduleResolution": "NodeNext",
-    "removeComments": true
+    "removeComments": true,
   },
-  "include": ["."]
 }

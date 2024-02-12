@@ -7,7 +7,7 @@
 - Zero-dependency
 - Fully declarative style
 - Compile-time type checking
-- Moderate footprint (~22KB minified)
+- Moderate footprint (~23KB minified)
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
 - Arbitrary requirements between options
