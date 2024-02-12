@@ -16,12 +16,16 @@
   "type": "module",
   "types": "./dist/types/index.d.ts",
   "exports": {
-    "types": "./dist/types/index.d.ts",
-    "default": "./dist/index.js"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./demo": {
+      "default": "./dist/demo.options.js"
+    }
   },
   "files": [
-    "dist",
-    "schema"
+    "dist"
   ],
   "repository": {
     "url": "git+https://github.com/trulysimple/tsargp.git"
@@ -33,6 +37,7 @@
     "@typescript-eslint/parser": "^6.19.1",
     "cspell": "^8.3.2",
     "eslint": "^8.56.0",
+    "eslint-plugin-mdx": "^3.1.5",
     "husky": "^9.0.6",
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
@@ -43,8 +48,6 @@
   "scripts": {
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
-    "test": "vitest run --dir lib",
-    "lint": "publint . && publint docs && eslint lib && cspell lint .",
     "dist": "tsc -p tsconfig.build.json && bun build lib/index.ts --outdir dist --target node && tsc -p examples"
   },
   "prettier": {
@@ -60,6 +63,16 @@
     "parser": "@typescript-eslint/parser",
     "plugins": [
       "@typescript-eslint"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "*.mdx"
+        ],
+        "extends": [
+          "plugin:mdx/recommended"
+        ]
+      }
     ]
   }
 }

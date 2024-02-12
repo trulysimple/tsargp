@@ -349,7 +349,7 @@ type FunctionOption = WithType<'function'> & {
 };
 
 /**
- * An option that prints a help message.
+ * An option that throws a help message.
  */
 type HelpOption = WithType<'help'> & {
   /**
@@ -367,12 +367,14 @@ type HelpOption = WithType<'help'> & {
 };
 
 /**
- * An option that prints a semantic version.
+ * An option that throws a semantic version.
  */
 type VersionOption = WithType<'version'> & {
   /**
-   * The semantic version. If not specified, the `version` field from a `package.json` file in the
-   * nearest parent directory will be used.
+   * The semantic version.
+   *
+   * If not specified, the `version` field from a `package.json` file in a parent directory will be
+   * used (in this case you must call `parseAsync` instead of `parse`, and await its result).
    */
   readonly version?: string;
 };

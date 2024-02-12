@@ -1026,6 +1026,10 @@ describe('ArgumentParser', () => {
           flag: undefined,
           boolean: true,
         });
+        expect(new ArgumentParser(options).parse(['-b', '0', '--', '1'])).toMatchObject({
+          flag: undefined,
+          boolean: true,
+        });
       });
 
       it('should handle a boolean option with custom parsing', () => {
@@ -1204,6 +1208,10 @@ describe('ArgumentParser', () => {
           flag: undefined,
           string: '-f',
         });
+        expect(new ArgumentParser(options).parse(['-s', '0', '--', '1'])).toMatchObject({
+          flag: undefined,
+          string: '1',
+        });
       });
 
       it('should handle a string option with custom parsing', () => {
@@ -1335,7 +1343,7 @@ describe('ArgumentParser', () => {
           },
           number: {
             type: 'number',
-            names: ['-s'],
+            names: ['-n'],
             positional: '--',
           },
         } as const satisfies Options;
@@ -1349,6 +1357,10 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse(['--', '0', '-f'])).toMatchObject({
           flag: undefined,
           number: NaN,
+        });
+        expect(new ArgumentParser(options).parse(['-n', '0', '--', '1'])).toMatchObject({
+          flag: undefined,
+          number: 1,
         });
       });
 
@@ -1665,6 +1677,10 @@ describe('ArgumentParser', () => {
           flag: undefined,
           strings: ['0', '-f'],
         });
+        expect(new ArgumentParser(options).parse(['-ss', '0', '--', '1'])).toMatchObject({
+          flag: undefined,
+          strings: ['1'],
+        });
       });
 
       it('should handle a strings option with custom parsing', () => {
@@ -1873,6 +1889,10 @@ describe('ArgumentParser', () => {
         expect(new ArgumentParser(options).parse(['--', '0', '-f'])).toMatchObject({
           flag: undefined,
           numbers: [0, NaN],
+        });
+        expect(new ArgumentParser(options).parse(['-ns', '0', '--', '1'])).toMatchObject({
+          flag: undefined,
+          numbers: [1],
         });
       });
 

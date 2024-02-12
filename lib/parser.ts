@@ -13,15 +13,12 @@ import type {
   StringOption,
   StringsOption,
   HelpOption,
-  VersionOption,
   BooleanOption,
 } from './options.js';
 
 import { HelpFormatter } from './formatter.js';
 import { isArray, isNiladic, isValued } from './options.js';
 import { tf } from './styles.js';
-import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
 
 export { ArgumentParser };
 
@@ -338,8 +335,11 @@ class ArgumentParser<T extends Options> {
           this.checkRequired(values, specifiedKeys);
           if (option.type === 'help') {
             this.handleHelpOption(option);
+          } else if (option.version) {
+            throw option.version;
           } else {
-            this.handleVersionOption(option);
+            promises.push(this.handleVersionOption());
+            return Promise.all(promises);
           }
         }
       } else {
@@ -381,15 +381,13 @@ class ArgumentParser<T extends Options> {
 
   /**
    * Handles the special "version" option and never returns.
-   * @param option The option definition
    */
-  private handleVersionOption(option: VersionOption): never {
-    if (option.version) {
-      throw option.version;
-    }
+  private async handleVersionOption(): Promise<never> {
+    const { dirname, join } = await import('path');
+    const { promises } = await import('fs');
     for (let dir = import.meta.dirname; dir != '/'; dir = dirname(dir)) {
       try {
-        const jsonData = readFileSync(join(dir, 'package.json'));
+        const jsonData = await promises.readFile(join(dir, 'package.json'));
         const { version } = JSON.parse(jsonData.toString());
         throw version;
       } catch (err) {

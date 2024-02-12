@@ -56,7 +56,7 @@ const options = {
 } as const satisfies Options;
 
 const values = new ArgumentParser(options).parse();
-// use `parseAsync` if you declare async function options
+// use `parseAsync` if you declare async function options or a version option with no fixed version
 ```
 
 ## Build
