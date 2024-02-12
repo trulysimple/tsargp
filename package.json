@@ -74,5 +74,8 @@
         ]
       }
     ]
+  },
+  "browser": {
+    "fs": false
   }
 }
