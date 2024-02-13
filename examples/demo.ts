@@ -23,5 +23,10 @@ try {
   const values: CommandOptions = await new ArgumentParser(options).parseAsync();
   console.log(values);
 } catch (err) {
-  console.error(err);
+  if (typeof err === 'string') {
+    console.log(err);
+  } else {
+    console.error(err);
+    process.exitCode = 1;
+  }
 }

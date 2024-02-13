@@ -1,6 +1,6 @@
 # tsargp
 
-![screen capture gif](https://drive.google.com/uc?export=view&id=1kHe1xe7zAIyZDbP4C39nZYC29L8FxQex 'screen capture gif')
+A modern argument parser for TypeScript.
 
 ## Features
 
@@ -9,11 +9,11 @@
 - Compile-time type checking
 - Moderate footprint (~23KB minified)
 - Fully customizable help message formatting
-- Wide range of display attributes from [SGR]
 - Inline styles, text wrapping, paragraphs and lists
+- Wide range of display attributes from [SGR]
 - Arbitrary requirements between options
 - Option grouping and hiding
-- Similar option name suggestions
+- Similar name suggestions
 
 Here's a summary of the available option types and some of their attributes:
 
@@ -33,6 +33,8 @@ Other attributes include: default value, example value, custom value parsing, an
 
 ## Demo
 
+Test it [online](https://trulysimple.dev/tsargp/demo) or install it locally:
+
 ```sh
 npm install -g tsargp
 tsargp -h  # print the help message
@@ -46,18 +48,29 @@ See the [source](examples/demo.options.ts).
 ## Usage
 
 ```sh
-npm install -D tsargp
+npm install tsargp
 ```
 
-```ts
-import { ArgumentParser, ... } from 'tsargp';
+We encourage you to place option definitions in a separate file, like so:
 
-const options = {
+```ts
+// <your_cli_name>.options.ts
+import { Options, ... } from 'tsargp';
+
+export default {
   // define options' attributes...
 } as const satisfies Options;
+```
+
+And import them in your main script:
+
+```ts
+import { ArgumentParser } from 'tsargp';
+import options from './<your_cli_name>.options.js';
 
 const values = new ArgumentParser(options).parse();
-// use `parseAsync` if you declare async function options or a version option with no fixed version
+// use `parseAsync` if you declare async function options
+//  or a version option with a module-resolve function
 ```
 
 ## Build
