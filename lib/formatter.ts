@@ -575,7 +575,14 @@ class HelpFormatter {
    */
   private formatPositional(option: Option, descStyle: string, result: StyledString) {
     if ('positional' in option && option.positional) {
-      result.style(descStyle).append('Accepts', 'positional', 'parameters.');
+      result.style(descStyle).append('Accepts', 'positional');
+      if (typeof option.positional === 'string') {
+        result.append('parameters', 'preceded', 'by');
+        result.style(this.styles.option).append(option.positional);
+        result.style(descStyle).append('.');
+      } else {
+        result.append('parameters.');
+      }
     }
   }
 

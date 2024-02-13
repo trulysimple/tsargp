@@ -107,7 +107,7 @@ export default {
     group: 'String',
     enums: ['one', 'two'],
     example: ['one', 'two'],
-    positional: true,
+    positional: '--',
     limit: 3,
   },
   numbersEnum: {

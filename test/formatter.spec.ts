@@ -591,6 +591,21 @@ describe('HelpFormatter', () => {
         );
       });
 
+      it('should handle a multivalued strings option that accepts positional arguments after marker', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss', '--strings'],
+            desc: 'A strings option',
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-ss.*,.+--strings.+<strings>.+A strings option\..+Accepts multiple parameters\..+Accepts positional parameters preceded by.+--.+\./s,
+        );
+      });
+
       it('should handle a delimited strings option whose values will be trimmed', () => {
         const options = {
           strings: {
