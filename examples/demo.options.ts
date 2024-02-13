@@ -10,7 +10,7 @@ export default {
     desc: 'A help option. Prints this help message',
     usage:
       `${clearStyle}${tf.bold}Argument parser for TypeScript.${doubleBreak}` +
-      `${clearStyle}${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`,
+      `  ${clearStyle}${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`,
     footer:
       `MIT License${singleBreak}` +
       `Copyright (c) 2024 ${tf.italic}${tf.bold}${fg.cyan}TrulySimple${clearStyle}${doubleBreak}` +
@@ -38,8 +38,8 @@ export default {
     names: ['-b'],
     desc: `A boolean option
     with:
-    * a paragraph;
-    - ${tf.underline}${fgColor('223')}inline styles${tf.noUnderline},
+    * a paragraph
+    - ${tf.underline}${fgColor('223')}inline styles${fg.default}${tf.noUnderline}
     1. and a list
     
     `,

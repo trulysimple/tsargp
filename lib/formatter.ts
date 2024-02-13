@@ -1025,7 +1025,12 @@ function splitWords(text: string): Array<string> {
     para.split(regex.item).forEach((item, j) => {
       if (j % 2 == 0) {
         item = item.trim();
-        if (item && !punctuation.includes(item[item.length - 1])) {
+        if (
+          j == 0 &&
+          item &&
+          !item.match(/^(-|\*|\d+\.) /) &&
+          !punctuation.includes(item[item.length - 1])
+        ) {
           item += '.';
         }
         const words = item.split(regex.word);

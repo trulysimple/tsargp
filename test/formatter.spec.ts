@@ -55,15 +55,14 @@ describe('HelpFormatter', () => {
             type: 'flag',
             names: ['-f', '--flag'],
             desc: `A flag option with lists:
-            
-            - item1;
-            * item2,
+            - item1
+            * item2
             1. item3`,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-f.*,.+--flag.+A flag option with lists:.+- item1;.+\* item2,.+1\. item3\./s,
+          /-f.*,.+--flag.+A flag option with lists:.+- item1.+\* item2.+1\. item3/s,
         );
       });
 
