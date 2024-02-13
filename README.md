@@ -10,7 +10,7 @@
 - Moderate footprint (~23KB minified)
 - Fully customizable help message formatting
 - Wide range of display attributes from [SGR]
-- Text wrapping that preserves paragraphs
+- Inline styles, text wrapping, paragraphs and lists
 - Arbitrary requirements between options
 - Option grouping and hiding
 - Similar option name suggestions

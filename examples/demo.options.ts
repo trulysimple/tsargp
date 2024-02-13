@@ -37,8 +37,11 @@ export default {
     type: 'boolean',
     names: ['-b'],
     desc: `A boolean option
-    with a paragraph and ${tf.underline}${fgColor('223')}inline styles${tf.noUnderline}
-
+    with:
+    * a paragraph;
+    - ${tf.underline}${fgColor('223')}inline styles${tf.noUnderline},
+    1. and a list
+    
     `,
     default: false,
     requires: req.and('stringEnum', 'numberEnum=2', req.or('stringsRegex=a,b', 'numbersRange=3,4')),
@@ -48,7 +51,7 @@ export default {
     names: ['-s', '--stringRegex'],
     desc: 'A string option',
     group: 'String',
-    regex: /\d+/s,
+    regex: /^\d+$/,
     default: '123456789',
     paramName: 'my string',
   },
@@ -82,7 +85,7 @@ export default {
     names: ['-ss', '--strings'],
     desc: 'A strings option',
     group: 'String',
-    regex: /\w+/s,
+    regex: /^\w+$/,
     default: ['one', 'two'],
     separator: ',',
     trim: true,

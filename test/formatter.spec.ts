@@ -23,16 +23,16 @@ describe('HelpFormatter', () => {
     });
 
     describe('flag', () => {
-      it('should handle an option with styles in the description', () => {
+      it('should handle an option with inline styles in the description', () => {
         const options = {
           flag: {
             type: 'flag',
             names: ['-f', '--flag'],
-            desc: `A flag option with ${tf.bold}${fgColor('123')}styles${clearStyle}.`,
+            desc: `A flag option with ${tf.bold}${fgColor('123')}inline styles${clearStyle}.`,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
-        expect(message).toMatch(/-f.*,.+--flag.+A flag option with.+styles.+\./s);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option with.+inline styles.+\./s);
       });
 
       it('should handle an option with paragraphs in the description', () => {
@@ -46,6 +46,24 @@ describe('HelpFormatter', () => {
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
           /-f.*,.+--flag.+A flag option with line breaks, tabs and\..+paragraphs\./s,
+        );
+      });
+
+      it('should handle an option with lists in the description', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: `A flag option with lists:
+            
+            - item1;
+            * item2,
+            1. item3`,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(
+          /-f.*,.+--flag.+A flag option with lists:.+- item1;.+\* item2,.+1\. item3\./s,
         );
       });
 

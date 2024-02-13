@@ -936,7 +936,7 @@ class HelpFormatter {
       prefix += singleBreak;
       indent = '';
     }
-    const punctuation = '.,;!?';
+    const punctuation = '.,:;!?';
     const closingBrackets = [...')]}'];
     const openingBrackets = [...'{[('];
     let line = [prefix];
@@ -973,9 +973,12 @@ class HelpFormatter {
         nextStyle = word;
         continue;
       }
-      if (word == singleBreak) {
+      if (word == singleBreak || word == doubleBreak) {
         addWord();
-        lines.push(line.join(''), '');
+        lines.push(line.join(''));
+        if (word == doubleBreak) {
+          lines.push('');
+        }
         line = [indent, lastStyle];
         lineLength = 0;
         currentWord = '';
@@ -1010,22 +1013,33 @@ class HelpFormatter {
 // Functions
 //--------------------------------------------------------------------------------------------------
 function splitWords(text: string): Array<string> {
-  const punctuation = '.,;!?';
-  const paragraphRegex = /(?:[ \t]*\r?\n){2,}/;
-  const wordRegex = /\s+/;
-  const styleRegex = /((?:\x1b\[[\d;]+m)+)/;
-  const paragraphs = text.split(paragraphRegex);
-  return paragraphs.reduce((acc, par, i) => {
-    par = par.trim();
-    if (par) {
-      if (!punctuation.includes(par[par.length - 1])) {
-        par += '.';
+  const regex = {
+    para: /(?:[ \t]*\r?\n){2,}/,
+    item: /\r?\n[ \t]*(-|\*|\d+\.) /,
+    word: /\s+/,
+    style: /((?:\x1b\[[\d;]+m)+)/,
+  };
+  const punctuation = '.,:;!?';
+  const paragraphs = text.split(regex.para);
+  return paragraphs.reduce((acc, para, i) => {
+    para.split(regex.item).forEach((item, j) => {
+      if (j % 2 == 0) {
+        item = item.trim();
+        if (item && !punctuation.includes(item[item.length - 1])) {
+          item += '.';
+        }
+        const words = item.split(regex.word);
+        if (item.includes('\x1b')) {
+          words.forEach((word) => acc.push(...word.split(regex.style)));
+        } else {
+          acc.push(...words);
+        }
+      } else {
+        acc.push(singleBreak, item);
       }
-      const words = par.split(wordRegex).flatMap((word) => word.split(styleRegex));
-      acc.push(...words);
-    }
+    });
     if (i < paragraphs.length - 1) {
-      acc.push(singleBreak);
+      acc.push(doubleBreak);
     }
     return acc;
   }, new Array<string>());
