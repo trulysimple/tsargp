@@ -1,5 +1,5 @@
 export default {
-  logo: <span>tsargp Documentation</span>,
+  logo: <span>tsargp docs</span>,
   project: {
     link: 'https://github.com/trulysimple/tsargp',
   },

@@ -3,11 +3,13 @@ const nextraConfig = {
   theme: 'nextra-theme-docs',
   themeConfig: './theme.config.jsx',
 };
-const withNextra = require('nextra')(nextraConfig);
 
-const { PHASE_PRODUCTION_BUILD } = require('next/constants');
+import nextra from 'nextra';
+const withNextra = nextra(nextraConfig);
 
-module.exports = (phase, { defaultConfig }) => {
+import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
+
+export default function (phase, { defaultConfig }) {
   if (phase === PHASE_PRODUCTION_BUILD) {
     /** @type {import('next').NextConfig} */
     const nextConfig = {
@@ -21,4 +23,4 @@ module.exports = (phase, { defaultConfig }) => {
     return withNextra(nextConfig);
   }
   return withNextra();
-};
+}

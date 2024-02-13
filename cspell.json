@@ -12,7 +12,8 @@
     "trulysimple",
     "nextra",
     "niladic",
-    "multivalued"
+    "multivalued",
+    "wavesoft"
   ],
   "ignorePaths": ["*.lockb", "*.dvc"],
   "useGitignore": true

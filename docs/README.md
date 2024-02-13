@@ -3,8 +3,9 @@
 Documentation for tsargp.
 
 ```sh
-npm install     # install dependencies
-npm run dev     # serve docs locally
-npm run dist    # build static site
-npm publish     # publish to npm registry
+curl -fsSL https://bun.sh/install | bash
+bun install   # install dependencies
+bun run dev   # serve docs locally
+bun run dist  # build static site
+npm publish   # publish to npm registry
 ```
