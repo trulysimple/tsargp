@@ -613,14 +613,15 @@ class ArgumentParser<T extends Options> {
     const option = this.options[requiredKey];
     const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
     const required = requiredValue !== null;
+    const withValue = required && requiredValue !== undefined;
     if (isNiladic(option)) {
       const specified = specifiedKeys.has(requiredKey);
-      return ArgumentParser.checkRequiredPresence(name, negate, specified, required);
+      return ArgumentParser.checkRequiredPresence(name, negate, specified, required, withValue);
     }
     const actualValue = values[requiredKey as keyof OptionValues<T>];
     const specified = actualValue !== undefined;
-    if (!specified || !required || requiredValue === undefined) {
-      return ArgumentParser.checkRequiredPresence(name, negate, specified, required);
+    if (!specified || !required || !withValue) {
+      return ArgumentParser.checkRequiredPresence(name, negate, specified, required, withValue);
     }
     return ArgumentParser.checkRequiredValue(name, option, negate, requiredValue, actualValue);
   }
@@ -631,6 +632,7 @@ class ArgumentParser<T extends Options> {
    * @param negate True if the requirement should be negated
    * @param specified True if the option was specified
    * @param required True if the option is required
+   * @param withValue True if the option is required with a value
    * @returns An error reason or null if no error
    */
   private static checkRequiredPresence(
@@ -638,12 +640,13 @@ class ArgumentParser<T extends Options> {
     negate: boolean,
     specified: boolean,
     required: boolean,
+    withValue: boolean,
   ): string | null {
     return specified
       ? required == negate
         ? `no ${name}`
         : null
-      : required || negate
+      : withValue || required != negate
         ? name
         : null;
   }

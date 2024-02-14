@@ -1210,6 +1210,38 @@ describe('ArgumentParser', () => {
         );
       });
 
+      it('should handle a boolean option absent while being required to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'boolean',
+            names: ['-b'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f'])).not.toThrow();
+      });
+
+      it('should throw an error on boolean option present despite being required not to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'boolean',
+            names: ['-b'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f', '-b', '1'])).toThrowError(
+          `Option '-f' requires no -b.`,
+        );
+      });
+
       it('should throw an error on boolean option absent despite being required not to be', () => {
         const options = {
           requires: {
@@ -1227,7 +1259,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw an error on boolean option present despite being required not to be', () => {
+      it('should throw an error on boolean option present despite being required not to be (2)', () => {
         const options = {
           requires: {
             type: 'flag',
@@ -1416,6 +1448,38 @@ describe('ArgumentParser', () => {
         );
       });
 
+      it('should handle a string option absent while being required to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'string',
+            names: ['-s'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f'])).not.toThrow();
+      });
+
+      it('should throw an error on string option present despite being required not to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'string',
+            names: ['-s'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f', '-s', '1'])).toThrowError(
+          `Option '-f' requires no -s.`,
+        );
+      });
+
       it('should throw an error on string option absent despite being required not to be', () => {
         const options = {
           requires: {
@@ -1433,7 +1497,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw an error on string option present despite being required not to be', () => {
+      it('should throw an error on string option present despite being required not to be (2)', () => {
         const options = {
           requires: {
             type: 'flag',
@@ -1701,6 +1765,38 @@ describe('ArgumentParser', () => {
         );
       });
 
+      it('should handle a number option absent while being required to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'number',
+            names: ['-n'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f'])).not.toThrow();
+      });
+
+      it('should throw an error on number option present despite being required not to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'number',
+            names: ['-n'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f', '-n', '1'])).toThrowError(
+          `Option '-f' requires no -n.`,
+        );
+      });
+
       it('should throw an error on number option absent despite being required not to be', () => {
         const options = {
           requires: {
@@ -1718,7 +1814,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw an error on number option present despite being required not to be', () => {
+      it('should throw an error on number option present despite being required not to be (2)', () => {
         const options = {
           requires: {
             type: 'flag',
@@ -2016,6 +2112,38 @@ describe('ArgumentParser', () => {
         );
       });
 
+      it('should handle a strings option absent while being required to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f'])).not.toThrow();
+      });
+
+      it('should throw an error on strings option present despite being required not to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f', '-ss', '1'])).toThrowError(
+          `Option '-f' requires no -ss.`,
+        );
+      });
+
       it('should throw an error on strings option absent despite being required not to be', () => {
         const options = {
           requires: {
@@ -2033,7 +2161,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw an error on strings option present despite being required not to be', () => {
+      it('should throw an error on strings option present despite being required not to be (2)', () => {
         const options = {
           requires: {
             type: 'flag',
@@ -2376,6 +2504,38 @@ describe('ArgumentParser', () => {
         );
       });
 
+      it('should handle a numbers option absent while being required to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f'])).not.toThrow();
+      });
+
+      it('should throw an error on numbers option present despite being required not to be', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-f', '-ns', '1'])).toThrowError(
+          `Option '-f' requires no -ns.`,
+        );
+      });
+
       it('should throw an error on numbers option absent despite being required not to be', () => {
         const options = {
           requires: {
@@ -2393,7 +2553,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw an error on numbers option present despite being required not to be', () => {
+      it('should throw an error on numbers option present despite being required not to be (2)', () => {
         const options = {
           requires: {
             type: 'flag',

@@ -44,7 +44,11 @@ export default {
     
     `,
     default: false,
-    requires: req.and('stringEnum', 'numberEnum=2', req.or('stringsRegex=a,b', 'numbersRange=3,4')),
+    requires: req.and(
+      'stringEnum',
+      { numberEnum: 2 },
+      req.or({ stringsRegex: ['a', 'b'] }, req.not({ numbersRange: [3, 4] })),
+    ),
   },
   stringRegex: {
     type: 'string',

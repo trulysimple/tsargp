@@ -117,7 +117,7 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Always required\./s);
       });
 
-      it('should handle an option with a single requirement', () => {
+      it('should handle an option that requires the presence of another', () => {
         const options = {
           flag: {
             type: 'flag',
@@ -134,7 +134,58 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Requires.+-req.+\./s);
       });
 
-      it('should handle a option with a requirement with a value', () => {
+      it('should handle an option that requires the presence of another (2)', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
+            requires: { required: undefined },
+          },
+          required: {
+            type: 'boolean',
+            names: ['-req', '--req'],
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Requires.+-req.+\./s);
+      });
+
+      it('should handle an option that requires the absence of another', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'boolean',
+            names: ['-req', '--req'],
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Requires no.+-req.+\./s);
+      });
+
+      it('should handle an option that requires the absence of another (2)', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
+            requires: { required: null },
+          },
+          required: {
+            type: 'boolean',
+            names: ['-req', '--req'],
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toMatch(/-f.*,.+--flag.+A flag option\..+Requires no.+-req.+\./s);
+      });
+
+      it('should handle an option that requires another option with a value', () => {
         const options = {
           flag: {
             type: 'flag',
