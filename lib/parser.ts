@@ -2,7 +2,6 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type {
-  ArrayOption,
   ParamOption,
   NumberOption,
   NumbersOption,
@@ -15,10 +14,13 @@ import type {
   HelpOption,
   BooleanOption,
   VersionOption,
+  OptionDataType,
+  RequiresVal,
+  ValuedOption,
 } from './options';
 
 import { HelpFormatter, doubleBreak } from './formatter';
-import { isArray, isNiladic, isValued } from './options';
+import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic, isValued } from './options';
 import { tf } from './styles';
 
 export { ArgumentParser };
@@ -59,9 +61,9 @@ class ArgumentParser<T extends Options> {
           const marker = typeof option.positional === 'string' ? option.positional : undefined;
           this.positional = { key, name, option, marker };
         }
-        this.checkEnumsSanity(key, option);
-        this.checkValueSanity(key, option, 'default');
-        this.checkValueSanity(key, option, 'example');
+        ArgumentParser.checkEnumsSanity(key, option);
+        ArgumentParser.checkValueSanity(key, option, option.default);
+        ArgumentParser.checkValueSanity(key, option, option.example);
       }
       if (option.requires) {
         this.checkRequiresSanity(key, option.requires);
@@ -111,7 +113,7 @@ class ArgumentParser<T extends Options> {
    * @param key The option key
    * @param option The option definition
    */
-  private checkEnumsSanity(key: string, option: ParamOption) {
+  private static checkEnumsSanity(key: string, option: ParamOption) {
     if ('enums' in option && option.enums) {
       if (!option.enums.length) {
         throw Error(`Option '${key}' has zero enum values.`);
@@ -128,27 +130,51 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Checks the sanity of the option's default or example value.
+   * Checks the sanity of the option's value (default, example or required).
    * @param key The option key
    * @param option The option definition
-   * @param prop The option property
+   * @param value The option value
    */
-  private checkValueSanity(key: string, option: ParamOption, prop: 'default' | 'example') {
-    const test = {} as OptionValues<T>;
-    if (isArray(option)) {
-      const value = option[prop];
-      if (value !== undefined) {
-        if (!value.length) {
-          throw Error(`Option '${key}' has zero ${prop} values.`);
-        }
-        for (const element of value) {
-          this.parseValue(test, key, option, key, element.toString());
-        }
+  private static checkValueSanity(key: string, option: ParamOption, value: OptionDataType) {
+    if (value === undefined) {
+      return;
+    }
+    function assert(condition: unknown, type: string): asserts condition {
+      if (!condition) {
+        throw Error(
+          `Option '${key}' has incompatible value '${value}'. Should be of type '${type}'.`,
+        );
       }
-    } else {
-      const value = option[prop];
-      if (value !== undefined) {
-        this.parseValue(test, key, option, key, value.toString());
+    }
+    switch (option.type) {
+      case 'boolean':
+        assert(typeof value == 'boolean', 'boolean');
+        break;
+      case 'string':
+        assert(typeof value === 'string', 'string');
+        this.normalizeString(option, key, value);
+        break;
+      case 'number':
+        assert(typeof value === 'number', 'number');
+        this.normalizeNumber(option, key, value);
+        break;
+      case 'strings':
+        assert(typeof value === 'object', 'string[]');
+        for (const element of value) {
+          assert(typeof element === 'string', 'string[]');
+          this.normalizeString(option, key, element);
+        }
+        break;
+      case 'numbers':
+        assert(typeof value === 'object', 'number[]');
+        for (const element of value) {
+          assert(typeof element === 'number', 'number[]');
+          this.normalizeNumber(option, key, element);
+        }
+        break;
+      default: {
+        const _exhaustiveCheck: never = option;
+        return _exhaustiveCheck;
       }
     }
   }
@@ -161,32 +187,42 @@ class ArgumentParser<T extends Options> {
   private checkRequiresSanity(key: string, requires: Requires) {
     if (typeof requires === 'string') {
       this.checkRequirementSanity(key, requires);
-    } else {
+    } else if (requires instanceof RequiresNot) {
+      this.checkRequiresSanity(key, requires.item);
+    } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
       for (const item of requires.items) {
         this.checkRequiresSanity(key, item);
+      }
+    } else {
+      for (const requiredKey in requires) {
+        this.checkRequirementSanity(key, requiredKey, requires[requiredKey]);
       }
     }
   }
 
   /**
    * Checks the sanity of an option requirement.
-   * @param key The option key
-   * @param requirement The requirement specification
+   * @param key The requiring option key
+   * @param requiredKey The required option key
+   * @param requiredValue The required value, if any
    */
-  private checkRequirementSanity(key: string, requirement: string) {
-    const [requiredKey, requiredValue] = requirement.split(/=(.*)/, 2);
+  private checkRequirementSanity(
+    key: string,
+    requiredKey: string,
+    requiredValue?: RequiresVal[string],
+  ) {
     if (requiredKey === key) {
       throw Error(`Option '${key}' requires itself.`);
     }
     if (!(requiredKey in this.options)) {
       throw Error(`Unknown required option '${requiredKey}'.`);
     }
-    if (requiredValue) {
+    if (requiredValue !== undefined && requiredValue !== null) {
       const option = this.options[requiredKey];
       if (isNiladic(option)) {
         throw Error(`Required option '${requiredKey}' does not accept values.`);
       }
-      this.parseValue({} as OptionValues<T>, requiredKey, option, requiredKey, requiredValue);
+      ArgumentParser.checkValueSanity(requiredKey, option, requiredValue);
     }
   }
 
@@ -226,31 +262,40 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Reset option values to their default value.
+   * Reset options' values to their default value.
    * @param values The options' values
    */
   private resetValues(values: OptionValues<T>) {
     for (const key in this.options) {
       const option = this.options[key];
       if (isValued(option)) {
-        if (option.default === undefined) {
-          (values as Record<string, undefined>)[key] = undefined;
-        } else if (option.type === 'string') {
-          (values as Record<string, string>)[key] = this.normalizeString(option, option.default);
-        } else if (option.type === 'number') {
-          (values as Record<string, number>)[key] = this.normalizeNumber(option, option.default);
-        } else if (option.type === 'strings') {
-          (values as Record<string, Array<string>>)[key] = option.default.map((val) =>
-            this.normalizeString(option, val),
-          );
-        } else if (option.type === 'numbers') {
-          (values as Record<string, Array<number>>)[key] = option.default.map((val) =>
-            this.normalizeNumber(option, val),
-          );
-        } else {
-          (values as Record<string, boolean>)[key] = option.default;
-        }
+        const value = ArgumentParser.getDefaultValue(key, option);
+        (values as Record<string, typeof value>)[key] = value;
       }
+    }
+  }
+
+  /**
+   * Gets the normalized default value of an option.
+   * @param name The option name
+   * @param option The option definition
+   * @returns The default value
+   */
+  private static getDefaultValue(name: string, option: ValuedOption): OptionDataType {
+    if (option.default === undefined) {
+      return undefined;
+    }
+    switch (option.type) {
+      case 'string':
+        return this.normalizeString(option, name, option.default);
+      case 'number':
+        return this.normalizeNumber(option, name, option.default);
+      case 'strings':
+        return this.normalizeStrings(option, name, option.default);
+      case 'numbers':
+        return this.normalizeNumbers(option, name, option.default);
+      default:
+        return option.default;
     }
   }
 
@@ -264,7 +309,8 @@ class ArgumentParser<T extends Options> {
     const searchName = name.replace(/\p{P}/gu, '').toLowerCase();
     return [...this.nameToKey.keys()]
       .reduce((acc, name) => {
-        const sim = gestaltPatternMatching(searchName, name.replace(/\p{P}/gu, '').toLowerCase());
+        const candidateName = name.replace(/\p{P}/gu, '').toLowerCase();
+        const sim = ArgumentParser.gestaltPatternMatching(searchName, candidateName);
         if (sim >= threshold) {
           acc.push([name, sim]);
         }
@@ -353,7 +399,7 @@ class ArgumentParser<T extends Options> {
           } else if (option.version) {
             throw option.version;
           } else {
-            const promise = this.handleVersionOption(option);
+            const promise = ArgumentParser.handleVersionOption(option);
             promises.push(promise);
             return Promise.all(promises);
           }
@@ -400,7 +446,7 @@ class ArgumentParser<T extends Options> {
    * Handles the special "version" option and never returns.
    * @param option The option definition
    */
-  private async handleVersionOption(option: VersionOption): Promise<never> {
+  private static async handleVersionOption(option: VersionOption): Promise<never> {
     function assert(_condition: unknown): asserts _condition {}
     assert(option.resolve);
     const { promises } = await import('fs');
@@ -438,7 +484,7 @@ class ArgumentParser<T extends Options> {
       const option = this.options[key];
       if (option.requires) {
         const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-        const error = this.checkRequires(values, option.requires, keys);
+        const error = this.checkRequires(values, keys, option.requires);
         if (error) {
           throw Error(`Option '${name}' requires ${error}.`);
         }
@@ -449,93 +495,257 @@ class ArgumentParser<T extends Options> {
   /**
    * Checks the requirements of an option that was specified.
    * @param values The options' values
-   * @param requires The option requirements
    * @param keys The set of specified option keys
+   * @param requires The option requirements
    * @returns An error reason or null if no error
    */
   private checkRequires(
     values: OptionValues<T>,
-    requires: Requires,
     keys: Set<keyof T>,
+    requires: Requires,
+    negate = false,
   ): string | null {
     if (typeof requires === 'string') {
-      return this.checkRequirement(values, requires, keys);
+      return this.checkRequirement(values, keys, negate, requires);
     }
-    if (requires.op === 'and') {
-      for (const item of requires.items) {
-        const error = this.checkRequires(values, item, keys);
-        if (error) {
+    if (requires instanceof RequiresNot) {
+      return this.checkRequires(values, keys, requires.item, !negate);
+    }
+    if (requires instanceof RequiresAll) {
+      return negate
+        ? this.checkRequiresExp(values, keys, requires.items, negate)
+        : this.checkRequiresExp(values, keys, requires.items, negate, null);
+    }
+    if (requires instanceof RequiresOne) {
+      return negate
+        ? this.checkRequiresExp(values, keys, requires.items, negate, null)
+        : this.checkRequiresExp(values, keys, requires.items, negate);
+    }
+    return negate
+      ? this.checkRequiresVal(values, keys, requires, negate)
+      : this.checkRequiresVal(values, keys, requires, negate, null);
+  }
+
+  /**
+   * Checks the items of a requirement expression.
+   * @param values The options' values
+   * @param keys The set of specified option keys
+   * @param items The list of requirements
+   * @param negate True if the requirement should be negated
+   * @param errors If null, return on the first error; else return on the first success
+   * @returns An error reason or null if no error
+   */
+  private checkRequiresExp(
+    values: OptionValues<T>,
+    keys: Set<keyof T>,
+    items: Array<Requires>,
+    negate: boolean,
+    errors: null | Set<string> = new Set<string>(),
+  ): string | null {
+    for (const item of items) {
+      const error = this.checkRequires(values, keys, item, negate);
+      if (error) {
+        if (!errors) {
           return error;
         }
-      }
-      return null;
-    }
-    const errors = new Set<string>();
-    for (const item of requires.items) {
-      const error = this.checkRequires(values, item, keys);
-      if (!error) {
+        errors.add(error);
+      } else if (errors) {
         return null;
       }
-      errors.add(error);
     }
-    return `(${[...errors].join(' or ')})`;
+    if (!errors) {
+      return null;
+    }
+    const error = [...errors].join(' or ');
+    return errors.size == 1 ? error : `(${error})`;
+  }
+
+  /**
+   * Checks the entries of a map of key-value pairs.
+   * @param values The options' values
+   * @param keys The set of specified option keys
+   * @param items The list of requirements
+   * @param negate True if the requirement should be negated
+   * @param errors If null, return on the first error; else return on the first success
+   * @returns An error reason or null if no error
+   */
+  private checkRequiresVal(
+    values: OptionValues<T>,
+    keys: Set<keyof T>,
+    requires: RequiresVal,
+    negate: boolean,
+    errors: null | Set<string> = new Set<string>(),
+  ): string | null {
+    for (const requiredKey in requires) {
+      const error = this.checkRequirement(values, keys, negate, requiredKey, requires[requiredKey]);
+      if (error) {
+        if (!errors) {
+          return error;
+        }
+        errors.add(error);
+      } else if (errors) {
+        return null;
+      }
+    }
+    if (!errors) {
+      return null;
+    }
+    const error = [...errors].join(' or ');
+    return errors.size == 1 ? error : `(${error})`;
   }
 
   /**
    * Checks if a required option was specified with correct values.
    * @param values The options' values
-   * @param requirement The requirement specification
-   * @param keys The set of specified option keys
+   * @param specifiedKeys The set of specified option keys
+   * @param negate True if the requirement should be negated
+   * @param requiredKey The required key
+   * @param requiredValue The required value, if any
    * @returns An error reason or null if no error
    */
   private checkRequirement(
     values: OptionValues<T>,
-    requirement: string,
-    keys: Set<keyof T>,
+    specifiedKeys: Set<keyof T>,
+    negate: boolean,
+    requiredKey: string,
+    requiredValue?: RequiresVal[string],
   ): string | null {
-    const [requiredKey, requiredValue] = requirement.split(/=(.*)/, 2);
-    const requiredOpt = this.options[requiredKey];
-    const name = requiredOpt.preferredName ?? requiredOpt.names.find((name) => name) ?? 'unnamed';
-    let error = `'${name}'`;
-    if (isNiladic(requiredOpt)) {
-      return keys.has(requiredKey) ? null : error;
+    const option = this.options[requiredKey];
+    const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+    const required = requiredValue !== null;
+    if (isNiladic(option)) {
+      const specified = specifiedKeys.has(requiredKey);
+      return ArgumentParser.checkRequiredPresence(name, negate, specified, required);
     }
     const actualValue = values[requiredKey as keyof OptionValues<T>];
-    if (actualValue === undefined) {
-      return error;
+    const specified = actualValue !== undefined;
+    if (!specified || !required || requiredValue === undefined) {
+      return ArgumentParser.checkRequiredPresence(name, negate, specified, required);
     }
-    if (requiredValue !== undefined) {
-      error += `='${requiredValue}'`;
-      const test = {} as OptionValues<T>;
-      this.parseValue(test, requiredKey, requiredOpt, '', requiredValue);
-      const expectedValue = test[requiredKey as keyof OptionValues<T>];
-      if (typeof actualValue === 'object' && typeof expectedValue === 'object') {
-        if (actualValue.length !== expectedValue.length) {
-          return error;
+    return ArgumentParser.checkRequiredValue(name, option, negate, requiredValue, actualValue);
+  }
+
+  /**
+   * Checks an option's required presence or absence.
+   * @param name The option name
+   * @param negate True if the requirement should be negated
+   * @param specified True if the option was specified
+   * @param required True if the option is required
+   * @returns An error reason or null if no error
+   */
+  private static checkRequiredPresence(
+    name: string,
+    negate: boolean,
+    specified: boolean,
+    required: boolean,
+  ): string | null {
+    return specified
+      ? required == negate
+        ? `no ${name}`
+        : null
+      : required || negate
+        ? name
+        : null;
+  }
+
+  /**
+   * Checks an option's required value against a specified value.
+   * @param name The option name
+   * @param option The option definition
+   * @param negate True if the requirement should be negated
+   * @param requiredValue The required value
+   * @param actualValue The specified value
+   * @returns An error reason or null if no error
+   */
+  private static checkRequiredValue(
+    name: string,
+    option: ParamOption,
+    negate: boolean,
+    requiredValue: Exclude<RequiresVal[string], undefined | null>,
+    actualValue: Exclude<RequiresVal[string], undefined | null>,
+  ): string | null {
+    function assert(_condition: unknown): asserts _condition {}
+    switch (option.type) {
+      case 'boolean': {
+        assert(typeof actualValue == 'boolean' && typeof requiredValue == 'boolean');
+        if (actualValue !== requiredValue) {
+          return negate ? null : `${name} = ${requiredValue}`;
         }
-        if ('unique' in requiredOpt && requiredOpt.unique) {
-          const actualSet = new Set<string | number>(actualValue);
-          const expectedSet = new Set<string | number>(expectedValue);
-          for (const actual of actualSet) {
+        return negate ? `${name} != ${requiredValue}` : null;
+      }
+      case 'string': {
+        assert(typeof actualValue == 'string' && typeof requiredValue === 'string');
+        const expected = this.normalizeString(option, name, requiredValue);
+        if (actualValue !== expected) {
+          return negate ? null : `${name} = '${expected}'`;
+        }
+        return negate ? `${name} != '${expected}'` : null;
+      }
+      case 'number': {
+        assert(typeof actualValue == 'number' && typeof requiredValue === 'number');
+        const expected = this.normalizeNumber(option, name, requiredValue);
+        if (actualValue !== expected) {
+          return negate ? null : `${name} = ${expected}`;
+        }
+        return negate ? `${name} != ${expected}` : null;
+      }
+      case 'strings': {
+        assert(typeof actualValue == 'object' && typeof requiredValue === 'object');
+        const expected = this.normalizeStrings(option, name, requiredValue as Array<string>);
+        const errorVal = expected.map((el) => `'${el}'`).join(',');
+        if (actualValue.length !== expected.length) {
+          return negate ? null : `${name} = [${errorVal}]`;
+        }
+        if ('unique' in option && option.unique) {
+          const expectedSet = new Set(expected);
+          for (const actual of actualValue as Array<string>) {
             if (!expectedSet.delete(actual)) {
-              return error;
+              return negate ? null : `${name} = [${errorVal}]`;
             }
           }
           if (expectedSet.size > 0) {
-            return error;
+            return negate ? null : `${name} = [${errorVal}]`;
           }
         } else {
           for (let i = 0; i < actualValue.length; ++i) {
-            if (actualValue[i] !== expectedValue[i]) {
-              return error;
+            if (actualValue[i] !== requiredValue[i]) {
+              return negate ? null : `${name} = [${errorVal}]`;
             }
           }
         }
-      } else if (actualValue !== expectedValue) {
-        return error;
+        return negate ? `${name} != [${errorVal}]` : null;
+      }
+      case 'numbers': {
+        assert(typeof actualValue == 'object' && typeof requiredValue === 'object');
+        const expected = this.normalizeNumbers(option, name, requiredValue as Array<number>);
+        const errorVal = expected.map((el) => el.toString()).join(',');
+        if (actualValue.length !== expected.length) {
+          return negate ? null : `${name} = [${errorVal}]`;
+        }
+        if ('unique' in option && option.unique) {
+          const expectedSet = new Set(expected);
+          for (const actual of actualValue as Array<number>) {
+            if (!expectedSet.delete(actual)) {
+              return negate ? null : `${name} = [${errorVal}]`;
+            }
+          }
+          if (expectedSet.size > 0) {
+            return negate ? null : `${name} = [${errorVal}]`;
+          }
+        } else {
+          for (let i = 0; i < actualValue.length; ++i) {
+            if (actualValue[i] !== requiredValue[i]) {
+              return negate ? null : `${name} = [${errorVal}]`;
+            }
+          }
+        }
+        return negate ? `${name} != [${errorVal}]` : null;
+      }
+      default: {
+        const _exhaustiveCheck: never = option;
+        return _exhaustiveCheck;
       }
     }
-    return null;
   }
 
   /**
@@ -553,27 +763,33 @@ class ArgumentParser<T extends Options> {
     name: string,
     value: string,
   ) {
+    let parsed;
     switch (option.type) {
       case 'boolean':
-        (values as Record<string, boolean>)[key as string] = this.parseBoolean(option, name, value);
+        parsed = ArgumentParser.parseBoolean(option, name, value);
         break;
       case 'string':
-        (values as Record<string, string>)[key as string] = this.parseString(option, name, value);
+        parsed = ArgumentParser.parseString(option, name, value);
         break;
       case 'number':
-        (values as Record<string, number>)[key as string] = this.parseNumber(option, name, value);
+        parsed = ArgumentParser.parseNumber(option, name, value);
         break;
-      case 'strings':
-        this.setArrayValue(values, key, option, name, this.parseStrings(option, name, value));
+      case 'strings': {
+        const previous = (values as Record<string, Array<string> | undefined>)[key as string];
+        parsed = ArgumentParser.parseStrings(option, name, value, previous);
         break;
-      case 'numbers':
-        this.setArrayValue(values, key, option, name, this.parseNumbers(option, name, value));
+      }
+      case 'numbers': {
+        const previous = (values as Record<string, Array<number> | undefined>)[key as string];
+        parsed = ArgumentParser.parseNumbers(option, name, value, previous);
         break;
+      }
       default: {
         const _exhaustiveCheck: never = option;
         return _exhaustiveCheck;
       }
     }
+    (values as Record<string, typeof parsed>)[key as string] = parsed;
   }
 
   /**
@@ -582,7 +798,7 @@ class ArgumentParser<T extends Options> {
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private parseBoolean(option: BooleanOption, name: string, value: string): boolean {
+  private static parseBoolean(option: BooleanOption, name: string, value: string): boolean {
     return option.parse ? option.parse(name, value) : !value.trim().match(/^([0]*|false)$/i);
   }
 
@@ -592,11 +808,9 @@ class ArgumentParser<T extends Options> {
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private parseString(option: StringOption, name: string, value: string): string {
+  private static parseString(option: StringOption, name: string, value: string): string {
     const string = option.parse ? option.parse(name, value) : value;
-    const result = this.normalizeString(option, string);
-    this.validateString(option, name, result);
-    return result;
+    return this.normalizeString(option, name, string);
   }
 
   /**
@@ -605,11 +819,9 @@ class ArgumentParser<T extends Options> {
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private parseNumber(option: NumberOption, name: string, value: string): number {
+  private static parseNumber(option: NumberOption, name: string, value: string): number {
     const number = option.parse ? option.parse(name, value) : Number(value);
-    const result = this.normalizeNumber(option, number);
-    this.validateNumber(option, name, result);
-    return result;
+    return this.normalizeNumber(option, name, number);
   }
 
   /**
@@ -617,16 +829,20 @@ class ArgumentParser<T extends Options> {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @param previous The previous value, if any
    */
-  private parseStrings(option: StringsOption, name: string, value: string): Array<string> {
+  private static parseStrings(
+    option: StringsOption,
+    name: string,
+    value: string,
+    previous?: Array<string>,
+  ): Array<string> {
     const strings = option.parse
       ? option.parse(name, value)
       : option.separator
         ? value.split(option.separator)
         : [value];
-    const result = strings.map((val) => this.normalizeString(option, val));
-    result.forEach((val) => this.validateString(option, name, val));
-    return result;
+    return this.normalizeStrings(option, name, strings, previous);
   }
 
   /**
@@ -634,40 +850,39 @@ class ArgumentParser<T extends Options> {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @param previous The previous value, if any
    */
-  private parseNumbers(option: NumbersOption, name: string, value: string): Array<number> {
+  private static parseNumbers(
+    option: NumbersOption,
+    name: string,
+    value: string,
+    previous?: Array<number>,
+  ): Array<number> {
     const numbers = option.parse
       ? option.parse(name, value)
       : option.separator
         ? value.split(option.separator).map((val) => Number(val))
         : [Number(value)];
-    const result = numbers.map((val) => this.normalizeNumber(option, val));
-    result.forEach((val) => this.validateNumber(option, name, val));
-    return result;
+    return this.normalizeNumbers(option, name, numbers, previous);
   }
 
   /**
-   * Normalizes the value of a string option.
+   * Normalizes the value of a string option and checks its validity against any constraint.
    * @param option The option definition
+   * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private normalizeString(option: StringOption | StringsOption, value: string): string {
+  private static normalizeString(
+    option: StringOption | StringsOption,
+    name: string,
+    value: string,
+  ): string {
     if (option.trim) {
       value = value.trim();
     }
     if (option.case) {
       value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
     }
-    return value;
-  }
-
-  /**
-   * Validates the value of a string option against any constraint.
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   */
-  private validateString(option: StringOption | StringsOption, name: string, value: string) {
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`,
@@ -679,14 +894,20 @@ class ArgumentParser<T extends Options> {
           `Value must match the regex ${String(option.regex)}.`,
       );
     }
+    return value;
   }
 
   /**
-   * Normalizes and checks the value of a number option.
+   * Normalizes the value of a number option and checks its validity against any constraint.
    * @param option The option definition
+   * @param name The option name (as specified on the command-line)
    * @param value The option value
    */
-  private normalizeNumber(option: NumberOption | NumbersOption, value: number): number {
+  private static normalizeNumber(
+    option: NumberOption | NumbersOption,
+    name: string,
+    value: number,
+  ): number {
     switch (option.round) {
       case 'trunc':
         value = Math.trunc(value);
@@ -701,16 +922,6 @@ class ArgumentParser<T extends Options> {
         value = Math.round(value);
         break;
     }
-    return value;
-  }
-
-  /**
-   * Validates the value of a number option against any constraint.
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   */
-  private validateNumber(option: NumberOption | NumbersOption, name: string, value: number) {
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
       throw Error(
         `Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`,
@@ -721,29 +932,26 @@ class ArgumentParser<T extends Options> {
         `Invalid parameter to '${name}': ${value}. Value must be in the range [${option.range}].`,
       );
     }
+    return value;
   }
 
   /**
-   * Sets the value of an array option.
-   * @param values The options' values to parse into
-   * @param key The option key
+   * Normalizes the value of a strings option and checks its validity against any constraint.
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @param previous The previous value, if any
    */
-  private setArrayValue(
-    values: OptionValues<T>,
-    key: keyof T,
-    option: ArrayOption,
+  private static normalizeStrings(
+    option: StringsOption,
     name: string,
-    value: Array<string | number>,
-  ) {
+    value: Array<string>,
+    previous: Array<string> = [],
+  ): Array<string> {
+    value = value.map((val) => this.normalizeString(option, name, val));
     if (option.append || !option.separator) {
-      const previous = (values as Record<string, typeof value | undefined>)[key as string];
-      if (previous) {
-        previous.push(...value);
-        value = previous;
-      }
+      previous.push(...value);
+      value = previous;
     }
     if (option.unique) {
       value = [...new Set(value)];
@@ -754,69 +962,96 @@ class ArgumentParser<T extends Options> {
           `Should have at most ${option.limit}.`,
       );
     }
-    (values as Record<string, typeof value>)[key as string] = value;
+    return value;
   }
-}
 
-//--------------------------------------------------------------------------------------------------
-// Functions
-//--------------------------------------------------------------------------------------------------
-/**
- * The longest strings that are substrings of both strings.
- * @param S The source string
- * @param T The target string
- * @returns The length of the largest substrings and their indices in both strings
- * @see https://www.wikiwand.com/en/Longest_common_substring
- */
-function longestCommonSubstrings(S: string, T: string): [number, Array<[number, number]>] {
-  const dp = new Array<number>(T.length);
-  const indices = new Array<[number, number]>();
-  let z = 0;
-  for (let i = 0, last = 0; i < S.length; ++i) {
-    for (let j = 0; j < T.length; ++j) {
-      if (S[i] == T[j]) {
-        const a = i == 0 || j == 0 ? 1 : last + 1;
-        if (a >= z) {
-          if (a > z) {
-            z = a;
-            indices.length = 0;
+  /**
+   * Normalizes the value of a numbers option and checks its validity against any constraint.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   * @param previous The previous value, if any
+   */
+  private static normalizeNumbers(
+    option: NumbersOption,
+    name: string,
+    value: Array<number>,
+    previous: Array<number> = [],
+  ): Array<number> {
+    value = value.map((val) => this.normalizeNumber(option, name, val));
+    if (option.append || !option.separator) {
+      previous.push(...value);
+      value = previous;
+    }
+    if (option.unique) {
+      value = [...new Set(value)];
+    }
+    if (option.limit !== undefined && value.length > option.limit) {
+      throw Error(
+        `Option '${name}' has too many values (${value.length}). ` +
+          `Should have at most ${option.limit}.`,
+      );
+    }
+    return value;
+  }
+
+  /**
+   * The longest strings that are substrings of both strings.
+   * @param S The source string
+   * @param T The target string
+   * @returns The length of the largest substrings and their indices in both strings
+   * @see https://www.wikiwand.com/en/Longest_common_substring
+   */
+  private static longestCommonSubstrings(S: string, T: string): [number, Array<[number, number]>] {
+    const dp = new Array<number>(T.length);
+    const indices = new Array<[number, number]>();
+    let z = 0;
+    for (let i = 0, last = 0; i < S.length; ++i) {
+      for (let j = 0; j < T.length; ++j) {
+        if (S[i] == T[j]) {
+          const a = i == 0 || j == 0 ? 1 : last + 1;
+          if (a >= z) {
+            if (a > z) {
+              z = a;
+              indices.length = 0;
+            }
+            indices.push([i - z + 1, j - z + 1]);
           }
-          indices.push([i - z + 1, j - z + 1]);
+          last = dp[j];
+          dp[j] = a;
+        } else {
+          last = dp[j];
+          dp[j] = 0;
         }
-        last = dp[j];
-        dp[j] = a;
-      } else {
-        last = dp[j];
-        dp[j] = 0;
       }
     }
+    return [z, indices];
   }
-  return [z, indices];
-}
 
-/**
- * Gets the maximum number of matching characters of two strings, which are defined as some longest
- * common substring plus (recursively) the matching characters on both sides of it.
- * @param S The source string
- * @param T The target string
- * @returns The number of matching characters
- */
-function matchingCharacters(S: string, T: string): number {
-  const [z, indices] = longestCommonSubstrings(S, T);
-  return indices.reduce((acc, [i, j]) => {
-    const l = matchingCharacters(S.slice(0, i), T.slice(0, j));
-    const r = matchingCharacters(S.slice(i + z), T.slice(j + z));
-    return Math.max(acc, z + l + r);
-  }, 0);
-}
+  /**
+   * Gets the maximum number of matching characters of two strings, which are defined as some longest
+   * common substring plus (recursively) the matching characters on both sides of it.
+   * @param S The source string
+   * @param T The target string
+   * @returns The number of matching characters
+   */
+  private static matchingCharacters(S: string, T: string): number {
+    const [z, indices] = this.longestCommonSubstrings(S, T);
+    return indices.reduce((acc, [i, j]) => {
+      const l = this.matchingCharacters(S.slice(0, i), T.slice(0, j));
+      const r = this.matchingCharacters(S.slice(i + z), T.slice(j + z));
+      return Math.max(acc, z + l + r);
+    }, 0);
+  }
 
-/**
- * Gets the similarity of two strings based on the Gestalt algorithm.
- * @param S The source string
- * @param T The target string
- * @returns The similarity between the two strings
- * @see https://www.wikiwand.com/en/Gestalt_pattern_matching
- */
-function gestaltPatternMatching(S: string, T: string): number {
-  return (2 * matchingCharacters(S, T)) / (S.length + T.length);
+  /**
+   * Gets the similarity of two strings based on the Gestalt algorithm.
+   * @param S The source string
+   * @param T The target string
+   * @returns The similarity between the two strings
+   * @see https://www.wikiwand.com/en/Gestalt_pattern_matching
+   */
+  private static gestaltPatternMatching(S: string, T: string): number {
+    return (2 * this.matchingCharacters(S, T)) / (S.length + T.length);
+  }
 }

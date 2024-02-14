@@ -85,7 +85,7 @@ export default {
     names: ['-ss', '--strings'],
     desc: 'A strings option',
     group: 'String',
-    regex: /^\w+$/,
+    regex: /^[\w-]+$/,
     default: ['one', 'two'],
     separator: ',',
     trim: true,

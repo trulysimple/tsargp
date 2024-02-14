@@ -140,7 +140,7 @@ describe('HelpFormatter', () => {
             type: 'flag',
             names: ['-f', '--flag'],
             desc: 'A flag option',
-            requires: 'required=abc',
+            requires: { required: 'abc' },
           },
           required: {
             type: 'string',
@@ -157,7 +157,7 @@ describe('HelpFormatter', () => {
             type: 'flag',
             names: ['-f', '--flag'],
             desc: 'A flag option',
-            requires: req.and('required1', req.or('required2=1', 'required2=2')),
+            requires: req.and('required1', req.or({ required2: 1 }, req.not({ required3: '2' }))),
           },
           required1: {
             type: 'boolean',
@@ -167,10 +167,14 @@ describe('HelpFormatter', () => {
             type: 'number',
             names: ['-req2', '--req2'],
           },
+          required3: {
+            type: 'string',
+            names: ['-req3', '--req3'],
+          },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-f.*,.+--flag.+A flag option\..+Requires.+\(.+-req1.+and.+\(.+-req2.+=.+'1'.+or.+-req2.+=.+'2'.+\)\)\./s,
+          /-f.*,.+--flag.+A flag option\..+Requires.+\(.+-req1.+and \(.+-req2.+=.+1.+or.+-req3.+!=.+'2'.+\)\)\./s,
         );
       });
 

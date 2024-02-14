@@ -28,10 +28,11 @@ export type {
   ParamOption,
   ValuedOption,
   Requires,
-  RequireExp,
+  RequiresExp,
+  RequiresVal,
 };
 
-export { req, isNiladic, isArray, isValued };
+export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -43,19 +44,28 @@ const req = {
   /**
    * Creates a requirement expression that is satisfied only when all items are satisfied.
    * @param items The requirement items
-   * @returns The combined requirement
+   * @returns The requirement expression
    */
-  and(...items: Array<Requires>): RequireExp {
-    return { items, op: 'and' };
+  and(...items: Array<Requires>): RequiresAll {
+    return new RequiresAll(items);
   },
 
   /**
    * Creates a requirement expression that is satisfied when at least one item is satisfied.
    * @param items The requirement items
-   * @returns The combined requirement
+   * @returns The requirement expression
    */
-  or(...items: Array<Requires>): RequireExp {
-    return { items, op: 'or' };
+  or(...items: Array<Requires>): RequiresOne {
+    return new RequiresOne(items);
+  },
+
+  /**
+   * Creates a requirement expression that is satisfied when the item is not satisfied.
+   * @param item The requirement item
+   * @returns The requirement expression
+   */
+  not(item: Requires): RequiresNot {
+    return new RequiresNot(item);
   },
 } as const;
 
@@ -81,23 +91,46 @@ type OptionStyles = {
 };
 
 /**
- * A requirement expression.
+ * A requirement expression that is satisfied only when all items are satisfied.
  */
-type RequireExp = {
-  /**
-   * The list of requirements.
-   */
-  readonly items: Array<Requires>;
-  /**
-   * The logical operator.
-   */
-  readonly op: 'and' | 'or';
-};
+class RequiresAll {
+  constructor(readonly items: Array<Requires>) {}
+}
 
 /**
- * An option requirement: can be a key-value pair or a requirement expression.
+ * A requirement expression that is satisfied when at least one item is satisfied.
  */
-type Requires = string | RequireExp;
+class RequiresOne {
+  constructor(readonly items: Array<Requires>) {}
+}
+
+/**
+ * A requirement expression that is satisfied when the item is not satisfied.
+ */
+class RequiresNot {
+  constructor(readonly item: Requires) {}
+}
+
+/**
+ * A requirement expression.
+ */
+type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
+
+/**
+ * A map of key-value pairs.
+ *
+ * Values can be `undefined` to indicate presence and `null` to indicate absence.
+ */
+type RequiresVal = { [key: string]: OptionDataType | null };
+
+/**
+ * An option requirement can be either:
+ *
+ * - an option key;
+ * - a map of option keys to required values; or
+ * - a requirement expression.
+ */
+type Requires = string | RequiresVal | RequiresExp;
 
 /**
  * A callback for function options.
@@ -469,7 +502,7 @@ type ArrayDataType<T extends Option, D> =
  * The data type of an option.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option> = T extends { type: 'flag' | 'boolean' }
+type OptionDataType<T extends Option = Option> = T extends { type: 'flag' | 'boolean' }
   ? DataType<T, boolean>
   : T extends { type: 'string' }
     ? DataType<T, string>

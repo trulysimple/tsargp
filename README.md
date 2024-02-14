@@ -7,7 +7,7 @@ A modern argument parser for TypeScript.
 - Zero-dependency
 - Fully declarative style
 - Compile-time type checking
-- Moderate footprint (~23KB minified)
+- Moderate footprint (~25KB minified)
 - Fully customizable help message formatting
 - Inline styles, text wrapping, paragraphs and lists
 - Wide range of display attributes from [SGR]

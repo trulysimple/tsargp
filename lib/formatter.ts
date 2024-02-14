@@ -1,10 +1,18 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, Requires, OptionStyles, ValuedOption } from './options';
+import type {
+  Option,
+  Options,
+  Requires,
+  OptionStyles,
+  ValuedOption,
+  OptionDataType,
+  RequiresVal,
+} from './options';
 import type { Style } from './styles';
 
-import { isArray, isNiladic } from './options';
+import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './options';
 import { fg, isStyle, StyledString, styleToString } from './styles';
 
 export type { HelpConfig };
@@ -477,7 +485,7 @@ class HelpFormatter {
       return result;
     }
     if (option.example !== undefined) {
-      this.formatValue(option, 'example', result);
+      this.formatValue(option, option.example, result);
     } else {
       const paramStyle = option.styles?.param
         ? styleToString(option.styles?.param)
@@ -748,7 +756,7 @@ class HelpFormatter {
   private formatDefault(option: Option, descStyle: string, result: StyledString) {
     if ('default' in option && option.default !== undefined) {
       result.style(descStyle).append('Defaults', 'to');
-      this.formatValue(option, 'default', result);
+      this.formatValue(option, option.default, result, descStyle);
       result.style(descStyle).append('.');
     }
   }
@@ -800,74 +808,170 @@ class HelpFormatter {
    * @param requires The option requirements
    * @param descStyle The description style
    * @param result The resulting string
+   * @param negate True if the requirement should be negated
    */
-  private formatRequiresRecursive(requires: Requires, descStyle: string, result: StyledString) {
+  private formatRequiresRecursive(
+    requires: Requires,
+    descStyle: string,
+    result: StyledString,
+    negate: boolean = false,
+  ) {
     if (typeof requires === 'string') {
-      const [key, value] = requires.split(/=(.*)/, 2);
-      const option = this.options[key];
+      const option = this.options[requires];
       const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-      result.style(this.styles.option).append(name);
-      if (value) {
-        result.style(descStyle).append('=');
-        result.style(this.styles.string).append(`'${value}'`);
+      if (negate) {
+        result.style(descStyle).append('no');
       }
+      result.style(this.styles.option).append(name);
+    } else if (requires instanceof RequiresNot) {
+      this.formatRequiresRecursive(requires.item, descStyle, result, !negate);
+    } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
+      this.formatRequiresExp(requires, descStyle, result, negate);
     } else {
+      this.formatRequiresVal(requires, descStyle, result, negate);
+    }
+  }
+
+  /**
+   * Formats a requirement expression to be included in the description.
+   * @param requires The requirement expression
+   * @param descStyle The description style
+   * @param result The resulting string
+   * @param negate True if the requirement should be negated
+   */
+  private formatRequiresExp(
+    requires: RequiresAll | RequiresOne,
+    descStyle: string,
+    result: StyledString,
+    negate: boolean,
+  ) {
+    const op = requires instanceof RequiresAll ? (negate ? 'or' : 'and') : negate ? 'and' : 'or';
+    if (requires.items.length > 1) {
       result.style(descStyle).append('(');
-      requires.items.forEach((item, i) => {
-        this.formatRequiresRecursive(item, descStyle, result);
-        if (i < requires.items.length - 1) {
-          result.style(descStyle).append(requires.op);
-        }
-      });
+    }
+    requires.items.forEach((item, i) => {
+      this.formatRequiresRecursive(item, descStyle, result, negate);
+      if (i < requires.items.length - 1) {
+        result.style(descStyle).append(op);
+      }
+    });
+    if (requires.items.length > 1) {
       result.style(descStyle).append(')');
+    }
+  }
+
+  /**
+   * Formats a map of key-value pairs to be included in the description.
+   * @param requires The requirement expression
+   * @param descStyle The description style
+   * @param result The resulting string
+   * @param negate True if the requirement should be negated
+   */
+  private formatRequiresVal(
+    requires: RequiresVal,
+    descStyle: string,
+    result: StyledString,
+    negate: boolean,
+  ) {
+    const entries = Object.entries(requires);
+    if (entries.length > 1) {
+      result.style(descStyle).append('(');
+    }
+    entries.forEach(([key, value], i) => {
+      this.formatRequiredValue(this.options[key], value, descStyle, result, negate);
+      if (i < entries.length - 1) {
+        result.style(descStyle).append('and');
+      }
+    });
+    if (entries.length > 1) {
+      result.style(descStyle).append(')');
+    }
+  }
+
+  /**
+   * Formats a map of key-value pairs to be included in the description.
+   * @param option The option definition
+   * @param value The option value
+   * @param descStyle The description style
+   * @param result The resulting string
+   * @param negate True if the requirement should be negated
+   */
+  private formatRequiredValue(
+    option: Option,
+    value: RequiresVal[string],
+    descStyle: string,
+    result: StyledString,
+    negate: boolean,
+  ) {
+    function assert(_condition: unknown): asserts _condition {}
+    const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+    if ((value === null && !negate) || (value === undefined && negate)) {
+      result.style(descStyle).append('no');
+    }
+    result.style(this.styles.option).append(name);
+    if (value !== null && value !== undefined) {
+      assert(!isNiladic(option));
+      result.style(descStyle).append(negate ? '!=' : '=');
+      this.formatValue(option, value, result, descStyle);
     }
   }
 
   /**
    * Formats a value from an option's property.
    * @param option The option definition
-   * @param prop The option property
+   * @param value The option value
    * @param result The resulting string
+   * @param descStyle The description style, if in the description
    */
-  private formatValue(option: ValuedOption, prop: 'default' | 'example', result: StyledString) {
+  private formatValue(
+    option: ValuedOption,
+    value: OptionDataType,
+    result: StyledString,
+    descStyle?: string,
+  ) {
+    if (value === undefined) {
+      return;
+    }
     function assert(_condition: unknown): asserts _condition {}
-    if (option.type === 'flag') {
-      assert(prop === 'default');
-      const value = option[prop];
-      assert(value !== undefined);
-      result.style(this.styles.boolean).append(`${value}`);
-    } else if (option.type === 'boolean') {
-      const value = option[prop];
-      assert(value !== undefined);
-      result.style(this.styles.boolean).append(`${value}`);
-    } else if (option.type === 'string') {
-      const value = option[prop];
-      assert(value !== undefined);
-      result.style(this.styles.string).append(`'${value}'`);
-    } else if (option.type === 'number') {
-      const value = option[prop];
-      assert(value !== undefined);
-      result.style(this.styles.number).append(value.toString());
-    } else if (option.separator) {
-      const value = option[prop];
-      assert(value !== undefined);
-      const values = value.map((value) => value.toString());
-      result.style(this.styles.string).append(`'${values.join(option.separator)}'`);
-    } else {
-      let values: Array<string>;
-      const value = option[prop];
-      assert(value !== undefined);
-      if (option.type === 'strings') {
-        values = value.map((value) => `'${value}'`);
-        result.style(this.styles.string);
-      } else {
-        values = value.map((value) => value.toString());
-        result.style(this.styles.number);
-      }
-      if (prop === 'example') {
-        result.append(values.join(' '));
-      } else {
-        result.append(...values);
+    switch (option.type) {
+      case 'flag':
+      case 'boolean':
+        assert(typeof value === 'boolean');
+        result.style(this.styles.boolean).append(value.toString());
+        break;
+      case 'string':
+        assert(typeof value === 'string');
+        result.style(this.styles.string).append(`'${value}'`);
+        break;
+      case 'number':
+        assert(typeof value === 'number');
+        result.style(this.styles.number).append(value.toString());
+        break;
+      case 'strings':
+      case 'numbers':
+        assert(typeof value === 'object');
+        if (option.separator) {
+          const values = value.map((element) => element.toString()).join(option.separator);
+          result.style(this.styles.string).append(`'${values}'`);
+        } else if (option.type === 'strings') {
+          if (descStyle) {
+            this.formatStrings(value as Array<string>, descStyle, result);
+          } else {
+            const values = value.map((element) => `'${element}'`);
+            result.style(this.styles.string).append(values.join(' '));
+          }
+        } else {
+          if (descStyle) {
+            this.formatNumbers(value as Array<number>, descStyle, result);
+          } else {
+            const values = value.map((element) => element.toString());
+            result.style(this.styles.number).append(values.join(' '));
+          }
+        }
+        break;
+      default: {
+        const _exhaustiveCheck: never = option;
+        return _exhaustiveCheck;
       }
     }
   }
@@ -1024,6 +1128,7 @@ function splitWords(text: string): Array<string> {
     para: /(?:[ \t]*\r?\n){2,}/,
     item: /\r?\n[ \t]*(-|\*|\d+\.) /,
     word: /\s+/,
+    // eslint-disable-next-line no-control-regex
     style: /((?:\x1b\[[\d;]+m)+)/,
   };
   const punctuation = '.,:;!?';
