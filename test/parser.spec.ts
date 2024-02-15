@@ -2234,7 +2234,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options).parse(['-ss', 'a,b', 'c'])).toThrowError(
-          `Unknown option 'c'. Did you forget to delimit values for '-ss'.`,
+          `Unknown option 'c'. Did you forget to delimit values for '-ss'?`,
         );
       });
 
@@ -2639,7 +2639,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options).parse(['-ns', '1,2', '3'])).toThrowError(
-          `Unknown option '3'. Did you forget to delimit values for '-ns'.`,
+          `Unknown option '3'. Did you forget to delimit values for '-ns'?`,
         );
       });
 

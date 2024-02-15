@@ -367,7 +367,7 @@ class ArgumentParser<T extends Options> {
         // either there's no positional option or the argument is not a positional marker
         const error = `Unknown option '${name}'.`;
         if (delimited) {
-          throw Error(`${error} Did you forget to delimit values for '${delimited}'.`);
+          throw Error(`${error} Did you forget to delimit values for '${delimited}'?`);
         }
         const similarNames = this.getSimilarNames(name);
         if (similarNames.length) {
