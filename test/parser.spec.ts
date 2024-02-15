@@ -2225,6 +2225,19 @@ describe('ArgumentParser', () => {
         );
       });
 
+      it('should throw an error with a suggestion for a delimited strings option', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            separator: ',',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-ss', 'a,b', 'c'])).toThrowError(
+          `Unknown option 'c'. Did you forget to delimit values for '-ss'.`,
+        );
+      });
+
       it('should throw an error on delimited strings option with too many values', () => {
         const options = {
           strings: {
@@ -2614,6 +2627,19 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         expect(() => new ArgumentParser(options).parse(['-ns'])).toThrowError(
           `Missing parameter to '-ns'.`,
+        );
+      });
+
+      it('should throw an error with a suggestion for a delimited numbers option', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            separator: ',',
+          },
+        } as const satisfies Options;
+        expect(() => new ArgumentParser(options).parse(['-ns', '1,2', '3'])).toThrowError(
+          `Unknown option '3'. Did you forget to delimit values for '-ns'.`,
         );
       });
 

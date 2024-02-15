@@ -334,7 +334,8 @@ class ArgumentParser<T extends Options> {
   ): Promise<Array<void>> {
     const promises = new Array<Promise<void>>();
     const specifiedKeys = new Set<keyof T>();
-    let multi: typeof this.positional;
+    let delimited: string | undefined;
+    let multivalued: typeof this.positional;
     for (let i = 0; i < args.length; ++i) {
       const arg = args[i];
       if (this.positional && arg === this.positional.marker) {
@@ -351,26 +352,31 @@ class ArgumentParser<T extends Options> {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = this.nameToKey.get(name);
       if (!key) {
-        if (!multi && this.positional && !this.positional.marker) {
+        if (!multivalued && this.positional && !this.positional.marker) {
           const option = this.positional.option;
           if (isArray(option) && (!option.append || !specifiedKeys.has(this.positional.key))) {
             (values as Record<string, []>)[this.positional.key as string] = [];
           }
           specifiedKeys.add(this.positional.key);
-          multi = this.positional;
+          multivalued = this.positional; // not necessarily multivalued, but that's fine
         }
-        if (multi) {
-          this.parseValue(values, multi.key, multi.option, multi.name, arg);
+        if (multivalued) {
+          this.parseValue(values, multivalued.key, multivalued.option, multivalued.name, arg);
           continue;
         }
         // either there's no positional option or the argument is not a positional marker
+        const error = `Unknown option '${name}'.`;
+        if (delimited) {
+          throw Error(`${error} Did you forget to delimit values for '${delimited}'.`);
+        }
         const similarNames = this.getSimilarNames(name);
         if (similarNames.length) {
-          throw Error(`Unknown option '${name}'. Similar names: ${similarNames.join(', ')}.`);
+          throw Error(`${error} Similar names: ${similarNames.join(', ')}.`);
         }
-        throw Error(`Unknown option '${name}'.`);
+        throw Error(error);
       }
-      multi = undefined;
+      delimited = undefined;
+      multivalued = undefined;
       const option = this.options[key];
       if (isNiladic(option)) {
         if (value !== undefined) {
@@ -405,16 +411,20 @@ class ArgumentParser<T extends Options> {
           }
         }
       } else {
-        if (isArray(option) && (!option.append || !specifiedKeys.has(key))) {
+        const isarray = isArray(option);
+        if (isarray && (!option.append || !specifiedKeys.has(key))) {
           (values as Record<string, []>)[key as string] = [];
         }
         if (value !== undefined) {
           this.parseValue(values, key, option, name, value);
-        } else if (isArray(option) && !option.separator) {
-          multi = { key, name, option };
+        } else if (isarray && !option.separator) {
+          multivalued = { key, name, option };
         } else if (i + 1 == args.length) {
           throw Error(`Missing parameter to '${name}'.`);
         } else {
+          if (isarray && option.separator) {
+            delimited = name; // save for recommendation
+          }
           this.parseValue(values, key, option, name, args[++i]);
         }
       }
