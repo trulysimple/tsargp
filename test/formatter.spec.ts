@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HelpFormatter, clearStyle, req, type Options, tf, fgColor } from '../lib';
+import { HelpFormatter, req, type Options, sgr, fg } from '../lib';
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
@@ -28,7 +28,7 @@ describe('HelpFormatter', () => {
           flag: {
             type: 'flag',
             names: ['-f', '--flag'],
-            desc: `A flag option with ${tf.bold}${fgColor('123')}inline styles${clearStyle}.`,
+            desc: `A flag option with ${sgr('1', fg('123'))}inline styles${sgr('0')}.`,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);

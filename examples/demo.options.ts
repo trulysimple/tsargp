@@ -1,4 +1,4 @@
-import { fg, tf, clearStyle, singleBreak, doubleBreak, req, type Options, fgColor } from 'tsargp';
+import { fg, sgr, singleBreak, doubleBreak, req, type Options } from 'tsargp';
 
 /**
  * The option definitions
@@ -9,12 +9,12 @@ export default {
     names: ['-h', '--help'],
     desc: 'A help option. Prints this help message',
     usage:
-      `${clearStyle}${tf.bold}Argument parser for TypeScript.${doubleBreak}` +
-      `  ${clearStyle}${fg.yellow}tsargp ${fg.default}--help ${fg.green}# print help${fg.default}`,
+      `${sgr('0', '1')}Argument parser for TypeScript.${doubleBreak}` +
+      `  ${sgr('0', '33')}tsargp ${sgr('39')}--help ${sgr('32')}# print help${sgr('39')}`,
     footer:
       `MIT License${singleBreak}` +
-      `Copyright (c) 2024 ${tf.italic}${tf.bold}${fg.cyan}TrulySimple${clearStyle}${doubleBreak}` +
-      `Report a bug: ${tf.faint}https://github.com/trulysimple/tsargp/issues${clearStyle}${singleBreak}`,
+      `Copyright (c) 2024 \x1b[3;1;36m TrulySimple${sgr('0')}${doubleBreak}` +
+      `Report a bug: ${sgr('2')}https://github.com/trulysimple/tsargp/issues${sgr('0')}${singleBreak}`,
   },
   version: {
     type: 'version',
@@ -29,8 +29,8 @@ export default {
     desc: 'A flag option',
     deprecated: 'some reason',
     styles: {
-      names: { clear: true, fg: fgColor('138'), tf: [tf.invert] },
-      desc: { clear: true, tf: [tf.strike, tf.italic] },
+      names: sgr('0', '7', fg('138')),
+      desc: sgr('0', '3', '9'),
     },
   },
   boolean: {
@@ -39,7 +39,7 @@ export default {
     desc: `A boolean option
     with:
     * a paragraph
-    - ${tf.underline}${fgColor('223')}inline styles${fg.default}${tf.noUnderline}
+    - ${sgr('4', fg('223'))}inline styles${sgr('39', '24')}
     1. and a list
     
     `,

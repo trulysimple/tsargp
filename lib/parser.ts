@@ -21,7 +21,7 @@ import type {
 
 import { HelpFormatter, doubleBreak } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic, isValued } from './options';
-import { tf } from './styles';
+import { sgr } from './styles';
 
 export { ArgumentParser };
 
@@ -440,11 +440,11 @@ class ArgumentParser<T extends Options> {
    * @param width The desired console width (to print the help message)
    */
   private handleHelpOption(option: HelpOption, width?: number): never {
-    const help = option.usage ? [option.usage] : [];
+    const help = option.usage ? [option.usage.replace(/\n/g, '\r\n')] : [];
     const groups = new HelpFormatter(this.options, option.format).formatGroups(width);
     for (const [group, message] of groups.entries()) {
       const header = group ? group + ' options' : 'Options';
-      help.push(`${tf.bold}${header}:`, message);
+      help.push(`${sgr('1')}${header}:`, message);
     }
     if (option.footer) {
       help.push(option.footer);

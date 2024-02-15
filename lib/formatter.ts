@@ -13,7 +13,7 @@ import type {
 import type { Style } from './styles';
 
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './options';
-import { fg, isStyle, StyledString, styleToString } from './styles';
+import { isEscape, sgr, StyledString } from './styles';
 
 export type { HelpConfig };
 export { HelpFormatter, HelpItem, singleBreak, doubleBreak };
@@ -38,21 +38,6 @@ type HelpIndent = {
   readonly param: string;
   readonly desc: string;
   readonly wrap: string;
-};
-
-/**
- * Precomputed styles.
- */
-type HelpStyles = {
-  readonly names: string;
-  readonly param: string;
-  readonly desc: string;
-  readonly regex: string;
-  readonly boolean: string;
-  readonly string: string;
-  readonly number: string;
-  readonly option: string;
-  readonly whitespace: string;
 };
 
 type Concrete<T> = {
@@ -232,15 +217,15 @@ const defaultConfig: MergedHelpConfig = {
     desc: 0,
   },
   styles: {
-    names: { clear: true },
-    param: { clear: true, fg: fg.brightBlack },
-    desc: { clear: true },
-    regex: { fg: fg.red },
-    boolean: { fg: fg.yellow },
-    string: { fg: fg.green },
-    number: { fg: fg.yellow },
-    option: { fg: fg.magenta },
-    whitespace: { clear: true },
+    names: sgr('0'),
+    param: sgr('0', '90'),
+    desc: sgr('0'),
+    regex: sgr('31'),
+    boolean: sgr('33'),
+    string: sgr('32'),
+    number: sgr('33'),
+    option: sgr('35'),
+    whitespace: sgr('0'),
   },
   items: [
     HelpItem.desc,
@@ -277,7 +262,6 @@ class HelpFormatter {
   private readonly paramWidth: number = 0;
   private readonly config: MergedHelpConfig;
   private readonly indent: HelpIndent;
-  private readonly styles: HelpStyles;
 
   /**
    * Keep this in-sync with {@link HelpItem}.
@@ -313,7 +297,6 @@ class HelpFormatter {
     config: HelpConfig = {},
   ) {
     this.config = HelpFormatter.mergeConfig(config);
-    this.styles = this.getStyles();
     this.nameWidths = this.getNameWidths();
     for (const key in options) {
       const option = options[key];
@@ -338,23 +321,6 @@ class HelpFormatter {
       styles: Object.assign({}, defaultConfig.styles, config.styles),
       hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
       items: config.items ?? defaultConfig.items,
-    };
-  }
-
-  /**
-   * @returns The precomputed style strings
-   */
-  private getStyles(): HelpStyles {
-    return {
-      names: styleToString(this.config.styles?.names),
-      param: styleToString(this.config.styles?.param),
-      desc: styleToString(this.config.styles?.desc),
-      regex: styleToString(this.config.styles?.regex),
-      boolean: styleToString(this.config.styles?.boolean),
-      string: styleToString(this.config.styles?.string),
-      number: styleToString(this.config.styles?.number),
-      option: styleToString(this.config.styles?.option),
-      whitespace: styleToString(this.config.styles?.whitespace),
     };
   }
 
@@ -442,9 +408,7 @@ class HelpFormatter {
     if (this.config.hidden?.names) {
       return result;
     }
-    const namesStyle = option.styles?.names
-      ? styleToString(option.styles?.names)
-      : this.styles.names;
+    const namesStyle = option.styles?.names ?? this.config.styles.names;
     this.formatNames2(option.names, namesStyle, result);
     return result;
   }
@@ -455,8 +419,8 @@ class HelpFormatter {
    * @param namesStyle The names style
    * @param result The resulting string
    */
-  private formatNames2(names: Array<string>, namesStyle: string, result: StyledString) {
-    const whitespaceStyle = this.styles.whitespace;
+  private formatNames2(names: Array<string>, namesStyle: Style, result: StyledString) {
+    const whitespaceStyle = this.config.styles.whitespace;
     let sep = '';
     let prefix = '';
     function formatName(name: string, width: number) {
@@ -487,9 +451,7 @@ class HelpFormatter {
     if (option.example !== undefined) {
       this.formatValue(option, option.example, result);
     } else {
-      const paramStyle = option.styles?.param
-        ? styleToString(option.styles?.param)
-        : this.styles.param;
+      const paramStyle = option.styles?.param ?? this.config.styles.param;
       const param = option.paramName
         ? option.paramName.includes('<')
           ? option.paramName
@@ -510,7 +472,7 @@ class HelpFormatter {
     if (this.config.hidden?.desc || !this.config.items) {
       return result;
     }
-    const descStyle = option.styles?.desc ? styleToString(option.styles?.desc) : this.styles.desc;
+    const descStyle = option.styles?.desc ?? this.config.styles.desc;
     for (const item of this.config.items) {
       this.format[item](option, descStyle, result);
     }
@@ -523,7 +485,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatDesc(option: Option, descStyle: string, result: StyledString) {
+  private formatDesc(option: Option, descStyle: Style, result: StyledString) {
     if (option.desc) {
       result.style(descStyle).append(...splitWords(option.desc));
     }
@@ -535,12 +497,12 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatNegation(option: Option, descStyle: string, result: StyledString) {
+  private formatNegation(option: Option, descStyle: Style, result: StyledString) {
     if ('negationNames' in option && option.negationNames) {
       result.style(descStyle).append('Can', 'be', 'negated', 'with');
       const names = option.negationNames;
       names.forEach((name, i) => {
-        result.style(this.styles.option).append(name);
+        result.style(this.config.styles.option).append(name);
         if (i < names.length - 1) {
           result.style(descStyle).append('or');
         }
@@ -555,10 +517,10 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatSeparator(option: Option, descStyle: string, result: StyledString) {
+  private formatSeparator(option: Option, descStyle: Style, result: StyledString) {
     if ('separator' in option && option.separator) {
       result.style(descStyle).append('Values', 'are', 'delimited', 'by');
-      result.style(this.styles.string).append(`'${option.separator}'`);
+      result.style(this.config.styles.string).append(`'${option.separator}'`);
       result.style(descStyle).append('.');
     }
   }
@@ -569,7 +531,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatMultivalued(option: Option, descStyle: string, result: StyledString) {
+  private formatMultivalued(option: Option, descStyle: Style, result: StyledString) {
     if (isArray(option) && !option.separator) {
       result.style(descStyle).append('Accepts', 'multiple', 'parameters.');
     }
@@ -581,12 +543,12 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatPositional(option: Option, descStyle: string, result: StyledString) {
+  private formatPositional(option: Option, descStyle: Style, result: StyledString) {
     if ('positional' in option && option.positional) {
       result.style(descStyle).append('Accepts', 'positional');
       if (typeof option.positional === 'string') {
         result.append('parameters', 'preceded', 'by');
-        result.style(this.styles.option).append(option.positional);
+        result.style(this.config.styles.option).append(option.positional);
         result.style(descStyle).append('.');
       } else {
         result.append('parameters.');
@@ -600,7 +562,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatAppend(option: Option, descStyle: string, result: StyledString) {
+  private formatAppend(option: Option, descStyle: Style, result: StyledString) {
     if ('append' in option && option.append) {
       result.style(descStyle).append('May', 'be', 'specified', 'multiple', 'times.');
     }
@@ -612,7 +574,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatTrim(option: Option, descStyle: string, result: StyledString) {
+  private formatTrim(option: Option, descStyle: Style, result: StyledString) {
     if ('trim' in option && option.trim) {
       result.style(descStyle).append('Values', 'will', 'be', 'trimmed.');
     }
@@ -624,7 +586,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatCase(option: Option, descStyle: string, result: StyledString) {
+  private formatCase(option: Option, descStyle: Style, result: StyledString) {
     if ('case' in option && option.case) {
       result
         .style(descStyle)
@@ -638,7 +600,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatRound(option: Option, descStyle: string, result: StyledString) {
+  private formatRound(option: Option, descStyle: Style, result: StyledString) {
     if ('round' in option && option.round) {
       result.style(descStyle);
       if (option.round === 'trunc') {
@@ -655,7 +617,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatEnums(option: Option, descStyle: string, result: StyledString) {
+  private formatEnums(option: Option, descStyle: Style, result: StyledString) {
     if ('enums' in option && option.enums) {
       result.style(descStyle).append('Values', 'must', 'be', 'one', 'of');
       if (option.type === 'string' || option.type === 'strings') {
@@ -673,10 +635,10 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatRegex(option: Option, descStyle: string, result: StyledString) {
+  private formatRegex(option: Option, descStyle: Style, result: StyledString) {
     if ('regex' in option && option.regex) {
       result.style(descStyle).append('Values', 'must', 'match', 'the', 'regex');
-      result.style(this.styles.regex).append(String(option.regex));
+      result.style(this.config.styles.regex).append(String(option.regex));
       result.style(descStyle).append('.');
     }
   }
@@ -687,7 +649,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatRange(option: Option, descStyle: string, result: StyledString) {
+  private formatRange(option: Option, descStyle: Style, result: StyledString) {
     if ('range' in option && option.range) {
       result.style(descStyle).append('Values', 'must', 'be', 'in', 'the', 'range');
       this.formatNumbers(option.range, descStyle, result, ['[', ']']);
@@ -701,7 +663,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatUnique(option: Option, descStyle: string, result: StyledString) {
+  private formatUnique(option: Option, descStyle: Style, result: StyledString) {
     if ('unique' in option && option.unique) {
       result.style(descStyle).append('Duplicate', 'values', 'will', 'be', 'removed.');
     }
@@ -713,10 +675,10 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatLimit(option: Option, descStyle: string, result: StyledString) {
+  private formatLimit(option: Option, descStyle: Style, result: StyledString) {
     if ('limit' in option && option.limit !== undefined) {
       result.style(descStyle).append('Value', 'count', 'is', 'limited', 'to');
-      result.style(this.styles.number).append(`${option.limit}`);
+      result.style(this.config.styles.number).append(`${option.limit}`);
       result.style(descStyle).append('.');
     }
   }
@@ -727,7 +689,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatRequires(option: Option, descStyle: string, result: StyledString) {
+  private formatRequires(option: Option, descStyle: Style, result: StyledString) {
     if (option.requires) {
       result.style(descStyle).append('Requires');
       this.formatRequiresRecursive(option.requires, descStyle, result);
@@ -741,7 +703,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatRequired(option: Option, descStyle: string, result: StyledString) {
+  private formatRequired(option: Option, descStyle: Style, result: StyledString) {
     if (option.required) {
       result.style(descStyle).append('Always required.');
     }
@@ -753,7 +715,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatDefault(option: Option, descStyle: string, result: StyledString) {
+  private formatDefault(option: Option, descStyle: Style, result: StyledString) {
     if ('default' in option && option.default !== undefined) {
       result.style(descStyle).append('Defaults', 'to');
       this.formatValue(option, option.default, result, descStyle);
@@ -767,7 +729,7 @@ class HelpFormatter {
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatDeprecated(option: Option, descStyle: string, result: StyledString) {
+  private formatDeprecated(option: Option, descStyle: Style, result: StyledString) {
     if (option.deprecated) {
       result.style(descStyle).append('Deprecated', 'for', ...splitWords(option.deprecated));
     }
@@ -781,13 +743,13 @@ class HelpFormatter {
    */
   private formatStrings(
     values: Array<string>,
-    descStyle: string,
+    descStyle: Style,
     result: StyledString,
     brackets: [string, string],
   ) {
     result.style(descStyle).append(brackets[0]);
     values.forEach((value, i) => {
-      result.style(this.styles.string).append(`'${value}'`);
+      result.style(this.config.styles.string).append(`'${value}'`);
       if (i < values.length - 1) {
         result.style(descStyle).append(',');
       }
@@ -803,13 +765,13 @@ class HelpFormatter {
    */
   private formatNumbers(
     values: Array<number>,
-    descStyle: string,
+    descStyle: Style,
     result: StyledString,
     brackets: [string, string],
   ) {
     result.style(descStyle).append(brackets[0]);
     values.forEach((value, i) => {
-      result.style(this.styles.number).append(value.toString());
+      result.style(this.config.styles.number).append(value.toString());
       if (i < values.length - 1) {
         result.style(descStyle).append(',');
       }
@@ -826,7 +788,7 @@ class HelpFormatter {
    */
   private formatRequiresRecursive(
     requires: Requires,
-    descStyle: string,
+    descStyle: Style,
     result: StyledString,
     negate: boolean = false,
   ) {
@@ -836,7 +798,7 @@ class HelpFormatter {
       if (negate) {
         result.style(descStyle).append('no');
       }
-      result.style(this.styles.option).append(name);
+      result.style(this.config.styles.option).append(name);
     } else if (requires instanceof RequiresNot) {
       this.formatRequiresRecursive(requires.item, descStyle, result, !negate);
     } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
@@ -855,7 +817,7 @@ class HelpFormatter {
    */
   private formatRequiresExp(
     requires: RequiresAll | RequiresOne,
-    descStyle: string,
+    descStyle: Style,
     result: StyledString,
     negate: boolean,
   ) {
@@ -883,7 +845,7 @@ class HelpFormatter {
    */
   private formatRequiresVal(
     requires: RequiresVal,
-    descStyle: string,
+    descStyle: Style,
     result: StyledString,
     negate: boolean,
   ) {
@@ -913,7 +875,7 @@ class HelpFormatter {
   private formatRequiredValue(
     option: Option,
     value: RequiresVal[string],
-    descStyle: string,
+    descStyle: Style,
     result: StyledString,
     negate: boolean,
   ) {
@@ -922,7 +884,7 @@ class HelpFormatter {
     if ((value === null && !negate) || (value === undefined && negate)) {
       result.style(descStyle).append('no');
     }
-    result.style(this.styles.option).append(name);
+    result.style(this.config.styles.option).append(name);
     if (value !== null && value !== undefined) {
       assert(!isNiladic(option));
       result.style(descStyle).append(negate ? '!=' : '=');
@@ -941,7 +903,7 @@ class HelpFormatter {
     option: ValuedOption,
     value: OptionDataType,
     result: StyledString,
-    descStyle?: string,
+    descStyle?: Style,
   ) {
     if (value === undefined) {
       return;
@@ -951,15 +913,15 @@ class HelpFormatter {
       case 'flag':
       case 'boolean':
         assert(typeof value === 'boolean');
-        result.style(this.styles.boolean).append(value.toString());
+        result.style(this.config.styles.boolean).append(value.toString());
         break;
       case 'string':
         assert(typeof value === 'string');
-        result.style(this.styles.string).append(`'${value}'`);
+        result.style(this.config.styles.string).append(`'${value}'`);
         break;
       case 'number':
         assert(typeof value === 'number');
-        result.style(this.styles.number).append(value.toString());
+        result.style(this.config.styles.number).append(value.toString());
         break;
       case 'strings':
         assert(typeof value === 'object');
@@ -967,10 +929,10 @@ class HelpFormatter {
           this.formatStrings(value as Array<string>, descStyle, result, ['[', ']']);
         } else if (option.separator) {
           const values = value.map((element) => element.toString()).join(option.separator);
-          result.style(this.styles.string).append(`'${values}'`);
+          result.style(this.config.styles.string).append(`'${values}'`);
         } else {
           const values = value.map((element) => `'${element}'`);
-          result.style(this.styles.string).append(values.join(' '));
+          result.style(this.config.styles.string).append(values.join(' '));
         }
         break;
       case 'numbers':
@@ -979,10 +941,10 @@ class HelpFormatter {
           this.formatNumbers(value as Array<number>, descStyle, result, ['[', ']']);
         } else if (option.separator) {
           const values = value.map((element) => element.toString()).join(option.separator);
-          result.style(this.styles.string).append(`'${values}'`);
+          result.style(this.config.styles.string).append(`'${values}'`);
         } else {
           const values = value.map((element) => element.toString());
-          result.style(this.styles.number).append(values.join(' '));
+          result.style(this.config.styles.number).append(values.join(' '));
         }
         break;
       default: {
@@ -1025,7 +987,7 @@ class HelpFormatter {
       line.append(indent).appendStyled(str);
       line.style(whitespaceStyle).append(' '.repeat(width - str.length));
     }
-    const whitespaceStyle = this.styles.whitespace;
+    const whitespaceStyle = this.config.styles.whitespace;
     const lines = new Array<string>();
     for (const entry of entries) {
       const line = new StyledString().style(whitespaceStyle);
@@ -1053,12 +1015,12 @@ class HelpFormatter {
     indent: string,
   ) {
     const maxWordLen = desc.strings.reduce(
-      (acc, word) => (isStyle(word) ? acc : Math.max(acc, word.length)),
+      (acc, word) => (isEscape(word) ? acc : Math.max(acc, word.length)),
       0,
     );
     if (width >= indent.length + maxWordLen) {
       width -= indent.length;
-      indent = this.styles.whitespace + indent;
+      indent = this.config.styles.whitespace + indent;
     } else {
       prefix += singleBreak;
       indent = '';
@@ -1096,7 +1058,7 @@ class HelpFormatter {
       if (!word) {
         continue;
       }
-      if (isStyle(word)) {
+      if (isEscape(word)) {
         nextStyle = word;
         continue;
       }
