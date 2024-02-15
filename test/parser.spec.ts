@@ -1384,9 +1384,10 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
-          `Unknown option '0'.`,
-        );
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          boolean: true,
+        });
         expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
           flag: undefined,
           boolean: true,
@@ -1700,9 +1701,10 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
-          `Unknown option '0'.`,
-        );
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          string: '1',
+        });
         expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
           flag: undefined,
           string: '1',
@@ -1984,9 +1986,10 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
-          `Unknown option '0'.`,
-        );
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          number: 1,
+        });
         expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
           flag: undefined,
           number: 1,
@@ -2450,9 +2453,10 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
-          `Unknown option '0'.`,
-        );
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          strings: ['0', '1'],
+        });
         expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
           flag: undefined,
           strings: ['0', '1'],
@@ -2810,9 +2814,10 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options).parse(['0', '1'])).toThrowError(
-          `Unknown option '0'.`,
-        );
+        expect(new ArgumentParser(options).parse(['0', '1'])).toMatchObject({
+          flag: undefined,
+          numbers: [0, 1],
+        });
         expect(new ArgumentParser(options).parse(['--', '0', '1'])).toMatchObject({
           flag: undefined,
           numbers: [0, 1],

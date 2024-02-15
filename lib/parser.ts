@@ -352,7 +352,7 @@ class ArgumentParser<T extends Options> {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = this.nameToKey.get(name);
       if (!key) {
-        if (!multivalued && this.positional && !this.positional.marker) {
+        if (!multivalued && this.positional) {
           const option = this.positional.option;
           if (isArray(option) && (!option.append || !specifiedKeys.has(this.positional.key))) {
             (values as Record<string, []>)[this.positional.key as string] = [];
