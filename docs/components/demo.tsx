@@ -13,7 +13,7 @@ import LocalEcho from 'local-echo';
 // @ts-expect-error does not export types
 import options from 'tsargp/demo';
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.42';
+options.version.version = '0.1.46';
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -141,7 +141,7 @@ class Demo extends React.Component<Props, State> {
    * Fires when the user enters a line.
    */
   private onInput(text: string) {
-    const args = getArgs(text);
+    const args = Demo.getArgs(text);
     if (args.length) {
       switch (args[0]) {
         case '':
@@ -178,57 +178,58 @@ class Demo extends React.Component<Props, State> {
    * Runs the demo command.
    */
   private runCommand(args: Array<string>) {
-    const values = this.parser.parse(args, this.state.width);
-    this.term.writeln(JSON.stringify(values, null, 2).replace(/\n/g, '\r\n'));
+    try {
+      const values = this.parser.parse(args, this.state.width);
+      this.term.writeln(JSON.stringify(values, null, 2).replace(/\n/g, '\r\n'));
+    } catch (err) {
+      this.term.writeln(`${err}`);
+    }
+  }
+
+  /**
+   * Gets a list of command arguments from an input line.
+   * @returns The list of arguments
+   */
+  private static getArgs(text: string): Array<string> {
+    const result = new Array<string>();
+    let arg: string | undefined;
+    for (let i = 0, quote = ''; i < text.length; ++i) {
+      switch (text[i]) {
+        case '\n':
+        case ' ':
+          if (quote) {
+            arg += text[i];
+          } else if (arg !== undefined) {
+            result.push(arg);
+            arg = undefined;
+          }
+          break;
+        case `'`:
+        case '"':
+          if (quote == text[i]) {
+            quote = '';
+          } else if (quote) {
+            arg += text[i];
+          } else {
+            quote = text[i];
+            if (arg === undefined) {
+              arg = '';
+            }
+          }
+          break;
+        default:
+          if (arg === undefined) {
+            arg = text[i];
+          } else {
+            arg += text[i];
+          }
+      }
+    }
+    if (arg !== undefined) {
+      result.push(arg);
+    }
+    return result;
   }
 }
 
 export default Demo;
-
-//--------------------------------------------------------------------------------------------------
-// Functions
-//--------------------------------------------------------------------------------------------------
-/**
- * Gets a list of command arguments from an input line.
- * @returns The list of arguments
- */
-function getArgs(text: string): Array<string> {
-  const result = new Array<string>();
-  let arg: string | undefined;
-  for (let i = 0, quote = ''; i < text.length; ++i) {
-    switch (text[i]) {
-      case '\n':
-      case ' ':
-        if (quote) {
-          arg += text[i];
-        } else if (arg !== undefined) {
-          result.push(arg);
-          arg = undefined;
-        }
-        break;
-      case `'`:
-      case '"':
-        if (quote == text[i]) {
-          quote = '';
-        } else if (quote) {
-          arg += text[i];
-        } else {
-          quote = text[i];
-          if (arg === undefined) {
-            arg = '';
-          }
-        }
-        break;
-      default:
-        if (arg === undefined) {
-          arg = text[i];
-        } else {
-          arg += text[i];
-        }
-    }
-  }
-  if (arg !== undefined) {
-    result.push(arg);
-  }
-  return result;
-}

@@ -7,3 +7,27 @@ export const Demo = dynamic(() => import('../components/demo'), { ssr: false });
 ---
 
 <Demo />
+
+Commands:
+
+- `tsargp -h` print the help message
+- `tsargp -v` print the package version
+- `tsargp` view options' default values
+- `tsargp ...` play with option values
+- `clear` clear the screen
+
+Things to try out:
+
+- check if similar names are suggested for unkown options (e.g., `-nof`)
+- check if option names can be used as option parameters (e.g., `-ss -s`)
+- check if arguments after `--` are recognized as positional, while others not
+- check if a string parameter matches or fails the required regex/enums
+- check if a string parameter is normalized correctly (e.g., `-ss abc`)
+- check if a number parameter matches or fails the required range/enums
+- check if a number parameter is normalized correctly (e.g., `-ns 1.7`)
+- check if the `-b` option can be specified in combination with others
+
+> **TIP:**
+> Use `Alt`+`Backspace` to erase whole words.
+> Select text and paste it with `Ctrl`+`V`.
+> Use the `Up` and `Down` arrow keys to navigate the history.
