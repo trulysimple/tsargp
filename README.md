@@ -1,35 +1,16 @@
 # tsargp
 
-A modern argument parser for TypeScript.
+A zero-dependency argument parser for TypeScript. Get started with the [documentation](https://trulysimple.dev/tsargp/docs).
 
 ## Features
 
-- Zero-dependency
-- Fully declarative style
-- Compile-time type checking
-- Moderate footprint (~27KB minified)
+- Fully declarative style with type checking
+- Moderate footprint (less than 30KB minified)
 - Fully customizable help message formatting
-- Inline styles, text wrapping, paragraphs and lists
-- Wide range of display attributes from [SGR]
+  - Inline styles, text wrapping, paragraphs and lists
+  - Wide range of display attributes from [SGR]
 - Arbitrary requirements between options
-- Option grouping and hiding
-- Similar name suggestions
-
-Here's a summary of the available option types and some of their attributes:
-
-| Option type | Parameters                           | Data type  | Normalization      | Constraints         |
-| ----------- | ------------------------------------ | ---------- | ------------------ | ------------------- |
-| help        | niladic                              |            |                    |                     |
-| version     | niladic                              |            |                    |                     |
-| function    | niladic                              |            |                    |                     |
-| flag        | niladic                              | `boolean`  |                    |                     |
-| boolean     | positional, single                   | `boolean`  |                    |                     |
-| string      | positional, single                   | `string`   | trim, case         | enums, regex        |
-| number      | positional, single                   | `number`   | round              | enums, range        |
-| strings     | positional, multi, delimited, append | `string[]` | unique, trim, case | enums, regex, limit |
-| numbers     | positional, multi, delimited, append | `number[]` | unique, round      | enums, range, limit |
-
-Other attributes include: default value, example value, custom value parsing, and more.
+- Option grouping, hiding and name suggestions
 
 ## Demo
 
