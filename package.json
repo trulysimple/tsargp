@@ -1,6 +1,6 @@
 {
   "name": "tsargp",
-  "version": "0.1.47",
+  "version": "0.1.48",
   "description": "Argument parser for TypeScript",
   "homepage": "https://github.com/trulysimple/tsargp#readme",
   "license": "MIT",
