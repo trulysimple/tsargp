@@ -26,8 +26,13 @@ Things to try out:
 - check if a number parameter matches or fails the required range/enums
 - check if a number parameter is normalized correctly (e.g., `-ns 1.7`)
 - check if the `-b` option can be specified in combination with others
+- check if value count is limited to a certain amount (e.g., `--stringsEnum one two one two`)
+- check if duplicate values get removed (e.g., `--numbersEnum 1,2,1,2`)
+- check if values get overridden when an option is specified repeatedly (e.g., `-s 1 -s 2`)
+- check if values get appended when an option is specified repeatedly (e.g., `--numbersEnum 1 --numbersEnum 2`)
+- check if a suggestion is printed when forgetting to delimit values (e.g., `--numbersEnum 1 2`)
 
 > **TIP:**
 > Use `Alt`+`Backspace` to erase whole words.
-> Select text and paste it with `Ctrl`+`V`.
+> Select text from the terminal and paste it with `Ctrl`+`V`.
 > Use the `Up` and `Down` arrow keys to navigate the history.
