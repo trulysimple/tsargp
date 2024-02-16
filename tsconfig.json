@@ -3,13 +3,13 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["bun", "node"],
+    "types": ["bun"],
     "strict": true,
     "skipLibCheck": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "useUnknownInCatchVariables": true,
-    "noPropertyAccessFromIndexSignature": true,
-  },
+    "noPropertyAccessFromIndexSignature": true
+  }
 }

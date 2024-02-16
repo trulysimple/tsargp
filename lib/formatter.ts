@@ -1015,7 +1015,7 @@ class HelpFormatter {
       prefix += '\n';
       indent = '';
     }
-    const punctuation = /^[.,:;!?]/;
+    const punctuation = /^[.,:;!?](?!=)/;
     const closingBrackets = /^[)\]}]/;
     const openingBrackets = /^[{[(]/;
     let line = [prefix];
