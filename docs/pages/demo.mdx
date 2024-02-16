@@ -2,10 +2,6 @@ import dynamic from 'next/dynamic';
 
 export const Demo = dynamic(() => import('../components/demo'), { ssr: false });
 
-# Demo
-
----
-
 <Demo />
 
 Commands:
@@ -33,6 +29,5 @@ Things to try out:
 - check if a suggestion is printed when forgetting to delimit values (e.g., `--numbersEnum 1 2`)
 
 > **TIP:**
-> Use `Alt`+`Backspace` to erase whole words.
 > Select text from the terminal and paste it with `Ctrl`+`V`.
 > Use the `Up` and `Down` arrow keys to navigate the history.

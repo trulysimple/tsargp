@@ -1,5 +1,5 @@
 export default {
-  logo: <span>tsargp docs</span>,
+  logo: <span>tsargp</span>,
   project: {
     link: 'https://github.com/trulysimple/tsargp',
   },
@@ -14,5 +14,10 @@ export default {
         .
       </span>
     ),
+  },
+  useNextSeoProps() {
+    return {
+      titleTemplate: '%s - tsargp - TrulySimple',
+    };
   },
 };

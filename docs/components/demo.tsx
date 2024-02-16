@@ -5,15 +5,14 @@ import * as React from 'react';
 import { Terminal } from 'xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { FitAddon } from '@xterm/addon-fit';
+import { Readline } from 'xterm-readline';
 import { ArgumentParser } from 'tsargp';
 import 'xterm/css/xterm.css';
 
 // @ts-expect-error does not export types
-import LocalEcho from 'local-echo';
-// @ts-expect-error does not export types
 import options from 'tsargp/demo';
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.48';
+options.version.version = '0.1.50';
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -57,12 +56,7 @@ class Demo extends React.Component<Props, State> {
   /**
    * The Xterm.js terminal object.
    */
-  private readonly term = new Terminal({ cols: 90 });
-
-  /**
-   * The local echo controller.
-   */
-  private readonly echo = new LocalEcho();
+  private readonly term = new Terminal({ cursorBlink: true, convertEol: true });
 
   /**
    * The fit terminal addon.
@@ -73,6 +67,11 @@ class Demo extends React.Component<Props, State> {
    * The resize observer.
    */
   private readonly resizeObserver = new ResizeObserver(this.fit.fit.bind(this.fit));
+
+  /**
+   *
+   */
+  private readonly readline = new Readline();
 
   /**
    * The argument parser object.
@@ -87,7 +86,7 @@ class Demo extends React.Component<Props, State> {
     super(props);
     this.term.loadAddon(new WebLinksAddon());
     this.term.loadAddon(this.fit);
-    this.term.loadAddon(this.echo);
+    this.term.loadAddon(this.readline);
     this.term.onData(this.onData.bind(this));
     this.term.onResize(this.onResize.bind(this));
     this.term.onSelectionChange(this.onSelectionChange.bind(this));
@@ -115,7 +114,7 @@ class Demo extends React.Component<Props, State> {
    * Starts reading a line from the terminal.
    */
   private readInput() {
-    this.echo.read('$ ').then(this.onInput.bind(this)).catch(this.onError.bind(this));
+    this.readline.read('$ ').then(this.onInput.bind(this)).catch(this.onError.bind(this));
   }
 
   /**
@@ -123,7 +122,7 @@ class Demo extends React.Component<Props, State> {
    */
   private onData(data: string) {
     if (data.charCodeAt(0) == 22) {
-      this.echo.handleTermData(this.state.selection);
+      this.term.paste(this.state.selection);
     }
   }
 
@@ -163,7 +162,7 @@ class Demo extends React.Component<Props, State> {
    * Fires when a command throws.
    */
   private onError(err: string | Error) {
-    this.term.writeln(`${err}`);
+    this.readline.println(`${err}`);
     this.readInput();
   }
 
@@ -180,9 +179,9 @@ class Demo extends React.Component<Props, State> {
   private runCommand(args: Array<string>) {
     try {
       const values = this.parser.parse(args, this.state.width);
-      this.term.writeln(JSON.stringify(values, null, 2).replace(/\n/g, '\r\n'));
+      this.readline.println(JSON.stringify(values, null, 2));
     } catch (err) {
-      this.term.writeln(`${err}`);
+      this.readline.println(`${err}`);
     }
   }
 

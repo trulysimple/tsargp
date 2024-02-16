@@ -1,0 +1,36 @@
+---
+title: Introduction - Docs
+---
+
+# tsargp
+
+**tsargp** is a command-line argument parser library that helps you write clean code.
+
+## Installation
+
+```sh
+npm install tsargp
+```
+
+## Quick Start
+
+Define your command options (we recommend a separate file):
+
+```ts filename="<your_cli_name>.options.ts"
+import { Options, ... } from 'tsargp';
+
+export default {
+  // define options' attributes...
+} as const satisfies Options;
+```
+
+Import them in your main script:
+
+```ts
+import { ArgumentParser } from 'tsargp';
+import options from './<your_cli_name>.options.js';
+
+const values = new ArgumentParser(options).parse();
+// use `parseAsync` if you declare async function options
+//  or a version option with a module-resolve function
+```
