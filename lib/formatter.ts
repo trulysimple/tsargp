@@ -16,7 +16,7 @@ import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './opt
 import { isEscape, sgr, StyledString } from './styles';
 
 export type { HelpConfig };
-export { HelpFormatter, HelpItem, singleBreak, doubleBreak };
+export { HelpFormatter, HelpItem };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -168,16 +168,6 @@ type HelpConfig = {
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-/**
- * The carriage return is needed in some terminals, like Xterm.js.
- */
-const singleBreak = '\r\n';
-
-/**
- * For convenience.
- */
-const doubleBreak = '\r\n\r\n';
-
 /**
  * The kind of items that can be shown in the option description.
  */
@@ -341,9 +331,9 @@ class HelpFormatter {
       desc: ' '.repeat(Math.max(0, descIndent)),
     };
     const breaks = {
-      names: singleBreak.repeat(Math.max(0, this.config.breaks.names)),
-      param: singleBreak.repeat(Math.max(0, this.config.breaks.param)),
-      desc: singleBreak.repeat(Math.max(0, this.config.breaks.desc)),
+      names: '\n'.repeat(Math.max(0, this.config.breaks.names)),
+      param: '\n'.repeat(Math.max(0, this.config.breaks.param)),
+      desc: '\n'.repeat(Math.max(0, this.config.breaks.desc)),
     };
     const paramStart = namesIndent + this.namesWidth + paramIndent;
     const descStart = paramStart + this.paramWidth + descIndent;
@@ -370,8 +360,8 @@ class HelpFormatter {
       const option = this.options[key];
       option.names.forEach((name, i) => {
         if (i == result.length) {
-          result.push(name.length);
-        } else if (name.length > result[i]) {
+          result.push(name?.length ?? 0);
+        } else if (name && name.length > result[i]) {
           result[i] = name.length;
         }
       });
@@ -419,11 +409,11 @@ class HelpFormatter {
    * @param namesStyle The names style
    * @param result The resulting string
    */
-  private formatNames2(names: Array<string>, namesStyle: Style, result: StyledString) {
+  private formatNames2(names: Array<string | null>, namesStyle: Style, result: StyledString) {
     const whitespaceStyle = this.config.styles.whitespace;
     let sep = '';
     let prefix = '';
-    function formatName(name: string, width: number) {
+    function formatName(name: string | null, width: number) {
       if (sep || prefix) {
         result.style(whitespaceStyle).append((name ? sep : '  ') + prefix);
       }
@@ -433,7 +423,7 @@ class HelpFormatter {
       } else {
         sep = '  ';
       }
-      prefix = ' '.repeat(width - name.length);
+      prefix = ' '.repeat(width - (name?.length ?? 0));
     }
     names.forEach((name, i) => formatName(name, this.nameWidths[i]));
   }
@@ -996,7 +986,7 @@ class HelpFormatter {
       line.append(this.indent.desc);
       this.wrapDesc(lines, entry.desc, width, line.string, this.indent.wrap);
     }
-    return lines.join(singleBreak);
+    return lines.join('\n');
   }
 
   /**
@@ -1022,12 +1012,12 @@ class HelpFormatter {
       width -= indent.length;
       indent = this.config.styles.whitespace + indent;
     } else {
-      prefix += singleBreak;
+      prefix += '\n';
       indent = '';
     }
-    const punctuation = '.,:;!?';
-    const closingBrackets = [...')]}'];
-    const openingBrackets = [...'{[('];
+    const punctuation = /^[.,:;!?]/;
+    const closingBrackets = /^[)\]}]/;
+    const openingBrackets = /^[{[(]/;
     let line = [prefix];
     let merge = false;
     let lineLength = 0;
@@ -1062,10 +1052,10 @@ class HelpFormatter {
         nextStyle = word;
         continue;
       }
-      if (word == singleBreak || word == doubleBreak) {
+      if (word.startsWith('\n')) {
         addWord();
         lines.push(line.join(''));
-        if (word == doubleBreak) {
+        if (word == '\n\n') {
           lines.push('');
         }
         line = [indent, lastStyle];
@@ -1074,11 +1064,7 @@ class HelpFormatter {
         currentLen = 0;
         continue;
       }
-      if (
-        merge ||
-        punctuation.includes(word) ||
-        closingBrackets.find((char) => word.startsWith(char))
-      ) {
+      if (merge || word.match(punctuation) || word.match(closingBrackets)) {
         currentWord += nextStyle + word;
         currentLen += word.length;
         merge = false;
@@ -1086,7 +1072,7 @@ class HelpFormatter {
         addWord();
         currentWord = nextStyle + word;
         currentLen = word.length;
-        merge = openingBrackets.findIndex((char) => word.startsWith(char)) >= 0;
+        merge = word.match(openingBrackets) !== null;
       }
       if (nextStyle) {
         currentStyle = nextStyle;
@@ -1108,33 +1094,31 @@ function splitWords(text: string): Array<string> {
     word: /\s+/,
     // eslint-disable-next-line no-control-regex
     style: /((?:\x1b\[[\d;]+m)+)/,
+    itemBegin: /^(-|\*|\d+\.) /,
+    punctEnd: /[.,:;!?]$/,
   };
-  const punctuation = '.,:;!?';
   const paragraphs = text.split(regex.para);
   return paragraphs.reduce((acc, para, i) => {
     para.split(regex.item).forEach((item, j) => {
       if (j % 2 == 0) {
         item = item.trim();
-        if (
-          j == 0 &&
-          item &&
-          !item.match(/^(-|\*|\d+\.) /) &&
-          !punctuation.includes(item[item.length - 1])
-        ) {
-          item += '.';
-        }
-        const words = item.split(regex.word);
-        if (item.includes('\x1b')) {
-          words.forEach((word) => acc.push(...word.split(regex.style)));
-        } else {
-          acc.push(...words);
+        if (item) {
+          if (j == 0 && !item.match(regex.itemBegin) && !item.match(regex.punctEnd)) {
+            item += '.';
+          }
+          const words = item.split(regex.word);
+          if (item.includes('\x1b')) {
+            words.forEach((word) => acc.push(...word.split(regex.style)));
+          } else {
+            acc.push(...words);
+          }
         }
       } else {
-        acc.push(singleBreak, item);
+        acc.push('\n', item);
       }
     });
     if (i < paragraphs.length - 1) {
-      acc.push(doubleBreak);
+      acc.push('\n\n');
     }
     return acc;
   }, new Array<string>());

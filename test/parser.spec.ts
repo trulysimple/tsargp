@@ -21,12 +21,10 @@ describe('ArgumentParser', () => {
       const options = {
         string: {
           type: 'string',
-          names: ['a~$^&=|<> b'],
+          names: ['a = b'],
         },
       } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrowError(
-        `Option name 'a~$^&=|<> b' contains invalid characters: '~$^&=|<> '.`,
-      );
+      expect(() => new ArgumentParser(options)).toThrowError(`Invalid option name 'a = b'.`);
     });
 
     it('should throw an error on option with no name', () => {

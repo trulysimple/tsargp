@@ -18,6 +18,7 @@ Test it [online](https://trulysimple.dev/tsargp/demo) or install it locally:
 
 ```sh
 npm install -g tsargp
+complete -C tsargp tsargp # enable bash completion
 tsargp -h  # print the help message
 tsargp -v  # print the package version
 tsargp     # view options' default values
@@ -32,7 +33,7 @@ See the [source](examples/demo.options.ts).
 npm install tsargp
 ```
 
-We encourage you to place option definitions in a separate file, like so:
+Define your options (we recommend a separate file):
 
 ```ts
 // <your_cli_name>.options.ts
@@ -43,15 +44,22 @@ export default {
 } as const satisfies Options;
 ```
 
-And import them in your main script:
+Import them in your main script:
 
 ```ts
+#!/usr/bin/env node
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
 const values = new ArgumentParser(options).parse();
 // use `parseAsync` if you declare async function options
 //  or a version option with a module-resolve function
+```
+
+Enable bash completion:
+
+```sh
+complete -C <your_cli_name> <your_cli_name>
 ```
 
 ## Build

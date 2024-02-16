@@ -133,15 +133,17 @@ type RequiresVal = { [key: string]: OptionDataType | null };
 type Requires = string | RequiresVal | RequiresExp;
 
 /**
- * A callback for function options.
+ * A generic callback.
+ * @template T The return data type
  * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`)
  * @param args The remaining arguments
+ * @returns The return value
  */
-type Callback = (values: OptionValues<Options>, args: Array<string>) => void | Promise<void>;
+type Callback<T> = (values: OptionValues<Options>, args: Array<string>) => T;
 
 /**
  * A callback for options that accept parameters.
- * @template T The parameter data type
+ * @template T The return data type
  * @param name The option name (as specified on the command-line)
  * @param value The parameter value
  * @returns The parsed value
@@ -152,6 +154,20 @@ type ParseCallback<T> = (name: string, value: string) => T;
  * A module-relative resolution function scoped to each module. Non-Web environments only.
  */
 type ResolveCallback = (specifier: string) => string;
+
+/**
+ * A callback for function options.
+ * @see Callback
+ */
+type FunctionCallback = Callback<void | Promise<void>>;
+
+/**
+ * A callback for option completion. The first argument in `args` is the one that triggered the
+ * completion (it will be an empty string if the completion was triggered for the option name and
+ * the option name was already complete).
+ * @see Callback
+ */
+type CompletionCallback = Callback<Array<string> | Promise<Array<string>>>;
 
 /**
  * Defines attributes common to all options.
@@ -165,11 +181,11 @@ type WithType<T extends string> = {
   /**
    * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
    *
-   * Names cannot contain whitespace or the following characters: `~$^&=|<>`.
-   * Empty names may be specified in order to skip the respective "slot" in the
-   * help message name column. There must be at least one valid name.
+   * Names cannot contain whitespace or the equals sign `=` (since it may act as option-value
+   * separator). Empty names or `null`s can be specified in order to skip the respective "slot" in
+   * the help message name column, although there must be at least one non-empty name.
    */
-  readonly names: Array<string>;
+  readonly names: Array<string | null>;
   /**
    * A name to be displayed in error and help messages when evaluating option requirements. If not
    * specified, the first name in the `names` array will be used.
@@ -234,6 +250,10 @@ type WithParam<T> = {
    * A custom function to parse the option parameter. Normalization still applies.
    */
   readonly parse?: ParseCallback<T>;
+  /**
+   * A custom completion callback.
+   */
+  readonly complete?: CompletionCallback;
 };
 
 /**
@@ -410,7 +430,7 @@ type FunctionOption = WithType<'function'> & {
   /**
    * The callback function.
    */
-  readonly exec: Callback;
+  readonly exec: FunctionCallback;
   /**
    * True to break the parsing loop.
    */

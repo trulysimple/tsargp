@@ -40,12 +40,15 @@ describe('HelpFormatter', () => {
           flag: {
             type: 'flag',
             names: ['-f', '--flag'],
-            desc: 'A flag option with\r\nline breaks,\ttabs and\n\nparagraphs.',
+            desc: `A flag option with
+            line breaks,\ttabs and ...
+            
+            paragraphs.`,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
         expect(message).toMatch(
-          /-f.*,.+--flag.+A flag option with line breaks, tabs and\..+paragraphs\./s,
+          /-f.*,.+--flag.+A flag option with line breaks, tabs and\.{3}.+paragraphs\./s,
         );
       });
 

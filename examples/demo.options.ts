@@ -1,4 +1,4 @@
-import { fg, sgr, singleBreak, doubleBreak, req, type Options } from 'tsargp';
+import { fg, sgr, req, type Options } from 'tsargp';
 
 /**
  * The option definitions
@@ -8,13 +8,14 @@ export default {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'A help option. Prints this help message',
-    usage:
-      `${sgr('0', '1')}Argument parser for TypeScript.${doubleBreak}` +
-      `  ${sgr('0', '33')}tsargp ${sgr('39')}--help ${sgr('32')}# print help${sgr('39')}`,
-    footer:
-      `MIT License${singleBreak}` +
-      `Copyright (c) 2024 \x1b[3;1;36m TrulySimple${sgr('0')}${doubleBreak}` +
-      `Report a bug: ${sgr('2')}https://github.com/trulysimple/tsargp/issues${sgr('0')}${singleBreak}`,
+    usage: `${sgr('0', '1')}Argument parser for TypeScript.
+
+  ${sgr('0', '33')}tsargp ${sgr('39')}--help ${sgr('32')}# print help${sgr('39')}`,
+    footer: `MIT License
+Copyright (c) 2024 ${sgr('1', '3', '36')}TrulySimple${sgr('0')}
+
+Report a bug: ${sgr('2')}https://github.com/trulysimple/tsargp/issues${sgr('0')}
+`,
   },
   version: {
     type: 'version',

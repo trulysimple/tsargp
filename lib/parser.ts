@@ -19,7 +19,7 @@ import type {
   ValuedOption,
 } from './options';
 
-import { HelpFormatter, doubleBreak } from './formatter';
+import { HelpFormatter } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic, isValued } from './options';
 import { sgr } from './styles';
 
@@ -47,31 +47,37 @@ class ArgumentParser<T extends Options> {
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions
+   * @param validate True if the options should be validated (can be disabled in production)
    */
-  constructor(private readonly options: T) {
+  constructor(
+    private readonly options: T,
+    validate = true,
+  ) {
     for (const key in this.options) {
       const option = this.options[key];
-      this.checkNamesSanity(key, option);
+      this.checkNamesSanity(key, option, validate);
       if (!isNiladic(option)) {
         if (option.positional) {
-          if (this.positional) {
+          if (validate && this.positional) {
             throw Error(`Duplicate positional option '${key}'.`);
           }
           const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
           const marker = typeof option.positional === 'string' ? option.positional : undefined;
           this.positional = { key, name, option, marker };
         }
-        ArgumentParser.checkEnumsSanity(key, option);
-        ArgumentParser.checkValueSanity(key, option, option.default);
-        ArgumentParser.checkValueSanity(key, option, option.example);
+        if (validate) {
+          ArgumentParser.checkEnumsSanity(key, option);
+          ArgumentParser.checkValueSanity(key, option, option.default);
+          ArgumentParser.checkValueSanity(key, option, option.example);
+        }
       }
-      if (option.requires) {
+      if (validate && option.requires) {
         this.checkRequiresSanity(key, option.requires);
       }
       if (option.required) {
         this.required.push(key);
       }
-      if (option.type === 'version' && !option.version && !option.resolve) {
+      if (validate && option.type === 'version' && !option.version && !option.resolve) {
         throw Error(`Option '${key}' contains no version or resolve function.`);
       }
     }
@@ -81,27 +87,27 @@ class ArgumentParser<T extends Options> {
    * Checks the sanity of the option's names.
    * @param key The option key
    * @param option The option definition
+   * @param validate True if the options should be validated
    */
-  private checkNamesSanity(key: string, option: Option) {
-    const names = option.names.filter((name) => name);
-    if (!names.length) {
+  private checkNamesSanity(key: string, option: Option, validate: boolean) {
+    const names = option.names.filter((name): name is string => name !== null && name !== '');
+    if (validate && !names.length) {
       throw Error(`Option '${key}' has no name.`);
     }
     if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames.filter((name) => name));
     }
     if ('positional' in option && typeof option.positional === 'string') {
-      if (!option.positional) {
+      if (validate && !option.positional) {
         throw Error(`Option '${key}' has empty positional marker.`);
       }
       names.push(option.positional);
     }
     for (const name of names) {
-      const invalid = name.match(/[~$^&=|<>\s]+/);
-      if (invalid) {
-        throw Error(`Option name '${name}' contains invalid characters: '${invalid[0]}'.`);
+      if (validate && name.match(/[\s=]+/)) {
+        throw Error(`Invalid option name '${name}'.`);
       }
-      if (this.nameToKey.has(name)) {
+      if (validate && this.nameToKey.has(name)) {
         throw Error(`Duplicate option name '${name}'.`);
       }
       this.nameToKey.set(name, key);
@@ -257,18 +263,19 @@ class ArgumentParser<T extends Options> {
    * @returns A promise that can be awaited in order to await any async callbacks
    */
   parseInto(values: OptionValues<T>, args?: Array<string>, width?: number): Promise<Array<void>> {
-    this.resetValues(values);
-    return this.parseLoop(values, args, width);
+    const promises = this.parseLoop(values, args, width);
+    this.setDefaultValues(values);
+    return promises;
   }
 
   /**
-   * Reset options' values to their default value.
+   * Set options' values to their default value, if not set.
    * @param values The options' values
    */
-  private resetValues(values: OptionValues<T>) {
+  private setDefaultValues(values: OptionValues<T>) {
     for (const key in this.options) {
       const option = this.options[key];
-      if (isValued(option)) {
+      if (isValued(option) && !(key in values)) {
         const value = ArgumentParser.getDefaultValue(key, option);
         (values as Record<string, typeof value>)[key] = value;
       }
@@ -440,7 +447,7 @@ class ArgumentParser<T extends Options> {
    * @param width The desired console width (to print the help message)
    */
   private handleHelpOption(option: HelpOption, width?: number): never {
-    const help = option.usage ? [option.usage.replace(/\n/g, '\r\n')] : [];
+    const help = option.usage ? [option.usage] : [];
     const groups = new HelpFormatter(this.options, option.format).formatGroups(width);
     for (const [group, message] of groups.entries()) {
       const header = group ? group + ' options' : 'Options';
@@ -449,7 +456,7 @@ class ArgumentParser<T extends Options> {
     if (option.footer) {
       help.push(option.footer);
     }
-    throw help.join(doubleBreak);
+    throw help.join('\n\n');
   }
 
   /**
