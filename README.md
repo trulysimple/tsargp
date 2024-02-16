@@ -33,7 +33,7 @@ See the [source](examples/demo.options.ts).
 npm install tsargp
 ```
 
-Define your options (we recommend a separate file):
+Define your command-line options (we recommend placing them in a separate file):
 
 ```ts
 // <your_cli_name>.options.ts
@@ -51,15 +51,25 @@ Import them in your main script:
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
-const values = new ArgumentParser(options).parse();
-// use `parseAsync` if you declare async function options
-//  or a version option with a module-resolve function
+try {
+  const values = new ArgumentParser(options).parse();
+  // do something with values
+} catch (err) {
+  if (typeof err === 'string') {
+    console.log(err);
+  } else {
+    console.error(err);
+    process.exitCode = 1;
+  }
+}
 ```
 
-Enable bash completion:
+Use `parseAsync` if you declare async function options or a version option with a module-resolve function.
+Use `parseInto` if your values are enclosed in a class.
+Optionally, enable bash completion:
 
 ```sh
-complete -C <your_cli_name> <your_cli_name>
+complete -o default -C <your_cli_name> <your_cli_name>
 ```
 
 ## Build

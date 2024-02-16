@@ -15,8 +15,7 @@ import type { Style } from './styles';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './options';
 import { isEscape, sgr, StyledString } from './styles';
 
-export type { HelpConfig };
-export { HelpFormatter, HelpItem };
+export { HelpFormatter, HelpItem, type HelpConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -45,9 +44,9 @@ type Concrete<T> = {
 };
 
 /**
- * A merged configuration.
+ * A merged formatter configuration.
  */
-type MergedHelpConfig = {
+type FormatterConfig = {
   readonly indent: {
     readonly names: number;
     readonly param: number;
@@ -195,7 +194,7 @@ const enum HelpItem {
 /**
  * The default configuration used by the formatter.
  */
-const defaultConfig: MergedHelpConfig = {
+const defaultConfig: FormatterConfig = {
   indent: {
     names: 2,
     param: 2,
@@ -250,7 +249,7 @@ class HelpFormatter {
   private readonly nameWidths = new Array<number>();
   private readonly namesWidth: number = 0;
   private readonly paramWidth: number = 0;
-  private readonly config: MergedHelpConfig;
+  private readonly config: FormatterConfig;
   private readonly indent: HelpIndent;
 
   /**
@@ -304,7 +303,7 @@ class HelpFormatter {
    * @param config The user configuration, which may override default settings
    * @returns The merged configuration
    */
-  private static mergeConfig(config: HelpConfig): MergedHelpConfig {
+  private static mergeConfig(config: HelpConfig): FormatterConfig {
     return {
       indent: Object.assign({}, defaultConfig.indent, config.indent),
       breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
@@ -918,8 +917,7 @@ class HelpFormatter {
         if (descStyle) {
           this.formatStrings(value as Array<string>, descStyle, result, ['[', ']']);
         } else if (option.separator) {
-          const values = value.map((element) => element.toString()).join(option.separator);
-          result.style(this.config.styles.string).append(`'${values}'`);
+          result.style(this.config.styles.string).append(`'${value.join(option.separator)}'`);
         } else {
           const values = value.map((element) => `'${element}'`);
           result.style(this.config.styles.string).append(values.join(' '));
@@ -930,11 +928,9 @@ class HelpFormatter {
         if (descStyle) {
           this.formatNumbers(value as Array<number>, descStyle, result, ['[', ']']);
         } else if (option.separator) {
-          const values = value.map((element) => element.toString()).join(option.separator);
-          result.style(this.config.styles.string).append(`'${values}'`);
+          result.style(this.config.styles.string).append(`'${value.join(option.separator)}'`);
         } else {
-          const values = value.map((element) => element.toString());
-          result.style(this.config.styles.number).append(values.join(' '));
+          result.style(this.config.styles.number).append(value.join(' '));
         }
         break;
       default: {

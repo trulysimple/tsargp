@@ -8,6 +8,7 @@ export type {
   Callback,
   ParseCallback,
   ResolveCallback,
+  CompletionCallback,
   Option,
   Options,
   OptionDataType,
@@ -163,8 +164,7 @@ type FunctionCallback = Callback<void | Promise<void>>;
 
 /**
  * A callback for option completion. The first argument in `args` is the one that triggered the
- * completion (it will be an empty string if the completion was triggered for the option name and
- * the option name was already complete).
+ * completion (it may be an empty string).
  * @see Callback
  */
 type CompletionCallback = Callback<Array<string> | Promise<Array<string>>>;
@@ -538,7 +538,7 @@ type OptionDataType<T extends Option = Option> = T extends { type: 'flag' | 'boo
  * A collection of option values.
  * @template T The type of the option definitions
  */
-type OptionValues<T extends Options> = {
+type OptionValues<T extends Options = Options> = {
   -readonly [key in keyof T as T[key] extends ValuedOption ? key : never]: OptionDataType<T[key]>;
 };
 
