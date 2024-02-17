@@ -15,7 +15,7 @@ import type { Style } from './styles';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './options';
 import { isEscape, sgr, StyledString } from './styles';
 
-export { HelpFormatter, HelpItem, type HelpConfig };
+export { HelpFormatter, HelpItem, type HelpFormat };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -54,16 +54,16 @@ type FormatterConfig = {
     readonly paramAbsolute?: true;
     readonly descAbsolute?: true;
   };
-  readonly hidden?: HelpConfig['hidden'];
-  readonly breaks: Exclude<Concrete<HelpConfig['breaks']>, undefined>;
-  readonly styles: Exclude<Concrete<HelpConfig['styles']>, undefined>;
+  readonly hidden?: HelpFormat['hidden'];
+  readonly breaks: Exclude<Concrete<HelpFormat['breaks']>, undefined>;
+  readonly styles: Exclude<Concrete<HelpFormat['styles']>, undefined>;
   readonly items: Array<HelpItem>;
 };
 
 /**
  * The user-provided help format configuration.
  */
-type HelpConfig = {
+type HelpFormat = {
   /**
    * The indentation level for each column.
    */
@@ -283,7 +283,7 @@ class HelpFormatter {
    */
   constructor(
     private readonly options: Options,
-    config: HelpConfig = {},
+    config: HelpFormat = {},
   ) {
     this.config = HelpFormatter.mergeConfig(config);
     this.nameWidths = this.getNameWidths();
@@ -303,7 +303,7 @@ class HelpFormatter {
    * @param config The user configuration, which may override default settings
    * @returns The merged configuration
    */
-  private static mergeConfig(config: HelpConfig): FormatterConfig {
+  private static mergeConfig(config: HelpFormat): FormatterConfig {
     return {
       indent: Object.assign({}, defaultConfig.indent, config.indent),
       breaks: Object.assign({}, defaultConfig.breaks, config.breaks),

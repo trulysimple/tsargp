@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { HelpConfig } from './formatter';
+import type { HelpFormat } from './formatter';
 import type { Style } from './styles';
 
 export type {
@@ -258,7 +258,8 @@ type WithParam<T> = {
    */
   readonly parse?: ParseCallback<T>;
   /**
-   * A custom completion callback. It should not throw.
+   * A custom completion callback. It should not throw. If asynchronous, you should call
+   * `ArgumentParser.parseAsync` and await its result.
    */
   readonly complete?: CompletionCallback;
 };
@@ -351,8 +352,9 @@ type WithVersion = {
  */
 type WithResolve = {
   /**
-   * The resolution function scoped to the module where a `package.json` file will be searched.
-   * Use `import.meta.resolve`. Non-Web environments only.
+   * A resolution function scoped to the module where a `package.json` file should be searched. Use
+   * `import.meta.resolve`. Use in non-browser environments only. This is an asynchronous operation,
+   * so you should call `ArgumentParser.parseAsync` and await its result.
    */
   readonly resolve: ResolveCallback;
   /**
@@ -435,7 +437,8 @@ type FlagOption = WithType<'flag'> & {
  */
 type FunctionOption = WithType<'function'> & {
   /**
-   * The callback function.
+   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+   * its result.
    */
   readonly exec: FunctionCallback;
   /**
@@ -457,9 +460,9 @@ type HelpOption = WithType<'help'> & {
    */
   readonly footer?: string;
   /**
-   * The format configuration.
+   * The help format.
    */
-  readonly format?: HelpConfig;
+  readonly format?: HelpFormat;
 };
 
 /**

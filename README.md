@@ -1,18 +1,26 @@
 # tsargp
 
-A zero-dependency argument parser for TypeScript. Get started with the [documentation](https://trulysimple.dev/tsargp/docs).
+Argument parser for TypeScript. Get started with the [documentation](https://trulysimple.dev/tsargp/docs).
 
 ## Features
 
-- Fully declarative with type checking
-- Moderate footprint (less than 30KB minified)
-- Fully customizable help message formatting
+- Usability:
+  - Zero-dependency
+  - Purely declarative
+  - Type checking
+  - Browser-compatible
+  - Moderate footprint (<30KB minified)
+- Functionality:
+  - No-friction bash completion
+  - Various option types to choose from
+  - Arbitrary requirements between options
+  - Value normalization and constraints
+  - Option grouping and hiding
+  - Option name suggestions
+- Presentation:
+  - Fully customizable help message format
   - Inline styles, text wrapping, paragraphs and lists
   - Wide range of display attributes from [SGR]
-- Arbitrary requirements between options
-- Option grouping and hiding
-- Option name suggestions
-- Bash completion
 
 ## Demo
 
@@ -54,20 +62,20 @@ import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
 try {
-  const values = new ArgumentParser(options).parse();
-  // do something with values
+  const parser = new ArgumentParser(options); // validates the options' definitions
+  const values = parser.parse(); // common case: get the options' values
+  // const values = await parser.parseAsync();   // if you declare async function options
+  // parser.parseInto(valuesClass);              // if your values are enclosed in a class
 } catch (err) {
   if (typeof err === 'string') {
-    console.log(err);
+    console.log(err); // help message, version or bash completion words
   } else {
-    console.error(err);
+    console.error(err); // genuine errors
     process.exitCode = 1;
   }
 }
 ```
 
-Use `parseAsync` if you declare async function options or a version option with a module-resolve function.
-Use `parseInto` if your values are enclosed in a class.
 Optionally, enable bash completion:
 
 ```sh
