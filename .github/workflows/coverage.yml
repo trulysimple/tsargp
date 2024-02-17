@@ -1,0 +1,17 @@
+name: Report code coverage
+
+on:
+  push:
+    branches: main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Run unit tests
+        run: |
+          bun test --coverage 2>&1 | sed -e '/|/!b' -e "w $GITHUB_STEP_SUMMARY" -e d
+          sed -i '1d;$d' $GITHUB_STEP_SUMMARY

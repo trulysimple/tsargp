@@ -3,4 +3,4 @@
 .gitignore
 .prettierignore
 *.lockb
-*.dvc
+*.toml
