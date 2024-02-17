@@ -33,7 +33,7 @@ export type {
   RequiresVal,
 };
 
-export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued };
+export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued, isMultivalued };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -551,7 +551,7 @@ type OptionValues<T extends Options = Options> = {
  * @returns True if the option is niladic
  */
 function isNiladic(option: Option): option is NiladicOption {
-  return option.type === 'flag' || !isValued(option);
+  return ['flag', 'function', 'help', 'version'].includes(option.type);
 }
 
 /**
@@ -570,4 +570,13 @@ function isArray(option: Option): option is ArrayOption {
  */
 function isValued(option: Option): option is ValuedOption {
   return !['function', 'help', 'version'].includes(option.type);
+}
+
+/**
+ * Tests if an option is multivalued.
+ * @param option The option definition
+ * @returns True if the option is multivalued
+ */
+function isMultivalued(option: Option): option is ArrayOption {
+  return isArray(option) && !option.separator;
 }

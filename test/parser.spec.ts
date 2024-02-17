@@ -807,6 +807,22 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse([])).toThrow(`Option 'preferred' is required.`);
     });
 
+    it('should handle the completion of a positional marker', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          positional: '--',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-s\n--$/);
+      expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-s\n--$/);
+      expect(() => parser.parse('cmd --', { compIndex: 6 })).toThrow(/^--$/);
+      expect(() => parser.parse('cmd -- ', { compIndex: 7 })).toThrow(/^$/);
+      expect(() => parser.parse('cmd --=', { compIndex: 7 })).toThrow(/^$/);
+    });
+
     it('should throw an error when an option requirement is not satisfied', () => {
       const options = {
         requires: {
@@ -861,6 +877,21 @@ describe('ArgumentParser', () => {
     });
 
     describe('help', () => {
+      it('should handle the completion of a help option', () => {
+        const options = {
+          help: {
+            type: 'help',
+            names: ['-h'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-h$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-h$/);
+        expect(() => parser.parse('cmd -h', { compIndex: 6 })).toThrow(/^-h$/);
+        expect(() => parser.parse('cmd -h ', { compIndex: 7 })).toThrow(/^-h$/);
+        expect(() => parser.parse('cmd -h=', { compIndex: 7 })).toThrow(/^$/);
+      });
+
       it('should throw a help message', () => {
         const options = {
           function: {
@@ -877,6 +908,22 @@ describe('ArgumentParser', () => {
     });
 
     describe('version', () => {
+      it('should handle the completion of a version option', () => {
+        const options = {
+          version: {
+            type: 'version',
+            names: ['-v'],
+            version: '0.1.0',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-v$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-v$/);
+        expect(() => parser.parse('cmd -v', { compIndex: 6 })).toThrow(/^-v$/);
+        expect(() => parser.parse('cmd -v ', { compIndex: 7 })).toThrow(/^-v$/);
+        expect(() => parser.parse('cmd -v=', { compIndex: 7 })).toThrow(/^$/);
+      });
+
       it('should throw a version message on a version option with fixed version', () => {
         const options = {
           function: {
@@ -917,6 +964,23 @@ describe('ArgumentParser', () => {
     });
 
     describe('function', () => {
+      it('should handle the completion of a function option', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -f', { compIndex: 6 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -f=', { compIndex: 7 })).toThrow(/^$/);
+        expect(options.function.exec).not.toHaveBeenCalled();
+      });
+
       it('should throw an error on function option absent despite being required to be present', () => {
         const options = {
           requires: {
@@ -1092,6 +1156,21 @@ describe('ArgumentParser', () => {
     });
 
     describe('flag', () => {
+      it('should handle the completion of a flag option', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -f', { compIndex: 6 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -f=', { compIndex: 7 })).toThrow(/^$/);
+      });
+
       it('should throw an error on flag option absent despite being required to be present', () => {
         const options = {
           requires: {
@@ -1198,6 +1277,42 @@ describe('ArgumentParser', () => {
     });
 
     describe('boolean', () => {
+      it('should handle the completion of a positional boolean option', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^true\nfalse$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-b$/);
+        expect(() => parser.parse('cmd t', { compIndex: 5 })).toThrow(/^true$/);
+        expect(() => parser.parse('cmd f', { compIndex: 5 })).toThrow(/^false$/);
+        expect(() => parser.parse('cmd x', { compIndex: 5 })).toThrow(/^$/);
+      });
+
+      it('should handle the completion of a boolean option', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-b$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-b$/);
+        expect(() => parser.parse('cmd -b', { compIndex: 6 })).toThrow(/^-b$/);
+        expect(() => parser.parse('cmd -b ', { compIndex: 7 })).toThrow(/^true\nfalse$/);
+        expect(() => parser.parse('cmd -b t', { compIndex: 8 })).toThrow(/^true$/);
+        expect(() => parser.parse('cmd -b f', { compIndex: 8 })).toThrow(/^false$/);
+        expect(() => parser.parse('cmd -b x', { compIndex: 8 })).toThrow(/^$/);
+        expect(() => parser.parse('cmd -b=t', { compIndex: 8 })).toThrow(/^true$/);
+        expect(() => parser.parse('cmd -b=f', { compIndex: 8 })).toThrow(/^false$/);
+        expect(() => parser.parse('cmd -b=x', { compIndex: 8 })).toThrow(/^$/);
+      });
+
       it('should throw an error on boolean option absent despite being required to be present', () => {
         const options = {
           requires: {
@@ -1462,6 +1577,44 @@ describe('ArgumentParser', () => {
     });
 
     describe('string', () => {
+      it('should handle the completion of a positional string option with enums', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            enums: ['one', 'two'],
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^one\ntwo$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-s$/);
+        expect(() => parser.parse('cmd o', { compIndex: 5 })).toThrow(/^one$/);
+        expect(() => parser.parse('cmd t', { compIndex: 5 })).toThrow(/^two$/);
+        expect(() => parser.parse('cmd x', { compIndex: 5 })).toThrow(/^$/);
+      });
+
+      it('should handle the completion of a string option with enums', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            enums: ['one', 'two'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-s$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-s$/);
+        expect(() => parser.parse('cmd -s', { compIndex: 6 })).toThrow(/^-s$/);
+        expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^one\ntwo$/);
+        expect(() => parser.parse('cmd -s o', { compIndex: 8 })).toThrow(/^one$/);
+        expect(() => parser.parse('cmd -s t', { compIndex: 8 })).toThrow(/^two$/);
+        expect(() => parser.parse('cmd -s x', { compIndex: 8 })).toThrow(/^$/);
+        expect(() => parser.parse('cmd -s=o', { compIndex: 8 })).toThrow(/^one$/);
+        expect(() => parser.parse('cmd -s=t', { compIndex: 8 })).toThrow(/^two$/);
+        expect(() => parser.parse('cmd -s=x', { compIndex: 8 })).toThrow(/^$/);
+      });
+
       it('should throw an error on string option absent despite being required to be present', () => {
         const options = {
           requires: {
@@ -1812,6 +1965,44 @@ describe('ArgumentParser', () => {
     });
 
     describe('number', () => {
+      it('should handle the completion of a positional number option with enums', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            enums: [123, 456],
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^123\n456$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-n$/);
+        expect(() => parser.parse('cmd 1', { compIndex: 5 })).toThrow(/^123$/);
+        expect(() => parser.parse('cmd 4', { compIndex: 5 })).toThrow(/^456$/);
+        expect(() => parser.parse('cmd x', { compIndex: 5 })).toThrow(/^$/);
+      });
+
+      it('should handle the completion of a number option with enums', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            enums: [123, 456],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-n$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-n$/);
+        expect(() => parser.parse('cmd -n', { compIndex: 6 })).toThrow(/^-n$/);
+        expect(() => parser.parse('cmd -n ', { compIndex: 7 })).toThrow(/^123\n456$/);
+        expect(() => parser.parse('cmd -n 1', { compIndex: 8 })).toThrow(/^123$/);
+        expect(() => parser.parse('cmd -n 4', { compIndex: 8 })).toThrow(/^456$/);
+        expect(() => parser.parse('cmd -n x', { compIndex: 8 })).toThrow(/^$/);
+        expect(() => parser.parse('cmd -n=1', { compIndex: 8 })).toThrow(/^123$/);
+        expect(() => parser.parse('cmd -n=4', { compIndex: 8 })).toThrow(/^456$/);
+        expect(() => parser.parse('cmd -n=x', { compIndex: 8 })).toThrow(/^$/);
+      });
+
       it('should throw an error on number option absent despite being required to be present', () => {
         const options = {
           requires: {
@@ -2193,6 +2384,22 @@ describe('ArgumentParser', () => {
     });
 
     describe('strings', () => {
+      it('should handle the completion of a multivalued strings option', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-ss$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-ss$/);
+        expect(() => parser.parse('cmd -s', { compIndex: 6 })).toThrow(/^-ss$/);
+        expect(() => parser.parse('cmd -ss', { compIndex: 7 })).toThrow(/^-ss$/);
+        expect(() => parser.parse('cmd -ss ', { compIndex: 8 })).toThrow(/^-ss$/);
+        expect(() => parser.parse('cmd -ss=', { compIndex: 8 })).toThrow(/^$/);
+      });
+
       it('should throw an error on strings option absent despite being required to be present', () => {
         const options = {
           requires: {
@@ -2602,6 +2809,22 @@ describe('ArgumentParser', () => {
     });
 
     describe('numbers', () => {
+      it('should handle the completion of a multivalued numbers option', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-ns$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-ns$/);
+        expect(() => parser.parse('cmd -n', { compIndex: 6 })).toThrow(/^-ns$/);
+        expect(() => parser.parse('cmd -ns', { compIndex: 7 })).toThrow(/^-ns$/);
+        expect(() => parser.parse('cmd -ns ', { compIndex: 8 })).toThrow(/^-ns$/);
+        expect(() => parser.parse('cmd -ns=', { compIndex: 8 })).toThrow(/^$/);
+      });
+
       it('should throw an error on numbers option absent despite being required to be present', () => {
         const options = {
           requires: {

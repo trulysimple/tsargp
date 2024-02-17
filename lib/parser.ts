@@ -24,7 +24,15 @@ import type {
 } from './options';
 
 import { HelpFormatter } from './formatter';
-import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic, isValued } from './options';
+import {
+  RequiresAll,
+  RequiresNot,
+  RequiresOne,
+  isArray,
+  isMultivalued,
+  isNiladic,
+  isValued,
+} from './options';
 import { sgr } from './styles';
 
 export { ArgumentParser, type ParseConfig };
@@ -281,6 +289,7 @@ class ParserLoop {
   loop(): Promise<Array<void>> {
     function assert(_condition: unknown): asserts _condition {}
 
+    let inline = false;
     let marker = false;
     let singleParam = false;
     let value: string | undefined;
@@ -291,9 +300,11 @@ class ParserLoop {
       const [arg, comp] = this.args[i].split('\0', 2);
       if (marker || singleParam) {
         value = arg;
+        inline = false;
       } else {
+        const result = this.parseOption(arg, i, comp, delimited, current);
         let addKey;
-        [addKey, marker, current, value] = this.parseOption(arg, i, comp, delimited, current);
+        [addKey, marker, inline, current, value] = result;
         if (addKey) {
           if (
             isArray(current.option) &&
@@ -309,9 +320,12 @@ class ParserLoop {
       const { key, name, option } = current;
       if (isNiladic(option)) {
         if (comp !== undefined) {
-          throw this.findPrefixedNames().join('\n');
+          if (value === undefined) {
+            this.handleNameCompletion();
+          }
+          throw ''; // use default completion
         } else if (this.completing && option.type !== 'flag') {
-          continue;
+          // skip function and special options while completing
         } else if (value !== undefined) {
           throw Error(`Option '${name}' does not accept inline values.`);
         } else if (this.handleNiladic(key, option, name, i)) {
@@ -319,18 +333,20 @@ class ParserLoop {
         }
         current = undefined;
       } else if (comp !== undefined) {
-        if (option.complete) {
-          this.handleComplete(option.complete, i, value);
+        if (this.handleCompletion(option, i, value)) {
           return Promise.all(this.promises);
         }
-        this.handleCompletion(option, value);
+        if (!inline && !marker && (option.positional || isMultivalued(option))) {
+          this.handleNameCompletion(value);
+        }
+        throw ''; // use default completion
       } else if (value !== undefined) {
         this.parseValue(key, option, name, value);
         if (singleParam) {
           singleParam = false;
           current = undefined;
         }
-      } else if (marker || (isArray(option) && !option.separator)) {
+      } else if (marker || isMultivalued(option)) {
         continue;
       } else if (i + 1 == this.args.length) {
         throw Error(`Missing parameter to '${name}'.`);
@@ -353,7 +369,7 @@ class ParserLoop {
    * @param comp Undefined if not completing
    * @param delimited Undefined if previous option is not delimited
    * @param current The current option information
-   * @returns A tuple of [addKey, marker, current, value]
+   * @returns A tuple of [addKey, marker, inline, current, value]
    */
   private parseOption(
     arg: string,
@@ -361,7 +377,7 @@ class ParserLoop {
     comp?: string,
     delimited?: string,
     current?: Positional,
-  ): [boolean, boolean, Positional, string | undefined] {
+  ): [boolean, boolean, boolean, Positional, string | undefined] {
     const [name, value] = arg.split(/=(.*)/, 2);
     if (this.positional && name === this.positional.marker) {
       if (comp !== undefined) {
@@ -376,7 +392,7 @@ class ParserLoop {
       if (index + 1 == this.args.length && !isArray(this.positional.option)) {
         throw Error(`Missing parameter after positional marker '${name}'.`);
       }
-      return [true, true, this.positional, undefined];
+      return [true, true, false, this.positional, undefined];
     }
     const key = this.nameToKey.get(name);
     if (key) {
@@ -384,15 +400,15 @@ class ParserLoop {
         throw name;
       }
       current = { key, name, option: this.options[key] };
-      return [true, false, current, value];
+      return [true, false, true, current, value];
     }
     if (!current) {
       if (!this.positional) {
         this.handleUnknown(arg, name, comp, delimited);
       }
-      return [true, false, this.positional, arg];
+      return [true, false, false, this.positional, arg];
     }
-    return [false, false, current, arg];
+    return [false, false, false, current, arg];
   }
 
   /**
@@ -447,6 +463,33 @@ class ParserLoop {
   }
 
   /**
+   * Handles the completion of an option with a parameter.
+   * @param option The option definition
+   * @param index The current argument index
+   * @param param The option parameter
+   * @returns True if the parsing loop should be broken
+   */
+  private handleCompletion(option: ParamOption, index: number, param?: string): boolean {
+    if (option.complete) {
+      this.handleComplete(option.complete, index, param);
+      return true;
+    }
+    let words =
+      option.type === 'boolean'
+        ? ['true', 'false']
+        : 'enums' in option && option.enums
+          ? option.enums.map((val) => val.toString())
+          : [];
+    if (words.length && param) {
+      words = words.filter((word) => word.startsWith(param));
+    }
+    if (words.length) {
+      throw words.join('\n');
+    }
+    return false;
+  }
+
+  /**
    * Handles the completion of an option that has a completion callback.
    * @param complete The completion callback
    * @param index The current argument index
@@ -464,45 +507,15 @@ class ParserLoop {
   }
 
   /**
-   * Handles the completion of an option with a parameter.
-   * @param option The option definition
-   * @param param The option parameter
-   * @returns never
-   */
-  private handleCompletion(option: ParamOption, param: string = ''): never {
-    if ('enums' in option && option.enums) {
-      let words = option.enums.map((val) => val.toString());
-      if (param) {
-        words = words.filter((word) => word.startsWith(param));
-      }
-      if (words.length) {
-        throw words.join('\n');
-      }
-    }
-    if (isArray(option) && !option.separator) {
-      const prefixedNames = this.findPrefixedNames(param);
-      if (prefixedNames.length) {
-        throw prefixedNames.join('\n');
-      }
-    }
-    throw ''; // use default completion
-  }
-
-  /**
    * Handles an unknown option.
    * @param arg The command-line argument
    * @param name The unknown option name
    * @param comp Undefined if not completing
    * @param delimited Undefined if previous option is not delimited
-   * @returns never
    */
   private handleUnknown(arg: string, name: string, comp?: string, delimited?: string): never {
     if (comp !== undefined) {
-      const prefixedNames = this.findPrefixedNames(arg);
-      if (prefixedNames.length) {
-        throw prefixedNames.join('\n');
-      }
-      throw ''; // use default completion
+      this.handleNameCompletion(arg);
     }
     const error = `Unknown option '${name}'.`;
     if (delimited) {
@@ -516,9 +529,18 @@ class ParserLoop {
   }
 
   /**
+   * Handles the completion of an option name.
+   * @param prefix The name prefix
+   */
+  private handleNameCompletion(prefix?: string): never {
+    const names = [...this.nameToKey.keys()];
+    const prefixedNames = prefix ? names.filter((name) => name.startsWith(prefix)) : names;
+    throw prefixedNames.join('\n');
+  }
+
+  /**
    * Handles the special "help" option.
    * @param option The option definition
-   * @returns never
    */
   private handleHelp(option: HelpOption): never {
     const help = option.usage ? [option.usage] : [];
@@ -565,16 +587,6 @@ class ParserLoop {
       }, new Array<[string, number]>())
       .sort(([, as], [, bs]) => bs - as)
       .map(([str]) => str);
-  }
-
-  /**
-   * Gets a list of option names that begin with a given prefix.
-   * @param prefix The name prefix
-   * @returns The list of prefixed names
-   */
-  private findPrefixedNames(prefix: string = ''): Array<string> {
-    const names = [...this.nameToKey.keys()];
-    return prefix ? names.filter((name) => name.startsWith(prefix)) : names;
   }
 
   /**
@@ -897,7 +909,6 @@ function checkValueSanity(key: string, option: ParamOption, value: OptionDataTyp
 /**
  * Handles the special "version" option with a module-resolve function.
  * @param option The option definition
- * @returns never
  */
 async function resolveVersion(option: VersionOption): Promise<never> {
   function assert(_condition: unknown): asserts _condition {}
