@@ -4,13 +4,15 @@ A zero-dependency argument parser for TypeScript. Get started with the [document
 
 ## Features
 
-- Fully declarative style with type checking
+- Fully declarative with type checking
 - Moderate footprint (less than 30KB minified)
 - Fully customizable help message formatting
   - Inline styles, text wrapping, paragraphs and lists
   - Wide range of display attributes from [SGR]
 - Arbitrary requirements between options
-- Option grouping, hiding and name suggestions
+- Option grouping and hiding
+- Option name suggestions
+- Bash completion
 
 ## Demo
 

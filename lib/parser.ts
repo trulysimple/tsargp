@@ -192,8 +192,22 @@ class ArgumentParser<T extends Options> {
    * @returns The option values
    */
   parse(command?: string | Array<string>, config?: ParseConfig): OptionValues<T> {
-    const result = {} as OptionValues<T>;
+    const result = this.createValues();
     this.parseInto(result, command, config);
+    return result;
+  }
+
+  /**
+   * Create option values initialized with undefined.
+   * @returns The option values
+   */
+  private createValues(): OptionValues<T> {
+    const result = {} as OptionValues<T>;
+    for (const key in this.options) {
+      if (isValued(this.options[key])) {
+        (result as Record<string, undefined>)[key] = undefined;
+      }
+    }
     return result;
   }
 
@@ -206,7 +220,7 @@ class ArgumentParser<T extends Options> {
     command?: string | Array<string>,
     config?: ParseConfig,
   ): Promise<OptionValues<T>> {
-    const result = {} as OptionValues<T>;
+    const result = this.createValues();
     await this.parseInto(result, command, config);
     return result;
   }
@@ -521,12 +535,11 @@ class ParserLoop {
 
   /**
    * Set options' values to their default value, if not set.
-   * @param values The options' values
    */
   private setDefaultValues() {
     for (const key in this.options) {
       const option = this.options[key];
-      if (isValued(option) && !(key in this.values)) {
+      if ('default' in option && !this.specifiedKeys.has(key)) {
         const value = getDefaultValue(key, option);
         (this.values as Record<string, typeof value>)[key] = value;
       }

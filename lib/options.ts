@@ -5,9 +5,9 @@ import type { HelpConfig } from './formatter';
 import type { Style } from './styles';
 
 export type {
-  Callback,
   ParseCallback,
   ResolveCallback,
+  FunctionCallback,
   CompletionCallback,
   Option,
   Options,
