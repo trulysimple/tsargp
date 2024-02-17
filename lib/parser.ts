@@ -311,10 +311,7 @@ class ParserLoop {
       const { key, name, option } = current;
       if (isNiladic(option)) {
         if (comp !== undefined) {
-          if (value === undefined) {
-            this.handleNameCompletion();
-          }
-          throw ''; // use default completion
+          throw ''; // use default completion (value !== undefined)
         } else if (this.completing && option.type !== 'flag') {
           // skip function and special options while completing
         } else if (value !== undefined) {
@@ -477,12 +474,7 @@ class ParserLoop {
    */
   private handleCompletion(option: ParamOption, index: number, param?: string): boolean {
     if (option.complete) {
-      try {
-        this.handleComplete(option.complete, index, param);
-      } catch (_err) {
-        // do not propagate user errors during completion
-        console.error(_err);
-      }
+      this.handleComplete(option.complete, index, param);
       return true;
     }
     let words =
@@ -507,13 +499,27 @@ class ParserLoop {
    * @param param The option parameter
    */
   private handleComplete(complete: CompletionCallback, index: number, param: string = '') {
-    const result = complete(this.values, [param, ...this.args.slice(index + 1)]);
+    let result;
+    try {
+      result = complete(this.values, [param, ...this.args.slice(index + 1)]);
+    } catch (err) {
+      // do not propagate user errors during completion
+      console.error(err);
+      throw '';
+    }
     if (Array.isArray(result)) {
       throw result.join('\n');
     }
-    const promise = result.then((words) => {
-      throw words.join('\n');
-    });
+    const promise = result.then(
+      (words) => {
+        throw words.join('\n');
+      },
+      (err) => {
+        // do not propagate user errors during completion
+        console.error(err);
+        throw '';
+      },
+    );
     this.promises.push(promise);
   }
 
