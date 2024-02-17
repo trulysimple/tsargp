@@ -787,10 +787,10 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['boo'])).toThrow(/Unknown option 'boo'.$/);
       expect(() => parser.parse(['bool'])).toThrow(
-        `Unknown option 'bool'. Similar names: --boolean1, --boolean2.`,
+        `Unknown option 'bool'.\nSimilar names are: --boolean1, --boolean2.`,
       );
       expect(() => parser.parse(['bool-ean'])).toThrow(
-        `Unknown option 'bool-ean'. Similar names: --boolean1, --boolean2.`,
+        `Unknown option 'bool-ean'.\nSimilar names are: --boolean1, --boolean2.`,
       );
     });
 
@@ -2554,7 +2554,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'a,b', 'c'])).toThrow(
-          `Unknown option 'c'. Did you forget to delimit values for '-ss' with ','?`,
+          `Unknown option 'c'.\nDid you forget to delimit values for '-ss' with ','?`,
         );
       });
 
@@ -2569,7 +2569,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'a'])).toThrow(
-          `Invalid parameter to '-ss': 'a'. Possible values are ['one']. Did you forget to delimit values with ','?`,
+          `Invalid parameter to '-ss': 'a'. Possible values are ['one'].\nDid you forget to delimit values with ','?`,
         );
       });
 
@@ -2589,7 +2589,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'a,b', 'c'])).toThrow(
-          `Invalid parameter to '-s': 'c'. Possible values are ['one']. Did you forget to delimit values for '-ss' with ','?`,
+          `Invalid parameter to '-s': 'c'. Possible values are ['one'].\nDid you forget to delimit values for '-ss' with ','?`,
         );
         expect(() => parser.parse(['-ss', 'a,b', 'one', 'c'])).toThrow(
           `Invalid parameter to '-s': 'c'. Possible values are ['one'].`,
@@ -3015,7 +3015,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1,2', '3'])).toThrow(
-          `Unknown option '3'. Did you forget to delimit values for '-ns' with ','?`,
+          `Unknown option '3'.\nDid you forget to delimit values for '-ns' with ','?`,
         );
       });
 
@@ -3030,7 +3030,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1'])).toThrow(
-          `Invalid parameter to '-ns': 1. Possible values are [123]. Did you forget to delimit values with ','?`,
+          `Invalid parameter to '-ns': 1. Possible values are [123].\nDid you forget to delimit values with ','?`,
         );
       });
 
@@ -3050,7 +3050,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1,2', '3'])).toThrow(
-          `Invalid parameter to '-n': 3. Possible values are [123]. Did you forget to delimit values for '-ns' with ','?`,
+          `Invalid parameter to '-n': 3. Possible values are [123].\nDid you forget to delimit values for '-ns' with ','?`,
         );
         expect(() => parser.parse(['-ns', '1,2', '123', '3'])).toThrow(
           `Invalid parameter to '-n': 3. Possible values are [123].`,

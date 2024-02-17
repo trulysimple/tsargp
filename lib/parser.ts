@@ -339,7 +339,7 @@ class ParserLoop {
           if (delimited) {
             const substr = name == delimited[0] ? '' : ` for '${delimited[0]}'`;
             (err as Error).message +=
-              ` Did you forget to delimit values${substr} with '${delimited[1]}'?`;
+              `\nDid you forget to delimit values${substr} with '${delimited[1]}'?`;
           }
           throw err;
         }
@@ -536,12 +536,12 @@ class ParserLoop {
     const error = `Unknown option '${name}'.`;
     if (delimited) {
       throw Error(
-        `${error} Did you forget to delimit values for '${delimited[0]}' with '${delimited[1]}'?`,
+        `${error}\nDid you forget to delimit values for '${delimited[0]}' with '${delimited[1]}'?`,
       );
     }
     const similarNames = this.findSimilarNames(name);
     if (similarNames.length) {
-      throw Error(`${error} Similar names: ${similarNames.join(', ')}.`);
+      throw Error(`${error}\nSimilar names are: ${similarNames.join(', ')}.`);
     }
     throw Error(error);
   }
