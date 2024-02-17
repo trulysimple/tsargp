@@ -33,7 +33,7 @@ export type {
   RequiresVal,
 };
 
-export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued, isMultivalued };
+export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -187,8 +187,11 @@ type WithType<T extends string> = {
    */
   readonly names: Array<string | null>;
   /**
-   * A name to be displayed in error and help messages when evaluating option requirements. If not
-   * specified, the first name in the `names` array will be used.
+   * A name to be displayed in error and help messages in cases where one is not available (e.g.,
+   * when evaluating option requirements or processing positional arguments). It is not validated
+   * and can be anything.
+   *
+   * If not specified, the first name in the {@link WithType.names} array will be used.
    */
   readonly preferredName?: string;
   /**
@@ -244,14 +247,18 @@ type WithParam<T> = {
    * If set, then any argument not recognized as an option name will be considered positional.
    * Additionally, if a string is specified as marker, then all arguments beyond this marker will
    * be considered positional.
+   *
+   * We recommend also setting {@link WithType.preferredName} to some explanatory name.
    */
   readonly positional?: true | string;
   /**
-   * A custom function to parse the option parameter. Normalization still applies.
+   * A custom function to parse the option parameter. It is allowed to throw an error to indicate
+   * parsing or validation failure. Otherwise, all specified normalization and constraints will be
+   * applied to the returned value.
    */
   readonly parse?: ParseCallback<T>;
   /**
-   * A custom completion callback.
+   * A custom completion callback. It should not throw.
    */
   readonly complete?: CompletionCallback;
 };
@@ -570,13 +577,4 @@ function isArray(option: Option): option is ArrayOption {
  */
 function isValued(option: Option): option is ValuedOption {
   return !['function', 'help', 'version'].includes(option.type);
-}
-
-/**
- * Tests if an option is multivalued.
- * @param option The option definition
- * @returns True if the option is multivalued
- */
-function isMultivalued(option: Option): option is ArrayOption {
-  return isArray(option) && !option.separator;
 }

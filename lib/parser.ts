@@ -24,15 +24,7 @@ import type {
 } from './options';
 
 import { HelpFormatter } from './formatter';
-import {
-  RequiresAll,
-  RequiresNot,
-  RequiresOne,
-  isArray,
-  isMultivalued,
-  isNiladic,
-  isValued,
-} from './options';
+import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic, isValued } from './options';
 import { sgr } from './styles';
 
 export { ArgumentParser, type ParseConfig };
@@ -293,7 +285,7 @@ class ParserLoop {
     let marker = false;
     let singleParam = false;
     let value: string | undefined;
-    let delimited: string | undefined;
+    let delimited: [string, string] | undefined;
     let current: typeof this.positional;
 
     for (let i = 0; i < this.args.length; ++i) {
@@ -314,7 +306,6 @@ class ParserLoop {
           }
           this.specifiedKeys.add(current.key);
         }
-        delimited = undefined;
       }
       assert(current);
       const { key, name, option } = current;
@@ -332,27 +323,42 @@ class ParserLoop {
           return Promise.all(this.promises);
         }
         current = undefined;
+        delimited = undefined;
       } else if (comp !== undefined) {
         if (this.handleCompletion(option, i, value)) {
           return Promise.all(this.promises);
         }
-        if (!inline && !marker && (option.positional || isMultivalued(option))) {
+        if (!inline && !marker && (option.positional || (isArray(option) && !option.separator))) {
           this.handleNameCompletion(value);
         }
         throw ''; // use default completion
       } else if (value !== undefined) {
-        this.parseValue(key, option, name, value);
+        try {
+          this.parseValue(key, option, name, value);
+        } catch (err) {
+          if (delimited) {
+            const substr = name == delimited[0] ? '' : ` for '${delimited[0]}'`;
+            (err as Error).message +=
+              ` Did you forget to delimit values${substr} with '${delimited[1]}'?`;
+          }
+          throw err;
+        }
         if (singleParam) {
           singleParam = false;
           current = undefined;
+        } else {
+          delimited = undefined;
         }
-      } else if (marker || isMultivalued(option)) {
+      } else if (marker || (isArray(option) && !option.separator)) {
+        delimited = undefined;
         continue;
       } else if (i + 1 == this.args.length) {
         throw Error(`Missing parameter to '${name}'.`);
       } else {
-        if (isArray(option)) {
-          delimited = name; // save for recommendation
+        if (isArray(option) && option.separator) {
+          delimited = [name, option.separator]; // save for recommendation
+        } else {
+          delimited = undefined;
         }
         singleParam = true;
       }
@@ -375,7 +381,7 @@ class ParserLoop {
     arg: string,
     index: number,
     comp?: string,
-    delimited?: string,
+    delimited?: [string, string],
     current?: Positional,
   ): [boolean, boolean, boolean, Positional, string | undefined] {
     const [name, value] = arg.split(/=(.*)/, 2);
@@ -471,7 +477,12 @@ class ParserLoop {
    */
   private handleCompletion(option: ParamOption, index: number, param?: string): boolean {
     if (option.complete) {
-      this.handleComplete(option.complete, index, param);
+      try {
+        this.handleComplete(option.complete, index, param);
+      } catch (_err) {
+        // do not propagate user errors during completion
+        console.error(_err);
+      }
       return true;
     }
     let words =
@@ -513,13 +524,20 @@ class ParserLoop {
    * @param comp Undefined if not completing
    * @param delimited Undefined if previous option is not delimited
    */
-  private handleUnknown(arg: string, name: string, comp?: string, delimited?: string): never {
+  private handleUnknown(
+    arg: string,
+    name: string,
+    comp?: string,
+    delimited?: [string, string],
+  ): never {
     if (comp !== undefined) {
       this.handleNameCompletion(arg);
     }
     const error = `Unknown option '${name}'.`;
     if (delimited) {
-      throw Error(`${error} Did you forget to delimit values for '${delimited}'?`);
+      throw Error(
+        `${error} Did you forget to delimit values for '${delimited[0]}' with '${delimited[1]}'?`,
+      );
     }
     const similarNames = this.findSimilarNames(name);
     if (similarNames.length) {
@@ -1047,11 +1065,12 @@ function normalizeString(
     value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
   }
   if ('enums' in option && option.enums && !option.enums.includes(value)) {
-    throw Error(`Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`);
+    const error = option.enums.map((val) => `'${val}'`).join(',');
+    throw Error(`Invalid parameter to '${name}': '${value}'. Possible values are [${error}].`);
   }
   if ('regex' in option && option.regex && !option.regex.test(value)) {
     throw Error(
-      `Invalid parameter to '${name}': ${value}. ` +
+      `Invalid parameter to '${name}': '${value}'. ` +
         `Value must match the regex ${String(option.regex)}.`,
     );
   }

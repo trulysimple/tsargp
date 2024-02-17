@@ -390,7 +390,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'string': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to 'string': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -404,7 +404,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'string': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to 'string': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -422,7 +422,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'string': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to 'string': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -436,7 +436,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'string': abc. Possible values are [one,two].`,
+          `Invalid parameter to 'string': 'abc'. Possible values are ['one','two'].`,
         );
       });
 
@@ -450,7 +450,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'string': abc. Possible values are [one,two].`,
+          `Invalid parameter to 'string': 'abc'. Possible values are ['one','two'].`,
         );
       });
 
@@ -468,7 +468,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'string': abc. Possible values are [one,two].`,
+          `Invalid parameter to 'string': 'abc'. Possible values are ['one','two'].`,
         );
       });
     });
@@ -579,7 +579,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'strings': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to 'strings': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -594,7 +594,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'strings': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to 'strings': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -613,7 +613,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'strings': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to 'strings': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -628,7 +628,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'strings': abc. Possible values are [one,two].`,
+          `Invalid parameter to 'strings': 'abc'. Possible values are ['one','two'].`,
         );
       });
 
@@ -643,7 +643,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'strings': abc. Possible values are [one,two].`,
+          `Invalid parameter to 'strings': 'abc'. Possible values are ['one','two'].`,
         );
       });
 
@@ -662,7 +662,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Invalid parameter to 'strings': abc. Possible values are [one,two].`,
+          `Invalid parameter to 'strings': 'abc'. Possible values are ['one','two'].`,
         );
       });
     });
@@ -1793,7 +1793,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-s', 'abc'])).toThrow(
-          `Invalid parameter to '-s': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to '-s': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -1856,7 +1856,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-s', 'abc'])).toThrow(
-          `Invalid parameter to '-s': abc. Possible values are [one,two].`,
+          `Invalid parameter to '-s': 'abc'. Possible values are ['one','two'].`,
         );
       });
 
@@ -2544,7 +2544,7 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-ss'])).toThrow(`Missing parameter to '-ss'.`);
       });
 
-      it('should throw an error with a suggestion for a delimited strings option', () => {
+      it('should throw a suggestion for a delimited strings option', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -2554,7 +2554,45 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'a,b', 'c'])).toThrow(
-          `Unknown option 'c'. Did you forget to delimit values for '-ss'?`,
+          `Unknown option 'c'. Did you forget to delimit values for '-ss' with ','?`,
+        );
+      });
+
+      it('should throw a suggestion for a delimited strings option with enums', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            enums: ['one'],
+            separator: ',',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-ss', 'a'])).toThrow(
+          `Invalid parameter to '-ss': 'a'. Possible values are ['one']. Did you forget to delimit values with ','?`,
+        );
+      });
+
+      it('should throw a suggestion for a delimited strings option when using a positional option', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            separator: ',',
+          },
+          positional: {
+            type: 'string',
+            names: ['-s'],
+            enums: ['one'],
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-ss', 'a,b', 'c'])).toThrow(
+          `Invalid parameter to '-s': 'c'. Possible values are ['one']. Did you forget to delimit values for '-ss' with ','?`,
+        );
+        expect(() => parser.parse(['-ss', 'a,b', 'one', 'c'])).toThrow(
+          `Invalid parameter to '-s': 'c'. Possible values are ['one'].`,
         );
       });
 
@@ -2656,7 +2694,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', '123,abc'])).toThrow(
-          `Invalid parameter to '-ss': abc. Value must match the regex /\\d+/s.`,
+          `Invalid parameter to '-ss': 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
 
@@ -2710,7 +2748,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'abc'])).toThrow(
-          `Invalid parameter to '-ss': abc. Possible values are [one,two].`,
+          `Invalid parameter to '-ss': 'abc'. Possible values are ['one','two'].`,
         );
       });
 
@@ -2967,7 +3005,7 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-ns'])).toThrow(`Missing parameter to '-ns'.`);
       });
 
-      it('should throw an error with a suggestion for a delimited numbers option', () => {
+      it('should throw a suggestion for a delimited numbers option', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -2977,7 +3015,45 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1,2', '3'])).toThrow(
-          `Unknown option '3'. Did you forget to delimit values for '-ns'?`,
+          `Unknown option '3'. Did you forget to delimit values for '-ns' with ','?`,
+        );
+      });
+
+      it('should throw a suggestion for a delimited numbers option with enums', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            enums: [123],
+            separator: ',',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-ns', '1'])).toThrow(
+          `Invalid parameter to '-ns': 1. Possible values are [123]. Did you forget to delimit values with ','?`,
+        );
+      });
+
+      it('should throw a suggestion for a delimited numbers option when using a positional option', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            separator: ',',
+          },
+          positional: {
+            type: 'numbers',
+            names: ['-n'],
+            enums: [123],
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-ns', '1,2', '3'])).toThrow(
+          `Invalid parameter to '-n': 3. Possible values are [123]. Did you forget to delimit values for '-ns' with ','?`,
+        );
+        expect(() => parser.parse(['-ns', '1,2', '123', '3'])).toThrow(
+          `Invalid parameter to '-n': 3. Possible values are [123].`,
         );
       });
 

@@ -12,7 +12,7 @@ import 'xterm/css/xterm.css';
 // @ts-expect-error does not export types
 import options from 'tsargp/demo';
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.50';
+options.version.version = '0.1.52';
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -139,21 +139,19 @@ class Demo extends React.Component<Props, State> {
   /**
    * Fires when the user enters a line.
    */
-  private onInput(text: string) {
-    const args = Demo.getArgs(text);
-    if (args.length) {
-      switch (args[0]) {
-        case '':
-          break;
-        case 'clear':
-          this.term.clear();
-          break;
-        case 'tsargp':
-          this.runCommand(args.slice(1));
-          break;
-        default:
-          this.term.writeln(`${args[0]}: command not found`);
-      }
+  private onInput(line: string) {
+    const [command] = line.split(' ', 1);
+    switch (command) {
+      case '':
+        break;
+      case 'clear':
+        this.term.clear();
+        break;
+      case 'tsargp':
+        this.runCommand(line);
+        break;
+      default:
+        this.term.writeln(`${command}: command not found`);
     }
     this.readInput();
   }
@@ -175,59 +173,15 @@ class Demo extends React.Component<Props, State> {
 
   /**
    * Runs the demo command.
+   * @param line The command line
    */
-  private runCommand(args: Array<string>) {
+  private runCommand(line: string) {
     try {
-      const values = this.parser.parse(args, this.state.width);
+      const values = this.parser.parse(line, { width: this.state.width });
       this.readline.println(JSON.stringify(values, null, 2));
     } catch (err) {
       this.readline.println(`${err}`);
     }
-  }
-
-  /**
-   * Gets a list of command arguments from an input line.
-   * @returns The list of arguments
-   */
-  private static getArgs(text: string): Array<string> {
-    const result = new Array<string>();
-    let arg: string | undefined;
-    for (let i = 0, quote = ''; i < text.length; ++i) {
-      switch (text[i]) {
-        case '\n':
-        case ' ':
-          if (quote) {
-            arg += text[i];
-          } else if (arg !== undefined) {
-            result.push(arg);
-            arg = undefined;
-          }
-          break;
-        case `'`:
-        case '"':
-          if (quote == text[i]) {
-            quote = '';
-          } else if (quote) {
-            arg += text[i];
-          } else {
-            quote = text[i];
-            if (arg === undefined) {
-              arg = '';
-            }
-          }
-          break;
-        default:
-          if (arg === undefined) {
-            arg = text[i];
-          } else {
-            arg += text[i];
-          }
-      }
-    }
-    if (arg !== undefined) {
-      result.push(arg);
-    }
-    return result;
   }
 }
 

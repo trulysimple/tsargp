@@ -12,7 +12,7 @@ import type {
 } from './options';
 import type { Style } from './styles';
 
-import { RequiresAll, RequiresNot, RequiresOne, isMultivalued, isNiladic } from './options';
+import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './options';
 import { isEscape, sgr, StyledString } from './styles';
 
 export { HelpFormatter, HelpItem, type HelpConfig };
@@ -521,7 +521,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatMultivalued(option: Option, descStyle: Style, result: StyledString) {
-    if (isMultivalued(option)) {
+    if (isArray(option) && !option.separator) {
       result.style(descStyle).append('Accepts', 'multiple', 'parameters.');
     }
   }
