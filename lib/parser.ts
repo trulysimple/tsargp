@@ -20,6 +20,7 @@ import type {
   FunctionOption,
   NiladicOption,
   CompletionCallback,
+  OtherStyles,
 } from './options';
 
 import { HelpFormatter } from './formatter';
@@ -51,6 +52,10 @@ type ParseConfig = {
    * The completion index (only applicable to raw command lines).
    */
   compIndex?: number;
+  /**
+   * The styles of error messages.
+   */
+  styles?: OtherStyles;
 };
 
 /**
@@ -63,6 +68,32 @@ type Positional = {
   marker?: string;
 };
 
+type Concrete<T> = {
+  [K in keyof T]-?: T[K];
+};
+type ConcreteStyles = Concrete<OtherStyles>;
+
+/**
+ * The option registry interface.
+ */
+interface Registry {
+  readonly names: Map<string, string>;
+  readonly required: Array<string>;
+  readonly positional: Positional | undefined;
+}
+
+//--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+const defaultStyles: ConcreteStyles = {
+  regex: sgr('31'),
+  boolean: sgr('33'),
+  string: sgr('32'),
+  number: sgr('33'),
+  option: sgr('35'),
+  whitespace: sgr('0'),
+};
+
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
@@ -71,129 +102,21 @@ type Positional = {
  * @template T The type of the options' definitions
  */
 class ArgumentParser<T extends Options> {
-  private readonly nameToKey = new Map<string, string>();
-  private readonly required = new Array<string>();
-  private readonly positional: Positional | undefined;
+  private readonly registry: OptionRegistry;
 
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions
    */
-  constructor(private readonly options: T) {
-    for (const key in this.options) {
-      const option = this.options[key];
-      this.registerNames(key, option);
-      if (!isNiladic(option)) {
-        if (option.positional) {
-          if (this.positional) {
-            throw Error(`Duplicate positional option '${key}'.`);
-          }
-          const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-          const marker = typeof option.positional === 'string' ? option.positional : undefined;
-          this.positional = { key, name, option, marker };
-        }
-      }
-      if (option.required) {
-        this.required.push(key);
-      }
-      if (option.type === 'version' && !option.version && !option.resolve) {
-        throw Error(`Option '${key}' contains no version or resolve function.`);
-      }
-    }
-  }
-
-  /**
-   * Registers the option's names.
-   * @param key The option key
-   * @param option The option definition
-   */
-  private registerNames(key: string, option: Option) {
-    const names = option.names.filter((name): name is string => name !== null && name !== '');
-    if (!names.length) {
-      throw Error(`Option '${key}' has no name.`);
-    }
-    if (option.type === 'flag' && option.negationNames) {
-      names.push(...option.negationNames.filter((name) => name));
-    }
-    if ('positional' in option && typeof option.positional === 'string') {
-      if (!option.positional) {
-        throw Error(`Option '${key}' has empty positional marker.`);
-      }
-      names.push(option.positional);
-    }
-    for (const name of names) {
-      if (name.match(/[\s=]+/)) {
-        throw Error(`Invalid option name '${name}'.`);
-      }
-      if (this.nameToKey.has(name)) {
-        throw Error(`Duplicate option name '${name}'.`);
-      }
-      this.nameToKey.set(name, key);
-    }
+  constructor(options: T) {
+    this.registry = new OptionRegistry(options);
   }
 
   /**
    * Validates the options' definitions
    */
   validate() {
-    for (const key in this.options) {
-      const option = this.options[key];
-      if (!isNiladic(option)) {
-        validateEnums(key, option);
-        validateValue(key, option, option.default);
-        validateValue(key, option, option.example);
-      }
-      if (option.requires) {
-        this.validateRequirements(key, option.requires);
-      }
-    }
-  }
-
-  /**
-   * Checks the sanity of an option's requirements.
-   * @param key The option key
-   * @param requires The option requirements
-   */
-  private validateRequirements(key: string, requires: Requires) {
-    if (typeof requires === 'string') {
-      this.validateRequirement(key, requires);
-    } else if (requires instanceof RequiresNot) {
-      this.validateRequirements(key, requires.item);
-    } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-      for (const item of requires.items) {
-        this.validateRequirements(key, item);
-      }
-    } else {
-      for (const requiredKey in requires) {
-        this.validateRequirement(key, requiredKey, requires[requiredKey]);
-      }
-    }
-  }
-
-  /**
-   * Checks the sanity of an option requirement.
-   * @param key The requiring option key
-   * @param requiredKey The required option key
-   * @param requiredValue The required value, if any
-   */
-  private validateRequirement(
-    key: string,
-    requiredKey: string,
-    requiredValue?: RequiresVal[string],
-  ) {
-    if (requiredKey === key) {
-      throw Error(`Option '${key}' requires itself.`);
-    }
-    if (!(requiredKey in this.options)) {
-      throw Error(`Unknown required option '${requiredKey}'.`);
-    }
-    if (requiredValue !== undefined && requiredValue !== null) {
-      const option = this.options[requiredKey];
-      if (isNiladic(option)) {
-        throw Error(`Required option '${requiredKey}' does not accept values.`);
-      }
-      validateValue(requiredKey, option, requiredValue);
-    }
+    this.registry.validate();
   }
 
   /**
@@ -214,8 +137,8 @@ class ArgumentParser<T extends Options> {
    */
   private createValues(): OptionValues<T> {
     const result = {} as OptionValues<T>;
-    for (const key in this.options) {
-      if (isValued(this.options[key])) {
+    for (const key in this.registry.options) {
+      if (isValued(this.registry.options[key])) {
         (result as Record<string, undefined>)[key] = undefined;
       }
     }
@@ -250,17 +173,137 @@ class ArgumentParser<T extends Options> {
   ): Promise<Array<void>> {
     const args =
       typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
-    const loop = new ParserLoop(
-      this.options,
-      this.nameToKey,
-      this.required,
-      this.positional,
-      values,
-      args,
-      config.compIndex !== undefined && config.compIndex >= 0,
-      config.width,
-    );
-    return loop.loop();
+    return new ParserLoop(this.registry, values, args, config).loop();
+  }
+}
+
+/**
+ * Implements a compilation of option definitions.
+ */
+class OptionRegistry implements Registry {
+  readonly names = new Map<string, string>();
+  readonly required = new Array<string>();
+  readonly positional: Positional | undefined;
+
+  /**
+   * Creates an option registry based on a set of option definitions.
+   * @param options The option definitions
+   */
+  constructor(readonly options: Options) {
+    for (const key in this.options) {
+      const option = this.options[key];
+      this.registerNames(key, option);
+      if (!isNiladic(option)) {
+        if (option.positional) {
+          if (this.positional) {
+            throw Error(`Duplicate positional option '${key}'.`);
+          }
+          const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+          const marker = typeof option.positional === 'string' ? option.positional : undefined;
+          this.positional = { key, name, option, marker };
+        }
+      }
+      if (option.required) {
+        this.required.push(key);
+      }
+      if (option.type === 'version' && !option.version && !option.resolve) {
+        throw Error(`Option '${key}' contains no version or resolve function.`);
+      }
+    }
+  }
+
+  /**
+   * Registers an option's names.
+   * @param key The option key
+   * @param option The option definition
+   */
+  private registerNames(key: string, option: Option) {
+    const names = option.names.filter((name): name is string => name !== null && name !== '');
+    if (!names.length) {
+      throw Error(`Option '${key}' has no name.`);
+    }
+    if (option.type === 'flag' && option.negationNames) {
+      names.push(...option.negationNames.filter((name) => name));
+    }
+    if ('positional' in option && typeof option.positional === 'string') {
+      if (!option.positional) {
+        throw Error(`Option '${key}' has empty positional marker.`);
+      }
+      names.push(option.positional);
+    }
+    for (const name of names) {
+      if (name.match(/[\s=]+/)) {
+        throw Error(`Invalid option name '${name}'.`);
+      }
+      if (this.names.has(name)) {
+        throw Error(`Duplicate option name '${name}'.`);
+      }
+      this.names.set(name, key);
+    }
+  }
+
+  /**
+   * Validates all options' definitions
+   */
+  validate() {
+    for (const key in this.options) {
+      const option = this.options[key];
+      if (!isNiladic(option)) {
+        validateEnums(key, option);
+        validateValue(key, option, option.default);
+        validateValue(key, option, option.example);
+      }
+      if (option.requires) {
+        this.validateRequirements(key, option.requires);
+      }
+    }
+  }
+
+  /**
+   * Validates an option's requirements.
+   * @param key The option key
+   * @param requires The option requirements
+   */
+  private validateRequirements(key: string, requires: Requires) {
+    if (typeof requires === 'string') {
+      this.validateRequirement(key, requires);
+    } else if (requires instanceof RequiresNot) {
+      this.validateRequirements(key, requires.item);
+    } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
+      for (const item of requires.items) {
+        this.validateRequirements(key, item);
+      }
+    } else {
+      for (const requiredKey in requires) {
+        this.validateRequirement(key, requiredKey, requires[requiredKey]);
+      }
+    }
+  }
+
+  /**
+   * Validates an option requirement.
+   * @param key The requiring option key
+   * @param requiredKey The required option key
+   * @param requiredValue The required value, if any
+   */
+  private validateRequirement(
+    key: string,
+    requiredKey: string,
+    requiredValue?: RequiresVal[string],
+  ) {
+    if (requiredKey === key) {
+      throw Error(`Option '${key}' requires itself.`);
+    }
+    if (!(requiredKey in this.options)) {
+      throw Error(`Unknown required option '${requiredKey}'.`);
+    }
+    if (requiredValue !== undefined && requiredValue !== null) {
+      const option = this.options[requiredKey];
+      if (isNiladic(option)) {
+        throw Error(`Required option '${requiredKey}' does not accept values.`);
+      }
+      validateValue(requiredKey, option, requiredValue);
+    }
   }
 }
 
@@ -270,20 +313,23 @@ class ArgumentParser<T extends Options> {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
+  private readonly styles: ConcreteStyles;
+  private readonly completing: boolean;
+  private readonly width?: number;
 
   /**
    * Constructs a parser loop.
    */
   constructor(
-    private readonly options: Options,
-    private readonly nameToKey: Map<string, string>,
-    private readonly required: Array<string>,
-    private readonly positional: Positional | undefined,
+    private readonly registry: OptionRegistry,
     private readonly values: OptionValues,
     private readonly args: Array<string>,
-    private readonly completing: boolean,
-    private readonly width?: number,
-  ) {}
+    config: ParseConfig,
+  ) {
+    this.completing = config.compIndex !== undefined && config.compIndex >= 0;
+    this.styles = Object.assign({}, defaultStyles, config.styles);
+    this.width = config.width;
+  }
 
   /**
    * Loops through the command-line arguments.
@@ -297,7 +343,7 @@ class ParserLoop {
     let addKey = false;
     let singleParam = false;
     let value: string | undefined;
-    let current: typeof this.positional;
+    let current: Registry['positional'];
 
     for (let i = 0; i < this.args.length; ++i) {
       const [arg, comp] = this.args[i].split('\0', 2);
@@ -317,7 +363,8 @@ class ParserLoop {
         if (comp !== undefined) {
           throw ''; // use default completion (value !== undefined)
         } else if (!this.completing && value !== undefined) {
-          throw Error(`Option '${name}' does not accept inline values.`);
+          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+          throw Error(`Option ${optName} does not accept inline values.`);
         } else if (this.handleNiladic(key, option, name, i)) {
           return Promise.all(this.promises);
         }
@@ -350,7 +397,8 @@ class ParserLoop {
         } else if (marker || (isArray(option) && isMultivalued(option))) {
           continue;
         } else if (i + 1 == this.args.length) {
-          throw Error(`Missing parameter to '${name}'.`);
+          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+          throw Error(`Missing parameter to ${optName}.`);
         } else {
           singleParam = true;
         }
@@ -376,34 +424,40 @@ class ParserLoop {
     current?: Positional,
   ): [boolean, boolean, boolean, Positional, string | undefined] {
     const [name, value] = arg.split(/=(.*)/, 2);
-    const key = this.nameToKey.get(name);
+    const key = this.registry.names.get(name);
     if (key) {
       if (comp !== undefined && value === undefined) {
         throw name;
       }
-      if (this.positional && name === this.positional.marker) {
+      if (this.registry.positional && name === this.registry.positional.marker) {
         if (comp !== undefined) {
           throw ''; // use default completion
         }
         if (value !== undefined) {
-          throw Error(`Positional marker '${name}' does not accept inline values.`);
+          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+          throw Error(`Positional marker ${optName} does not accept inline values.`);
         }
-        if (index + 1 == this.args.length && !isArray(this.positional.option)) {
-          throw Error(`Missing parameter after positional marker '${name}'.`);
+        if (
+          index + 1 == this.args.length &&
+          (!isArray(this.registry.positional.option) ||
+            !isMultivalued(this.registry.positional.option))
+        ) {
+          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+          throw Error(`Missing parameter after positional marker ${optName}.`);
         }
-        return [true, true, false, this.positional, undefined];
+        return [true, true, false, this.registry.positional, undefined];
       }
-      current = { key, name, option: this.options[key] };
+      current = { key, name, option: this.registry.options[key] };
       return [true, false, true, current, value];
     }
     if (!current) {
-      if (!this.positional) {
+      if (!this.registry.positional) {
         if (comp !== undefined) {
           this.handleNameCompletion(arg);
         }
         this.handleUnknown(name);
       }
-      return [true, false, false, this.positional, arg];
+      return [true, false, false, this.registry.positional, arg];
     }
     return [false, false, false, current, arg];
   }
@@ -532,10 +586,11 @@ class ParserLoop {
    * @param name The unknown option name
    */
   private handleUnknown(name: string): never {
-    const error = `Unknown option '${name}'.`;
-    const similarNames = this.findSimilarNames(name);
-    if (similarNames.length) {
-      throw Error(`${error}\nSimilar names are: ${similarNames.join(', ')}.`);
+    const error = `Unknown option ${this.styles.option}${name}${this.styles.whitespace}.`;
+    const similar = this.findSimilarNames(name);
+    if (similar.length) {
+      const optNames = similar.map((str) => `${this.styles.option}${str}${this.styles.whitespace}`);
+      throw Error(`${error}\nSimilar names are: ${optNames.join(', ')}.`);
     }
     throw Error(error);
   }
@@ -545,7 +600,7 @@ class ParserLoop {
    * @param prefix The name prefix
    */
   private handleNameCompletion(prefix?: string): never {
-    const names = [...this.nameToKey.keys()];
+    const names = [...this.registry.names.keys()];
     const prefixedNames = prefix ? names.filter((name) => name.startsWith(prefix)) : names;
     throw prefixedNames.join('\n');
   }
@@ -556,7 +611,7 @@ class ParserLoop {
    */
   private handleHelp(option: HelpOption): never {
     const help = option.usage ? [option.usage] : [];
-    const groups = new HelpFormatter(this.options, option.format).formatGroups(this.width);
+    const groups = new HelpFormatter(this.registry.options, option.format).formatGroups(this.width);
     for (const [group, message] of groups.entries()) {
       const header = group ? group + ' options' : 'Options';
       help.push(`${sgr('1')}${header}:`, message);
@@ -571,8 +626,8 @@ class ParserLoop {
    * Set options' values to their default value, if not set.
    */
   private setDefaultValues() {
-    for (const key in this.options) {
-      const option = this.options[key];
+    for (const key in this.registry.options) {
+      const option = this.registry.options[key];
       if ('default' in option && !this.specifiedKeys.has(key)) {
         const value = getDefaultValue(key, option);
         (this.values as Record<string, typeof value>)[key] = value;
@@ -588,7 +643,7 @@ class ParserLoop {
    */
   private findSimilarNames(name: string, threshold = 0.6): Array<string> {
     const searchName = name.replace(/\p{P}/gu, '').toLowerCase();
-    return [...this.nameToKey.keys()]
+    return [...this.registry.names.keys()]
       .reduce((acc, name) => {
         const candidateName = name.replace(/\p{P}/gu, '').toLowerCase();
         const sim = gestaltPatternMatching(searchName, candidateName);
@@ -605,20 +660,22 @@ class ParserLoop {
    * Checks if required options were correctly specified.
    */
   private checkRequired() {
-    for (const key of this.required) {
+    for (const key of this.registry.required) {
       if (!this.specifiedKeys.has(key)) {
-        const option = this.options[key];
+        const option = this.registry.options[key];
         const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-        throw Error(`Option '${name}' is required.`);
+        const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+        throw Error(`Option ${optName} is required.`);
       }
     }
     for (const key of this.specifiedKeys) {
-      const option = this.options[key];
+      const option = this.registry.options[key];
       if (option.requires) {
         const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+        const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
         const error = this.checkRequires(option.requires);
         if (error) {
-          throw Error(`Option '${name}' requires ${error}.`);
+          throw Error(`Option ${optName} requires ${error}.`);
         }
       }
     }
@@ -724,22 +781,20 @@ class ParserLoop {
     requiredKey: string,
     requiredValue?: RequiresVal[string],
   ): string | null {
-    function checkPresence(): string | null {
-      return specified
-        ? required == negate
-          ? `no ${name}`
-          : null
-        : withValue || required != negate
-          ? name
-          : null;
-    }
-    const option = this.options[requiredKey];
+    const option = this.registry.options[requiredKey];
     const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
     const specified = this.specifiedKeys.has(requiredKey);
     const required = requiredValue !== null;
     const withValue = required && requiredValue !== undefined;
     if (isNiladic(option) || !specified || !required || !withValue) {
-      return checkPresence();
+      const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+      return specified
+        ? required == negate
+          ? `no ${optName}`
+          : null
+        : withValue || required != negate
+          ? optName
+          : null;
     }
     return this.checkRequiredValue(name, option, negate, requiredKey, requiredValue);
   }
@@ -762,78 +817,182 @@ class ParserLoop {
   ): string | null {
     function assert(_condition: unknown): asserts _condition {}
     switch (option.type) {
-      case 'boolean': {
+      case 'boolean':
         assert(typeof requiredValue == 'boolean');
-        const actual = (this.values as Record<string, boolean | Promise<boolean>>)[requiredKey];
-        if (actual instanceof Promise) {
-          return null; // ignore promises during requirement checking
-        }
-        if ((actual === requiredValue) !== negate) {
-          return null;
-        }
-        return negate ? `${name} != ${requiredValue}` : `${name} = ${requiredValue}`;
-      }
-      case 'string': {
+        return this.checkRequiredBoolean(name, negate, requiredKey, requiredValue);
+      case 'string':
         assert(typeof requiredValue === 'string');
-        const actual = (this.values as Record<string, string | Promise<string>>)[requiredKey];
-        if (actual instanceof Promise) {
-          return null; // ignore promises during requirement checking
-        }
-        const expected = normalizeString(option, name, requiredValue);
-        if ((actual === expected) !== negate) {
-          return null;
-        }
-        return negate ? `${name} != '${expected}'` : `${name} = '${expected}'`;
-      }
-      case 'number': {
+        return this.checkRequiredString(name, option, negate, requiredKey, requiredValue);
+      case 'number':
         assert(typeof requiredValue === 'number');
-        const actual = (this.values as Record<string, number | Promise<number>>)[requiredKey];
-        if (actual instanceof Promise) {
-          return null; // ignore promises during requirement checking
-        }
-        const expected = normalizeNumber(option, name, requiredValue);
-        if ((actual === expected) !== negate) {
-          return null;
-        }
-        return negate ? `${name} != ${expected}` : `${name} = ${expected}`;
-      }
+        return this.checkRequiredNumber(name, option, negate, requiredKey, requiredValue);
       case 'strings': {
         assert(typeof requiredValue === 'object');
-        type ArrayVal = Array<string> | Promise<Array<string>>;
-        const actual = (this.values as Record<string, ArrayVal>)[requiredKey];
-        if (actual instanceof Promise) {
-          return null; // ignore promises during requirement checking
-        }
-        const expected = (requiredValue as Array<string>).map((val) =>
-          normalizeString(option, name, val),
-        );
-        if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
-          return null;
-        }
-        const error = expected.map((el) => `'${el}'`).join(',');
-        return negate ? `${name} != [${error}]` : `${name} = [${error}]`;
+        const expected = requiredValue as Array<string>;
+        return this.checkRequiredStrings(name, option, negate, requiredKey, expected);
       }
       case 'numbers': {
         assert(typeof requiredValue === 'object');
-        type ArrayVal = Array<number> | Promise<Array<number>>;
-        const actual = (this.values as Record<string, ArrayVal>)[requiredKey];
-        if (actual instanceof Promise) {
-          return null; // ignore promises during requirement checking
-        }
-        const expected = (requiredValue as Array<number>).map((val) =>
-          normalizeNumber(option, name, val),
-        );
-        if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
-          return null;
-        }
-        const error = expected.map((el) => el.toString()).join(',');
-        return negate ? `${name} != [${error}]` : `${name} = [${error}]`;
+        const expected = requiredValue as Array<number>;
+        return this.checkRequiredNumbers(name, option, negate, requiredKey, expected);
       }
       default: {
         const _exhaustiveCheck: never = option;
         return _exhaustiveCheck;
       }
     }
+  }
+
+  /**
+   * Checks the required value of a boolean option against a specified value.
+   * @param name The option name
+   * @param negate True if the requirement should be negated
+   * @param requiredValue The required option key
+   * @param requiredValue The required value
+   * @returns An error reason or null if no error
+   */
+  private checkRequiredBoolean(
+    name: string,
+    negate: boolean,
+    requiredKey: string,
+    requiredValue: boolean,
+  ): string | null {
+    const actual = (this.values as Record<string, boolean | Promise<boolean>>)[requiredKey];
+    if (actual instanceof Promise) {
+      return null; // ignore promises during requirement checking
+    }
+    if ((actual === requiredValue) !== negate) {
+      return null;
+    }
+    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+    const optVal = `${this.styles.boolean}${requiredValue}${this.styles.whitespace}`;
+    return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
+  }
+
+  /**
+   * Checks the required value of a string option against a specified value.
+   * @param name The option name
+   * @param option The option definition
+   * @param negate True if the requirement should be negated
+   * @param requiredValue The required option key
+   * @param requiredValue The required value
+   * @returns An error reason or null if no error
+   */
+  private checkRequiredString(
+    name: string,
+    option: StringOption,
+    negate: boolean,
+    requiredKey: string,
+    requiredValue: string,
+  ): string | null {
+    const actual = (this.values as Record<string, string | Promise<string>>)[requiredKey];
+    if (actual instanceof Promise) {
+      return null; // ignore promises during requirement checking
+    }
+    const expected = normalizeString(option, name, requiredValue);
+    if ((actual === expected) !== negate) {
+      return null;
+    }
+    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+    const optVal = `${this.styles.string}'${expected}'${this.styles.whitespace}`;
+    return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
+  }
+
+  /**
+   * Checks the required value of a number option against a specified value.
+   * @param name The option name
+   * @param option The option definition
+   * @param negate True if the requirement should be negated
+   * @param requiredValue The required option key
+   * @param requiredValue The required value
+   * @returns An error reason or null if no error
+   */
+  private checkRequiredNumber(
+    name: string,
+    option: NumberOption,
+    negate: boolean,
+    requiredKey: string,
+    requiredValue: number,
+  ): string | null {
+    const actual = (this.values as Record<string, number | Promise<number>>)[requiredKey];
+    if (actual instanceof Promise) {
+      return null; // ignore promises during requirement checking
+    }
+    const expected = normalizeNumber(option, name, requiredValue);
+    if ((actual === expected) !== negate) {
+      return null;
+    }
+    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+    const optVal = `${this.styles.number}${expected}${this.styles.whitespace}`;
+    return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
+  }
+
+  /**
+   * Checks the required value of a strings option against a specified value.
+   * @param name The option name
+   * @param option The option definition
+   * @param negate True if the requirement should be negated
+   * @param requiredValue The required option key
+   * @param requiredValue The required value
+   * @returns An error reason or null if no error
+   */
+  private checkRequiredStrings(
+    name: string,
+    option: StringsOption,
+    negate: boolean,
+    requiredKey: string,
+    requiredValue: Array<string>,
+  ): string | null {
+    type ArrayVal = Array<string> | Promise<Array<string>>;
+    const actual = (this.values as Record<string, ArrayVal>)[requiredKey];
+    if (actual instanceof Promise) {
+      return null; // ignore promises during requirement checking
+    }
+    const expected = (requiredValue as Array<string>).map((val) =>
+      normalizeString(option, name, val),
+    );
+    if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
+      return null;
+    }
+    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+    const optVal = expected
+      .map((el) => `${this.styles.string}'${el}'${this.styles.whitespace}`)
+      .join(', ');
+    return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
+  }
+
+  /**
+   * Checks the required value of a numbers option against a specified value.
+   * @param name The option name
+   * @param option The option definition
+   * @param negate True if the requirement should be negated
+   * @param requiredValue The required option key
+   * @param requiredValue The required value
+   * @returns An error reason or null if no error
+   */
+  private checkRequiredNumbers(
+    name: string,
+    option: NumbersOption,
+    negate: boolean,
+    requiredKey: string,
+    requiredValue: Array<number>,
+  ): string | null {
+    type ArrayVal = Array<number> | Promise<Array<number>>;
+    const actual = (this.values as Record<string, ArrayVal>)[requiredKey];
+    if (actual instanceof Promise) {
+      return null; // ignore promises during requirement checking
+    }
+    const expected = (requiredValue as Array<number>).map((val) =>
+      normalizeNumber(option, name, val),
+    );
+    if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
+      return null;
+    }
+    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
+    const optVal = expected
+      .map((el) => `${this.styles.string}${el}${this.styles.whitespace}`)
+      .join(', ');
+    return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
   }
 
   /**
@@ -1366,6 +1525,43 @@ function normalizeArray(
 }
 
 /**
+ * Checks the required value of an array option against a specified value.
+ * @param actual The specified value
+ * @param expected The expected value
+ * @param negate True if the requirement should be negated
+ * @param unique True if array elements should are unique
+ * @returns An error reason or null if no error
+ */
+function checkRequiredArray(
+  actual: Array<string> | Array<number>,
+  expected: Array<string> | Array<number>,
+  negate: boolean,
+  unique: boolean,
+): boolean {
+  if (actual.length !== expected.length) {
+    return negate;
+  }
+  if (unique) {
+    const set = new Set<string | number>(expected);
+    for (const element of actual) {
+      if (!set.delete(element)) {
+        return negate;
+      }
+    }
+    if (set.size > 0) {
+      return negate;
+    }
+  } else {
+    for (let i = 0; i < actual.length; ++i) {
+      if (actual[i] !== expected[i]) {
+        return negate;
+      }
+    }
+  }
+  return !negate;
+}
+
+/**
  * The longest strings that are substrings of both strings.
  * @param S The source string
  * @param T The target string
@@ -1423,41 +1619,4 @@ function matchingCharacters(S: string, T: string): number {
  */
 function gestaltPatternMatching(S: string, T: string): number {
   return (2 * matchingCharacters(S, T)) / (S.length + T.length);
-}
-
-/**
- * Checks the required value of an array option against a specified value.
- * @param actual The specified value
- * @param expected The expected value
- * @param negate True if the requirement should be negated
- * @param unique True if array elements should are unique
- * @returns An error reason or null if no error
- */
-function checkRequiredArray(
-  actual: Array<string> | Array<number>,
-  expected: Array<string> | Array<number>,
-  negate: boolean,
-  unique: boolean,
-): boolean {
-  if (actual.length !== expected.length) {
-    return negate;
-  }
-  if (unique) {
-    const set = new Set<string | number>(expected);
-    for (const element of actual) {
-      if (!set.delete(element)) {
-        return negate;
-      }
-    }
-    if (set.size > 0) {
-      return negate;
-    }
-  } else {
-    for (let i = 0; i < actual.length; ++i) {
-      if (actual[i] !== expected[i]) {
-        return negate;
-      }
-    }
-  }
-  return !negate;
 }

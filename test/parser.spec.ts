@@ -856,12 +856,12 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['boo'])).toThrow(/Unknown option 'boo'.$/);
+      expect(() => parser.parse(['boo'])).toThrow(/Unknown option .+boo.+\.$/);
       expect(() => parser.parse(['bool'])).toThrow(
-        `Unknown option 'bool'.\nSimilar names are: --boolean1, --boolean2.`,
+        /Unknown option .+bool.+.\nSimilar names are: .+--boolean1.+, .+--boolean2.+\./,
       );
       expect(() => parser.parse(['bool-ean'])).toThrow(
-        `Unknown option 'bool-ean'.\nSimilar names are: --boolean1, --boolean2.`,
+        /Unknown option .+bool-ean.+.\nSimilar names are: .+--boolean1.+, .+--boolean2.+\./,
       );
     });
 
@@ -875,7 +875,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse([])).toThrow(`Option 'preferred' is required.`);
+      expect(() => parser.parse([])).toThrow(/Option .+preferred.+ is required\./);
     });
 
     it('should handle the completion of a positional marker', () => {
@@ -931,17 +931,17 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse([])).not.toThrow();
-      expect(() => parser.parse(['req0'])).toThrow(`Option 'req0' requires req1.`);
+      expect(() => parser.parse(['req0'])).toThrow(/Option .+req0.+ requires .+req1.+\./);
       expect(() => parser.parse(['req0', 'req1'])).toThrow(
-        `Option 'req0' requires (req2 or preferred).`,
+        /Option .+req0.+ requires \(.+req2.+ or .+preferred.+\)\./,
       );
       expect(() => parser.parse(['req0', 'req1', 'req2=a'])).toThrow(
-        `Option 'req0' requires (req2 = ['a','b'] or preferred).`,
+        /Option .+req0.+ requires \(.+req2.+ = \[.+'a'.+, .+'b'.+\] or .+preferred.+\)\./,
       );
-      expect(() => parser.parse(['a'])).toThrow(`Option 'preferred' requires req1.`);
-      expect(() => parser.parse(['req1', 'a'])).toThrow(`Option 'preferred' requires req4.`);
+      expect(() => parser.parse(['a'])).toThrow(/Option .+preferred.+ requires .+req1.+\./);
+      expect(() => parser.parse(['req1', 'a'])).toThrow(/Option .+preferred.+ requires .+req4.+\./);
       expect(() => parser.parse(['req0', 'req1', 'c'])).toThrow(
-        `Option 'req0' requires (req2 or preferred != ['c']).`,
+        /Option .+req0.+ requires \(.+req2.+ or .+preferred.+ != \[.+'c'.+\]\)\./,
       );
       expect(() => parser.parse(['req0', 'req1', 'req2', 'a|a|b'])).not.toThrow();
       expect(() => parser.parse(['req0', 'req1', 'req2', 'b|b|a'])).not.toThrow();
@@ -1067,7 +1067,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(`Option '-f1' requires -f2.`);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -1085,7 +1085,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option '-f1' requires no -f2.`);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
         expect(options.required.exec).toHaveBeenCalled();
       });
 
@@ -1103,7 +1103,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(`Option '-f1' requires -f2.`);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -1121,7 +1121,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option '-f1' requires no -f2.`);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
         expect(options.required.exec).toHaveBeenCalled();
       });
 
@@ -1134,7 +1134,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f=a'])).toThrow(`Option '-f' does not accept inline values.`);
+        expect(() => parser.parse(['-f=a'])).toThrow(
+          /Option .+-f.+ does not accept inline values\./,
+        );
         expect(options.function.exec).not.toHaveBeenCalled();
       });
 
@@ -1164,7 +1166,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync(['-f'])).rejects.toThrow('function');
+        await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^function$/);
       });
 
       it('should break the parsing loop when a function option explicitly asks so', () => {
@@ -1256,7 +1258,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(`Option '-f1' requires -f2.`);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
       });
 
       it('should throw an error on flag option present despite being required to be absent', () => {
@@ -1272,7 +1274,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option '-f1' requires no -f2.`);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
       });
 
       it('should throw an error on flag option absent despite being required not to be', () => {
@@ -1288,7 +1290,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(`Option '-f1' requires -f2.`);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
       });
 
       it('should throw an error on flag option present despite being required not to be', () => {
@@ -1304,7 +1306,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option '-f1' requires no -f2.`);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
       });
 
       it('should throw an error on flag option specified with value', () => {
@@ -1315,7 +1317,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f=a'])).toThrow(`Option '-f' does not accept inline values.`);
+        expect(() => parser.parse(['-f=a'])).toThrow(
+          /Option .+-f.+ does not accept inline values\./,
+        );
       });
 
       it('should handle a flag option', () => {
@@ -1452,7 +1456,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -b.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-b.+\./);
       });
 
       it('should throw an error on boolean option present despite being required to be absent', () => {
@@ -1468,7 +1472,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(`Option '-f' requires no -b.`);
+        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(/Option .+-f.+ requires no .+-b.+\./);
       });
 
       it('should handle a boolean option absent while being required to be', () => {
@@ -1500,7 +1504,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(`Option '-f' requires no -b.`);
+        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(/Option .+-f.+ requires no .+-b.+\./);
       });
 
       it('should throw an error on boolean option absent despite being required not to be', () => {
@@ -1516,7 +1520,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -b.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-b.+\./);
       });
 
       it('should throw an error on boolean option present despite being required not to be (2)', () => {
@@ -1532,7 +1536,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(`Option '-f' requires no -b.`);
+        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(/Option .+-f.+ requires no .+-b.+\./);
       });
 
       it('should throw an error on boolean option with a value different than required', () => {
@@ -1548,7 +1552,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(`Option '-f' requires -b = false.`);
+        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(
+          /Option .+-f.+ requires .+-b.+ = .+false.+\./,
+        );
       });
 
       it('should throw an error on boolean option with a value equal to required when negated', () => {
@@ -1564,7 +1570,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '0'])).toThrow(`Option '-f' requires -b != false.`);
+        expect(() => parser.parse(['-f', '-b', '0'])).toThrow(
+          /Option .+-f.+ requires .+-b.+ != .+false.+\./,
+        );
       });
 
       it('should ignore required value on boolean option when using an async custom parse', () => {
@@ -1592,7 +1600,35 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-b'])).toThrow(`Missing parameter to '-b'.`);
+        expect(() => parser.parse(['-b'])).toThrow(/Missing parameter to .+-b.+\./);
+      });
+
+      it('should throw an error on boolean option with missing parameter after positional marker', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--'])).toThrow(
+          /Missing parameter after positional marker .+--.+\./,
+        );
+      });
+
+      it('should throw an error on boolean option with positional marker specified with value', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--=a'])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
       });
 
       it('should handle a boolean option with default and example values', () => {
@@ -1676,34 +1712,6 @@ describe('ArgumentParser', () => {
           flag: undefined,
           boolean: true,
         });
-      });
-
-      it('should throw an error on boolean option with missing positional argument after marker', () => {
-        const options = {
-          function: {
-            type: 'boolean',
-            names: ['-b'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(
-          `Missing parameter after positional marker '--'.`,
-        );
-      });
-
-      it('should throw an error on boolean option with positional marker specified with value', () => {
-        const options = {
-          function: {
-            type: 'boolean',
-            names: ['-b'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--=a'])).toThrow(
-          `Positional marker '--' does not accept inline values.`,
-        );
       });
 
       it('should handle a boolean option with custom parsing', () => {
@@ -1837,7 +1845,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -s.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-s.+\./);
       });
 
       it('should throw an error on string option present despite being required to be absent', () => {
@@ -1853,7 +1861,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(`Option '-f' requires no -s.`);
+        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(/Option .+-f.+ requires no .+-s.+\./);
       });
 
       it('should handle a string option absent while being required to be', () => {
@@ -1885,7 +1893,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(`Option '-f' requires no -s.`);
+        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(/Option .+-f.+ requires no .+-s.+\./);
       });
 
       it('should throw an error on string option absent despite being required not to be', () => {
@@ -1901,7 +1909,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -s.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-s.+\./);
       });
 
       it('should throw an error on string option present despite being required not to be (2)', () => {
@@ -1917,7 +1925,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(`Option '-f' requires no -s.`);
+        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(/Option .+-f.+ requires no .+-s.+\./);
       });
 
       it('should throw an error on string option with a value different than required', () => {
@@ -1933,7 +1941,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(`Option '-f' requires -s = '0'.`);
+        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(
+          /Option .+-f.+ requires .+-s.+ = .+'0'.+\./,
+        );
       });
 
       it('should throw an error on string option with a value equal to required when negated', () => {
@@ -1949,7 +1959,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '0'])).toThrow(`Option '-f' requires -s != '0'.`);
+        expect(() => parser.parse(['-f', '-s', '0'])).toThrow(
+          /Option .+-f.+ requires .+-s.+ != .+'0'.+\./,
+        );
       });
 
       it('should ignore required value on string option when using an async custom parse', () => {
@@ -1977,7 +1989,35 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-s'])).toThrow(`Missing parameter to '-s'.`);
+        expect(() => parser.parse(['-s'])).toThrow(/Missing parameter to .+-s.+\./);
+      });
+
+      it('should throw an error on string option with missing parameter after positional marker', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--'])).toThrow(
+          /Missing parameter after positional marker .+--.+\./,
+        );
+      });
+
+      it('should throw an error on string option with positional marker specified with value', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--=a'])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
       });
 
       it('should handle a string option with default and example values', () => {
@@ -2148,34 +2188,6 @@ describe('ArgumentParser', () => {
         });
       });
 
-      it('should throw an error on string option with missing positional argument after marker', () => {
-        const options = {
-          function: {
-            type: 'string',
-            names: ['-s'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(
-          `Missing parameter after positional marker '--'.`,
-        );
-      });
-
-      it('should throw an error on string option with positional marker specified with value', () => {
-        const options = {
-          function: {
-            type: 'string',
-            names: ['-s'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--=a'])).toThrow(
-          `Positional marker '--' does not accept inline values.`,
-        );
-      });
-
       it('should handle a string option with custom parsing', () => {
         const options = {
           string: {
@@ -2309,7 +2321,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -n.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-n.+\./);
       });
 
       it('should throw an error on number option present despite being required to be absent', () => {
@@ -2325,7 +2337,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(`Option '-f' requires no -n.`);
+        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(/Option .+-f.+ requires no .+-n.+\./);
       });
 
       it('should handle a number option absent while being required to be', () => {
@@ -2357,7 +2369,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(`Option '-f' requires no -n.`);
+        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(/Option .+-f.+ requires no .+-n.+\./);
       });
 
       it('should throw an error on number option absent despite being required not to be', () => {
@@ -2373,7 +2385,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -n.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-n.+\./);
       });
 
       it('should throw an error on number option present despite being required not to be (2)', () => {
@@ -2389,7 +2401,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(`Option '-f' requires no -n.`);
+        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(/Option .+-f.+ requires no .+-n.+\./);
       });
 
       it('should throw an error on number option with a value different than required', () => {
@@ -2405,7 +2417,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(`Option '-f' requires -n = 0.`);
+        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(
+          /Option .+-f.+ requires .+-n.+ = .+0.+\./,
+        );
       });
 
       it('should throw an error on number option with a value equal to required when negated', () => {
@@ -2421,7 +2435,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '0'])).toThrow(`Option '-f' requires -n != 0.`);
+        expect(() => parser.parse(['-f', '-n', '0'])).toThrow(
+          /Option .+-f.+ requires .+-n.+ != .+0.+\./,
+        );
       });
 
       it('should ignore required value on number option when using an async custom parse', () => {
@@ -2449,7 +2465,35 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-n'])).toThrow(`Missing parameter to '-n'.`);
+        expect(() => parser.parse(['-n'])).toThrow(/Missing parameter to .+-n.+\./);
+      });
+
+      it('should throw an error on number option with missing parameter after positional marker', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--'])).toThrow(
+          /Missing parameter after positional marker .+--.+\./,
+        );
+      });
+
+      it('should throw an error on number option with positional marker specified with value', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--=a'])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
       });
 
       it('should handle a number option with default and example values', () => {
@@ -2582,34 +2626,6 @@ describe('ArgumentParser', () => {
           flag: undefined,
           number: 1,
         });
-      });
-
-      it('should throw an error on number option with missing positional argument after marker', () => {
-        const options = {
-          function: {
-            type: 'number',
-            names: ['-n'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(
-          `Missing parameter after positional marker '--'.`,
-        );
-      });
-
-      it('should throw an error on number option with positional marker specified with value', () => {
-        const options = {
-          function: {
-            type: 'number',
-            names: ['-n'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--=a'])).toThrow(
-          `Positional marker '--' does not accept inline values.`,
-        );
       });
 
       it('should handle a number option with custom parsing', () => {
@@ -2791,7 +2807,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -ss.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ss.+\./);
       });
 
       it('should throw an error on strings option present despite being required to be absent', () => {
@@ -2807,7 +2823,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(`Option '-f' requires no -ss.`);
+        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
+          /Option .+-f.+ requires no .+-ss.+\./,
+        );
       });
 
       it('should handle a strings option absent while being required to be', () => {
@@ -2839,7 +2857,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(`Option '-f' requires no -ss.`);
+        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
+          /Option .+-f.+ requires no .+-ss.+\./,
+        );
       });
 
       it('should throw an error on strings option absent despite being required not to be', () => {
@@ -2855,7 +2875,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -ss.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ss.+\./);
       });
 
       it('should throw an error on strings option present despite being required not to be (2)', () => {
@@ -2871,7 +2891,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(`Option '-f' requires no -ss.`);
+        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
+          /Option .+-f.+ requires no .+-ss.+\./,
+        );
       });
 
       it('should throw an error on strings option with a value different than required', () => {
@@ -2888,7 +2910,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
-          `Option '-f' requires -ss = ['0','1'].`,
+          /Option .+-f.+ requires .+-ss.+ = \[.+'0'.+, .+'1'.+\]\./,
         );
       });
 
@@ -2906,7 +2928,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-f', '-ss', '0', '1'])).toThrow(
-          `Option '-f' requires -ss != ['0','1'].`,
+          /Option .+-f.+ requires .+-ss.+ != \[.+'0'.+, .+'1'.+\]\./,
         );
       });
 
@@ -2936,7 +2958,36 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ss'])).toThrow(`Missing parameter to '-ss'.`);
+        expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to .+-ss.+\./);
+      });
+
+      it('should throw an error on strings option with missing parameter after positional marker', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            separator: ',',
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--'])).toThrow(
+          /Missing parameter after positional marker .+--.+\./,
+        );
+      });
+
+      it('should throw an error on strings option with positional marker specified with value', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--=a'])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
       });
 
       it('should throw an error on delimited strings option with too many values', () => {
@@ -3161,20 +3212,6 @@ describe('ArgumentParser', () => {
         });
       });
 
-      it('should throw an error on strings option with positional marker specified with value', () => {
-        const options = {
-          function: {
-            type: 'strings',
-            names: ['-ss'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--=a'])).toThrow(
-          `Positional marker '--' does not accept inline values.`,
-        );
-      });
-
       it('should handle a strings option with custom parsing', () => {
         const options = {
           strings: {
@@ -3221,7 +3258,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ss'])).toThrow(`Missing parameter to '-ss'.`);
+        expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to .+-ss.+\./);
         expect(parser.parse(['-ss', 'a,b|B', '-ss', 'a,B|b'])).toMatchObject({
           strings: ['A', 'B'],
         });
@@ -3321,7 +3358,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -ns.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ns.+\./);
       });
 
       it('should throw an error on numbers option present despite being required to be absent', () => {
@@ -3337,7 +3374,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(`Option '-f' requires no -ns.`);
+        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
+          /Option .+-f.+ requires no .+-ns.+\./,
+        );
       });
 
       it('should handle a numbers option absent while being required to be', () => {
@@ -3369,7 +3408,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(`Option '-f' requires no -ns.`);
+        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
+          /Option .+-f.+ requires no .+-ns.+\./,
+        );
       });
 
       it('should throw an error on numbers option absent despite being required not to be', () => {
@@ -3385,7 +3426,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(`Option '-f' requires -ns.`);
+        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ns.+\./);
       });
 
       it('should throw an error on numbers option present despite being required not to be (2)', () => {
@@ -3401,7 +3442,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(`Option '-f' requires no -ns.`);
+        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
+          /Option .+-f.+ requires no .+-ns.+\./,
+        );
       });
 
       it('should throw an error on numbers option with a value different than required', () => {
@@ -3417,7 +3460,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(`Option '-f' requires -ns = [0,1].`);
+        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
+          /Option .+-f.+ requires .+-ns.+ = \[.+0.+, .+1.+\]\./,
+        );
       });
 
       it('should throw an error on numbers option with a value equal to required when negated', () => {
@@ -3434,7 +3479,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-f', '-ns', '0', '1'])).toThrow(
-          `Option '-f' requires -ns != [0,1].`,
+          /Option .+-f.+ requires .+-ns.+ != \[.+0.+, .+1.+\]\./,
         );
       });
 
@@ -3464,7 +3509,36 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ns'])).toThrow(`Missing parameter to '-ns'.`);
+        expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to .+-ns.+\./);
+      });
+
+      it('should throw an error on numbers option with missing parameter after positional marker', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            separator: ',',
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--'])).toThrow(
+          /Missing parameter after positional marker .+--.+\./,
+        );
+      });
+
+      it('should throw an error on numbers option with positional marker specified with value', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            positional: '--',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--=a'])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
       });
 
       it('should throw an error on delimited numbers option with too many values', () => {
@@ -3643,20 +3717,6 @@ describe('ArgumentParser', () => {
         });
       });
 
-      it('should throw an error on numbers option with positional marker specified with value', () => {
-        const options = {
-          function: {
-            type: 'numbers',
-            names: ['-ns'],
-            positional: '--',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--=a'])).toThrow(
-          `Positional marker '--' does not accept inline values.`,
-        );
-      });
-
       it('should handle a numbers option with custom parsing', () => {
         const options = {
           numbers: {
@@ -3705,7 +3765,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ns'])).toThrow(`Missing parameter to '-ns'.`);
+        expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to .+-ns.+\./);
         expect(parser.parse(['-ns', '1.1,2.2|2.3'])).toMatchObject({ numbers: [2, 3] });
         expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '11|12'])).toMatchObject({
           numbers: [2, 3, 11, 12],
