@@ -14,6 +14,7 @@ export type {
   OptionDataType,
   OptionValues,
   OptionStyles,
+  OtherStyles,
   StringOption,
   NumberOption,
   FlagOption,
@@ -33,7 +34,7 @@ export type {
   RequiresVal,
 };
 
-export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued };
+export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued, isMultivalued };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -92,6 +93,36 @@ type OptionStyles = {
 };
 
 /**
+ * A set of styles for displaying text on the console.
+ */
+type OtherStyles = {
+  /**
+   * The style of booleans.
+   */
+  readonly boolean?: Style;
+  /**
+   * The style of strings.
+   */
+  readonly string?: Style;
+  /**
+   * The style of numbers.
+   */
+  readonly number?: Style;
+  /**
+   * The style of regular expressions.
+   */
+  readonly regex?: Style;
+  /**
+   * The style of option names
+   */
+  readonly option?: Style;
+  /**
+   * The style of whitespace or error messages.
+   */
+  readonly whitespace?: Style;
+};
+
+/**
  * A requirement expression that is satisfied only when all items are satisfied.
  */
 class RequiresAll {
@@ -122,7 +153,7 @@ type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
  *
  * Values can be `undefined` to indicate presence and `null` to indicate absence.
  */
-type RequiresVal = { [key: string]: OptionDataType | null };
+type RequiresVal = { [key: string]: ValuedOption['default'] | null };
 
 /**
  * An option requirement can be either:
@@ -134,22 +165,14 @@ type RequiresVal = { [key: string]: OptionDataType | null };
 type Requires = string | RequiresVal | RequiresExp;
 
 /**
- * A generic callback.
- * @template T The return data type
- * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`)
- * @param args The remaining arguments
- * @returns The return value
- */
-type Callback<T> = (values: OptionValues<Options>, args: Array<string>) => T;
-
-/**
- * A callback for options that accept parameters.
+ * A callback to parse the value of options that accept parameters. Any specified normalization or
+ * constraint will be applied to the returned value.
  * @template T The return data type
  * @param name The option name (as specified on the command-line)
  * @param value The parameter value
  * @returns The parsed value
  */
-type ParseCallback<T> = (name: string, value: string) => T;
+type ParseCallback<T> = (name: string, value: string) => T | Promise<T>;
 
 /**
  * A module-relative resolution function scoped to each module. Non-Web environments only.
@@ -158,16 +181,29 @@ type ResolveCallback = (specifier: string) => string;
 
 /**
  * A callback for function options.
- * @see Callback
+ * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
+ * or to your values class)
+ * @param rest The remaining command-line arguments
+ * @param completing True if performing completion (but not in the current iteration)
  */
-type FunctionCallback = Callback<void | Promise<void>>;
+type FunctionCallback = (
+  values: OptionValues,
+  rest: Array<string>,
+  completing: boolean,
+) => void | Promise<void>;
 
 /**
- * A callback for option completion. The first argument in `args` is the one that triggered the
+ * A callback for option completion.
+ * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
+ * or to your values class)
+ * @param rest The remaining command-line arguments. The first element is the one triggering the
  * completion (it may be an empty string).
- * @see Callback
+ * @returns The list of completion words
  */
-type CompletionCallback = Callback<Array<string> | Promise<Array<string>>>;
+type CompletionCallback = (
+  values: OptionValues,
+  rest: Array<string>,
+) => Array<string> | Promise<Array<string>>;
 
 /**
  * Defines attributes common to all options.
@@ -230,6 +266,10 @@ type WithType<T extends string> = {
  */
 type WithParam<T> = {
   /**
+   * The element separator. If not specified, the option is multivalued.
+   */
+  readonly separator?: string;
+  /**
    * The option default value.
    */
   readonly default?: T;
@@ -252,26 +292,61 @@ type WithParam<T> = {
    */
   readonly positional?: true | string;
   /**
-   * A custom function to parse the option parameter. It is allowed to throw an error to indicate
-   * parsing or validation failure. Otherwise, all specified normalization and constraints will be
-   * applied to the returned value.
-   */
-  readonly parse?: ParseCallback<T>;
-  /**
    * A custom completion callback. It should not throw. If asynchronous, you should call
    * `ArgumentParser.parseAsync` and await its result.
    */
   readonly complete?: CompletionCallback;
 };
 
+type WithParse<T> = {
+  /**
+   * A custom function to parse the option parameter.
+   */
+  readonly parse: ParseCallback<T>;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly separator?: never;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly parseDelimited?: never;
+};
+
+type WithParseDelimited<T> = {
+  /**
+   * A custom function to parse the option parameter.
+   */
+  readonly parseDelimited: ParseCallback<Array<T>>;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly parse?: never;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly separator?: never;
+};
+
+type WithDelimited = {
+  /**
+   * The array element separator.
+   */
+  readonly separator: string | RegExp;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly parse?: never;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly parseDelimited?: never;
+};
+
 /**
  * Defines attributes common to all options that accept array parameters.
  */
 type WithArray = {
-  /**
-   * The element separator. If not specified, the option is multivalued.
-   */
-  readonly separator?: string;
   /**
    * True if duplicate elements should be removed.
    */
@@ -326,7 +401,7 @@ type WithRange = {
   /**
    * The (closed) numeric range.
    */
-  readonly range: [number, number];
+  readonly range: [floor: number, ceiling: number];
   /**
    * @deprecated mutually exclusive property
    */
@@ -396,27 +471,41 @@ type WithNumber = Optional<WithEnums<number> | WithRange> & {
 /**
  * An option that accepts a single boolean parameter.
  */
-type BooleanOption = WithType<'boolean'> & WithParam<boolean>;
+type BooleanOption = WithType<'boolean'> & WithParam<boolean> & Optional<WithParse<boolean>>;
 
 /**
  * An option that accepts a single string parameter.
  */
-type StringOption = WithType<'string'> & WithParam<string> & WithString;
+type StringOption = WithType<'string'> &
+  WithParam<string> &
+  WithString &
+  Optional<WithParse<string>>;
 
 /**
  * An option that accepts a single number parameter.
  */
-type NumberOption = WithType<'number'> & WithParam<number> & WithNumber;
+type NumberOption = WithType<'number'> &
+  WithParam<number> &
+  WithNumber &
+  Optional<WithParse<number>>;
 
 /**
  * An option that accepts a list of string parameters.
  */
-type StringsOption = WithType<'strings'> & WithParam<Array<string>> & WithString & WithArray;
+type StringsOption = WithType<'strings'> &
+  WithParam<Array<string>> &
+  WithString &
+  WithArray &
+  Optional<WithParse<string> | WithParseDelimited<string> | WithDelimited>;
 
 /**
  * An option that accepts a list of number parameters.
  */
-type NumbersOption = WithType<'numbers'> & WithParam<Array<number>> & WithNumber & WithArray;
+type NumbersOption = WithType<'numbers'> &
+  WithParam<Array<number>> &
+  WithNumber &
+  WithArray &
+  Optional<WithParse<number> | WithParseDelimited<number> | WithDelimited>;
 
 /**
  * An option which is enabled if specified.
@@ -511,12 +600,30 @@ type Option = NiladicOption | ParamOption;
 type Options = Readonly<Record<string, Option>>;
 
 /**
+ * The data type of an option.
+ * @template T The option definition type
+ * @template D The option value data type
+ * @template E The effective data type
+ */
+type DataType<T extends Option, D, E> = T extends
+  | { parse: (name: string, value: string) => D }
+  | { parseDelimited: (name: string, value: string) => Array<D> }
+  ? E
+  : T extends
+        | { parse: (name: string, value: string) => Promise<D> }
+        | { parseDelimited: (name: string, value: string) => Promise<Array<D>> }
+    ? Promise<E>
+    : T extends { parse: ParseCallback<D> } | { parseDelimited: ParseCallback<Array<D>> }
+      ? E | Promise<E>
+      : E;
+
+/**
  * The data type of a non-array option.
  * @template T The option definition type
  * @template D The option value data type
  */
-type DataType<T extends Option, D> =
-  | (T extends { enums: Array<D> } ? T['enums'][number] : D)
+type SingleDataType<T extends Option, D> =
+  | DataType<T, D, T extends { enums: Array<D> } ? T['enums'][number] : D>
   | (T extends { default: D } ? never : undefined);
 
 /**
@@ -525,7 +632,8 @@ type DataType<T extends Option, D> =
  * @template D The option value data type
  */
 type ArrayDataType<T extends Option, D> =
-  | (T extends { enums: Array<D> } ? Array<T['enums'][number]> : Array<D>)
+  | DataType<T, D, T extends { enums: Array<D> } ? Array<T['enums'][number]> : Array<D>>
+  | (T extends Record<'separator' | 'parseDelimited', unknown> ? never : [])
   | (T extends { default: Array<D> } ? never : undefined);
 
 /**
@@ -533,11 +641,11 @@ type ArrayDataType<T extends Option, D> =
  * @template T The option definition type
  */
 type OptionDataType<T extends Option = Option> = T extends { type: 'flag' | 'boolean' }
-  ? DataType<T, boolean>
+  ? SingleDataType<T, boolean>
   : T extends { type: 'string' }
-    ? DataType<T, string>
+    ? SingleDataType<T, string>
     : T extends { type: 'number' }
-      ? DataType<T, number>
+      ? SingleDataType<T, number>
       : T extends { type: 'strings' }
         ? ArrayDataType<T, string>
         : T extends { type: 'numbers' }
@@ -580,4 +688,16 @@ function isArray(option: Option): option is ArrayOption {
  */
 function isValued(option: Option): option is ValuedOption {
   return !['function', 'help', 'version'].includes(option.type);
+}
+
+/**
+ * Tests if an array option is multivalued.
+ * @param option The option definition
+ * @returns True if the option is multivalued
+ */
+function isMultivalued(option: ArrayOption): boolean {
+  return (
+    !('separator' in option && option.separator) &&
+    !('parseDelimited' in option && option.parseDelimited)
+  );
 }

@@ -7,8 +7,8 @@ import type {
   Requires,
   OptionStyles,
   ValuedOption,
-  OptionDataType,
   RequiresVal,
+  OtherStyles,
 } from './options';
 import type { Style } from './styles';
 
@@ -39,9 +39,12 @@ type HelpIndent = {
   readonly wrap: string;
 };
 
-type Concrete<T> = {
-  [K in keyof T]-?: T[K];
-};
+type Concrete<T> = Exclude<
+  {
+    [K in keyof T]-?: T[K];
+  },
+  undefined
+>;
 
 /**
  * A merged formatter configuration.
@@ -55,8 +58,8 @@ type FormatterConfig = {
     readonly descAbsolute?: true;
   };
   readonly hidden?: HelpFormat['hidden'];
-  readonly breaks: Exclude<Concrete<HelpFormat['breaks']>, undefined>;
-  readonly styles: Exclude<Concrete<HelpFormat['styles']>, undefined>;
+  readonly breaks: Concrete<HelpFormat['breaks']>;
+  readonly styles: Concrete<HelpFormat['styles']>;
   readonly items: Array<HelpItem>;
 };
 
@@ -131,32 +134,7 @@ type HelpFormat = {
   /**
    * The default option styles and the styles of other elements.
    */
-  readonly styles?: OptionStyles & {
-    /**
-     * The style of regular expressions.
-     */
-    readonly regex?: Style;
-    /**
-     * The style of booleans.
-     */
-    readonly boolean?: Style;
-    /**
-     * The style of strings.
-     */
-    readonly string?: Style;
-    /**
-     * The style of numbers.
-     */
-    readonly number?: Style;
-    /**
-     * The style of option names
-     */
-    readonly option?: Style;
-    /**
-     * The style of whitespace.
-     */
-    readonly whitespace?: Style;
-  };
+  readonly styles?: OptionStyles & OtherStyles;
 
   /**
    * The order of items to be shown in the option description.
@@ -890,7 +868,7 @@ class HelpFormatter {
    */
   private formatValue(
     option: ValuedOption,
-    value: OptionDataType,
+    value: ValuedOption['default'],
     result: StyledString,
     descStyle?: Style,
   ) {

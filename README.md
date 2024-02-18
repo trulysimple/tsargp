@@ -62,10 +62,11 @@ import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
 try {
-  const parser = new ArgumentParser(options); // validate the options' definitions
-  // const values = parser.parse();           // use this to get the options' values
-  // const values = await parser.parseAsync();// use this if you declare async function options
-  // parser.parseInto(myValues);              // use this if your values are enclosed in a class
+  const parser = new ArgumentParser(options);
+  parser.validate(); // validate the options' definitions (can be skipped in production)
+  // const values = parser.parse(); // use this to get the options' values
+  // const values = await parser.parseAsync(); // use this if you declare async function options
+  // parser.parseInto(myValues); // use this if your values are enclosed in a class
 } catch (err) {
   if (typeof err === 'string') {
     console.log(err); // help message, version or bash completion words
