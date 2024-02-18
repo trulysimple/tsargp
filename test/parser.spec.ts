@@ -1567,6 +1567,23 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-f', '-b', '0'])).toThrow(`Option '-f' requires -b != false.`);
       });
 
+      it('should ignore required value on boolean option when using an async custom parse', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: false },
+          },
+          required: {
+            type: 'boolean',
+            names: ['-b'],
+            parse: async () => true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f', '-b', '1'])).not.toThrow();
+      });
+
       it('should throw an error on boolean option with missing parameter', () => {
         const options = {
           boolean: {
@@ -1933,6 +1950,23 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-f', '-s', '0'])).toThrow(`Option '-f' requires -s != '0'.`);
+      });
+
+      it('should ignore required value on string option when using an async custom parse', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: '0' },
+          },
+          required: {
+            type: 'string',
+            names: ['-s'],
+            parse: async () => '1',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f', '-s', '1'])).not.toThrow();
       });
 
       it('should throw an error on string option with missing parameter', () => {
@@ -2388,6 +2422,23 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-f', '-n', '0'])).toThrow(`Option '-f' requires -n != 0.`);
+      });
+
+      it('should ignore required value on number option when using an async custom parse', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: 0 },
+          },
+          required: {
+            type: 'number',
+            names: ['-n'],
+            parse: async () => 1,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f', '-n', '1'])).not.toThrow();
       });
 
       it('should throw an error on number option with missing parameter', () => {
@@ -2857,6 +2908,23 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-f', '-ss', '0', '1'])).toThrow(
           `Option '-f' requires -ss != ['0','1'].`,
         );
+      });
+
+      it('should ignore required value on strings option when using an async custom parse', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: ['0'] },
+          },
+          required: {
+            type: 'strings',
+            names: ['-ss'],
+            parse: async () => '1',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f', '-ss', '1'])).not.toThrow();
       });
 
       it('should throw an error on strings option with missing parameter', () => {
@@ -3368,6 +3436,23 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-f', '-ns', '0', '1'])).toThrow(
           `Option '-f' requires -ns != [0,1].`,
         );
+      });
+
+      it('should ignore required value on numbers option when using an async custom parse', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: [0] },
+          },
+          required: {
+            type: 'numbers',
+            names: ['-ns'],
+            parse: async () => 1,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f', '-ns', '1'])).not.toThrow();
       });
 
       it('should throw an error on numbers option with missing parameter', () => {
