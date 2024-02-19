@@ -228,8 +228,14 @@ class ParserLoop {
           try {
             this.parseValue(key, option, name, value);
           } catch (err) {
-            // do not propagate user errors during completion
+            // do not propagate errors during completion
             if (!this.completing) {
+              if (!inline && !marker && isArray(option) && isMultivalued(option)) {
+                const error = err as Error;
+                const optName = `${this.styles.option}${value}${this.styles.whitespace}`;
+                error.message += `\nDid you mean to specify an option name instead of ${optName}?`;
+                this.handleUnknown(value, error);
+              }
               throw err;
             }
           }
@@ -344,7 +350,7 @@ class ParserLoop {
         this.promises.push(result);
       }
     } catch (err) {
-      // do not propagate user errors during completion
+      // do not propagate errors during completion
       if (!this.completing) {
         throw err;
       }
@@ -404,7 +410,7 @@ class ParserLoop {
     try {
       result = complete(this.values, [param, ...this.args.slice(index + 1)]);
     } catch (err) {
-      // do not propagate user errors during completion
+      // do not propagate errors during completion
       console.error(err);
       throw '';
     }
@@ -416,7 +422,7 @@ class ParserLoop {
         throw words.join('\n');
       },
       (err) => {
-        // do not propagate user errors during completion
+        // do not propagate errors during completion
         console.error(err);
         throw '';
       },
@@ -427,15 +433,18 @@ class ParserLoop {
   /**
    * Handles an unknown option.
    * @param name The unknown option name
+   * @param error The previous error, if any
    */
-  private handleUnknown(name: string): never {
-    const error = `Unknown option ${this.styles.option}${name}${this.styles.whitespace}.`;
+  private handleUnknown(name: string, error?: Error): never {
+    if (!error) {
+      error = new Error(`Unknown option ${this.styles.option}${name}${this.styles.whitespace}.`);
+    }
     const similar = this.findSimilarNames(name);
     if (similar.length) {
       const optNames = similar.map((str) => `${this.styles.option}${str}${this.styles.whitespace}`);
-      throw Error(`${error}\nSimilar names are: ${optNames.join(', ')}.`);
+      error.message += `\nSimilar names are: ${optNames.join(', ')}.`;
     }
-    throw Error(error);
+    throw error;
   }
 
   /**

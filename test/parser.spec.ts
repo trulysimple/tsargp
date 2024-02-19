@@ -1629,6 +1629,25 @@ describe('ArgumentParser', () => {
         );
       });
 
+      it('should throw a name suggestion on parse failure from multivalued strings option', () => {
+        const regex = new RegExp(
+          `Option .+-ss.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
+            `\nDid you mean to specify an option name instead of .+ss.+\\?` +
+            `\nSimilar names are: .+-ss.+\\.`,
+        );
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            limit: 0,
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['ss'])).toThrow(regex);
+        expect(() => parser.parse(['-ss', 'ss'])).toThrow(regex);
+      });
+
       it('should handle a strings option with default and example values', () => {
         const options = {
           strings: {
@@ -2050,6 +2069,25 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-ns', '1', '2', '3'])).toThrow(
           /Option .+-ns.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
         );
+      });
+
+      it('should throw a name suggestion on parse failure from multivalued numbers option', () => {
+        const regex = new RegExp(
+          `Option .+-ns.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
+            `\nDid you mean to specify an option name instead of .+ns.+\\?` +
+            `\nSimilar names are: .+-ns.+\\.`,
+        );
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            limit: 0,
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['ns'])).toThrow(regex);
+        expect(() => parser.parse(['-ns', 'ns'])).toThrow(regex);
       });
 
       it('should handle a numbers option with default and example values', () => {
