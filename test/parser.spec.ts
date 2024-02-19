@@ -1742,7 +1742,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).toMatchObject({ boolean: true });
-        expect(parser.parse(['-b', ' 0 '])).toMatchObject({ boolean: false });
+        expect(parser.parse(['-b', ' +0.0 '])).toMatchObject({ boolean: false });
         expect(parser.parse(['-b', ' 1 '])).toMatchObject({ boolean: true });
         expect(parser.parse(['--boolean', ''])).toMatchObject({
           boolean: false,

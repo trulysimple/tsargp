@@ -9,18 +9,20 @@ Argument parser for TypeScript. Get started with the [documentation](https://tru
   - Purely declarative
   - Type checking
   - Browser-compatible
-  - Moderate footprint (<30KB minified)
+  - Moderate footprint (~31KB minified)
 - Functionality:
-  - No-friction bash completion
-  - Various option types to choose from
-  - Arbitrary requirements between options
+  - Bash completion
+  - Various option types
+  - Requirements between options
   - Value normalization and constraints
   - Option grouping and hiding
   - Option name suggestions
+  - Async callbacks
 - Presentation:
   - Fully customizable help message format
   - Inline styles, text wrapping, paragraphs and lists
   - Wide range of display attributes from [SGR]
+  - Styling of error messages
 
 ## Demo
 

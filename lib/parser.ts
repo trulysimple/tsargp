@@ -85,6 +85,9 @@ interface Registry {
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
+/**
+ * The default styles of error messages
+ */
 const defaultStyles: ConcreteStyles = {
   regex: sgr('31'),
   boolean: sgr('33'),
@@ -679,10 +682,10 @@ class ParserLoop {
     for (const key of this.specifiedKeys) {
       const option = this.registry.options[key];
       if (option.requires) {
-        const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-        const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
         const error = this.checkRequires(option.requires);
         if (error) {
+          const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
           throw Error(`Option ${optName} requires ${error}.`);
         }
       }
@@ -1068,8 +1071,12 @@ class ParserLoop {
    * @param value The option value
    */
   private parseBoolean(key: string, option: BooleanOption, name: string, value: string) {
-    const result =
-      'parse' in option ? option.parse(name, value) : !value.trim().match(/^([0]*|false)$/i);
+    let result: boolean | Promise<boolean>;
+    if ('parse' in option) {
+      result = option.parse(name, value);
+    } else {
+      result = !(Number(value) == 0 || value.trim().match(/^\s*false\s*$/i));
+    }
     (this.values as Record<string, typeof result>)[key] = result;
   }
 
@@ -1081,7 +1088,7 @@ class ParserLoop {
    * @param value The option value
    */
   private parseString(key: string, option: StringOption, name: string, value: string) {
-    let result;
+    let result: string | Promise<string>;
     if ('parse' in option) {
       result = option.parse(name, value);
       if (result instanceof Promise) {
@@ -1103,7 +1110,7 @@ class ParserLoop {
    * @param value The option value
    */
   private parseNumber(key: string, option: NumberOption, name: string, value: string) {
-    let result;
+    let result: number | Promise<number>;
     if ('parse' in option) {
       result = option.parse(name, value);
       if (result instanceof Promise) {
@@ -1125,62 +1132,51 @@ class ParserLoop {
    * @param value The option value
    */
   private parseStrings(key: string, option: StringsOption, name: string, value: string) {
-    type ArrayVal = Array<string> | Promise<Array<string>>;
-    let result: ArrayVal;
+    const previous = (this.values as Record<string, Array<string> | Promise<Array<string>>>)[key];
+    let result: Array<string>;
     if ('parse' in option && option.parse) {
-      const previous = (this.values as Record<string, ArrayVal>)[key];
       const res = option.parse(name, value);
       if (res instanceof Promise) {
-        result = res.then(async (val) => {
+        const promise = res.then(async (val) => {
           const prev = await previous;
           prev.push(normalizeString(option, name, val, this.styles));
           normalizeArray(option, name, prev, this.styles);
           return prev;
         });
-      } else if (previous instanceof Promise) {
-        result = previous.then((val) => {
-          val.push(normalizeString(option, name, res, this.styles));
-          normalizeArray(option, name, val, this.styles);
-          return val;
-        });
+        (this.values as Record<string, typeof promise>)[key] = promise;
+        return;
       } else {
-        result = previous;
-        previous.push(normalizeString(option, name, res, this.styles));
-        normalizeArray(option, name, result, this.styles);
+        result = [normalizeString(option, name, res, this.styles)];
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
-      const previous = (this.values as Record<string, ArrayVal>)[key];
       const res = option.parseDelimited(name, value);
       if (res instanceof Promise) {
-        result = res.then(async (vals) => {
+        const promise = res.then(async (vals) => {
           const prev = await previous;
           prev.push(...vals.map((val) => normalizeString(option, name, val, this.styles)));
           normalizeArray(option, name, prev, this.styles);
           return prev;
         });
+        (this.values as Record<string, typeof promise>)[key] = promise;
+        return;
       } else {
-        const normalized = res.map((val) => normalizeString(option, name, val, this.styles));
-        if (previous instanceof Promise) {
-          result = previous.then((val) => {
-            val.push(...normalized);
-            normalizeArray(option, name, val, this.styles);
-            return val;
-          });
-        } else {
-          result = previous;
-          result.push(...normalized);
-          normalizeArray(option, name, result, this.styles);
-        }
+        result = res.map((val) => normalizeString(option, name, val, this.styles));
       }
     } else {
-      const previous = (this.values as Record<string, Array<string>>)[key];
       const vals = option.separator ? value.split(option.separator) : [value];
-      const normalized = vals.map((val) => normalizeString(option, name, val, this.styles));
-      result = previous;
-      result.push(...normalized);
-      normalizeArray(option, name, result, this.styles);
+      result = vals.map((val) => normalizeString(option, name, val, this.styles));
     }
-    (this.values as Record<string, typeof result>)[key] = result;
+    if (previous instanceof Promise) {
+      const promise = previous.then((val) => {
+        val.push(...result);
+        normalizeArray(option, name, val, this.styles);
+        return val;
+      });
+      (this.values as Record<string, typeof promise>)[key] = promise;
+    } else {
+      previous.push(...result);
+      normalizeArray(option, name, previous, this.styles);
+    }
   }
 
   /**
@@ -1191,64 +1187,53 @@ class ParserLoop {
    * @param value The option value
    */
   private parseNumbers(key: string, option: NumbersOption, name: string, value: string) {
-    type ArrayVal = Array<number> | Promise<Array<number>>;
-    let result: ArrayVal;
+    const previous = (this.values as Record<string, Array<number> | Promise<Array<number>>>)[key];
+    let result: Array<number>;
     if ('parse' in option && option.parse) {
-      const previous = (this.values as Record<string, ArrayVal>)[key];
       const res = option.parse(name, value);
       if (res instanceof Promise) {
-        result = res.then(async (val) => {
+        const promise = res.then(async (val) => {
           const prev = await previous;
           prev.push(normalizeNumber(option, name, val, this.styles));
           normalizeArray(option, name, prev, this.styles);
           return prev;
         });
-      } else if (previous instanceof Promise) {
-        result = previous.then((val) => {
-          val.push(normalizeNumber(option, name, res, this.styles));
-          normalizeArray(option, name, val, this.styles);
-          return val;
-        });
+        (this.values as Record<string, typeof promise>)[key] = promise;
+        return;
       } else {
-        result = previous;
-        previous.push(normalizeNumber(option, name, res, this.styles));
-        normalizeArray(option, name, result, this.styles);
+        result = [normalizeNumber(option, name, res, this.styles)];
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
-      const previous = (this.values as Record<string, ArrayVal>)[key];
       const res = option.parseDelimited(name, value);
       if (res instanceof Promise) {
-        result = res.then(async (vals) => {
+        const promise = res.then(async (vals) => {
           const prev = await previous;
           prev.push(...vals.map((val) => normalizeNumber(option, name, val, this.styles)));
           normalizeArray(option, name, prev, this.styles);
           return prev;
         });
+        (this.values as Record<string, typeof promise>)[key] = promise;
+        return;
       } else {
-        const normalized = res.map((val) => normalizeNumber(option, name, val, this.styles));
-        if (previous instanceof Promise) {
-          result = previous.then((val) => {
-            val.push(...normalized);
-            normalizeArray(option, name, val, this.styles);
-            return val;
-          });
-        } else {
-          result = previous;
-          result.push(...normalized);
-          normalizeArray(option, name, result, this.styles);
-        }
+        result = res.map((val) => normalizeNumber(option, name, val, this.styles));
       }
     } else {
-      const previous = (this.values as Record<string, Array<number>>)[key];
       const vals = option.separator
         ? value.split(option.separator).map((val) => Number(val))
         : [Number(value)];
-      const normalized = vals.map((val) => normalizeNumber(option, name, val, this.styles));
-      result = previous;
-      result.push(...normalized);
-      normalizeArray(option, name, result, this.styles);
+      result = vals.map((val) => normalizeNumber(option, name, val, this.styles));
     }
-    (this.values as Record<string, typeof result>)[key] = result;
+    if (previous instanceof Promise) {
+      const promise = previous.then((val) => {
+        val.push(...result);
+        normalizeArray(option, name, val, this.styles);
+        return val;
+      });
+      (this.values as Record<string, typeof promise>)[key] = promise;
+    } else {
+      previous.push(...result);
+      normalizeArray(option, name, previous, this.styles);
+    }
   }
 }
 
@@ -1312,6 +1297,7 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * Checks the sanity of the option's enumerated values.
  * @param key The option key
  * @param option The option definition
+ * @param styles The error message styles
  */
 function validateEnums(key: string, option: ParamOption, styles: ConcreteStyles) {
   if ('enums' in option && option.enums) {
@@ -1340,6 +1326,7 @@ function validateEnums(key: string, option: ParamOption, styles: ConcreteStyles)
  * @param key The option key
  * @param option The option definition
  * @param value The option value
+ * @param styles The error message styles
  */
 function validateValue(
   key: string,
@@ -1425,6 +1412,7 @@ async function resolveVersion(option: VersionOption): Promise<never> {
  * Gets the normalized default value of an option.
  * @param name The option name
  * @param option The option definition
+ * @param styles The error message styles
  * @returns The default value
  */
 function getDefaultValue(
@@ -1460,6 +1448,7 @@ function getDefaultValue(
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
+ * @param styles The error message styles
  */
 function normalizeString(
   option: StringOption | StringsOption,
@@ -1497,6 +1486,7 @@ function normalizeString(
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
+ * @param styles The error message styles
  */
 function normalizeNumber(
   option: NumberOption | NumbersOption,
@@ -1544,6 +1534,7 @@ function normalizeNumber(
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
+ * @param styles The error message styles
  */
 function normalizeArray(
   option: StringsOption | NumbersOption,
