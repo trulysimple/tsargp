@@ -4,944 +4,9 @@ import { ArgumentParser, req } from '../lib';
 import './utils.spec';
 
 describe('ArgumentParser', () => {
-  describe('constructor', () => {
-    it('should handle zero options', () => {
-      expect(() => new ArgumentParser({})).not.toThrow();
-    });
-
-    it('should ignore empty option names', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['', 'name', ''],
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).not.toThrow();
-    });
-
-    it('should throw an error on invalid option name', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['a = b'],
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrow(/Invalid option name .+a = b.+\./);
-    });
-
-    it('should throw an error on option with no name', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: [],
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrow(/Option .+string.+ has no name\./);
-    });
-
-    it('should throw an error on option with empty positional marker', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          positional: '',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrow(
-        /Option .+string.+ has empty positional marker\./,
-      );
-    });
-
-    it('should throw an error on version option with no version and no resolve', () => {
-      const options = {
-        version: {
-          type: 'version',
-          names: ['-v'],
-          version: '',
-        },
-      } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrow(
-        /Option .+version.+ contains no version or resolve function\./,
-      );
-    });
-
-    describe('duplicates', () => {
-      it('should throw an error on duplicate option name in the same option', () => {
-        const options = {
-          duplicate: {
-            type: 'string',
-            names: ['dup', 'dup'],
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
-      });
-
-      it('should throw an error on duplicate option name across different options', () => {
-        const options = {
-          duplicate1: {
-            type: 'string',
-            names: ['dup'],
-          },
-          duplicate2: {
-            type: 'string',
-            names: ['dup'],
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
-      });
-
-      it('should throw an error on flag option with duplicate negation name', () => {
-        const options = {
-          function: {
-            type: 'flag',
-            names: ['dup'],
-            negationNames: ['dup'],
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
-      });
-
-      it('should throw an error on option with duplicate positional marker name', () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['dup'],
-          },
-          positional: {
-            type: 'number',
-            names: ['-pos'],
-            positional: 'dup',
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
-      });
-
-      it('should throw an error on duplicate positional option', () => {
-        const options = {
-          positional1: {
-            type: 'string',
-            names: ['-pos1'],
-            positional: true,
-          },
-          positional2: {
-            type: 'number',
-            names: ['-pos2'],
-            positional: true,
-          },
-        } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(
-          /Duplicate positional option .+positional2.+\./,
-        );
-      });
-    });
-  });
-
-  describe('validate', () => {
-    describe('requires', () => {
-      it('should throw an error on option required by itself', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: req.and('required', req.or({ requires: 'o' })),
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+requires.+ requires itself\./);
-      });
-
-      it('should throw an error on unknown required option', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: req.and('required', req.or({ unknown: 'o' })),
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Unknown required option .+unknown.+\./);
-      });
-
-      it('should allow a flag option required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).not.toThrow();
-      });
-
-      it('should allow a flag option required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).not.toThrow();
-      });
-
-      it('should throw an error on flag option required with a value', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: true },
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Required option .+required.+ does not accept values\./,
-        );
-      });
-
-      it('should throw an error on function option required with a value', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: true },
-          },
-          required: {
-            type: 'function',
-            names: ['-f2'],
-            exec: () => {},
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Required option .+required.+ does not accept values\./,
-        );
-      });
-
-      it('should throw an error on boolean option required with an incompatible value', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: 1 },
-          },
-          required: {
-            type: 'boolean',
-            names: ['-b'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+required.+ has incompatible value <1>\. Should be of type .+'boolean'.+\./,
-        );
-      });
-
-      it('should throw an error on string option required with an incompatible value', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: 1 },
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+required.+ has incompatible value <1>\. Should be of type .+'string'.+\./,
-        );
-      });
-
-      it('should throw an error on number option required with an incompatible value', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: '1' },
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+required.+ has incompatible value <1>\. Should be of type .+'number'.+\./,
-        );
-      });
-
-      it('should throw an error on strings option required with an incompatible value', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: 1 },
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+required.+ has incompatible value <1>\. Should be of type .+'string\[\]'.+\./,
-        );
-      });
-
-      it('should throw an error on numbers option required with an incompatible value', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: 1 },
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+required.+ has incompatible value <1>\. Should be of type .+'number\[\]'.+\./,
-        );
-      });
-    });
-
-    describe('string', () => {
-      it('should throw an error on string option with zero enumerated values', () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            enums: [],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+string.+ has zero enum values\./);
-      });
-
-      it('should throw an error on string option with duplicate enumerated values', () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-se'],
-            enums: ['dup', 'dup'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+string.+ has duplicate enum .+'dup'.+\./);
-      });
-
-      it('should throw an error on string example value not matching regex', () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            regex: /\d+/s,
-            example: 'abc',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+string.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
-        );
-      });
-
-      it('should throw an error on string default value not matching regex', () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            regex: /\d+/s,
-            default: 'abc',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+string.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
-        );
-      });
-
-      it('should throw an error on string required value not matching regex', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: 'abc' },
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-            regex: /\d+/s,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
-        );
-      });
-
-      it('should throw an error on string example value not in enumeration', () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            enums: ['one', 'two'],
-            example: 'abc',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+string.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
-        );
-      });
-
-      it('should throw an error on string default value not in enumeration', () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            enums: ['one', 'two'],
-            default: 'abc',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+string.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
-        );
-      });
-
-      it('should throw an error on string required value not in enumeration', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: 'abc' },
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-            enums: ['one', 'two'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
-        );
-      });
-    });
-
-    describe('number', () => {
-      it('should throw an error on number option with zero enumerated values', () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            enums: [],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+number.+ has zero enum values\./);
-      });
-
-      it('should throw an error on number option with duplicate enumeration values', () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            enums: [1, 1],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+number.+ has duplicate enum .+1.+\./);
-      });
-
-      it('should throw an error on number example value not in range', () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            range: [0, Infinity],
-            example: -3,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+number.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
-        );
-      });
-
-      it('should throw an error on number default value not in range', () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            range: [0, Infinity],
-            default: -3,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+number.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
-        );
-      });
-
-      it('should throw an error on number required value not in range', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: -3 },
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-            range: [0, Infinity],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
-        );
-      });
-
-      it('should throw an error on number example value not in enumeration', () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            enums: [1, 2],
-            example: 3,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+number.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
-        );
-      });
-
-      it('should throw an error on number default value not in enumeration', () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            enums: [1, 2],
-            default: 3,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+number.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
-        );
-      });
-
-      it('should throw an error on number required value not in enumeration', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: 3 },
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-            enums: [1, 2],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
-        );
-      });
-    });
-
-    describe('strings', () => {
-      it('should throw an error on strings option with zero enumerated values', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            enums: [],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+strings.+ has zero enum values\./);
-      });
-
-      it('should throw an error on strings option with duplicate enumeration values', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            enums: ['dup', 'dup'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+strings.+ has duplicate enum .+'dup'.+\./,
-        );
-      });
-
-      it('should throw an error on strings example value not matching regex', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            regex: /\d+/s,
-            example: ['abc'],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+strings.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
-        );
-      });
-
-      it('should throw an error on strings default value not matching regex', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            regex: /\d+/s,
-            default: ['abc'],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+strings.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
-        );
-      });
-
-      it('should throw an error on strings required value not matching regex', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: ['abc'] },
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-            regex: /\d+/s,
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
-        );
-      });
-
-      it('should throw an error on strings example value not in enumeration', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-s'],
-            enums: ['one', 'two'],
-            example: ['abc'],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+strings.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
-        );
-      });
-
-      it('should throw an error on strings default value not in enumeration', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-s'],
-            enums: ['one', 'two'],
-            default: ['abc'],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+strings.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
-        );
-      });
-
-      it('should throw an error on strings required value not in enumeration', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: ['abc'] },
-          },
-          required: {
-            type: 'strings',
-            names: ['-s'],
-            enums: ['one', 'two'],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
-        );
-      });
-
-      it('should throw an error on strings example value with too many values', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            example: ['one', 'two', 'three'],
-            limit: 2,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+strings.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
-        );
-      });
-
-      it('should throw an error on strings default value with too many values', () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            default: ['one', 'two', 'three'],
-            limit: 2,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+strings.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
-        );
-      });
-
-      it('should throw an error on strings required value with too many values', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: ['one', 'two', 'three'] },
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-            limit: 2,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+required.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
-        );
-      });
-    });
-
-    describe('numbers', () => {
-      it('should throw an error on numbers option with zero enumerated values', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            enums: [],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+numbers.+ has zero enum values\./);
-      });
-
-      it('should throw an error on numbers option with duplicate enumeration values', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            enums: [1, 1],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(/Option .+numbers.+ has duplicate enum .+1.+\./);
-      });
-
-      it('should throw an error on numbers example value not in range', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            range: [0, Infinity],
-            example: [-3],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+numbers.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
-        );
-      });
-
-      it('should throw an error on numbers default value not in range', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            range: [0, Infinity],
-            default: [-3],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+numbers.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
-        );
-      });
-
-      it('should throw an error on numbers required value not in range', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: [-3] },
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-            range: [0, Infinity],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
-        );
-      });
-
-      it('should throw an error on numbers example value not in enumeration', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            enums: [1, 2],
-            example: [3],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+numbers.+: .+3.+. Possible values are \[.+1.+, .+2.+\]\./,
-        );
-      });
-
-      it('should throw an error on numbers default value not in enumeration', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            enums: [1, 2],
-            default: [3],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+numbers.+: .+3.+. Possible values are \[.+1.+, .+2.+\]\./,
-        );
-      });
-
-      it('should throw an error on numbers required value not in enumeration', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: [3] },
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-            enums: [1, 2],
-            separator: ',',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Invalid parameter to .+required.+: .+3.+. Possible values are \[.+1.+, .+2.+\]\./,
-        );
-      });
-
-      it('should throw an error on strings example value with too many values', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            example: [1, 2, 3],
-            limit: 2,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+numbers.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
-        );
-      });
-
-      it('should throw an error on strings default value with too many values', () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            default: [1, 2, 3],
-            limit: 2,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+numbers.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
-        );
-      });
-
-      it('should throw an error on strings required value with too many values', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: [1, 2, 3] },
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-            limit: 2,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(
-          /Option .+required.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
-        );
-      });
-    });
-  });
-
   describe('parse', () => {
     it('should handle zero arguments', () => {
-      expect(() => new ArgumentParser({}).parse([])).toMatchObject({});
+      expect(new ArgumentParser({}).validate().parse([])).toMatchObject({});
     });
 
     it('should throw an error on unknown option name specified in arguments', () => {
@@ -995,57 +60,172 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^$/);
     });
 
-    it('should throw an error when an option requirement is not satisfied', () => {
-      const options = {
-        requires: {
-          type: 'flag',
-          names: ['req0'],
-          requires: req.and(
-            'required1',
-            req.or({ required2: [' a', 'b '] }, req.not({ required3: ['c'] })),
-          ),
-        },
-        required1: {
-          type: 'flag',
-          names: ['req1'],
-        },
-        required2: {
-          type: 'strings',
-          names: ['req2'],
-          separator: '|',
-          unique: true,
-          trim: true,
-        },
-        required3: {
-          type: 'strings',
-          names: ['req3'],
-          preferredName: 'preferred',
-          positional: true,
-          requires: req.and('required1', 'required4'),
-        },
-        required4: {
-          type: 'function',
-          names: ['req4'],
-          exec: () => {},
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse([])).not.toThrow();
-      expect(() => parser.parse(['req0'])).toThrow(/Option .+req0.+ requires .+req1.+\./);
-      expect(() => parser.parse(['req0', 'req1'])).toThrow(
-        /Option .+req0.+ requires \(.+req2.+ or .+preferred.+\)\./,
-      );
-      expect(() => parser.parse(['req0', 'req1', 'req2=a'])).toThrow(
-        /Option .+req0.+ requires \(.+req2.+ = \[.+'a'.+, .+'b'.+\] or .+preferred.+\)\./,
-      );
-      expect(() => parser.parse(['a'])).toThrow(/Option .+preferred.+ requires .+req1.+\./);
-      expect(() => parser.parse(['req1', 'a'])).toThrow(/Option .+preferred.+ requires .+req4.+\./);
-      expect(() => parser.parse(['req0', 'req1', 'c'])).toThrow(
-        /Option .+req0.+ requires \(.+req2.+ or .+preferred.+ != \[.+'c'.+\]\)\./,
-      );
-      expect(() => parser.parse(['req0', 'req1', 'req2', 'a|a|b'])).not.toThrow();
-      expect(() => parser.parse(['req0', 'req1', 'req2', 'b|b|a'])).not.toThrow();
-      expect(() => parser.parse(['req1', 'req4', 'a'])).not.toThrow();
+    describe('requires', () => {
+      it('should throw an error on option absent despite being required to be present (1)', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f1'],
+            requires: 'required',
+          },
+          required: {
+            type: 'function',
+            names: ['-f2'],
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
+        expect(options.required.exec).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error on option absent despite being required to be present (2)', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f1'],
+            requires: { required: undefined },
+          },
+          required: {
+            type: 'function',
+            names: ['-f2'],
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
+        expect(options.required.exec).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error on option absent despite being required to be present (3)', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f1'],
+            requires: req.not({ required: null }),
+          },
+          required: {
+            type: 'function',
+            names: ['-f2'],
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
+        expect(options.required.exec).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error on option present despite being required to be absent (1)', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f1'],
+            requires: req.not('required'),
+          },
+          required: {
+            type: 'function',
+            names: ['-f2'],
+            break: true,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
+        expect(options.required.exec).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error on option present despite being required to be absent (2)', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f1'],
+            requires: { required: null },
+          },
+          required: {
+            type: 'function',
+            names: ['-f2'],
+            break: true,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
+        expect(options.required.exec).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error on option present despite being required to be absent (3)', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f1'],
+            requires: req.not({ required: undefined }),
+          },
+          required: {
+            type: 'function',
+            names: ['-f2'],
+            break: true,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
+        expect(options.required.exec).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error when an option requirement is not satisfied', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['req0'],
+            requires: req.and(
+              'required1',
+              req.or({ required2: [' a', 'b '] }, req.not({ required3: ['c'] })),
+            ),
+          },
+          required1: {
+            type: 'flag',
+            names: ['req1'],
+          },
+          required2: {
+            type: 'strings',
+            names: ['req2'],
+            separator: '|',
+            unique: true,
+            trim: true,
+          },
+          required3: {
+            type: 'strings',
+            names: ['req3'],
+            preferredName: 'preferred',
+            positional: true,
+            requires: req.and('required1', 'required4'),
+          },
+          required4: {
+            type: 'function',
+            names: ['req4'],
+            exec: () => {},
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse([])).not.toThrow();
+        expect(() => parser.parse(['req0'])).toThrow(/Option .+req0.+ requires .+req1.+\./);
+        expect(() => parser.parse(['req0', 'req1'])).toThrow(
+          /Option .+req0.+ requires \(.+req2.+ or .+preferred.+\)\./,
+        );
+        expect(() => parser.parse(['req0', 'req1', 'req2=a'])).toThrow(
+          /Option .+req0.+ requires \(.+req2.+ = \[.+'a'.+, .+'b'.+\] or .+preferred.+\)\./,
+        );
+        expect(() => parser.parse(['a'])).toThrow(/Option .+preferred.+ requires .+req1.+\./);
+        expect(() => parser.parse(['req1', 'a'])).toThrow(
+          /Option .+preferred.+ requires .+req4.+\./,
+        );
+        expect(() => parser.parse(['req0', 'req1', 'c'])).toThrow(
+          /Option .+req0.+ requires \(.+req2.+ or .+preferred.+ != \[.+'c'.+\]\)\./,
+        );
+        expect(() => parser.parse(['req0', 'req1', 'req2', 'a|a|b'])).not.toThrow();
+        expect(() => parser.parse(['req0', 'req1', 'req2', 'b|b|a'])).not.toThrow();
+        expect(() => parser.parse(['req1', 'req4', 'a'])).not.toThrow();
+      });
     });
 
     describe('help', () => {
@@ -1107,32 +287,6 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-v'])).toThrow(/^0.1.0$/);
       });
-
-      it('should throw a version message on a version option with a resolve function', async () => {
-        const options = {
-          function: {
-            type: 'version',
-            names: ['-v'],
-            resolve: (str) => `file://${import.meta.dirname}/${str}`,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync(['-v'])).rejects.toThrow(/^0.1.0$/);
-      });
-
-      it('should throw an error on a version option that cannot resolve a package.json file', async () => {
-        const options = {
-          function: {
-            type: 'version',
-            names: ['-v'],
-            resolve: () => `file:///abc`,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync(['-v'])).rejects.toThrow(
-          /^Could not find a 'package.json' file\.$/,
-        );
-      });
     });
 
     describe('function', () => {
@@ -1151,78 +305,6 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -f=', { compIndex: 7 })).toThrow(/^$/);
         expect(options.function.exec).toHaveBeenCalled();
-      });
-
-      it('should throw an error on function option absent despite being required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'function',
-            names: ['-f2'],
-            exec: vi.fn(),
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
-        expect(options.required.exec).not.toHaveBeenCalled();
-      });
-
-      it('should throw an error on function option present despite being required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'function',
-            names: ['-f2'],
-            exec: vi.fn(),
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
-        expect(options.required.exec).toHaveBeenCalled();
-      });
-
-      it('should throw an error on function option absent despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: req.not({ required: null }),
-          },
-          required: {
-            type: 'function',
-            names: ['-f2'],
-            exec: vi.fn(),
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
-        expect(options.required.exec).not.toHaveBeenCalled();
-      });
-
-      it('should throw an error on function option present despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: req.not({ required: undefined }),
-          },
-          required: {
-            type: 'function',
-            names: ['-f2'],
-            exec: vi.fn(),
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
-        expect(options.required.exec).toHaveBeenCalled();
       });
 
       it('should throw an error on function option specified with value', () => {
@@ -1253,20 +335,6 @@ describe('ArgumentParser', () => {
         expect(options.function.exec).not.toHaveBeenCalled();
         parser.parse(['-f']);
         expect(options.function.exec).toHaveBeenCalled();
-      });
-
-      it('should handle a function option with an asynchronous callback', async () => {
-        const options = {
-          function: {
-            type: 'function',
-            names: ['-f'],
-            exec: async () => {
-              throw 'function';
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^function$/);
       });
 
       it('should break the parsing loop when a function option explicitly asks so', () => {
@@ -1345,70 +413,6 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -f=', { compIndex: 7 })).toThrow(/^$/);
       });
 
-      it('should throw an error on flag option absent despite being required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
-      });
-
-      it('should throw an error on flag option present despite being required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
-      });
-
-      it('should throw an error on flag option absent despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: req.not({ required: null }),
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
-      });
-
-      it('should throw an error on flag option present despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f1'],
-            requires: req.not({ required: undefined }),
-          },
-          required: {
-            type: 'flag',
-            names: ['-f2'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
-      });
-
       it('should throw an error on flag option specified with value', () => {
         const options = {
           function: {
@@ -1466,18 +470,6 @@ describe('ArgumentParser', () => {
         expect(options.boolean.complete).toHaveBeenCalled();
       });
 
-      it('should handle the completion of a boolean option with async custom completion', async () => {
-        const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            complete: async () => ['abc'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-      });
-
       it('should handle the completion of a boolean option with custom completion that throws', () => {
         const options = {
           boolean: {
@@ -1491,20 +483,6 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(() => parser.parse('cmd -b ', { compIndex: 7 })).toThrow(/^$/);
         expect(options.boolean.complete).toHaveBeenCalled();
-      });
-
-      it('should handle the completion of a boolean option with async custom completion that throws', async () => {
-        const options = {
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            complete: async () => {
-              throw '';
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^$/);
       });
 
       it('should handle the completion of a positional boolean option', () => {
@@ -1541,102 +519,6 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -b=t', { compIndex: 8 })).toThrow(/^true$/);
         expect(() => parser.parse('cmd -b=f', { compIndex: 8 })).toThrow(/^false$/);
         expect(() => parser.parse('cmd -b=x', { compIndex: 8 })).toThrow(/^$/);
-      });
-
-      it('should throw an error on boolean option absent despite being required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'boolean',
-            names: ['-b'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-b.+\./);
-      });
-
-      it('should throw an error on boolean option present despite being required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'boolean',
-            names: ['-b'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(/Option .+-f.+ requires no .+-b.+\./);
-      });
-
-      it('should handle a boolean option absent while being required to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'boolean',
-            names: ['-b'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).not.toThrow();
-      });
-
-      it('should throw an error on boolean option present despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'boolean',
-            names: ['-b'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(/Option .+-f.+ requires no .+-b.+\./);
-      });
-
-      it('should throw an error on boolean option absent despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: null }),
-          },
-          required: {
-            type: 'boolean',
-            names: ['-b'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-b.+\./);
-      });
-
-      it('should throw an error on boolean option present despite being required not to be (2)', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: undefined }),
-          },
-          required: {
-            type: 'boolean',
-            names: ['-b'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(/Option .+-f.+ requires no .+-b.+\./);
       });
 
       it('should throw an error on boolean option with a value different than required', () => {
@@ -1853,18 +735,6 @@ describe('ArgumentParser', () => {
         expect(options.string.complete).toHaveBeenCalled();
       });
 
-      it('should handle the completion of a string option with async custom completion', async () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            complete: async () => ['abc'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-      });
-
       it('should handle the completion of a string option with custom completion that throws', () => {
         const options = {
           string: {
@@ -1878,20 +748,6 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^$/);
         expect(options.string.complete).toHaveBeenCalled();
-      });
-
-      it('should handle the completion of a string option with async custom completion that throws', async () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            complete: async () => {
-              throw '';
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^$/);
       });
 
       it('should handle the completion of a positional string option with enums', () => {
@@ -1930,102 +786,6 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -s=o', { compIndex: 8 })).toThrow(/^one$/);
         expect(() => parser.parse('cmd -s=t', { compIndex: 8 })).toThrow(/^two$/);
         expect(() => parser.parse('cmd -s=x', { compIndex: 8 })).toThrow(/^$/);
-      });
-
-      it('should throw an error on string option absent despite being required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-s.+\./);
-      });
-
-      it('should throw an error on string option present despite being required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(/Option .+-f.+ requires no .+-s.+\./);
-      });
-
-      it('should handle a string option absent while being required to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).not.toThrow();
-      });
-
-      it('should throw an error on string option present despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(/Option .+-f.+ requires no .+-s.+\./);
-      });
-
-      it('should throw an error on string option absent despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: null }),
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-s.+\./);
-      });
-
-      it('should throw an error on string option present despite being required not to be (2)', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: undefined }),
-          },
-          required: {
-            type: 'string',
-            names: ['-s'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(/Option .+-f.+ requires no .+-s.+\./);
       });
 
       it('should throw an error on string option with a value different than required', () => {
@@ -2329,18 +1089,6 @@ describe('ArgumentParser', () => {
         expect(options.number.complete).toHaveBeenCalled();
       });
 
-      it('should handle the completion of a number option with async custom completion', async () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            complete: async () => ['abc'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-      });
-
       it('should handle the completion of a number option with custom completion that throws', () => {
         const options = {
           number: {
@@ -2354,20 +1102,6 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(() => parser.parse('cmd -n ', { compIndex: 7 })).toThrow(/^$/);
         expect(options.number.complete).toHaveBeenCalled();
-      });
-
-      it('should handle the completion of a number option with async custom completion that throws', async () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            complete: async () => {
-              throw '';
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^$/);
       });
 
       it('should handle the completion of a positional number option with enums', () => {
@@ -2406,102 +1140,6 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -n=1', { compIndex: 8 })).toThrow(/^123$/);
         expect(() => parser.parse('cmd -n=4', { compIndex: 8 })).toThrow(/^456$/);
         expect(() => parser.parse('cmd -n=x', { compIndex: 8 })).toThrow(/^$/);
-      });
-
-      it('should throw an error on number option absent despite being required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-n.+\./);
-      });
-
-      it('should throw an error on number option present despite being required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(/Option .+-f.+ requires no .+-n.+\./);
-      });
-
-      it('should handle a number option absent while being required to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).not.toThrow();
-      });
-
-      it('should throw an error on number option present despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(/Option .+-f.+ requires no .+-n.+\./);
-      });
-
-      it('should throw an error on number option absent despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: null }),
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-n.+\./);
-      });
-
-      it('should throw an error on number option present despite being required not to be (2)', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: undefined }),
-          },
-          required: {
-            type: 'number',
-            names: ['-n'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(/Option .+-f.+ requires no .+-n.+\./);
       });
 
       it('should throw an error on number option with a value different than required', () => {
@@ -2837,18 +1475,6 @@ describe('ArgumentParser', () => {
         expect(options.strings.complete).toHaveBeenCalled();
       });
 
-      it('should handle the completion of a strings option with async custom completion', async () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            complete: async () => ['abc'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
-      });
-
       it('should handle the completion of a strings option with custom completion that throws', () => {
         const options = {
           strings: {
@@ -2862,20 +1488,6 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(() => parser.parse('cmd -ss ', { compIndex: 8 })).toThrow(/^$/);
         expect(options.strings.complete).toHaveBeenCalled();
-      });
-
-      it('should handle the completion of a strings option with async custom completion that throws', async () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            complete: async () => {
-              throw '';
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
       });
 
       it('should handle the completion of a multivalued strings option', () => {
@@ -2892,108 +1504,6 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -ss', { compIndex: 7 })).toThrow(/^-ss$/);
         expect(() => parser.parse('cmd -ss ', { compIndex: 8 })).toThrow(/^-ss$/);
         expect(() => parser.parse('cmd -ss=', { compIndex: 8 })).toThrow(/^$/);
-      });
-
-      it('should throw an error on strings option absent despite being required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ss.+\./);
-      });
-
-      it('should throw an error on strings option present despite being required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
-          /Option .+-f.+ requires no .+-ss.+\./,
-        );
-      });
-
-      it('should handle a strings option absent while being required to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).not.toThrow();
-      });
-
-      it('should throw an error on strings option present despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
-          /Option .+-f.+ requires no .+-ss.+\./,
-        );
-      });
-
-      it('should throw an error on strings option absent despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: null }),
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ss.+\./);
-      });
-
-      it('should throw an error on strings option present despite being required not to be (2)', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: undefined }),
-          },
-          required: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
-          /Option .+-f.+ requires no .+-ss.+\./,
-        );
       });
 
       it('should throw an error on strings option with a value different than required', () => {
@@ -3388,18 +1898,6 @@ describe('ArgumentParser', () => {
         expect(options.numbers.complete).toHaveBeenCalled();
       });
 
-      it('should handle the completion of a numbers option with async custom completion', async () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            complete: async () => ['abc'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
-      });
-
       it('should handle the completion of a numbers option with custom completion that throws', () => {
         const options = {
           numbers: {
@@ -3413,20 +1911,6 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(() => parser.parse('cmd -ns ', { compIndex: 8 })).toThrow(/^$/);
         expect(options.numbers.complete).toHaveBeenCalled();
-      });
-
-      it('should handle the completion of a numbers option with async custom completion that throws', async () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            complete: async () => {
-              throw '';
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
       });
 
       it('should handle the completion of a multivalued numbers option', () => {
@@ -3443,108 +1927,6 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -ns', { compIndex: 7 })).toThrow(/^-ns$/);
         expect(() => parser.parse('cmd -ns ', { compIndex: 8 })).toThrow(/^-ns$/);
         expect(() => parser.parse('cmd -ns=', { compIndex: 8 })).toThrow(/^$/);
-      });
-
-      it('should throw an error on numbers option absent despite being required to be present', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: undefined },
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ns.+\./);
-      });
-
-      it('should throw an error on numbers option present despite being required to be absent', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: { required: null },
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
-          /Option .+-f.+ requires no .+-ns.+\./,
-        );
-      });
-
-      it('should handle a numbers option absent while being required to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).not.toThrow();
-      });
-
-      it('should throw an error on numbers option present despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not('required'),
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
-          /Option .+-f.+ requires no .+-ns.+\./,
-        );
-      });
-
-      it('should throw an error on numbers option absent despite being required not to be', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: null }),
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f'])).toThrow(/Option .+-f.+ requires .+-ns.+\./);
-      });
-
-      it('should throw an error on numbers option present despite being required not to be (2)', () => {
-        const options = {
-          requires: {
-            type: 'flag',
-            names: ['-f'],
-            requires: req.not({ required: undefined }),
-          },
-          required: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
-          /Option .+-f.+ requires no .+-ns.+\./,
-        );
       });
 
       it('should throw an error on numbers option with a value different than required', () => {
@@ -3967,6 +2349,178 @@ describe('ArgumentParser', () => {
       })();
       new ArgumentParser(options).parseInto(values, []);
       expect(values).toMatchObject({ flag: true });
+    });
+  });
+
+  describe('parseAsync', () => {
+    it('should throw a version message on a version option with a resolve function', async () => {
+      const options = {
+        function: {
+          type: 'version',
+          names: ['-v'],
+          resolve: (str) => `file://${import.meta.dirname}/${str}`,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync(['-v'])).rejects.toThrow(/^0.1.0$/);
+    });
+
+    it('should throw an error on a version option that cannot resolve a package.json file', async () => {
+      const options = {
+        function: {
+          type: 'version',
+          names: ['-v'],
+          resolve: () => `file:///abc`,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync(['-v'])).rejects.toThrow(
+        /^Could not find a 'package.json' file\.$/,
+      );
+    });
+
+    it('should handle a function option with an asynchronous callback', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          exec: async () => {
+            throw 'function';
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^function$/);
+    });
+
+    it('should handle the completion of a boolean option with async custom completion', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          complete: async () => ['abc'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
+    });
+
+    it('should handle the completion of a boolean option with async custom completion that throws', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          complete: async () => {
+            throw '';
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^$/);
+    });
+
+    it('should handle the completion of a string option with async custom completion', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          complete: async () => ['abc'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
+    });
+
+    it('should handle the completion of a string option with async custom completion that throws', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          complete: async () => {
+            throw '';
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^$/);
+    });
+
+    it('should handle the completion of a number option with async custom completion', async () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          complete: async () => ['abc'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
+    });
+
+    it('should handle the completion of a number option with async custom completion that throws', async () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          complete: async () => {
+            throw '';
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^$/);
+    });
+
+    it('should handle the completion of a strings option with async custom completion', async () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          complete: async () => ['abc'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
+    });
+
+    it('should handle the completion of a strings option with async custom completion that throws', async () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          complete: async () => {
+            throw '';
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
+    });
+
+    it('should handle the completion of a numbers option with async custom completion', async () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          complete: async () => ['abc'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
+    });
+
+    it('should handle the completion of a numbers option with async custom completion that throws', async () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          complete: async () => {
+            throw '';
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
     });
   });
 });

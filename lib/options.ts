@@ -3,6 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { HelpFormat } from './formatter';
 import type { Style } from './styles';
+import { sgr } from './styles';
 
 export type {
   ParseCallback,
@@ -32,9 +33,26 @@ export type {
   Requires,
   RequiresExp,
   RequiresVal,
+  Registry,
+  ConcreteStyles,
+  Positional,
 };
 
-export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued, isMultivalued };
+export {
+  req,
+  defaultStyles,
+  RequiresAll,
+  RequiresOne,
+  RequiresNot,
+  OptionRegistry,
+  isNiladic,
+  isArray,
+  isValued,
+  isMultivalued,
+  normalizeString,
+  normalizeNumber,
+  normalizeArray,
+};
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -70,6 +88,18 @@ const req = {
     return new RequiresNot(item);
   },
 } as const;
+
+/**
+ * The default styles of error messages
+ */
+const defaultStyles: ConcreteStyles = {
+  regex: sgr('31'),
+  boolean: sgr('33'),
+  string: sgr('32'),
+  number: sgr('33'),
+  option: sgr('35'),
+  whitespace: sgr('0'),
+};
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -660,6 +690,171 @@ type OptionValues<T extends Options = Options> = {
   -readonly [key in keyof T as T[key] extends ValuedOption ? key : never]: OptionDataType<T[key]>;
 };
 
+/**
+ * Information regarding a positional option.
+ */
+type Positional = {
+  key: string;
+  name: string;
+  option: Option;
+  marker?: string;
+};
+
+/**
+ * The option registry interface.
+ */
+interface Registry {
+  readonly names: Map<string, string>;
+  readonly required: Array<string>;
+  readonly positional: Positional | undefined;
+}
+
+type Concrete<T> = {
+  [K in keyof T]-?: T[K];
+};
+type ConcreteStyles = Concrete<OtherStyles>;
+
+//--------------------------------------------------------------------------------------------------
+// Classes
+//--------------------------------------------------------------------------------------------------
+/**
+ * Implements a compilation of option definitions.
+ */
+class OptionRegistry implements Registry {
+  readonly names = new Map<string, string>();
+  readonly required = new Array<string>();
+  readonly positional: Positional | undefined;
+
+  /**
+   * Creates an option registry based on a set of option definitions.
+   * @param options The option definitions
+   */
+  constructor(readonly options: Options) {
+    for (const key in this.options) {
+      const option = this.options[key];
+      this.registerNames(key, option);
+      if (!isNiladic(option)) {
+        if (option.positional) {
+          if (this.positional) {
+            const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+            throw Error(`Duplicate positional option ${optName}.`);
+          }
+          const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+          const marker = typeof option.positional === 'string' ? option.positional : undefined;
+          this.positional = { key, name, option, marker };
+        }
+      }
+      if (option.required) {
+        this.required.push(key);
+      }
+      if (option.type === 'version' && !option.version && !option.resolve) {
+        const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+        throw Error(`Option ${optName} contains no version or resolve function.`);
+      }
+    }
+  }
+
+  /**
+   * Registers an option's names.
+   * @param key The option key
+   * @param option The option definition
+   */
+  private registerNames(key: string, option: Option) {
+    const names = option.names.filter((name): name is string => name !== null && name !== '');
+    if (!names.length) {
+      const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+      throw Error(`Option ${optName} has no name.`);
+    }
+    if (option.type === 'flag' && option.negationNames) {
+      names.push(...option.negationNames.filter((name) => name));
+    }
+    if ('positional' in option && typeof option.positional === 'string') {
+      if (!option.positional) {
+        const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+        throw Error(`Option ${optName} has empty positional marker.`);
+      }
+      names.push(option.positional);
+    }
+    for (const name of names) {
+      if (name.match(/[\s=]+/)) {
+        const optName = `${defaultStyles.option}${name}${defaultStyles.whitespace}`;
+        throw Error(`Invalid option name ${optName}.`);
+      }
+      if (this.names.has(name)) {
+        const optName = `${defaultStyles.option}${name}${defaultStyles.whitespace}`;
+        throw Error(`Duplicate option name ${optName}.`);
+      }
+      this.names.set(name, key);
+    }
+  }
+
+  /**
+   * Validates all options' definitions
+   */
+  validate() {
+    for (const key in this.options) {
+      const option = this.options[key];
+      if (!isNiladic(option)) {
+        validateEnums(key, option, defaultStyles);
+        validateValue(key, option, option.default, defaultStyles);
+        validateValue(key, option, option.example, defaultStyles);
+      }
+      if (option.requires) {
+        this.validateRequirements(key, option.requires);
+      }
+    }
+  }
+
+  /**
+   * Validates an option's requirements.
+   * @param key The option key
+   * @param requires The option requirements
+   */
+  private validateRequirements(key: string, requires: Requires) {
+    if (typeof requires === 'string') {
+      this.validateRequirement(key, requires);
+    } else if (requires instanceof RequiresNot) {
+      this.validateRequirements(key, requires.item);
+    } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
+      for (const item of requires.items) {
+        this.validateRequirements(key, item);
+      }
+    } else {
+      for (const requiredKey in requires) {
+        this.validateRequirement(key, requiredKey, requires[requiredKey]);
+      }
+    }
+  }
+
+  /**
+   * Validates an option requirement.
+   * @param key The requiring option key
+   * @param requiredKey The required option key
+   * @param requiredValue The required value, if any
+   */
+  private validateRequirement(
+    key: string,
+    requiredKey: string,
+    requiredValue?: RequiresVal[string],
+  ) {
+    if (requiredKey === key) {
+      const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+      throw Error(`Option ${optName} requires itself.`);
+    }
+    if (!(requiredKey in this.options)) {
+      const optName = `${defaultStyles.option}${requiredKey}${defaultStyles.whitespace}`;
+      throw Error(`Unknown required option ${optName}.`);
+    }
+    if (requiredValue !== undefined && requiredValue !== null) {
+      const option = this.options[requiredKey];
+      if (isNiladic(option)) {
+        throw Error(`Required option '${requiredKey}' does not accept values.`);
+      }
+      validateValue(requiredKey, option, requiredValue, defaultStyles);
+    }
+  }
+}
+
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
@@ -700,4 +895,208 @@ function isMultivalued(option: ArrayOption): boolean {
     !('separator' in option && option.separator) &&
     !('parseDelimited' in option && option.parseDelimited)
   );
+}
+
+/**
+ * Checks the sanity of the option's enumerated values.
+ * @param key The option key
+ * @param option The option definition
+ * @param styles The error message styles
+ */
+function validateEnums(key: string, option: ParamOption, styles: ConcreteStyles) {
+  if ('enums' in option && option.enums) {
+    if (!option.enums.length) {
+      const optName = `${styles.option}${key}${styles.whitespace}`;
+      throw Error(`Option ${optName} has zero enum values.`);
+    }
+    const set = new Set<string | number>(option.enums);
+    if (set.size !== option.enums.length) {
+      for (const value of option.enums) {
+        if (!set.delete(value)) {
+          const optName = `${styles.option}${key}${styles.whitespace}`;
+          const optVal =
+            option.type === 'string' || option.type === 'strings'
+              ? `${styles.string}'${value}'${styles.whitespace}`
+              : `${styles.number}${value}${styles.whitespace}`;
+          throw Error(`Option ${optName} has duplicate enum ${optVal}.`);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Checks the sanity of the option's value (default, example or required).
+ * @param key The option key
+ * @param option The option definition
+ * @param value The option value
+ * @param styles The error message styles
+ */
+function validateValue(
+  key: string,
+  option: ParamOption,
+  value: ParamOption['default'],
+  styles: ConcreteStyles,
+) {
+  if (value === undefined) {
+    return;
+  }
+  function assert(condition: unknown, type: string): asserts condition {
+    if (!condition) {
+      const optName = `${styles.option}${key}${styles.whitespace}`;
+      const valType = `${styles.string}'${type}'${styles.whitespace}`;
+      throw Error(
+        `Option ${optName} has incompatible value <${value}>. Should be of type ${valType}.`,
+      );
+    }
+  }
+  switch (option.type) {
+    case 'boolean':
+      assert(typeof value == 'boolean', 'boolean');
+      break;
+    case 'string':
+      assert(typeof value === 'string', 'string');
+      normalizeString(option, key, value, styles);
+      break;
+    case 'number':
+      assert(typeof value === 'number', 'number');
+      normalizeNumber(option, key, value, styles);
+      break;
+    case 'strings': {
+      assert(typeof value === 'object', 'string[]');
+      value = value.map((val) => {
+        assert(typeof val === 'string', 'string[]');
+        return normalizeString(option, key, val, styles);
+      });
+      normalizeArray(option, key, value, styles);
+      break;
+    }
+    case 'numbers': {
+      assert(typeof value === 'object', 'number[]');
+      value = value.map((val) => {
+        assert(typeof val === 'number', 'number[]');
+        return normalizeNumber(option, key, val, styles);
+      });
+      normalizeArray(option, key, value, styles);
+      break;
+    }
+    default: {
+      const _exhaustiveCheck: never = option;
+      return _exhaustiveCheck;
+    }
+  }
+}
+
+/**
+ * Normalizes the value of a string option and checks its validity against any constraint.
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The option value
+ * @param styles The error message styles
+ */
+function normalizeString(
+  option: StringOption | StringsOption,
+  name: string,
+  value: string,
+  styles: ConcreteStyles,
+): string {
+  if (option.trim) {
+    value = value.trim();
+  }
+  if (option.case) {
+    value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
+  }
+  if ('enums' in option && option.enums && !option.enums.includes(value)) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.string}'${value}'${styles?.whitespace}`;
+    const optEnums = option.enums
+      .map((val) => `${styles.string}'${val}'${styles.whitespace}`)
+      .join(', ');
+    throw Error(`Invalid parameter to ${optName}: ${optVal}. Possible values are [${optEnums}].`);
+  }
+  if ('regex' in option && option.regex && !option.regex.test(value)) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.string}'${value}'${styles.whitespace}`;
+    const optRegex = `${styles.regex}${String(option.regex)}${styles.whitespace}`;
+    throw Error(
+      `Invalid parameter to ${optName}: ${optVal}. Value must match the regex ${optRegex}.`,
+    );
+  }
+  return value;
+}
+
+/**
+ * Normalizes the value of a number option and checks its validity against any constraint.
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The option value
+ * @param styles The error message styles
+ */
+function normalizeNumber(
+  option: NumberOption | NumbersOption,
+  name: string,
+  value: number,
+  styles: ConcreteStyles,
+): number {
+  switch (option.round) {
+    case 'trunc':
+      value = Math.trunc(value);
+      break;
+    case 'ceil':
+      value = Math.ceil(value);
+      break;
+    case 'floor':
+      value = Math.floor(value);
+      break;
+    case 'nearest':
+      value = Math.round(value);
+      break;
+  }
+  if ('enums' in option && option.enums && !option.enums.includes(value)) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.number}${value}${styles.whitespace}`;
+    const optEnums = option.enums
+      .map((val) => `${styles.number}${val}${styles.whitespace}`)
+      .join(', ');
+    throw Error(`Invalid parameter to ${optName}: ${optVal}. Possible values are [${optEnums}].`);
+  }
+  if ('range' in option && option.range && (value < option.range[0] || value > option.range[1])) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.number}${value}${styles.whitespace}`;
+    const optRange = option.range
+      .map((val) => `${styles.number}${val}${styles.whitespace}`)
+      .join(', ');
+    throw Error(
+      `Invalid parameter to ${optName}: ${optVal}. Value must be in the range [${optRange}].`,
+    );
+  }
+  return value;
+}
+
+/**
+ * Normalizes the value of an array option and checks its validity against any constraint.
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The option value
+ * @param styles The error message styles
+ */
+function normalizeArray(
+  option: StringsOption | NumbersOption,
+  name: string,
+  value: Array<string | number>,
+  styles: ConcreteStyles,
+) {
+  if (option.unique) {
+    const unique = [...new Set(value)];
+    value.length = 0;
+    value.push(...unique);
+  }
+  if (option.limit !== undefined && value.length > option.limit) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optCount = `${styles.number}${value.length}${styles.whitespace}`;
+    const optLimit = `${styles.number}${option.limit}${styles.whitespace}`;
+    throw Error(
+      `Option ${optName} has too many values (${optCount}). Should have at most ${optLimit}.`,
+    );
+  }
 }
