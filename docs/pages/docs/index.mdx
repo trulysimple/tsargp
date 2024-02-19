@@ -14,9 +14,10 @@ npm install tsargp
 
 ## Quick Start
 
-Define your command options (we recommend a separate file):
+Define your command-line options (we recommend placing them in a separate file):
 
 ```ts filename="<your_cli_name>.options.ts"
+// <your_cli_name>.options.ts
 import { Options, ... } from 'tsargp';
 
 export default {
@@ -26,11 +27,29 @@ export default {
 
 Import them in your main script:
 
-```ts
+```ts filename="<your_cli_name>.ts"
+#!/usr/bin/env node
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
-const values = new ArgumentParser(options).parse();
-// use `parseAsync` if you declare async function options
-//  or a version option with a module-resolve function
+try {
+  const parser = new ArgumentParser(options);
+  parser.validate(); // validate the options' definitions (you can skip this in production)
+  // const values = parser.parse();             // use this to get the options' values
+  // const values = await parser.parseAsync();  // use this if you declare async function options
+  // parser.parseInto(myValues);                // use this if your values are enclosed in a class
+} catch (err) {
+  if (typeof err === 'string') {
+    console.log(err); // help message, version or bash completion words
+  } else {
+    console.error(err); // genuine errors
+    process.exitCode = 1;
+  }
+}
+```
+
+Optionally, enable bash completion:
+
+```sh
+complete -o default -C <your_cli_name> <your_cli_name>
 ```

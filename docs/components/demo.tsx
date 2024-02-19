@@ -12,7 +12,7 @@ import 'xterm/css/xterm.css';
 // @ts-expect-error does not export types
 import options from 'tsargp/demo';
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.52';
+options.version.version = '0.1.57';
 
 //--------------------------------------------------------------------------------------------------
 // Types
