@@ -6,6 +6,20 @@ title: Introduction - Docs
 
 **tsargp** is a command-line argument parser library that helps you write clean code.
 
+## Features
+
+| Usability              | Functionality           | Presentation              |
+| ---------------------- | ----------------------- | ------------------------- |
+| Zero-dependency        | Bash completion         | Help message formatting   |
+| Purely declarative     | Value normalization     | Inline styles             |
+| Type checking          | Value constraints       | Text wrapping             |
+| Browser-compatible     | Option requirements     | Paragraphs and lists      |
+| Moderate footprint[^1] | Option grouping/hiding  | [SGR] display attributes  |
+|                        | Option name suggestions | Styling of error messages |
+|                        | Asynchronous callbacks  |                           |
+
+[^1]: ~31KB minified
+
 ## Installation
 
 ```sh
@@ -27,7 +41,7 @@ export default {
 
 Import them in your main script:
 
-```ts filename="<your_cli_name>.ts"
+```ts filename="<your_cli_name>.ts" {8-10} /ArgumentParser/
 #!/usr/bin/env node
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
@@ -53,3 +67,5 @@ Optionally, enable bash completion:
 ```sh
 complete -o default -C <your_cli_name> <your_cli_name>
 ```
+
+[SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

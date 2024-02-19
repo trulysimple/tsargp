@@ -1,32 +1,26 @@
 # tsargp
 
-Argument parser for TypeScript. Get started with the [documentation](https://trulysimple.dev/tsargp/docs).
+**tsargp** is a command-line argument parser library that helps you write clean code.
+
+Get started with the [documentation].
 
 ## Features
 
-- Usability:
-  - Zero-dependency
-  - Purely declarative
-  - Type checking
-  - Browser-compatible
-  - Moderate footprint (~31KB minified)
-- Functionality:
-  - Bash completion
-  - Various option types
-  - Requirements between options
-  - Value normalization and constraints
-  - Option grouping and hiding
-  - Option name suggestions
-  - Async callbacks
-- Presentation:
-  - Fully customizable help message format
-  - Inline styles, text wrapping, paragraphs and lists
-  - Wide range of display attributes from [SGR]
-  - Styling of error messages
+| Usability              | Functionality           | Presentation              |
+| ---------------------- | ----------------------- | ------------------------- |
+| Zero-dependency        | Bash completion         | Help message formatting   |
+| Purely declarative     | Value normalization     | Inline styles             |
+| Type checking          | Value constraints       | Text wrapping             |
+| Browser-compatible     | Option requirements     | Paragraphs and lists      |
+| Moderate footprint[^1] | Option grouping/hiding  | [SGR] display attributes  |
+|                        | Option name suggestions | Styling of error messages |
+|                        | Asynchronous callbacks  |                           |
+
+[^1]: ~31KB minified
 
 ## Demo
 
-Test it [online](https://trulysimple.dev/tsargp/demo) or install it locally:
+Test it [online] or install it locally:
 
 ```sh
 npm install -g tsargp
@@ -95,4 +89,6 @@ bun run dist  # build JS bundle
 npm publish   # publish to npm registry
 ```
 
+[documentation]: https://trulysimple.dev/tsargp/docs
+[online]: https://trulysimple.dev/tsargp/demo
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

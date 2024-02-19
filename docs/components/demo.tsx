@@ -12,7 +12,7 @@ import 'xterm/css/xterm.css';
 // @ts-expect-error does not export types
 import options from 'tsargp/demo';
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.57';
+options.version.version = '0.1.58';
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -66,7 +66,7 @@ class Demo extends React.Component<Props, State> {
   /**
    * The resize observer.
    */
-  private readonly resizeObserver = new ResizeObserver(this.fit.fit.bind(this.fit));
+  private readonly resize = new ResizeObserver(this.fit.fit.bind(this.fit));
 
   /**
    *
@@ -95,15 +95,15 @@ class Demo extends React.Component<Props, State> {
   override componentDidMount() {
     this.setState({ selection: '', width: 90 });
     if (this.ref.current) {
+      this.resize.observe(this.ref.current);
       this.term.open(this.ref.current);
-      this.resizeObserver.observe(this.ref.current);
       this.readInput();
     }
   }
 
   override componentWillUnmount() {
     this.term.dispose();
-    this.resizeObserver.disconnect();
+    this.resize.disconnect();
   }
 
   render(): React.JSX.Element {
