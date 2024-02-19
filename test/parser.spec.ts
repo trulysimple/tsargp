@@ -26,7 +26,7 @@ describe('ArgumentParser', () => {
           names: ['a = b'],
         },
       } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrow(`Invalid option name 'a = b'.`);
+      expect(() => new ArgumentParser(options)).toThrow(/Invalid option name .+a = b.+\./);
     });
 
     it('should throw an error on option with no name', () => {
@@ -36,7 +36,7 @@ describe('ArgumentParser', () => {
           names: [],
         },
       } as const satisfies Options;
-      expect(() => new ArgumentParser(options)).toThrow(`Option 'string' has no name.`);
+      expect(() => new ArgumentParser(options)).toThrow(/Option .+string.+ has no name\./);
     });
 
     it('should throw an error on option with empty positional marker', () => {
@@ -48,7 +48,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       expect(() => new ArgumentParser(options)).toThrow(
-        `Option 'string' has empty positional marker.`,
+        /Option .+string.+ has empty positional marker\./,
       );
     });
 
@@ -61,7 +61,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       expect(() => new ArgumentParser(options)).toThrow(
-        `Option 'version' contains no version or resolve function.`,
+        /Option .+version.+ contains no version or resolve function\./,
       );
     });
 
@@ -73,7 +73,7 @@ describe('ArgumentParser', () => {
             names: ['dup', 'dup'],
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(`Duplicate option name 'dup'.`);
+        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
       });
 
       it('should throw an error on duplicate option name across different options', () => {
@@ -87,7 +87,7 @@ describe('ArgumentParser', () => {
             names: ['dup'],
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(`Duplicate option name 'dup'.`);
+        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
       });
 
       it('should throw an error on flag option with duplicate negation name', () => {
@@ -98,7 +98,7 @@ describe('ArgumentParser', () => {
             negationNames: ['dup'],
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(`Duplicate option name 'dup'.`);
+        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
       });
 
       it('should throw an error on option with duplicate positional marker name', () => {
@@ -113,7 +113,7 @@ describe('ArgumentParser', () => {
             positional: 'dup',
           },
         } as const satisfies Options;
-        expect(() => new ArgumentParser(options)).toThrow(`Duplicate option name 'dup'.`);
+        expect(() => new ArgumentParser(options)).toThrow(/Duplicate option name .+dup.+\./);
       });
 
       it('should throw an error on duplicate positional option', () => {
@@ -130,7 +130,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         expect(() => new ArgumentParser(options)).toThrow(
-          `Duplicate positional option 'positional2'.`,
+          /Duplicate positional option .+positional2.+\./,
         );
       });
     });
@@ -141,45 +141,45 @@ describe('ArgumentParser', () => {
       it('should throw an error on option required by itself', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f1'],
             requires: req.and('required', req.or({ requires: 'o' })),
           },
           required: {
             type: 'flag',
-            names: ['-f'],
+            names: ['-f2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'requires' requires itself.`);
+        expect(() => parser.validate()).toThrow(/Option .+requires.+ requires itself\./);
       });
 
       it('should throw an error on unknown required option', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f1'],
             requires: req.and('required', req.or({ unknown: 'o' })),
           },
           required: {
             type: 'flag',
-            names: ['-f'],
+            names: ['-f2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Unknown required option 'unknown'.`);
+        expect(() => parser.validate()).toThrow(/Unknown required option .+unknown.+\./);
       });
 
       it('should allow a flag option required to be present', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f1'],
             requires: { required: undefined },
           },
           required: {
             type: 'flag',
-            names: ['-f'],
+            names: ['-f2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -189,13 +189,13 @@ describe('ArgumentParser', () => {
       it('should allow a flag option required to be absent', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f1'],
             requires: { required: null },
           },
           required: {
             type: 'flag',
-            names: ['-f'],
+            names: ['-f2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -205,45 +205,45 @@ describe('ArgumentParser', () => {
       it('should throw an error on flag option required with a value', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f1'],
             requires: { required: true },
           },
           required: {
             type: 'flag',
-            names: ['-f'],
+            names: ['-f2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Required option 'required' does not accept values.`,
+          /Required option .+required.+ does not accept values\./,
         );
       });
 
       it('should throw an error on function option required with a value', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f1'],
             requires: { required: true },
           },
           required: {
             type: 'function',
-            names: ['-f'],
+            names: ['-f2'],
             exec: () => {},
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Required option 'required' does not accept values.`,
+          /Required option .+required.+ does not accept values\./,
         );
       });
 
       it('should throw an error on boolean option required with an incompatible value', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f'],
             requires: { required: 1 },
           },
           required: {
@@ -253,33 +253,33 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Option 'required' has incompatible value '1'. Should be of type 'boolean'.`,
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'boolean'.+\./,
         );
       });
 
       it('should throw an error on string option required with an incompatible value', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s1'],
+            type: 'flag',
+            names: ['-f'],
             requires: { required: 1 },
           },
           required: {
             type: 'string',
-            names: ['-s2'],
+            names: ['-s'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Option 'required' has incompatible value '1'. Should be of type 'string'.`,
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'string'.+\./,
         );
       });
 
       it('should throw an error on number option required with an incompatible value', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f'],
             requires: { required: '1' },
           },
           required: {
@@ -289,15 +289,15 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Option 'required' has incompatible value '1'. Should be of type 'number'.`,
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'number'.+\./,
         );
       });
 
       it('should throw an error on strings option required with an incompatible value', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f'],
             requires: { required: 1 },
           },
           required: {
@@ -307,15 +307,15 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Option 'required' has incompatible value '1'. Should be of type 'string[]'.`,
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'string\[\]'.+\./,
         );
       });
 
       it('should throw an error on numbers option required with an incompatible value', () => {
         const options = {
           requires: {
-            type: 'string',
-            names: ['-s'],
+            type: 'flag',
+            names: ['-f'],
             requires: { required: 1 },
           },
           required: {
@@ -325,7 +325,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Option 'required' has incompatible value '1'. Should be of type 'number[]'.`,
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'number\[\]'.+\./,
         );
       });
     });
@@ -340,19 +340,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'string' has zero enum values.`);
+        expect(() => parser.validate()).toThrow(/Option .+string.+ has zero enum values\./);
       });
 
       it('should throw an error on string option with duplicate enumerated values', () => {
         const options = {
-          stringEnum: {
+          string: {
             type: 'string',
             names: ['-se'],
             enums: ['dup', 'dup'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'stringEnum' has duplicate enum 'dup'.`);
+        expect(() => parser.validate()).toThrow(/Option .+string.+ has duplicate enum .+'dup'.+\./);
       });
 
       it('should throw an error on string example value not matching regex', () => {
@@ -366,7 +366,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'string': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+string.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
@@ -381,26 +381,26 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'string': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+string.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
       it('should throw an error on string required value not matching regex', () => {
         const options = {
-          string: {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: 'abc' },
+          },
+          required: {
             type: 'string',
             names: ['-s'],
             regex: /\d+/s,
           },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { string: 'abc' },
-          },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'string': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+required.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
@@ -415,7 +415,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'string': 'abc'. Possible values are ['one','two'].`,
+          /Invalid parameter to .+string.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
         );
       });
 
@@ -430,26 +430,26 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'string': 'abc'. Possible values are ['one','two'].`,
+          /Invalid parameter to .+string.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
         );
       });
 
       it('should throw an error on string required value not in enumeration', () => {
         const options = {
-          string: {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: 'abc' },
+          },
+          required: {
             type: 'string',
             names: ['-s'],
             enums: ['one', 'two'],
           },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { string: 'abc' },
-          },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'string': 'abc'. Possible values are ['one','two'].`,
+          /Invalid parameter to .+required.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
         );
       });
     });
@@ -464,7 +464,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'number' has zero enum values.`);
+        expect(() => parser.validate()).toThrow(/Option .+number.+ has zero enum values\./);
       });
 
       it('should throw an error on number option with duplicate enumeration values', () => {
@@ -476,7 +476,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'number' has duplicate enum '1'.`);
+        expect(() => parser.validate()).toThrow(/Option .+number.+ has duplicate enum .+1.+\./);
       });
 
       it('should throw an error on number example value not in range', () => {
@@ -490,7 +490,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'number': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+number.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
@@ -505,26 +505,26 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'number': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+number.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
       it('should throw an error on number required value not in range', () => {
         const options = {
-          number: {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: -3 },
+          },
+          required: {
             type: 'number',
             names: ['-n'],
             range: [0, Infinity],
           },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { number: -3 },
-          },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'number': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+required.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
@@ -539,7 +539,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'number': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+number.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
         );
       });
 
@@ -554,26 +554,26 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'number': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+number.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
         );
       });
 
       it('should throw an error on number required value not in enumeration', () => {
         const options = {
-          number: {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: 3 },
+          },
+          required: {
             type: 'number',
             names: ['-n'],
             enums: [1, 2],
           },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { number: 3 },
-          },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'number': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+required.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
         );
       });
     });
@@ -588,7 +588,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'strings' has zero enum values.`);
+        expect(() => parser.validate()).toThrow(/Option .+strings.+ has zero enum values\./);
       });
 
       it('should throw an error on strings option with duplicate enumeration values', () => {
@@ -600,7 +600,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'strings' has duplicate enum 'dup'.`);
+        expect(() => parser.validate()).toThrow(
+          /Option .+strings.+ has duplicate enum .+'dup'.+\./,
+        );
       });
 
       it('should throw an error on strings example value not matching regex', () => {
@@ -615,7 +617,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'strings': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+strings.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
@@ -631,27 +633,27 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'strings': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+strings.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
       it('should throw an error on strings required value not matching regex', () => {
         const options = {
-          strings: {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: ['abc'] },
+          },
+          required: {
             type: 'strings',
             names: ['-ss'],
             regex: /\d+/s,
             separator: ',',
           },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { strings: ['abc'] },
-          },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'strings': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+required.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
@@ -667,7 +669,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'strings': 'abc'. Possible values are ['one','two'].`,
+          /Invalid parameter to .+strings.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
         );
       });
 
@@ -683,27 +685,76 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'strings': 'abc'. Possible values are ['one','two'].`,
+          /Invalid parameter to .+strings.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
         );
       });
 
       it('should throw an error on strings required value not in enumeration', () => {
         const options = {
-          strings: {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: ['abc'] },
+          },
+          required: {
             type: 'strings',
             names: ['-s'],
             enums: ['one', 'two'],
             separator: ',',
           },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { strings: ['abc'] },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.validate()).toThrow(
+          /Invalid parameter to .+required.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
+        );
+      });
+
+      it('should throw an error on strings example value with too many values', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            example: ['one', 'two', 'three'],
+            limit: 2,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'strings': 'abc'. Possible values are ['one','two'].`,
+          /Option .+strings.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+        );
+      });
+
+      it('should throw an error on strings default value with too many values', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            default: ['one', 'two', 'three'],
+            limit: 2,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.validate()).toThrow(
+          /Option .+strings.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+        );
+      });
+
+      it('should throw an error on strings required value with too many values', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: ['one', 'two', 'three'] },
+          },
+          required: {
+            type: 'strings',
+            names: ['-ss'],
+            limit: 2,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.validate()).toThrow(
+          /Option .+required.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
         );
       });
     });
@@ -718,7 +769,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'numbers' has zero enum values.`);
+        expect(() => parser.validate()).toThrow(/Option .+numbers.+ has zero enum values\./);
       });
 
       it('should throw an error on numbers option with duplicate enumeration values', () => {
@@ -730,7 +781,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.validate()).toThrow(`Option 'numbers' has duplicate enum '1'.`);
+        expect(() => parser.validate()).toThrow(/Option .+numbers.+ has duplicate enum .+1.+\./);
       });
 
       it('should throw an error on numbers example value not in range', () => {
@@ -745,7 +796,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'numbers': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+numbers.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
@@ -761,35 +812,35 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'numbers': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+numbers.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
       it('should throw an error on numbers required value not in range', () => {
         const options = {
-          numbers: {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: [-3] },
+          },
+          required: {
             type: 'numbers',
             names: ['-ns'],
             range: [0, Infinity],
             separator: ',',
           },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { numbers: [-3] },
-          },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'numbers': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+required.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
       it('should throw an error on numbers example value not in enumeration', () => {
         const options = {
           numbers: {
-            names: ['-ns'],
             type: 'numbers',
+            names: ['-ns'],
             enums: [1, 2],
             example: [3],
             separator: ',',
@@ -797,15 +848,15 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'numbers': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+numbers.+: .+3.+. Possible values are \[.+1.+, .+2.+\]\./,
         );
       });
 
       it('should throw an error on numbers default value not in enumeration', () => {
         const options = {
           numbers: {
-            names: ['-ns'],
             type: 'numbers',
+            names: ['-ns'],
             enums: [1, 2],
             default: [3],
             separator: ',',
@@ -813,27 +864,76 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'numbers': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+numbers.+: .+3.+. Possible values are \[.+1.+, .+2.+\]\./,
         );
       });
 
       it('should throw an error on numbers required value not in enumeration', () => {
         const options = {
-          numbers: {
-            names: ['-ns'],
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: [3] },
+          },
+          required: {
             type: 'numbers',
+            names: ['-ns'],
             enums: [1, 2],
             separator: ',',
-          },
-          boolean: {
-            type: 'boolean',
-            names: ['-b'],
-            requires: { numbers: [3] },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.validate()).toThrow(
-          `Invalid parameter to 'numbers': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+required.+: .+3.+. Possible values are \[.+1.+, .+2.+\]\./,
+        );
+      });
+
+      it('should throw an error on strings example value with too many values', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            example: [1, 2, 3],
+            limit: 2,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.validate()).toThrow(
+          /Option .+numbers.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+        );
+      });
+
+      it('should throw an error on strings default value with too many values', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            default: [1, 2, 3],
+            limit: 2,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.validate()).toThrow(
+          /Option .+numbers.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+        );
+      });
+
+      it('should throw an error on strings required value with too many values', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: [1, 2, 3] },
+          },
+          required: {
+            type: 'numbers',
+            names: ['-ns'],
+            limit: 2,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.validate()).toThrow(
+          /Option .+required.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
         );
       });
     });
@@ -1005,7 +1105,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-v'])).toThrow('0.1.0');
+        expect(() => parser.parse(['-v'])).toThrow(/^0.1.0$/);
       });
 
       it('should throw a version message on a version option with a resolve function', async () => {
@@ -1017,7 +1117,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parseAsync(['-v'])).rejects.toThrow('0.1.0');
+        await expect(parser.parseAsync(['-v'])).rejects.toThrow(/^0.1.0$/);
       });
 
       it('should throw an error on a version option that cannot resolve a package.json file', async () => {
@@ -1030,7 +1130,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parseAsync(['-v'])).rejects.toThrow(
-          `Could not find a 'package.json' file.`,
+          /^Could not find a 'package.json' file\.$/,
         );
       });
     });
@@ -2059,7 +2159,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-s', 'abc'])).toThrow(
-          `Invalid parameter to '-s': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+-s.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
@@ -2122,7 +2222,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-s', 'abc'])).toThrow(
-          `Invalid parameter to '-s': 'abc'. Possible values are ['one','two'].`,
+          /Invalid parameter to .+-s.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
         );
       });
 
@@ -2535,7 +2635,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-n', '-3'])).toThrow(
-          `Invalid parameter to '-n': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+-n.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
@@ -2562,7 +2662,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-n', '3'])).toThrow(
-          `Invalid parameter to '-n': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+-n.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
         );
       });
 
@@ -3001,7 +3101,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'a,b,c'])).toThrow(
-          `Option '-ss' has too many values (3). Should have at most 2.`,
+          /Option .+-ss.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
         );
       });
 
@@ -3015,7 +3115,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'a', 'b', 'c'])).toThrow(
-          `Option '-ss' has too many values (3). Should have at most 2.`,
+          /Option .+-ss.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
         );
       });
 
@@ -3088,7 +3188,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', '123,abc'])).toThrow(
-          `Invalid parameter to '-ss': 'abc'. Value must match the regex /\\d+/s.`,
+          /Invalid parameter to .+-ss.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
         );
       });
 
@@ -3142,7 +3242,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss', 'abc'])).toThrow(
-          `Invalid parameter to '-ss': 'abc'. Possible values are ['one','two'].`,
+          /Invalid parameter to .+-ss.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
         );
       });
 
@@ -3552,7 +3652,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1,2,3'])).toThrow(
-          `Option '-ns' has too many values (3). Should have at most 2.`,
+          /Option .+-ns.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
         );
       });
 
@@ -3566,7 +3666,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1', '2', '3'])).toThrow(
-          `Option '-ns' has too many values (3). Should have at most 2.`,
+          /Option .+-ns.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
         );
       });
 
@@ -3632,7 +3732,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1,-3'])).toThrow(
-          `Invalid parameter to '-ns': -3. Value must be in the range [0,Infinity].`,
+          /Invalid parameter to .+-ns.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 
@@ -3647,7 +3747,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1,3'])).toThrow(
-          `Invalid parameter to '-ns': 3. Possible values are [1,2].`,
+          /Invalid parameter to .+-ns.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
         );
       });
 

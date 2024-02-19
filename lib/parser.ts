@@ -196,7 +196,8 @@ class OptionRegistry implements Registry {
       if (!isNiladic(option)) {
         if (option.positional) {
           if (this.positional) {
-            throw Error(`Duplicate positional option '${key}'.`);
+            const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+            throw Error(`Duplicate positional option ${optName}.`);
           }
           const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
           const marker = typeof option.positional === 'string' ? option.positional : undefined;
@@ -207,7 +208,8 @@ class OptionRegistry implements Registry {
         this.required.push(key);
       }
       if (option.type === 'version' && !option.version && !option.resolve) {
-        throw Error(`Option '${key}' contains no version or resolve function.`);
+        const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+        throw Error(`Option ${optName} contains no version or resolve function.`);
       }
     }
   }
@@ -220,23 +222,27 @@ class OptionRegistry implements Registry {
   private registerNames(key: string, option: Option) {
     const names = option.names.filter((name): name is string => name !== null && name !== '');
     if (!names.length) {
-      throw Error(`Option '${key}' has no name.`);
+      const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+      throw Error(`Option ${optName} has no name.`);
     }
     if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames.filter((name) => name));
     }
     if ('positional' in option && typeof option.positional === 'string') {
       if (!option.positional) {
-        throw Error(`Option '${key}' has empty positional marker.`);
+        const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+        throw Error(`Option ${optName} has empty positional marker.`);
       }
       names.push(option.positional);
     }
     for (const name of names) {
       if (name.match(/[\s=]+/)) {
-        throw Error(`Invalid option name '${name}'.`);
+        const optName = `${defaultStyles.option}${name}${defaultStyles.whitespace}`;
+        throw Error(`Invalid option name ${optName}.`);
       }
       if (this.names.has(name)) {
-        throw Error(`Duplicate option name '${name}'.`);
+        const optName = `${defaultStyles.option}${name}${defaultStyles.whitespace}`;
+        throw Error(`Duplicate option name ${optName}.`);
       }
       this.names.set(name, key);
     }
@@ -249,9 +255,9 @@ class OptionRegistry implements Registry {
     for (const key in this.options) {
       const option = this.options[key];
       if (!isNiladic(option)) {
-        validateEnums(key, option);
-        validateValue(key, option, option.default);
-        validateValue(key, option, option.example);
+        validateEnums(key, option, defaultStyles);
+        validateValue(key, option, option.default, defaultStyles);
+        validateValue(key, option, option.example, defaultStyles);
       }
       if (option.requires) {
         this.validateRequirements(key, option.requires);
@@ -292,17 +298,19 @@ class OptionRegistry implements Registry {
     requiredValue?: RequiresVal[string],
   ) {
     if (requiredKey === key) {
-      throw Error(`Option '${key}' requires itself.`);
+      const optName = `${defaultStyles.option}${key}${defaultStyles.whitespace}`;
+      throw Error(`Option ${optName} requires itself.`);
     }
     if (!(requiredKey in this.options)) {
-      throw Error(`Unknown required option '${requiredKey}'.`);
+      const optName = `${defaultStyles.option}${requiredKey}${defaultStyles.whitespace}`;
+      throw Error(`Unknown required option ${optName}.`);
     }
     if (requiredValue !== undefined && requiredValue !== null) {
       const option = this.options[requiredKey];
       if (isNiladic(option)) {
         throw Error(`Required option '${requiredKey}' does not accept values.`);
       }
-      validateValue(requiredKey, option, requiredValue);
+      validateValue(requiredKey, option, requiredValue, defaultStyles);
     }
   }
 }
@@ -629,7 +637,7 @@ class ParserLoop {
     for (const key in this.registry.options) {
       const option = this.registry.options[key];
       if ('default' in option && !this.specifiedKeys.has(key)) {
-        const value = getDefaultValue(key, option);
+        const value = getDefaultValue(key, option, defaultStyles);
         (this.values as Record<string, typeof value>)[key] = value;
       }
     }
@@ -889,7 +897,7 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = normalizeString(option, name, requiredValue);
+    const expected = normalizeString(option, name, requiredValue, this.styles);
     if ((actual === expected) !== negate) {
       return null;
     }
@@ -918,7 +926,7 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = normalizeNumber(option, name, requiredValue);
+    const expected = normalizeNumber(option, name, requiredValue, this.styles);
     if ((actual === expected) !== negate) {
       return null;
     }
@@ -948,9 +956,7 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = (requiredValue as Array<string>).map((val) =>
-      normalizeString(option, name, val),
-    );
+    const expected = requiredValue.map((val) => normalizeString(option, name, val, this.styles));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return null;
     }
@@ -982,9 +988,7 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = (requiredValue as Array<number>).map((val) =>
-      normalizeNumber(option, name, val),
-    );
+    const expected = requiredValue.map((val) => normalizeNumber(option, name, val, this.styles));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return null;
     }
@@ -1081,12 +1085,12 @@ class ParserLoop {
     if ('parse' in option) {
       result = option.parse(name, value);
       if (result instanceof Promise) {
-        result = result.then((val) => normalizeString(option, name, val));
+        result = result.then((val) => normalizeString(option, name, val, this.styles));
       } else {
-        result = normalizeString(option, name, result);
+        result = normalizeString(option, name, result, this.styles);
       }
     } else {
-      result = normalizeString(option, name, value);
+      result = normalizeString(option, name, value, this.styles);
     }
     (this.values as Record<string, typeof result>)[key] = result;
   }
@@ -1103,12 +1107,12 @@ class ParserLoop {
     if ('parse' in option) {
       result = option.parse(name, value);
       if (result instanceof Promise) {
-        result = result.then((val) => normalizeNumber(option, name, val));
+        result = result.then((val) => normalizeNumber(option, name, val, this.styles));
       } else {
-        result = normalizeNumber(option, name, result);
+        result = normalizeNumber(option, name, result, this.styles);
       }
     } else {
-      result = normalizeNumber(option, name, Number(value));
+      result = normalizeNumber(option, name, Number(value), this.styles);
     }
     (this.values as Record<string, typeof result>)[key] = result;
   }
@@ -1129,20 +1133,20 @@ class ParserLoop {
       if (res instanceof Promise) {
         result = res.then(async (val) => {
           const prev = await previous;
-          prev.push(normalizeString(option, name, val));
-          normalizeArray(option, name, prev);
+          prev.push(normalizeString(option, name, val, this.styles));
+          normalizeArray(option, name, prev, this.styles);
           return prev;
         });
       } else if (previous instanceof Promise) {
         result = previous.then((val) => {
-          val.push(normalizeString(option, name, res));
-          normalizeArray(option, name, val);
+          val.push(normalizeString(option, name, res, this.styles));
+          normalizeArray(option, name, val, this.styles);
           return val;
         });
       } else {
         result = previous;
-        previous.push(normalizeString(option, name, res));
-        normalizeArray(option, name, result);
+        previous.push(normalizeString(option, name, res, this.styles));
+        normalizeArray(option, name, result, this.styles);
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
       const previous = (this.values as Record<string, ArrayVal>)[key];
@@ -1150,31 +1154,31 @@ class ParserLoop {
       if (res instanceof Promise) {
         result = res.then(async (vals) => {
           const prev = await previous;
-          prev.push(...vals.map((val) => normalizeString(option, name, val)));
-          normalizeArray(option, name, prev);
+          prev.push(...vals.map((val) => normalizeString(option, name, val, this.styles)));
+          normalizeArray(option, name, prev, this.styles);
           return prev;
         });
       } else {
-        const normalized = res.map((val) => normalizeString(option, name, val));
+        const normalized = res.map((val) => normalizeString(option, name, val, this.styles));
         if (previous instanceof Promise) {
           result = previous.then((val) => {
             val.push(...normalized);
-            normalizeArray(option, name, val);
+            normalizeArray(option, name, val, this.styles);
             return val;
           });
         } else {
           result = previous;
           result.push(...normalized);
-          normalizeArray(option, name, result);
+          normalizeArray(option, name, result, this.styles);
         }
       }
     } else {
       const previous = (this.values as Record<string, Array<string>>)[key];
       const vals = option.separator ? value.split(option.separator) : [value];
-      const normalized = vals.map((val) => normalizeString(option, name, val));
+      const normalized = vals.map((val) => normalizeString(option, name, val, this.styles));
       result = previous;
       result.push(...normalized);
-      normalizeArray(option, name, result);
+      normalizeArray(option, name, result, this.styles);
     }
     (this.values as Record<string, typeof result>)[key] = result;
   }
@@ -1195,20 +1199,20 @@ class ParserLoop {
       if (res instanceof Promise) {
         result = res.then(async (val) => {
           const prev = await previous;
-          prev.push(normalizeNumber(option, name, val));
-          normalizeArray(option, name, prev);
+          prev.push(normalizeNumber(option, name, val, this.styles));
+          normalizeArray(option, name, prev, this.styles);
           return prev;
         });
       } else if (previous instanceof Promise) {
         result = previous.then((val) => {
-          val.push(normalizeNumber(option, name, res));
-          normalizeArray(option, name, val);
+          val.push(normalizeNumber(option, name, res, this.styles));
+          normalizeArray(option, name, val, this.styles);
           return val;
         });
       } else {
         result = previous;
-        previous.push(normalizeNumber(option, name, res));
-        normalizeArray(option, name, result);
+        previous.push(normalizeNumber(option, name, res, this.styles));
+        normalizeArray(option, name, result, this.styles);
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
       const previous = (this.values as Record<string, ArrayVal>)[key];
@@ -1216,22 +1220,22 @@ class ParserLoop {
       if (res instanceof Promise) {
         result = res.then(async (vals) => {
           const prev = await previous;
-          prev.push(...vals.map((val) => normalizeNumber(option, name, val)));
-          normalizeArray(option, name, prev);
+          prev.push(...vals.map((val) => normalizeNumber(option, name, val, this.styles)));
+          normalizeArray(option, name, prev, this.styles);
           return prev;
         });
       } else {
-        const normalized = res.map((val) => normalizeNumber(option, name, val));
+        const normalized = res.map((val) => normalizeNumber(option, name, val, this.styles));
         if (previous instanceof Promise) {
           result = previous.then((val) => {
             val.push(...normalized);
-            normalizeArray(option, name, val);
+            normalizeArray(option, name, val, this.styles);
             return val;
           });
         } else {
           result = previous;
           result.push(...normalized);
-          normalizeArray(option, name, result);
+          normalizeArray(option, name, result, this.styles);
         }
       }
     } else {
@@ -1239,10 +1243,10 @@ class ParserLoop {
       const vals = option.separator
         ? value.split(option.separator).map((val) => Number(val))
         : [Number(value)];
-      const normalized = vals.map((val) => normalizeNumber(option, name, val));
+      const normalized = vals.map((val) => normalizeNumber(option, name, val, this.styles));
       result = previous;
       result.push(...normalized);
-      normalizeArray(option, name, result);
+      normalizeArray(option, name, result, this.styles);
     }
     (this.values as Record<string, typeof result>)[key] = result;
   }
@@ -1309,16 +1313,22 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * @param key The option key
  * @param option The option definition
  */
-function validateEnums(key: string, option: ParamOption) {
+function validateEnums(key: string, option: ParamOption, styles: ConcreteStyles) {
   if ('enums' in option && option.enums) {
     if (!option.enums.length) {
-      throw Error(`Option '${key}' has zero enum values.`);
+      const optName = `${styles.option}${key}${styles.whitespace}`;
+      throw Error(`Option ${optName} has zero enum values.`);
     }
     const set = new Set<string | number>(option.enums);
     if (set.size !== option.enums.length) {
       for (const value of option.enums) {
         if (!set.delete(value)) {
-          throw Error(`Option '${key}' has duplicate enum '${value}'.`);
+          const optName = `${styles.option}${key}${styles.whitespace}`;
+          const optVal =
+            option.type === 'string' || option.type === 'strings'
+              ? `${styles.string}'${value}'${styles.whitespace}`
+              : `${styles.number}${value}${styles.whitespace}`;
+          throw Error(`Option ${optName} has duplicate enum ${optVal}.`);
         }
       }
     }
@@ -1331,14 +1341,21 @@ function validateEnums(key: string, option: ParamOption) {
  * @param option The option definition
  * @param value The option value
  */
-function validateValue(key: string, option: ParamOption, value: ParamOption['default']) {
+function validateValue(
+  key: string,
+  option: ParamOption,
+  value: ParamOption['default'],
+  styles: ConcreteStyles,
+) {
   if (value === undefined) {
     return;
   }
   function assert(condition: unknown, type: string): asserts condition {
     if (!condition) {
+      const optName = `${styles.option}${key}${styles.whitespace}`;
+      const valType = `${styles.string}'${type}'${styles.whitespace}`;
       throw Error(
-        `Option '${key}' has incompatible value '${value}'. Should be of type '${type}'.`,
+        `Option ${optName} has incompatible value <${value}>. Should be of type ${valType}.`,
       );
     }
   }
@@ -1348,28 +1365,28 @@ function validateValue(key: string, option: ParamOption, value: ParamOption['def
       break;
     case 'string':
       assert(typeof value === 'string', 'string');
-      normalizeString(option, key, value);
+      normalizeString(option, key, value, styles);
       break;
     case 'number':
       assert(typeof value === 'number', 'number');
-      normalizeNumber(option, key, value);
+      normalizeNumber(option, key, value, styles);
       break;
     case 'strings': {
       assert(typeof value === 'object', 'string[]');
       value = value.map((val) => {
         assert(typeof val === 'string', 'string[]');
-        return normalizeString(option, key, val);
+        return normalizeString(option, key, val, styles);
       });
-      normalizeArray(option, key, value);
+      normalizeArray(option, key, value, styles);
       break;
     }
     case 'numbers': {
       assert(typeof value === 'object', 'number[]');
       value = value.map((val) => {
         assert(typeof val === 'number', 'number[]');
-        return normalizeNumber(option, key, val);
+        return normalizeNumber(option, key, val, styles);
       });
-      normalizeArray(option, key, value);
+      normalizeArray(option, key, value, styles);
       break;
     }
     default: {
@@ -1410,23 +1427,27 @@ async function resolveVersion(option: VersionOption): Promise<never> {
  * @param option The option definition
  * @returns The default value
  */
-function getDefaultValue(name: string, option: ValuedOption): ValuedOption['default'] {
+function getDefaultValue(
+  name: string,
+  option: ValuedOption,
+  styles: ConcreteStyles,
+): ValuedOption['default'] {
   if (option.default === undefined) {
     return undefined;
   }
   switch (option.type) {
     case 'string':
-      return normalizeString(option, name, option.default);
+      return normalizeString(option, name, option.default, styles);
     case 'number':
-      return normalizeNumber(option, name, option.default);
+      return normalizeNumber(option, name, option.default, styles);
     case 'strings': {
-      const vals = option.default.map((val) => normalizeString(option, name, val));
-      normalizeArray(option, name, vals);
+      const vals = option.default.map((val) => normalizeString(option, name, val, styles));
+      normalizeArray(option, name, vals, styles);
       return vals;
     }
     case 'numbers': {
-      const vals = option.default.map((val) => normalizeNumber(option, name, val));
-      normalizeArray(option, name, vals);
+      const vals = option.default.map((val) => normalizeNumber(option, name, val, styles));
+      normalizeArray(option, name, vals, styles);
       return vals;
     }
     default:
@@ -1444,6 +1465,7 @@ function normalizeString(
   option: StringOption | StringsOption,
   name: string,
   value: string,
+  styles: ConcreteStyles,
 ): string {
   if (option.trim) {
     value = value.trim();
@@ -1452,13 +1474,19 @@ function normalizeString(
     value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
   }
   if ('enums' in option && option.enums && !option.enums.includes(value)) {
-    const error = option.enums.map((val) => `'${val}'`).join(',');
-    throw Error(`Invalid parameter to '${name}': '${value}'. Possible values are [${error}].`);
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.string}'${value}'${styles?.whitespace}`;
+    const optEnums = option.enums
+      .map((val) => `${styles.string}'${val}'${styles.whitespace}`)
+      .join(', ');
+    throw Error(`Invalid parameter to ${optName}: ${optVal}. Possible values are [${optEnums}].`);
   }
   if ('regex' in option && option.regex && !option.regex.test(value)) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.string}'${value}'${styles.whitespace}`;
+    const optRegex = `${styles.regex}${String(option.regex)}${styles.whitespace}`;
     throw Error(
-      `Invalid parameter to '${name}': '${value}'. ` +
-        `Value must match the regex ${String(option.regex)}.`,
+      `Invalid parameter to ${optName}: ${optVal}. Value must match the regex ${optRegex}.`,
     );
   }
   return value;
@@ -1474,6 +1502,7 @@ function normalizeNumber(
   option: NumberOption | NumbersOption,
   name: string,
   value: number,
+  styles: ConcreteStyles,
 ): number {
   switch (option.round) {
     case 'trunc':
@@ -1490,11 +1519,21 @@ function normalizeNumber(
       break;
   }
   if ('enums' in option && option.enums && !option.enums.includes(value)) {
-    throw Error(`Invalid parameter to '${name}': ${value}. Possible values are [${option.enums}].`);
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.number}${value}${styles.whitespace}`;
+    const optEnums = option.enums
+      .map((val) => `${styles.number}${val}${styles.whitespace}`)
+      .join(', ');
+    throw Error(`Invalid parameter to ${optName}: ${optVal}. Possible values are [${optEnums}].`);
   }
   if ('range' in option && option.range && (value < option.range[0] || value > option.range[1])) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optVal = `${styles.number}${value}${styles.whitespace}`;
+    const optRange = option.range
+      .map((val) => `${styles.number}${val}${styles.whitespace}`)
+      .join(', ');
     throw Error(
-      `Invalid parameter to '${name}': ${value}. Value must be in the range [${option.range}].`,
+      `Invalid parameter to ${optName}: ${optVal}. Value must be in the range [${optRange}].`,
     );
   }
   return value;
@@ -1510,6 +1549,7 @@ function normalizeArray(
   option: StringsOption | NumbersOption,
   name: string,
   value: Array<string | number>,
+  styles: ConcreteStyles,
 ) {
   if (option.unique) {
     const unique = [...new Set(value)];
@@ -1517,9 +1557,11 @@ function normalizeArray(
     value.push(...unique);
   }
   if (option.limit !== undefined && value.length > option.limit) {
+    const optName = `${styles.option}${name}${styles.whitespace}`;
+    const optCount = `${styles.number}${value.length}${styles.whitespace}`;
+    const optLimit = `${styles.number}${option.limit}${styles.whitespace}`;
     throw Error(
-      `Option '${name}' has too many values (${value.length}). ` +
-        `Should have at most ${option.limit}.`,
+      `Option ${optName} has too many values (${optCount}). Should have at most ${optLimit}.`,
     );
   }
 }
