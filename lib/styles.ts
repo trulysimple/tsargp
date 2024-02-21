@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 export type { Attr, Color, FgColor, BgColor, Style, DisplayAttr };
 
-export { StyledString, sgr, fg, bg, isEscape };
+export { StyledString, sgr, fg, bg, isStyle };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -54,7 +54,8 @@ type Style = `\x1b[${string}m`;
  * Implements concatenation of strings with styles.
  */
 class StyledString {
-  private lastStyle = '';
+  private firstStyleIndex: number | undefined;
+  private lastStyle: Style | undefined;
 
   /**
    * The list of strings that have been appended (styles and text).
@@ -72,7 +73,7 @@ class StyledString {
    * @returns The length of the concatenated string, excluding the lengths of styles.
    */
   get length(): number {
-    return this.strings.reduce((sum, str) => sum + (isEscape(str) ? 0 : str.length), 0);
+    return this.strings.reduce((sum, str) => sum + (isStyle(str) ? 0 : str.length), 0);
   }
 
   /**
@@ -81,9 +82,12 @@ class StyledString {
    * @returns This
    */
   style(style: Style): this {
-    if (style && style != this.lastStyle) {
-      this.strings.push(style);
+    if (style != this.lastStyle) {
+      const index = this.strings.push(style);
       this.lastStyle = style;
+      if (this.firstStyleIndex == undefined) {
+        this.firstStyleIndex = index - 1;
+      }
     }
     return this;
   }
@@ -93,19 +97,31 @@ class StyledString {
    * @param texts The texts to be appended. Should not contain any style.
    * @returns This
    */
-  append(...texts: Array<string>): this {
+  push(...texts: Array<string>): this {
     this.strings.push(...texts);
     return this;
   }
 
   /**
    * Appends a styled string to the list of strings.
-   * @param str The styled string to be appended.
+   * @param text The styled string to be appended.
    * @returns This
    */
-  appendStyled(str: StyledString): this {
-    this.strings.push(...str.strings);
-    this.lastStyle = str.lastStyle;
+  appendStyled(text: StyledString): this {
+    if (
+      text.firstStyleIndex === undefined ||
+      text.strings[text.firstStyleIndex] != this.lastStyle
+    ) {
+      this.strings.push(...text.strings);
+    } else {
+      this.strings.push(
+        ...text.strings.slice(0, text.firstStyleIndex),
+        ...text.strings.slice(text.firstStyleIndex + 1),
+      );
+    }
+    if (text.lastStyle) {
+      this.lastStyle = text.lastStyle;
+    }
     return this;
   }
 }
@@ -114,11 +130,11 @@ class StyledString {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Tests if a string is an escape sequence.
+ * Tests if a string is a style.
  * @param text The text to be checked
- * @returns True if the text is an escape sequence
+ * @returns True if the text is a style
  */
-function isEscape(text: string): boolean {
+function isStyle(text: string): text is Style {
   return text.startsWith('\x1b');
 }
 

@@ -26,6 +26,22 @@ describe('HelpFormatter', () => {
     });
 
     describe('flag', () => {
+      it('should handle an option with custom styles', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option with custom styles',
+            styles: {
+              names: sgr('0', '7', fg('138')),
+              desc: sgr('0', '3', '9'),
+            },
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
+        expect(message).toMatch(/-f, +--flag +A flag option with custom styles\./);
+      });
+
       it('should handle an option with inline styles in the description', () => {
         const options = {
           flag: {
