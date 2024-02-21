@@ -56,6 +56,8 @@ type Style = `\x1b[${string}m`;
 class StyledString {
   private firstStyleIndex: number | undefined;
   private lastStyle: Style | undefined;
+  maxWordLen = 0;
+  length = 0;
 
   /**
    * The list of strings that have been appended (styles and text).
@@ -67,13 +69,6 @@ class StyledString {
    */
   get string(): string {
     return this.strings.join('');
-  }
-
-  /**
-   * @returns The length of the concatenated string, excluding the lengths of styles.
-   */
-  get length(): number {
-    return this.strings.reduce((sum, str) => sum + (isStyle(str) ? 0 : str.length), 0);
   }
 
   /**
@@ -99,6 +94,9 @@ class StyledString {
    */
   push(...texts: Array<string>): this {
     this.strings.push(...texts);
+    const lengths = texts.map((str) => str.length);
+    this.length += lengths.reduce((acc, len) => acc + len);
+    this.maxWordLen = Math.max(this.maxWordLen, ...lengths);
     return this;
   }
 
@@ -107,7 +105,7 @@ class StyledString {
    * @param text The styled string to be appended.
    * @returns This
    */
-  appendStyled(text: StyledString): this {
+  pushStyled(text: StyledString): this {
     if (
       text.firstStyleIndex === undefined ||
       text.strings[text.firstStyleIndex] != this.lastStyle
@@ -121,6 +119,10 @@ class StyledString {
     }
     if (text.lastStyle) {
       this.lastStyle = text.lastStyle;
+    }
+    this.length += text.length;
+    if (text.maxWordLen > this.maxWordLen) {
+      this.maxWordLen = text.maxWordLen;
     }
     return this;
   }

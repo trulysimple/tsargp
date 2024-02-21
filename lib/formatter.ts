@@ -454,7 +454,7 @@ class HelpFormatter {
    */
   private formatDesc(option: Option, descStyle: Style, result: StyledString) {
     if (option.desc) {
-      result.style(descStyle).appendStyled(splitWords(option.desc));
+      result.style(descStyle).pushStyled(splitWords(option.desc));
     }
   }
 
@@ -469,7 +469,7 @@ class HelpFormatter {
       result.style(descStyle).push('Can', 'be', 'negated', 'with');
       const names = option.negationNames;
       names.forEach((name, i) => {
-        result.style(this.config.styles.option).push(name);
+        this.formatName(name, result);
         if (i < names.length - 1) {
           result.style(descStyle).push('or');
         }
@@ -487,7 +487,7 @@ class HelpFormatter {
   private formatSeparator(option: Option, descStyle: Style, result: StyledString) {
     if ('separator' in option && option.separator) {
       result.style(descStyle).push('Values', 'are', 'delimited', 'by');
-      result.style(this.config.styles.string).push(`'${option.separator}'`);
+      this.formatString(option.separator, result);
       result.style(descStyle).push('.');
     }
   }
@@ -515,7 +515,7 @@ class HelpFormatter {
       result.style(descStyle).push('Accepts', 'positional');
       if (typeof option.positional === 'string') {
         result.push('parameters', 'preceded', 'by');
-        result.style(this.config.styles.option).push(option.positional);
+        this.formatName(option.positional, result);
         result.style(descStyle).push('.');
       } else {
         result.push('parameters.');
@@ -605,7 +605,7 @@ class HelpFormatter {
   private formatRegex(option: Option, descStyle: Style, result: StyledString) {
     if ('regex' in option && option.regex) {
       result.style(descStyle).push('Values', 'must', 'match', 'the', 'regex');
-      result.style(this.config.styles.regex).push(String(option.regex));
+      this.formatRegex2(option.regex, result);
       result.style(descStyle).push('.');
     }
   }
@@ -645,7 +645,7 @@ class HelpFormatter {
   private formatLimit(option: Option, descStyle: Style, result: StyledString) {
     if ('limit' in option && option.limit !== undefined) {
       result.style(descStyle).push('Value', 'count', 'is', 'limited', 'to');
-      result.style(this.config.styles.number).push(`${option.limit}`);
+      this.formatNumber(option.limit, result);
       result.style(descStyle).push('.');
     }
   }
@@ -699,7 +699,7 @@ class HelpFormatter {
   private formatDeprecated(option: Option, descStyle: Style, result: StyledString) {
     if (option.deprecated) {
       result.style(descStyle).push('Deprecated', 'for');
-      result.appendStyled(splitWords(option.deprecated));
+      result.pushStyled(splitWords(option.deprecated));
     }
   }
 
@@ -713,16 +713,21 @@ class HelpFormatter {
     values: Array<string>,
     descStyle: Style,
     result: StyledString,
-    brackets: [string, string],
+    brackets?: [string, string],
+    separator = ',',
   ) {
-    result.style(descStyle).push(brackets[0]);
+    if (brackets) {
+      result.style(descStyle).push(brackets[0]);
+    }
     values.forEach((value, i) => {
-      result.style(this.config.styles.string).push(`'${value}'`);
+      this.formatString(value, result);
       if (i < values.length - 1) {
-        result.style(descStyle).push(',');
+        result.style(descStyle).push(separator);
       }
     });
-    result.style(descStyle).push(brackets[1]);
+    if (brackets) {
+      result.style(descStyle).push(brackets[1]);
+    }
   }
 
   /**
@@ -735,16 +740,66 @@ class HelpFormatter {
     values: Array<number>,
     descStyle: Style,
     result: StyledString,
-    brackets: [string, string],
+    brackets?: [string, string],
+    separator = ',',
   ) {
-    result.style(descStyle).push(brackets[0]);
+    if (brackets) {
+      result.style(descStyle).push(brackets[0]);
+    }
     values.forEach((value, i) => {
-      result.style(this.config.styles.number).push(value.toString());
+      this.formatNumber(value, result);
       if (i < values.length - 1) {
-        result.style(descStyle).push(',');
+        result.style(descStyle).push(separator);
       }
     });
-    result.style(descStyle).push(brackets[1]);
+    if (brackets) {
+      result.style(descStyle).push(brackets[1]);
+    }
+  }
+
+  /**
+   * Formats a boolean value to be printed on the console.
+   * @param values The boolean value
+   * @param result The resulting string
+   */
+  private formatBoolean(value: boolean, result: StyledString) {
+    result.style(this.config.styles.boolean).push(value.toString());
+  }
+
+  /**
+   * Formats a string value to be printed on the console.
+   * @param values The string value
+   * @param result The resulting string
+   */
+  private formatString(value: string, result: StyledString) {
+    result.style(this.config.styles.string).push(`'${value}'`);
+  }
+
+  /**
+   * Formats a number value to be printed on the console.
+   * @param values The number value
+   * @param result The resulting string
+   */
+  private formatNumber(value: number, result: StyledString) {
+    result.style(this.config.styles.number).push(value.toString());
+  }
+
+  /**
+   * Formats a regex value to be printed on the console.
+   * @param values The regex value
+   * @param result The resulting string
+   */
+  private formatRegex2(value: RegExp, result: StyledString) {
+    result.style(this.config.styles.regex).push(String(value));
+  }
+
+  /**
+   * Formats an option name to be printed on the console.
+   * @param name The option name
+   * @param result The resulting string
+   */
+  private formatName(name: string, result: StyledString) {
+    result.style(this.config.styles.option).push(name);
   }
 
   /**
@@ -766,7 +821,7 @@ class HelpFormatter {
       if (negate) {
         result.style(descStyle).push('no');
       }
-      result.style(this.config.styles.option).push(name);
+      this.formatName(name, result);
     } else if (requires instanceof RequiresNot) {
       this.formatRequiresRecursive(requires.item, descStyle, result, !negate);
     } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
@@ -852,7 +907,7 @@ class HelpFormatter {
     if ((value === null && !negate) || (value === undefined && negate)) {
       result.style(descStyle).push('no');
     }
-    result.style(this.config.styles.option).push(name);
+    this.formatName(name, result);
     if (value !== null && value !== undefined) {
       assert(!isNiladic(option));
       result.style(descStyle).push(negate ? '!=' : '=');
@@ -881,25 +936,25 @@ class HelpFormatter {
       case 'flag':
       case 'boolean':
         assert(typeof value === 'boolean');
-        result.style(this.config.styles.boolean).push(value.toString());
+        this.formatBoolean(value, result);
         break;
       case 'string':
         assert(typeof value === 'string');
-        result.style(this.config.styles.string).push(`'${value}'`);
+        this.formatString(value, result);
         break;
       case 'number':
         assert(typeof value === 'number');
-        result.style(this.config.styles.number).push(value.toString());
+        this.formatNumber(value, result);
         break;
       case 'strings':
         assert(typeof value === 'object');
         if (descStyle) {
           this.formatStrings(value as Array<string>, descStyle, result, ['[', ']']);
         } else if (option.separator) {
-          result.style(this.config.styles.string).push(`'${value.join(option.separator)}'`);
+          this.formatString(value.join(option.separator), result);
         } else {
-          const values = value.map((element) => `'${element}'`);
-          result.style(this.config.styles.string).push(values.join(' '));
+          const style = this.config.styles.whitespace;
+          this.formatStrings(value as Array<string>, style, result, undefined, ' ');
         }
         break;
       case 'numbers':
@@ -907,9 +962,10 @@ class HelpFormatter {
         if (descStyle) {
           this.formatNumbers(value as Array<number>, descStyle, result, ['[', ']']);
         } else if (option.separator) {
-          result.style(this.config.styles.string).push(`'${value.join(option.separator)}'`);
+          this.formatString(value.join(option.separator), result);
         } else {
-          result.style(this.config.styles.number).push(value.join(' '));
+          const style = this.config.styles.whitespace;
+          this.formatNumbers(value as Array<number>, style, result, undefined, ' ');
         }
         break;
       default: {
@@ -949,7 +1005,7 @@ class HelpFormatter {
    */
   private formatEntries(width: number, entries: Array<HelpEntry>): string {
     function formatCol(line: StyledString, indent: string, str: StyledString, width: number) {
-      line.push(indent).appendStyled(str);
+      line.push(indent).pushStyled(str);
       line.style(whitespaceStyle).push(' '.repeat(width - str.length));
     }
     const whitespaceStyle = this.config.styles.whitespace;
@@ -959,109 +1015,9 @@ class HelpFormatter {
       formatCol(line, this.indent.names, entry.names, this.namesWidth);
       formatCol(line, this.indent.param, entry.param, this.paramWidth);
       line.push(this.indent.desc);
-      this.wrapDesc(lines, entry.desc, width, line.string, this.indent.wrap);
+      wrapText(lines, entry.desc, width, line.string, this.indent.wrap, whitespaceStyle);
     }
     return lines.join('\n');
-  }
-
-  /**
-   * Wraps the option description to fit in the console.
-   * @param lines The resulting lines to append to
-   * @param desc The description styled string
-   * @param width The desired console width
-   * @param prefix The prefix at the start of the first line
-   * @param indent The indentation at the start of each wrapped line
-   */
-  private wrapDesc(
-    lines: Array<string>,
-    desc: StyledString,
-    width: number,
-    prefix: string,
-    indent: string,
-  ) {
-    const whitespaceStyle = this.config.styles.whitespace;
-    const firstStyle = desc.strings.length && isStyle(desc.strings[0]) ? desc.strings[0] : '';
-    const descStyle = firstStyle != whitespaceStyle ? firstStyle : '';
-    const maxWordLen = desc.strings.reduce(
-      (acc, word) => (isStyle(word) ? acc : Math.max(acc, word.length)),
-      0,
-    );
-    if (width >= indent.length + maxWordLen) {
-      width -= indent.length;
-      indent = whitespaceStyle + indent;
-    } else {
-      prefix += '\n';
-      indent = '';
-    }
-    const punctuation = /^[.,:;!?](?!=)/;
-    const closingBrackets = /^[)\]}]/;
-    const openingBrackets = /^[{[(]/;
-    let line = [prefix];
-    let merge = false;
-    let lineLength = 0;
-    let currentLen = 0;
-    let currentWord = '';
-    let currentStyle = '';
-    let nextStyle = '';
-    let lastStyle = '';
-    function addWord() {
-      if (!currentLen) {
-        return;
-      }
-      const space = lineLength ? ' ' : '';
-      if (lineLength + space.length + currentLen <= width) {
-        line.push(space + currentWord);
-        lineLength += space.length + currentLen;
-      } else {
-        lines.push(line.join(''));
-        line = [indent, lastStyle, currentWord];
-        lineLength = currentLen;
-      }
-      if (currentStyle) {
-        lastStyle = descStyle;
-        if ((descStyle && currentStyle != descStyle) || currentStyle != whitespaceStyle) {
-          lastStyle += currentStyle;
-        }
-        currentStyle = '';
-      }
-    }
-    for (const word of desc.strings) {
-      if (!word) {
-        continue;
-      }
-      if (isStyle(word)) {
-        nextStyle = word;
-        continue;
-      }
-      if (word.startsWith('\n')) {
-        addWord();
-        lines.push(line.join(''));
-        if (word == '\n\n') {
-          lines.push('');
-        }
-        line = [indent, lastStyle];
-        lineLength = 0;
-        currentWord = '';
-        currentLen = 0;
-        continue;
-      }
-      if (merge || word.match(punctuation) || word.match(closingBrackets)) {
-        currentWord += nextStyle + word;
-        currentLen += word.length;
-        merge = false;
-      } else {
-        addWord();
-        currentWord = nextStyle + word;
-        currentLen = word.length;
-        merge = word.match(openingBrackets) !== null;
-      }
-      if (nextStyle) {
-        currentStyle = nextStyle;
-        nextStyle = '';
-      }
-    }
-    addWord();
-    lines.push(line.join(''));
   }
 }
 
@@ -1111,4 +1067,101 @@ function splitWords(text: string): StyledString {
     }
     return acc;
   }, new StyledString());
+}
+
+/**
+ * Wraps the option description to fit in the console.
+ * @param lines The resulting lines to append to
+ * @param text The text to be wrapped (styled string)
+ * @param width The desired console width
+ * @param prefix The prefix at the start of the first line
+ * @param indent The indentation at the start of each wrapped line
+ * @param whitespaceStyle The style for whitespace
+ */
+function wrapText(
+  lines: Array<string>,
+  text: StyledString,
+  width: number,
+  prefix: string,
+  indent: string,
+  whitespaceStyle: Style,
+) {
+  const firstStyle = text.strings.length && isStyle(text.strings[0]) ? text.strings[0] : '';
+  const descStyle = firstStyle != whitespaceStyle ? firstStyle : '';
+  if (width >= indent.length + text.maxWordLen) {
+    width -= indent.length;
+    indent = whitespaceStyle + indent;
+  } else {
+    prefix += '\n';
+    indent = '';
+  }
+  const punctuation = /^[.,:;!?](?!=)/;
+  const closingBrackets = /^[)\]}]/;
+  const openingBrackets = /^[{[(]/;
+  let line = [prefix];
+  let merge = false;
+  let lineLength = 0;
+  let currentLen = 0;
+  let currentWord = '';
+  let currentStyle = '';
+  let nextStyle = '';
+  let lastStyle = '';
+  function addWord() {
+    if (!currentLen) {
+      return;
+    }
+    const space = lineLength ? ' ' : '';
+    if (lineLength + space.length + currentLen <= width) {
+      line.push(space + currentWord);
+      lineLength += space.length + currentLen;
+    } else {
+      lines.push(line.join(''));
+      line = [indent, lastStyle, currentWord];
+      lineLength = currentLen;
+    }
+    if (currentStyle) {
+      lastStyle = descStyle;
+      if ((descStyle && currentStyle != descStyle) || currentStyle != whitespaceStyle) {
+        lastStyle += currentStyle;
+      }
+      currentStyle = '';
+    }
+  }
+  for (const word of text.strings) {
+    if (!word) {
+      continue;
+    }
+    if (isStyle(word)) {
+      nextStyle = word;
+      continue;
+    }
+    if (word.startsWith('\n')) {
+      addWord();
+      lines.push(line.join(''));
+      if (word == '\n\n') {
+        lines.push('');
+      }
+      line = [indent, lastStyle];
+      lineLength = 0;
+      currentWord = '';
+      currentLen = 0;
+      continue;
+    }
+    if (merge || word.match(punctuation) || word.match(closingBrackets)) {
+      currentWord += nextStyle + word;
+      currentLen += word.length;
+      merge = false;
+    } else {
+      addWord();
+      currentWord = nextStyle + word;
+      currentLen = word.length;
+      merge = word.match(openingBrackets) !== null;
+    }
+    if (nextStyle) {
+      currentStyle = nextStyle;
+      nextStyle = '';
+    }
+  }
+  addWord();
+  lines.push(line.join(''));
 }
