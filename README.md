@@ -1,6 +1,6 @@
 # tsargp
 
-**tsargp** is a command-line argument parser library that helps you write clean code.
+**tsargp** is a command-line argument parsing library that helps you write clean code.
 
 Get started with the [documentation].
 

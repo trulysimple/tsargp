@@ -9,10 +9,18 @@ import { Readline } from 'xterm-readline';
 import { ArgumentParser } from 'tsargp';
 import 'xterm/css/xterm.css';
 
-// @ts-expect-error does not export types
+// @ts-expect-error since tsargp demo does not export types
 import options from 'tsargp/demo';
 // override version because there's no package.json file in the browser
 options.version.version = '0.1.58';
+
+//--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+/**
+ * The available commands.
+ */
+const commands = ['tsargp', 'clear'];
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -121,8 +129,13 @@ class Demo extends React.Component<Props, State> {
    * Fires when the user presses a key.
    */
   private onData(data: string) {
-    if (data.charCodeAt(0) == 22) {
-      this.term.paste(this.state.selection);
+    switch (data.charCodeAt(0)) {
+      case 9:
+        this.onTab();
+        break;
+      case 22:
+        this.term.paste(this.state.selection);
+        break;
     }
   }
 
@@ -137,21 +150,50 @@ class Demo extends React.Component<Props, State> {
   }
 
   /**
+   * Fires when the user enters a horizontal tab.
+   */
+  private onTab() {
+    // @ts-expect-error since we need to use the private line buffer
+    const line: { buf: string; pos: number } = this.readline.state.line;
+    let { buf, pos } = line;
+    buf = buf.trimStart();
+    pos -= line.buf.length - buf.length;
+    if (pos <= 0) {
+      return;
+    }
+    let cmds = commands;
+    for (let i = 0; i < pos && buf[i] != ' '; ++i) {
+      cmds = cmds.filter((cmd) => i < cmd.length && cmd[i] == buf[i]);
+    }
+    if (cmds.length > 1) {
+      this.readline.println('\n> ' + cmds.join(' '));
+    } else if (cmds.length) {
+      const command = cmds[0];
+      if (pos <= command.length) {
+        this.term.paste(`${command} `.slice(pos));
+      } else if (command == 'tsargp') {
+        this.complete(buf, pos);
+      }
+    }
+  }
+
+  /**
    * Fires when the user enters a line.
    */
   private onInput(line: string) {
+    line = line.trimStart();
     const [command] = line.split(' ', 1);
-    switch (command) {
-      case '':
-        break;
-      case 'clear':
-        this.term.clear();
-        break;
-      case 'tsargp':
-        this.runCommand(line);
-        break;
-      default:
-        this.term.writeln(`${command}: command not found`);
+    if (commands.includes(command)) {
+      switch (command) {
+        case 'clear':
+          this.term.clear();
+          break;
+        case 'tsargp':
+          this.run(line);
+          break;
+      }
+    } else {
+      this.readline.println(`${command}: command not found`);
     }
     this.readInput();
   }
@@ -175,12 +217,38 @@ class Demo extends React.Component<Props, State> {
    * Runs the demo command.
    * @param line The command line
    */
-  private runCommand(line: string) {
+  private run(line: string) {
     try {
       const values = this.parser.parse(line, { width: this.state.width });
       this.readline.println(JSON.stringify(values, null, 2));
     } catch (err) {
       this.readline.println(`${err}`);
+    }
+  }
+
+  /**
+   * Completes the demo command.
+   * @param line The command line
+   * @param compIndex The completion index
+   */
+  private complete(line: string, compIndex: number) {
+    try {
+      this.parser.parse(line, { compIndex });
+    } catch (comp) {
+      if (comp) {
+        const words = (comp as string).split('\n');
+        if (words.length > 1) {
+          this.readline.println('\n> ' + words.join(' '));
+        } else {
+          const word = words[0];
+          for (let i = compIndex - word.length; i < compIndex; ++i) {
+            if (line.slice(i, compIndex) == word.slice(0, compIndex - i)) {
+              this.term.paste(word.slice(compIndex - i) + ' ');
+              break;
+            }
+          }
+        }
+      }
     }
   }
 }
