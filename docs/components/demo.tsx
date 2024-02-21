@@ -166,7 +166,7 @@ class Demo extends React.Component<Props, State> {
       cmds = cmds.filter((cmd) => i < cmd.length && cmd[i] == buf[i]);
     }
     if (cmds.length > 1) {
-      this.readline.println('\n> ' + cmds.join(' '));
+      this.readline.print(`\n> ${cmds.join(' ')}\n> `);
     } else if (cmds.length) {
       const command = cmds[0];
       if (pos <= command.length) {
@@ -238,7 +238,7 @@ class Demo extends React.Component<Props, State> {
       if (comp) {
         const words = (comp as string).split('\n');
         if (words.length > 1) {
-          this.readline.println('\n> ' + words.join(' '));
+          this.readline.print(`\n> ${words.join(' ')}\n> `);
         } else {
           const word = words[0];
           for (let i = compIndex - word.length; i < compIndex; ++i) {

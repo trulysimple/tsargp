@@ -12,21 +12,37 @@ Commands:
 - `tsargp ...` play with option values
 - `clear` clear the screen
 
-Things to try out:
-
-- check if similar names are suggested for unkown options (e.g., `-nof`)
-- check if option names can be used as option parameters (e.g., `-ss -s`)
-- check if arguments after `--` are recognized as positional, while others not
-- check if a string parameter matches or fails the required regex/enums
-- check if a string parameter is normalized correctly (e.g., `-ss abc`)
-- check if a number parameter matches or fails the required range/enums
-- check if a number parameter is normalized correctly (e.g., `-ns 1.7`)
-- check if the `-b` option can be specified in combination with others
-- check if value count is limited to a certain amount (e.g., `--stringsEnum one two one two`)
-- check if duplicate values get removed (e.g., `--numbersEnum 1,2,1,2`)
-- check if values get overridden when an option is specified repeatedly (e.g., `-s 1 -s 2`)
-- check if values get appended when an option is specified repeatedly (e.g., `--numbersEnum 1 --numbersEnum 2`)
-
 > **TIP:**
 > Select text from the terminal and paste it with `Ctrl`+`V`.
 > Use the `Up` and `Down` arrow keys to navigate the history.
+
+Things to try out:
+
+- completion:
+  - check if completion works by pressing `Tab` (it behaves slightly differently than an actual bash)
+  - check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`, ...)
+  - check if an option parameter gets completed (e.g., `<Tab>`, `-se o<Tab>`, `--ne <Tab>`, ...)
+- names:
+  - check if similar names are suggested for unkown options (e.g., `-nof`)
+  - check if option names can be used as option parameters (e.g., `-ss -s`)
+- positional:
+  - check if positional arguments can be specified before named ones (e.g., `one -s 0`)
+  - check if all arguments after `--` are recognized as positional (e.g., try `-- -f` and see that it fails)
+- strings:
+  - check if a string parameter matches the required regex (e.g., try `-s A` and see that it fails)
+  - check if a string parameter matches the required enums (e.g., try `-se A` and see that it fails)
+  - check if a string parameter is normalized correctly (e.g., `-ss abc` and see that it outputs `ABC`)
+  - check if values get overridden when an option is specified repeatedly (e.g., `-s 1 -s 2`)
+- number:
+  - check if a number parameter matches the required range (e.g., try `-n 1` and see that it fails)
+  - check if a number parameter matches the required enums (e.g., try `-ne 0` and see that it fails)
+  - check if a number parameter is normalized correctly (e.g., `-ns 1.7` and see that it outputs `2`)
+  - check if values get overridden when an option is specified repeatedly (e.g., `-n -1 -n -2`)
+- arrays:
+  - check if value count is limited to a certain amount (e.g., `--stringsEnum one two one two`)
+  - check if duplicate values get removed (e.g., `--numbersEnum 1,2,1,2`)
+  - check if values get overridden when an option is specified repeatedly (e.g., `one --stringsEnum two`)
+  - check if values get appended when an option is specified repeatedly (e.g., `--numbersEnum 1 --numbersEnum 2`)
+- other:
+  - check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
+  - check if the `-b` option can be specified in combination with other options
