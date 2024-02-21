@@ -576,6 +576,10 @@ type HelpOption = WithType<'help'> & {
    * The help format.
    */
   readonly format?: HelpFormat;
+  /**
+   * The style of option headings.
+   */
+  readonly headingStyle?: Style;
 };
 
 /**

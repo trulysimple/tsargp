@@ -454,9 +454,10 @@ class ParserLoop {
   private handleHelp(option: HelpOption): never {
     const help = option.usage ? [option.usage] : [];
     const groups = new HelpFormatter(this.registry.options, option.format).formatGroups(this.width);
+    const headingStyle = option.headingStyle ?? sgr('0', '1');
     for (const [group, message] of groups.entries()) {
-      const header = group ? group + ' options' : 'Options';
-      help.push(`${sgr('1')}${header}:`, message);
+      const heading = group ? group + ' options' : 'Options';
+      help.push(`${headingStyle}${heading}:`, message);
     }
     if (option.footer) {
       help.push(option.footer);

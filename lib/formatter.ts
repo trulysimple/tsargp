@@ -978,16 +978,17 @@ class HelpFormatter {
     prefix: string,
     indent: string,
   ) {
+    const descStyle = desc.strings.length && isEscape(desc.strings[0]) ? desc.strings[0] : '';
     const maxWordLen = desc.strings.reduce(
       (acc, word) => (isEscape(word) ? acc : Math.max(acc, word.length)),
       0,
     );
     if (width >= indent.length + maxWordLen) {
       width -= indent.length;
-      indent = this.config.styles.whitespace + indent;
+      indent = this.config.styles.whitespace + indent + descStyle;
     } else {
       prefix += '\n';
-      indent = '';
+      indent = descStyle;
     }
     const punctuation = /^[.,:;!?](?!=)/;
     const closingBrackets = /^[)\]}]/;
