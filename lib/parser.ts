@@ -2,7 +2,6 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type {
-  Registry,
   Positional,
   ParamOption,
   NumberOption,
@@ -22,12 +21,10 @@ import type {
   NiladicOption,
   CompletionCallback,
   OtherStyles,
-  ConcreteStyles,
 } from './options';
 
 import { HelpFormatter } from './formatter';
 import {
-  defaultStyles,
   OptionRegistry,
   RequiresAll,
   RequiresNot,
@@ -36,9 +33,6 @@ import {
   isMultivalued,
   isNiladic,
   isValued,
-  normalizeString,
-  normalizeNumber,
-  normalizeArray,
 } from './options';
 import { sgr } from './styles';
 
@@ -59,10 +53,6 @@ type ParseConfig = {
    * The completion index (only applicable to raw command lines).
    */
   compIndex?: number;
-  /**
-   * The styles of error messages.
-   */
-  styles?: OtherStyles;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -78,9 +68,10 @@ class ArgumentParser<T extends Options> {
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions
+   * @param styles The error message styles
    */
-  constructor(options: T) {
-    this.registry = new OptionRegistry(options);
+  constructor(options: T, styles?: OtherStyles) {
+    this.registry = new OptionRegistry(options, styles);
   }
 
   /**
@@ -94,8 +85,8 @@ class ArgumentParser<T extends Options> {
 
   /**
    * Convenience method to parse command-line arguments into option values.
-   * @param command The command line or command-line arguments
    * @param config The parse configuration
+   * @param command The command line or command-line arguments
    * @returns The option values
    */
   parse(command?: string | Array<string>, config?: ParseConfig): OptionValues<T> {
@@ -156,7 +147,6 @@ class ArgumentParser<T extends Options> {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
-  private readonly styles: ConcreteStyles;
   private readonly completing: boolean;
   private readonly width?: number;
 
@@ -170,7 +160,6 @@ class ParserLoop {
     config: ParseConfig,
   ) {
     this.completing = config.compIndex !== undefined && config.compIndex >= 0;
-    this.styles = Object.assign({}, defaultStyles, config.styles);
     this.width = config.width;
   }
 
@@ -186,7 +175,7 @@ class ParserLoop {
     let addKey = false;
     let singleParam = false;
     let value: string | undefined;
-    let current: Registry['positional'];
+    let current: OptionRegistry['positional'];
 
     for (let i = 0; i < this.args.length; ++i) {
       const [arg, comp] = this.args[i].split('\0', 2);
@@ -206,8 +195,9 @@ class ParserLoop {
         if (comp !== undefined) {
           throw ''; // use default completion (value !== undefined)
         } else if (!this.completing && value !== undefined) {
-          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-          throw Error(`Option ${optName} does not accept inline values.`);
+          throw this.registry.error(
+            `Option ${this.registry.formatOption(name)} does not accept inline values.`,
+          );
         } else if (this.handleNiladic(key, option, name, i)) {
           return Promise.all(this.promises);
         }
@@ -232,8 +222,7 @@ class ParserLoop {
             if (!this.completing) {
               if (!inline && !marker && isArray(option) && isMultivalued(option)) {
                 const error = err as Error;
-                const optName = `${this.styles.option}${value}${this.styles.whitespace}`;
-                error.message += `\nDid you mean to specify an option name instead of ${optName}?`;
+                error.message += `\nDid you mean to specify an option name instead of ${this.registry.formatOption(value)}?`;
                 this.handleUnknown(value, error);
               }
               throw err;
@@ -246,8 +235,7 @@ class ParserLoop {
         } else if (marker || (isArray(option) && isMultivalued(option))) {
           continue;
         } else if (i + 1 == this.args.length) {
-          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-          throw Error(`Missing parameter to ${optName}.`);
+          throw this.registry.error(`Missing parameter to ${this.registry.formatOption(name)}.`);
         } else {
           singleParam = true;
         }
@@ -283,16 +271,18 @@ class ParserLoop {
           throw ''; // use default completion
         }
         if (value !== undefined) {
-          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-          throw Error(`Positional marker ${optName} does not accept inline values.`);
+          throw this.registry.error(
+            `Positional marker ${this.registry.formatOption(name)} does not accept inline values.`,
+          );
         }
         if (
           index + 1 == this.args.length &&
           (!isArray(this.registry.positional.option) ||
             !isMultivalued(this.registry.positional.option))
         ) {
-          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-          throw Error(`Missing parameter after positional marker ${optName}.`);
+          throw this.registry.error(
+            `Missing parameter after positional marker ${this.registry.formatOption(name)}.`,
+          );
         }
         return [true, true, false, this.registry.positional, undefined];
       }
@@ -437,11 +427,11 @@ class ParserLoop {
    */
   private handleUnknown(name: string, error?: Error): never {
     if (!error) {
-      error = new Error(`Unknown option ${this.styles.option}${name}${this.styles.whitespace}.`);
+      error = this.registry.error(`Unknown option ${this.registry.formatOption(name)}.`);
     }
     const similar = this.findSimilarNames(name);
     if (similar.length) {
-      const optNames = similar.map((str) => `${this.styles.option}${str}${this.styles.whitespace}`);
+      const optNames = similar.map((str) => this.registry.formatOption(str));
       error.message += `\nSimilar names are: ${optNames.join(', ')}.`;
     }
     throw error;
@@ -481,9 +471,39 @@ class ParserLoop {
     for (const key in this.registry.options) {
       const option = this.registry.options[key];
       if ('default' in option && !this.specifiedKeys.has(key)) {
-        const value = getDefaultValue(key, option, defaultStyles);
+        const value = this.getDefaultValue(key, option);
         (this.values as Record<string, typeof value>)[key] = value;
       }
+    }
+  }
+
+  /**
+   * Gets the normalized default value of an option.
+   * @param name The option name
+   * @param option The option definition
+   * @returns The default value
+   */
+  private getDefaultValue(name: string, option: ValuedOption): ValuedOption['default'] {
+    if (option.default === undefined) {
+      return undefined;
+    }
+    switch (option.type) {
+      case 'string':
+        return this.registry.normalizeString(option, name, option.default);
+      case 'number':
+        return this.registry.normalizeNumber(option, name, option.default);
+      case 'strings': {
+        const vals = option.default.map((val) => this.registry.normalizeString(option, name, val));
+        this.registry.normalizeArray(option, name, vals);
+        return vals;
+      }
+      case 'numbers': {
+        const vals = option.default.map((val) => this.registry.normalizeNumber(option, name, val));
+        this.registry.normalizeArray(option, name, vals);
+        return vals;
+      }
+      default:
+        return option.default;
     }
   }
 
@@ -516,8 +536,7 @@ class ParserLoop {
       if (!this.specifiedKeys.has(key)) {
         const option = this.registry.options[key];
         const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-        const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-        throw Error(`Option ${optName} is required.`);
+        throw this.registry.error(`Option ${this.registry.formatOption(name)} is required.`);
       }
     }
     for (const key of this.specifiedKeys) {
@@ -526,8 +545,9 @@ class ParserLoop {
         const error = this.checkRequires(option.requires);
         if (error) {
           const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-          const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-          throw Error(`Option ${optName} requires ${error}.`);
+          throw this.registry.error(
+            `Option ${this.registry.formatOption(name)} requires ${error}.`,
+          );
         }
       }
     }
@@ -639,13 +659,12 @@ class ParserLoop {
     const required = requiredValue !== null;
     const withValue = required && requiredValue !== undefined;
     if (isNiladic(option) || !specified || !required || !withValue) {
-      const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
       return specified
         ? required == negate
-          ? `no ${optName}`
+          ? `no ${this.registry.formatOption(name)}`
           : null
         : withValue || required != negate
-          ? optName
+          ? this.registry.formatOption(name)
           : null;
     }
     return this.checkRequiredValue(name, option, negate, requiredKey, requiredValue);
@@ -716,8 +735,8 @@ class ParserLoop {
     if ((actual === requiredValue) !== negate) {
       return null;
     }
-    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-    const optVal = `${this.styles.boolean}${requiredValue}${this.styles.whitespace}`;
+    const optName = this.registry.formatOption(name);
+    const optVal = this.registry.formatBoolean(requiredValue);
     return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
   }
 
@@ -741,12 +760,12 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = normalizeString(option, name, requiredValue, this.styles);
+    const expected = this.registry.normalizeString(option, name, requiredValue);
     if ((actual === expected) !== negate) {
       return null;
     }
-    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-    const optVal = `${this.styles.string}'${expected}'${this.styles.whitespace}`;
+    const optName = this.registry.formatOption(name);
+    const optVal = this.registry.formatString(expected);
     return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
   }
 
@@ -770,12 +789,12 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = normalizeNumber(option, name, requiredValue, this.styles);
+    const expected = this.registry.normalizeNumber(option, name, requiredValue);
     if ((actual === expected) !== negate) {
       return null;
     }
-    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-    const optVal = `${this.styles.number}${expected}${this.styles.whitespace}`;
+    const optName = this.registry.formatOption(name);
+    const optVal = this.registry.formatNumber(expected);
     return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
   }
 
@@ -800,14 +819,12 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = requiredValue.map((val) => normalizeString(option, name, val, this.styles));
+    const expected = requiredValue.map((val) => this.registry.normalizeString(option, name, val));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return null;
     }
-    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-    const optVal = expected
-      .map((el) => `${this.styles.string}'${el}'${this.styles.whitespace}`)
-      .join(', ');
+    const optName = this.registry.formatOption(name);
+    const optVal = expected.map((el) => this.registry.formatString(el)).join(', ');
     return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
   }
 
@@ -832,14 +849,12 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = requiredValue.map((val) => normalizeNumber(option, name, val, this.styles));
+    const expected = requiredValue.map((val) => this.registry.normalizeNumber(option, name, val));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return null;
     }
-    const optName = `${this.styles.option}${name}${this.styles.whitespace}`;
-    const optVal = expected
-      .map((el) => `${this.styles.string}${el}${this.styles.whitespace}`)
-      .join(', ');
+    const optName = this.registry.formatOption(name);
+    const optVal = expected.map((el) => this.registry.formatNumber(el)).join(', ');
     return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
   }
 
@@ -933,12 +948,12 @@ class ParserLoop {
     if ('parse' in option) {
       result = option.parse(name, value);
       if (result instanceof Promise) {
-        result = result.then((val) => normalizeString(option, name, val, this.styles));
+        result = result.then((val) => this.registry.normalizeString(option, name, val));
       } else {
-        result = normalizeString(option, name, result, this.styles);
+        result = this.registry.normalizeString(option, name, result);
       }
     } else {
-      result = normalizeString(option, name, value, this.styles);
+      result = this.registry.normalizeString(option, name, value);
     }
     (this.values as Record<string, typeof result>)[key] = result;
   }
@@ -955,12 +970,12 @@ class ParserLoop {
     if ('parse' in option) {
       result = option.parse(name, value);
       if (result instanceof Promise) {
-        result = result.then((val) => normalizeNumber(option, name, val, this.styles));
+        result = result.then((val) => this.registry.normalizeNumber(option, name, val));
       } else {
-        result = normalizeNumber(option, name, result, this.styles);
+        result = this.registry.normalizeNumber(option, name, result);
       }
     } else {
-      result = normalizeNumber(option, name, Number(value), this.styles);
+      result = this.registry.normalizeNumber(option, name, Number(value));
     }
     (this.values as Record<string, typeof result>)[key] = result;
   }
@@ -980,43 +995,43 @@ class ParserLoop {
       if (res instanceof Promise) {
         const promise = res.then(async (val) => {
           const prev = await previous;
-          prev.push(normalizeString(option, name, val, this.styles));
-          normalizeArray(option, name, prev, this.styles);
+          prev.push(this.registry.normalizeString(option, name, val));
+          this.registry.normalizeArray(option, name, prev);
           return prev;
         });
         (this.values as Record<string, typeof promise>)[key] = promise;
         return;
       } else {
-        result = [normalizeString(option, name, res, this.styles)];
+        result = [this.registry.normalizeString(option, name, res)];
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
       const res = option.parseDelimited(name, value);
       if (res instanceof Promise) {
         const promise = res.then(async (vals) => {
           const prev = await previous;
-          prev.push(...vals.map((val) => normalizeString(option, name, val, this.styles)));
-          normalizeArray(option, name, prev, this.styles);
+          prev.push(...vals.map((val) => this.registry.normalizeString(option, name, val)));
+          this.registry.normalizeArray(option, name, prev);
           return prev;
         });
         (this.values as Record<string, typeof promise>)[key] = promise;
         return;
       } else {
-        result = res.map((val) => normalizeString(option, name, val, this.styles));
+        result = res.map((val) => this.registry.normalizeString(option, name, val));
       }
     } else {
       const vals = option.separator ? value.split(option.separator) : [value];
-      result = vals.map((val) => normalizeString(option, name, val, this.styles));
+      result = vals.map((val) => this.registry.normalizeString(option, name, val));
     }
     if (previous instanceof Promise) {
       const promise = previous.then((val) => {
         val.push(...result);
-        normalizeArray(option, name, val, this.styles);
+        this.registry.normalizeArray(option, name, val);
         return val;
       });
       (this.values as Record<string, typeof promise>)[key] = promise;
     } else {
       previous.push(...result);
-      normalizeArray(option, name, previous, this.styles);
+      this.registry.normalizeArray(option, name, previous);
     }
   }
 
@@ -1035,45 +1050,45 @@ class ParserLoop {
       if (res instanceof Promise) {
         const promise = res.then(async (val) => {
           const prev = await previous;
-          prev.push(normalizeNumber(option, name, val, this.styles));
-          normalizeArray(option, name, prev, this.styles);
+          prev.push(this.registry.normalizeNumber(option, name, val));
+          this.registry.normalizeArray(option, name, prev);
           return prev;
         });
         (this.values as Record<string, typeof promise>)[key] = promise;
         return;
       } else {
-        result = [normalizeNumber(option, name, res, this.styles)];
+        result = [this.registry.normalizeNumber(option, name, res)];
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
       const res = option.parseDelimited(name, value);
       if (res instanceof Promise) {
         const promise = res.then(async (vals) => {
           const prev = await previous;
-          prev.push(...vals.map((val) => normalizeNumber(option, name, val, this.styles)));
-          normalizeArray(option, name, prev, this.styles);
+          prev.push(...vals.map((val) => this.registry.normalizeNumber(option, name, val)));
+          this.registry.normalizeArray(option, name, prev);
           return prev;
         });
         (this.values as Record<string, typeof promise>)[key] = promise;
         return;
       } else {
-        result = res.map((val) => normalizeNumber(option, name, val, this.styles));
+        result = res.map((val) => this.registry.normalizeNumber(option, name, val));
       }
     } else {
       const vals = option.separator
         ? value.split(option.separator).map((val) => Number(val))
         : [Number(value)];
-      result = vals.map((val) => normalizeNumber(option, name, val, this.styles));
+      result = vals.map((val) => this.registry.normalizeNumber(option, name, val));
     }
     if (previous instanceof Promise) {
       const promise = previous.then((val) => {
         val.push(...result);
-        normalizeArray(option, name, val, this.styles);
+        this.registry.normalizeArray(option, name, val);
         return val;
       });
       (this.values as Record<string, typeof promise>)[key] = promise;
     } else {
       previous.push(...result);
-      normalizeArray(option, name, previous, this.styles);
+      this.registry.normalizeArray(option, name, previous);
     }
   }
 }
@@ -1157,41 +1172,6 @@ async function resolveVersion(option: VersionOption): Promise<never> {
     }
   }
   throw `Could not find a 'package.json' file.`;
-}
-
-/**
- * Gets the normalized default value of an option.
- * @param name The option name
- * @param option The option definition
- * @param styles The error message styles
- * @returns The default value
- */
-function getDefaultValue(
-  name: string,
-  option: ValuedOption,
-  styles: ConcreteStyles,
-): ValuedOption['default'] {
-  if (option.default === undefined) {
-    return undefined;
-  }
-  switch (option.type) {
-    case 'string':
-      return normalizeString(option, name, option.default, styles);
-    case 'number':
-      return normalizeNumber(option, name, option.default, styles);
-    case 'strings': {
-      const vals = option.default.map((val) => normalizeString(option, name, val, styles));
-      normalizeArray(option, name, vals, styles);
-      return vals;
-    }
-    case 'numbers': {
-      const vals = option.default.map((val) => normalizeNumber(option, name, val, styles));
-      normalizeArray(option, name, vals, styles);
-      return vals;
-    }
-    default:
-      return option.default;
-  }
 }
 
 /**

@@ -305,7 +305,25 @@ describe('OptionRegistry', () => {
         } as const satisfies Options;
         const registry = new OptionRegistry(options);
         expect(() => registry.validate()).toThrow(
-          /Option .+required.+ has incompatible value <1>\. Should be of type .+'string\[\]'.+\./,
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'object'.+\./,
+        );
+      });
+
+      it('should throw an error on strings option required with an incompatible array element', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: [1] },
+          },
+          required: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+        } as const satisfies Options;
+        const registry = new OptionRegistry(options);
+        expect(() => registry.validate()).toThrow(
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'string'.+\./,
         );
       });
 
@@ -323,7 +341,25 @@ describe('OptionRegistry', () => {
         } as const satisfies Options;
         const registry = new OptionRegistry(options);
         expect(() => registry.validate()).toThrow(
-          /Option .+required.+ has incompatible value <1>\. Should be of type .+'number\[\]'.+\./,
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'object'.+\./,
+        );
+      });
+
+      it('should throw an error on numbers option required with an incompatible array element', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: { required: ['1'] },
+          },
+          required: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        const registry = new OptionRegistry(options);
+        expect(() => registry.validate()).toThrow(
+          /Option .+required.+ has incompatible value <1>\. Should be of type .+'number'.+\./,
         );
       });
     });
