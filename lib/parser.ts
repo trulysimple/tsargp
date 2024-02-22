@@ -4,15 +4,10 @@
 import type {
   Positional,
   ParamOption,
-  NumberOption,
-  NumbersOption,
   Options,
   OptionValues,
   Requires,
-  StringOption,
-  StringsOption,
   HelpOption,
-  BooleanOption,
   VersionOption,
   RequiresVal,
   ValuedOption,
@@ -21,6 +16,8 @@ import type {
   NiladicOption,
   CompletionCallback,
   OtherStyles,
+  ArrayOption,
+  SingleOption,
 } from './options';
 
 import { HelpFormatter } from './formatter';
@@ -85,8 +82,8 @@ class ArgumentParser<T extends Options> {
 
   /**
    * Convenience method to parse command-line arguments into option values.
-   * @param config The parse configuration
    * @param command The command line or command-line arguments
+   * @param config The parse configuration
    * @returns The option values
    */
   parse(command?: string | Array<string>, config?: ParseConfig): OptionValues<T> {
@@ -152,6 +149,10 @@ class ParserLoop {
 
   /**
    * Constructs a parser loop.
+   * @param registry The option registry
+   * @param values The option values
+   * @param args The command-line arguments
+   * @param config The parse configuration
    */
   constructor(
     private readonly registry: OptionRegistry,
@@ -250,7 +251,7 @@ class ParserLoop {
    * Parses an option from a command-line argument.
    * @param arg The current argument
    * @param index The current argument index
-   * @param comp Undefined if not completing
+   * @param comp Undefined if not completing at the current iteration
    * @param current The current option information
    * @returns A tuple of [addKey, marker, inline, current, value]
    */
@@ -613,7 +614,8 @@ class ParserLoop {
   }
 
   /**
-   * Checks the entries of a map of key-value pairs.
+   * Checks the entries of a map of requirements.
+   * @param requires The map of option keys to required values
    * @param negate True if the requirement should be negated
    * @param errors If null, return on the first error; else return on the first success
    * @returns An error reason or null if no error
@@ -643,22 +645,21 @@ class ParserLoop {
 
   /**
    * Checks if a required option was specified with correct values.
-   * @param specifiedKeys The set of specified option keys
    * @param negate True if the requirement should be negated
-   * @param requiredKey The required key
-   * @param requiredValue The required value, if any
+   * @param key The required option key
+   * @param value The required value, if any
    * @returns An error reason or null if no error
    */
   private checkRequirement(
     negate: boolean,
-    requiredKey: string,
-    requiredValue?: RequiresVal[string],
+    key: string,
+    value?: RequiresVal[string],
   ): string | null {
-    const option = this.registry.options[requiredKey];
+    const option = this.registry.options[key];
     const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-    const specified = this.specifiedKeys.has(requiredKey);
-    const required = requiredValue !== null;
-    const withValue = required && requiredValue !== undefined;
+    const specified = this.specifiedKeys.has(key);
+    const required = value !== null;
+    const withValue = required && value !== undefined;
     if (isNiladic(option) || !specified || !required || !withValue) {
       return specified
         ? required == negate
@@ -668,7 +669,7 @@ class ParserLoop {
           ? this.registry.formatOption(name)
           : null;
     }
-    return this.checkRequiredValue(name, option, negate, requiredKey, requiredValue);
+    return this.checkRequiredValue(name, option, negate, key, value);
   }
 
   /**
@@ -676,37 +677,49 @@ class ParserLoop {
    * @param name The option name
    * @param option The option definition
    * @param negate True if the requirement should be negated
-   * @param requiredValue The required option key
-   * @param requiredValue The required value
+   * @param key The required option key
+   * @param value The required value
    * @returns An error reason or null if no error
    */
   private checkRequiredValue(
     name: string,
     option: ParamOption,
     negate: boolean,
-    requiredKey: string,
-    requiredValue: Exclude<ParamOption['default'], undefined>,
+    key: string,
+    value: Exclude<ParamOption['default'], undefined>,
   ): string | null {
     function assert(_condition: unknown): asserts _condition {}
     switch (option.type) {
-      case 'boolean':
-        assert(typeof requiredValue == 'boolean');
-        return this.checkRequiredBoolean(name, negate, requiredKey, requiredValue);
-      case 'string':
-        assert(typeof requiredValue === 'string');
-        return this.checkRequiredString(name, option, negate, requiredKey, requiredValue);
-      case 'number':
-        assert(typeof requiredValue === 'number');
-        return this.checkRequiredNumber(name, option, negate, requiredKey, requiredValue);
+      case 'boolean': {
+        assert(typeof value == 'boolean');
+        const formatFn = this.registry.formatBoolean.bind(this.registry);
+        return this.checkRequiredSingle(name, option, negate, key, value, formatFn);
+      }
+      case 'string': {
+        assert(typeof value === 'string');
+        const formatFn = this.registry.formatString.bind(this.registry);
+        const normalizeFn = this.registry.normalizeString.bind(this.registry);
+        return this.checkRequiredSingle(name, option, negate, key, value, formatFn, normalizeFn);
+      }
+      case 'number': {
+        assert(typeof value === 'number');
+        const formatFn = this.registry.formatNumber.bind(this.registry);
+        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
+        return this.checkRequiredSingle(name, option, negate, key, value, formatFn, normalizeFn);
+      }
       case 'strings': {
-        assert(typeof requiredValue === 'object');
-        const expected = requiredValue as Array<string>;
-        return this.checkRequiredStrings(name, option, negate, requiredKey, expected);
+        assert(typeof value === 'object');
+        value = value as Array<string>;
+        const formatFn = this.registry.formatString.bind(this.registry);
+        const normalizeFn = this.registry.normalizeString.bind(this.registry);
+        return this.checkRequiredArray(name, option, negate, key, value, formatFn, normalizeFn);
       }
       case 'numbers': {
-        assert(typeof requiredValue === 'object');
-        const expected = requiredValue as Array<number>;
-        return this.checkRequiredNumbers(name, option, negate, requiredKey, expected);
+        assert(typeof value === 'object');
+        value = value as Array<number>;
+        const formatFn = this.registry.formatNumber.bind(this.registry);
+        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
+        return this.checkRequiredArray(name, option, negate, key, value, formatFn, normalizeFn);
       }
       default: {
         const _exhaustiveCheck: never = option;
@@ -716,146 +729,67 @@ class ParserLoop {
   }
 
   /**
-   * Checks the required value of a boolean option against a specified value.
-   * @param name The option name
-   * @param negate True if the requirement should be negated
-   * @param requiredValue The required option key
-   * @param requiredValue The required value
-   * @returns An error reason or null if no error
-   */
-  private checkRequiredBoolean(
-    name: string,
-    negate: boolean,
-    requiredKey: string,
-    requiredValue: boolean,
-  ): string | null {
-    const actual = (this.values as Record<string, boolean | Promise<boolean>>)[requiredKey];
-    if (actual instanceof Promise) {
-      return null; // ignore promises during requirement checking
-    }
-    if ((actual === requiredValue) !== negate) {
-      return null;
-    }
-    const optName = this.registry.formatOption(name);
-    const optVal = this.registry.formatBoolean(requiredValue);
-    return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
-  }
-
-  /**
-   * Checks the required value of a string option against a specified value.
+   * Checks the required value of a single-parameter option against a specified value.
    * @param name The option name
    * @param option The option definition
    * @param negate True if the requirement should be negated
-   * @param requiredValue The required option key
-   * @param requiredValue The required value
+   * @param key The required option key
+   * @param value The required value
+   * @param formatFn The function to convert to string
+   * @param normalizeFn The function to normalize the required value
    * @returns An error reason or null if no error
    */
-  private checkRequiredString(
+  private checkRequiredSingle<O extends SingleOption, T extends boolean | string | number>(
     name: string,
-    option: StringOption,
+    option: O,
     negate: boolean,
-    requiredKey: string,
-    requiredValue: string,
+    key: string,
+    value: T,
+    formatFn: (value: T) => string,
+    normalizeFn?: (option: O, name: string, value: T) => T,
   ): string | null {
-    const actual = (this.values as Record<string, string | Promise<string>>)[requiredKey];
+    const actual = (this.values as Record<string, T | Promise<T>>)[key];
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = this.registry.normalizeString(option, name, requiredValue);
+    const expected = normalizeFn ? normalizeFn(option, name, value) : value;
     if ((actual === expected) !== negate) {
       return null;
     }
     const optName = this.registry.formatOption(name);
-    const optVal = this.registry.formatString(expected);
-    return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
+    return negate ? `${optName} != ${formatFn(expected)}` : `${optName} = ${formatFn(expected)}`;
   }
 
   /**
-   * Checks the required value of a number option against a specified value.
+   * Checks the required value of an array option against a specified value.
    * @param name The option name
    * @param option The option definition
    * @param negate True if the requirement should be negated
-   * @param requiredValue The required option key
-   * @param requiredValue The required value
+   * @param key The required option key
+   * @param value The required value
+   * @param formatFn The function to convert to string
+   * @param normalizeFn The function to normalize the required value
    * @returns An error reason or null if no error
    */
-  private checkRequiredNumber(
+  private checkRequiredArray<O extends ArrayOption, T extends string | number>(
     name: string,
-    option: NumberOption,
+    option: O,
     negate: boolean,
-    requiredKey: string,
-    requiredValue: number,
+    key: string,
+    value: Array<T>,
+    formatFn: (value: T) => string,
+    normalizeFn: (option: O, name: string, value: T) => T,
   ): string | null {
-    const actual = (this.values as Record<string, number | Promise<number>>)[requiredKey];
+    const actual = (this.values as Record<string, Array<T> | Promise<Array<T>>>)[key];
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
-    const expected = this.registry.normalizeNumber(option, name, requiredValue);
-    if ((actual === expected) !== negate) {
-      return null;
-    }
-    const optName = this.registry.formatOption(name);
-    const optVal = this.registry.formatNumber(expected);
-    return negate ? `${optName} != ${optVal}` : `${optName} = ${optVal}`;
-  }
-
-  /**
-   * Checks the required value of a strings option against a specified value.
-   * @param name The option name
-   * @param option The option definition
-   * @param negate True if the requirement should be negated
-   * @param requiredValue The required option key
-   * @param requiredValue The required value
-   * @returns An error reason or null if no error
-   */
-  private checkRequiredStrings(
-    name: string,
-    option: StringsOption,
-    negate: boolean,
-    requiredKey: string,
-    requiredValue: Array<string>,
-  ): string | null {
-    type ArrayVal = Array<string> | Promise<Array<string>>;
-    const actual = (this.values as Record<string, ArrayVal>)[requiredKey];
-    if (actual instanceof Promise) {
-      return null; // ignore promises during requirement checking
-    }
-    const expected = requiredValue.map((val) => this.registry.normalizeString(option, name, val));
+    const expected = value.map((val) => normalizeFn(option, name, val));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return null;
     }
     const optName = this.registry.formatOption(name);
-    const optVal = expected.map((el) => this.registry.formatString(el)).join(', ');
-    return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
-  }
-
-  /**
-   * Checks the required value of a numbers option against a specified value.
-   * @param name The option name
-   * @param option The option definition
-   * @param negate True if the requirement should be negated
-   * @param requiredValue The required option key
-   * @param requiredValue The required value
-   * @returns An error reason or null if no error
-   */
-  private checkRequiredNumbers(
-    name: string,
-    option: NumbersOption,
-    negate: boolean,
-    requiredKey: string,
-    requiredValue: Array<number>,
-  ): string | null {
-    type ArrayVal = Array<number> | Promise<Array<number>>;
-    const actual = (this.values as Record<string, ArrayVal>)[requiredKey];
-    if (actual instanceof Promise) {
-      return null; // ignore promises during requirement checking
-    }
-    const expected = requiredValue.map((val) => this.registry.normalizeNumber(option, name, val));
-    if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
-      return null;
-    }
-    const optName = this.registry.formatOption(name);
-    const optVal = expected.map((el) => this.registry.formatNumber(el)).join(', ');
+    const optVal = expected.map((val) => formatFn(val)).join(', ');
     return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
   }
 
@@ -898,21 +832,32 @@ class ParserLoop {
    */
   private parseValue(key: string, option: ParamOption, name: string, value: string) {
     switch (option.type) {
-      case 'boolean':
-        this.parseBoolean(key, option, name, value);
+      case 'boolean': {
+        const convertFn = (str: string) =>
+          !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
+        this.parseSingle(key, option, name, value, convertFn);
         break;
-      case 'string':
-        this.parseString(key, option, name, value);
+      }
+      case 'string': {
+        const normalizeFn = this.registry.normalizeString.bind(this.registry);
+        this.parseSingle(key, option, name, value, (str) => str, normalizeFn);
         break;
-      case 'number':
-        this.parseNumber(key, option, name, value);
+      }
+      case 'number': {
+        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
+        this.parseSingle(key, option, name, value, Number, normalizeFn);
         break;
-      case 'strings':
-        this.parseStrings(key, option, name, value);
+      }
+      case 'strings': {
+        const normalizeFn = this.registry.normalizeString.bind(this.registry);
+        this.parseArray(key, option, name, value, (str) => str, normalizeFn);
         break;
-      case 'numbers':
-        this.parseNumbers(key, option, name, value);
+      }
+      case 'numbers': {
+        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
+        this.parseArray(key, option, name, value, Number, normalizeFn);
         break;
+      }
       default: {
         const _exhaustiveCheck: never = option;
         return _exhaustiveCheck;
@@ -921,164 +866,92 @@ class ParserLoop {
   }
 
   /**
-   * Parses the value of a boolean option.
+   * Parses the value of a single-valued option (except boolean).
    * @param key The option key
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @param convertFn The function to convert from string
+   * @param normalizeFn The function to normalize the value after conversion
    */
-  private parseBoolean(key: string, option: BooleanOption, name: string, value: string) {
-    let result: boolean | Promise<boolean>;
+  private parseSingle<O extends SingleOption, T extends boolean | string | number>(
+    key: string,
+    option: O,
+    name: string,
+    value: string,
+    convertFn: (value: string) => T,
+    normalizeFn?: (option: O, name: string, value: T) => T,
+  ) {
+    let result: T;
     if ('parse' in option) {
-      result = option.parse(name, value);
-    } else {
-      result = !(Number(value) == 0 || value.trim().match(/^\s*false\s*$/i));
-    }
-    (this.values as Record<string, typeof result>)[key] = result;
-  }
-
-  /**
-   * Parses the value of a string option.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   */
-  private parseString(key: string, option: StringOption, name: string, value: string) {
-    let result: string | Promise<string>;
-    if ('parse' in option) {
-      result = option.parse(name, value);
-      if (result instanceof Promise) {
-        result = result.then((val) => this.registry.normalizeString(option, name, val));
+      const res = option.parse(name, value);
+      if (res instanceof Promise) {
+        const promise = normalizeFn ? res.then((val) => normalizeFn(option, name, val as T)) : res;
+        (this.values as Record<string, typeof promise>)[key] = promise;
+        return;
       } else {
-        result = this.registry.normalizeString(option, name, result);
+        result = normalizeFn ? normalizeFn(option, name, res as T) : (res as T);
       }
     } else {
-      result = this.registry.normalizeString(option, name, value);
+      result = normalizeFn ? normalizeFn(option, name, convertFn(value)) : convertFn(value);
     }
     (this.values as Record<string, typeof result>)[key] = result;
   }
 
   /**
-   * Parses the value of a number option.
+   * Parses the value of an array option.
+   * @template O The type of the option
+   * @template T The type of the parsed array element
    * @param key The option key
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @param convertFn The function to convert from string
+   * @param normalizeFn The function to normalize the value after conversion
    */
-  private parseNumber(key: string, option: NumberOption, name: string, value: string) {
-    let result: number | Promise<number>;
-    if ('parse' in option) {
-      result = option.parse(name, value);
-      if (result instanceof Promise) {
-        result = result.then((val) => this.registry.normalizeNumber(option, name, val));
-      } else {
-        result = this.registry.normalizeNumber(option, name, result);
-      }
-    } else {
-      result = this.registry.normalizeNumber(option, name, Number(value));
-    }
-    (this.values as Record<string, typeof result>)[key] = result;
-  }
-
-  /**
-   * Parses the value of a strings option.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   */
-  private parseStrings(key: string, option: StringsOption, name: string, value: string) {
-    const previous = (this.values as Record<string, Array<string> | Promise<Array<string>>>)[key];
-    let result: Array<string>;
+  private parseArray<O extends ArrayOption, T extends string | number>(
+    key: string,
+    option: O,
+    name: string,
+    value: string,
+    convertFn: (value: string) => T,
+    normalizeFn: (option: O, name: string, value: T) => T,
+  ) {
+    let result: Array<T>;
+    const previous = (this.values as Record<string, Array<T> | Promise<Array<T>>>)[key];
     if ('parse' in option && option.parse) {
       const res = option.parse(name, value);
       if (res instanceof Promise) {
         const promise = res.then(async (val) => {
           const prev = await previous;
-          prev.push(this.registry.normalizeString(option, name, val));
+          prev.push(normalizeFn(option, name, val as T));
           this.registry.normalizeArray(option, name, prev);
           return prev;
         });
         (this.values as Record<string, typeof promise>)[key] = promise;
         return;
       } else {
-        result = [this.registry.normalizeString(option, name, res)];
+        result = [normalizeFn(option, name, res as T)];
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
       const res = option.parseDelimited(name, value);
       if (res instanceof Promise) {
         const promise = res.then(async (vals) => {
           const prev = await previous;
-          prev.push(...vals.map((val) => this.registry.normalizeString(option, name, val)));
+          prev.push(...vals.map((val) => normalizeFn(option, name, val as T)));
           this.registry.normalizeArray(option, name, prev);
           return prev;
         });
         (this.values as Record<string, typeof promise>)[key] = promise;
         return;
       } else {
-        result = res.map((val) => this.registry.normalizeString(option, name, val));
-      }
-    } else {
-      const vals = option.separator ? value.split(option.separator) : [value];
-      result = vals.map((val) => this.registry.normalizeString(option, name, val));
-    }
-    if (previous instanceof Promise) {
-      const promise = previous.then((val) => {
-        val.push(...result);
-        this.registry.normalizeArray(option, name, val);
-        return val;
-      });
-      (this.values as Record<string, typeof promise>)[key] = promise;
-    } else {
-      previous.push(...result);
-      this.registry.normalizeArray(option, name, previous);
-    }
-  }
-
-  /**
-   * Parses the value of a numbers option.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   */
-  private parseNumbers(key: string, option: NumbersOption, name: string, value: string) {
-    const previous = (this.values as Record<string, Array<number> | Promise<Array<number>>>)[key];
-    let result: Array<number>;
-    if ('parse' in option && option.parse) {
-      const res = option.parse(name, value);
-      if (res instanceof Promise) {
-        const promise = res.then(async (val) => {
-          const prev = await previous;
-          prev.push(this.registry.normalizeNumber(option, name, val));
-          this.registry.normalizeArray(option, name, prev);
-          return prev;
-        });
-        (this.values as Record<string, typeof promise>)[key] = promise;
-        return;
-      } else {
-        result = [this.registry.normalizeNumber(option, name, res)];
-      }
-    } else if ('parseDelimited' in option && option.parseDelimited) {
-      const res = option.parseDelimited(name, value);
-      if (res instanceof Promise) {
-        const promise = res.then(async (vals) => {
-          const prev = await previous;
-          prev.push(...vals.map((val) => this.registry.normalizeNumber(option, name, val)));
-          this.registry.normalizeArray(option, name, prev);
-          return prev;
-        });
-        (this.values as Record<string, typeof promise>)[key] = promise;
-        return;
-      } else {
-        result = res.map((val) => this.registry.normalizeNumber(option, name, val));
+        result = res.map((val) => normalizeFn(option, name, val as T));
       }
     } else {
       const vals = option.separator
-        ? value.split(option.separator).map((val) => Number(val))
-        : [Number(value)];
-      result = vals.map((val) => this.registry.normalizeNumber(option, name, val));
+        ? value.split(option.separator).map((val) => convertFn(val))
+        : [convertFn(value)];
+      result = vals.map((val) => normalizeFn(option, name, val as T));
     }
     if (previous instanceof Promise) {
       const promise = previous.then((val) => {
@@ -1184,8 +1057,8 @@ async function resolveVersion(option: VersionOption): Promise<never> {
  * @returns An error reason or null if no error
  */
 function checkRequiredArray(
-  actual: Array<string> | Array<number>,
-  expected: Array<string> | Array<number>,
+  actual: Array<string | number>,
+  expected: Array<string | number>,
   negate: boolean,
   unique: boolean,
 ): boolean {
@@ -1193,9 +1066,9 @@ function checkRequiredArray(
     return negate;
   }
   if (unique) {
-    const set = new Set<string | number>(expected);
-    for (const element of actual) {
-      if (!set.delete(element)) {
+    const set = new Set(expected);
+    for (const val of actual) {
+      if (!set.delete(val)) {
         return negate;
       }
     }

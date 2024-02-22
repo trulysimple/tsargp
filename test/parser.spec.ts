@@ -1275,6 +1275,9 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-n', '-3'])).toThrow(
           /Invalid parameter to .+-n.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
+        expect(() => parser.parse(['-n', 'a'])).toThrow(
+          /Invalid parameter to .+-n.+: .+a.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
+        );
       });
 
       it('should handle a number option with enumeration constraint', () => {
@@ -2153,6 +2156,9 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns', '1,-3'])).toThrow(
           /Invalid parameter to .+-ns.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
+        );
+        expect(() => parser.parse(['-ns', 'a'])).toThrow(
+          /Invalid parameter to .+-ns.+: .+a.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
         );
       });
 

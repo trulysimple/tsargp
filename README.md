@@ -16,7 +16,7 @@ Get started with the [documentation].
 | ESM-native             | Option name suggestions | Styling of error messages |
 |                        | Asynchronous callbacks  | Option grouping/hiding    |
 
-[^1]: ~32KB minified
+[^1]: ~31KB minified
 
 ## Demo
 

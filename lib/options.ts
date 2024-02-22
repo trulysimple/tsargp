@@ -26,6 +26,7 @@ export type {
   HelpOption,
   VersionOption,
   SpecialOption,
+  SingleOption,
   ArrayOption,
   NiladicOption,
   ParamOption,
@@ -173,7 +174,7 @@ class RequiresNot {
 type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
 
 /**
- * A map of key-value pairs.
+ * A map of option keys to required values.
  *
  * Values can be `undefined` to indicate presence and `null` to indicate absence.
  */
@@ -423,7 +424,7 @@ type WithRegex = {
  */
 type WithRange = {
   /**
-   * The (closed) numeric range.
+   * The (closed) numeric range. You may want to use [-Infinity, Infinity] to disallow NaN.
    */
   readonly range: [floor: number, ceiling: number];
   /**
@@ -990,7 +991,11 @@ class OptionRegistry {
           `Possible values are [${optEnums.join(', ')}].`,
       );
     }
-    if ('range' in option && option.range && (value < option.range[0] || value > option.range[1])) {
+    if (
+      'range' in option &&
+      option.range &&
+      !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
+    ) {
       const optRange = option.range.map((val) => this.formatNumber(val));
       throw this.error(
         `Invalid parameter to ${this.formatOption(name)}: ${this.formatNumber(value)}. ` +

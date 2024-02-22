@@ -9,6 +9,7 @@ import type {
   ValuedOption,
   RequiresVal,
   OtherStyles,
+  ArrayOption,
 } from './options';
 import type { Style } from './styles';
 
@@ -588,9 +589,11 @@ class HelpFormatter {
     if ('enums' in option && option.enums) {
       result.style(descStyle).push('Values', 'must', 'be', 'one', 'of');
       if (option.type === 'string' || option.type === 'strings') {
-        this.formatStrings(option.enums, descStyle, result, ['{', '}']);
+        const formatFn = this.formatString.bind(this);
+        this.formatArray(option.enums, descStyle, result, formatFn, ['{', '}']);
       } else {
-        this.formatNumbers(option.enums, descStyle, result, ['{', '}']);
+        const formatFn = this.formatNumber.bind(this);
+        this.formatArray(option.enums, descStyle, result, formatFn, ['{', '}']);
       }
       result.style(descStyle).push('.');
     }
@@ -619,7 +622,8 @@ class HelpFormatter {
   private formatRange(option: Option, descStyle: Style, result: StyledString) {
     if ('range' in option && option.range) {
       result.style(descStyle).push('Values', 'must', 'be', 'in', 'the', 'range');
-      this.formatNumbers(option.range, descStyle, result, ['[', ']']);
+      const formatFn = this.formatNumber.bind(this);
+      this.formatArray(option.range, descStyle, result, formatFn, ['[', ']']);
       result.style(descStyle).push('.');
     }
   }
@@ -704,42 +708,40 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a list of strings to be included in the description.
-   * @param values The string values
+   * Formats a list of values to be printed on the console.
+   * @param option The option definition
+   * @param values The array values
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatStrings(
-    values: Array<string>,
-    descStyle: Style,
+  private formatArrayVal<T extends string | number>(
+    option: ArrayOption,
+    value: Array<T>,
     result: StyledString,
-    brackets?: [string, string],
-    separator = ',',
+    formatFn: (value: T, result: StyledString) => void,
+    descStyle?: Style,
   ) {
-    if (brackets) {
-      result.style(descStyle).push(brackets[0]);
-    }
-    values.forEach((value, i) => {
-      this.formatString(value, result);
-      if (i < values.length - 1) {
-        result.style(descStyle).push(separator);
-      }
-    });
-    if (brackets) {
-      result.style(descStyle).push(brackets[1]);
+    if (descStyle) {
+      this.formatArray(value, descStyle, result, formatFn, ['[', ']']);
+    } else if (option.separator) {
+      this.formatString(value.join(option.separator), result);
+    } else {
+      const style = this.config.styles.whitespace;
+      this.formatArray(value, style, result, formatFn, undefined, ' ');
     }
   }
 
   /**
-   * Formats a list of numbers to be included in the description.
-   * @param values The number values
+   * Formats a list of values to be included in the description.
+   * @param values The array values
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatNumbers(
-    values: Array<number>,
+  private formatArray<T extends string | number>(
+    values: Array<T>,
     descStyle: Style,
     result: StyledString,
+    formatFn: (value: T, result: StyledString) => void,
     brackets?: [string, string],
     separator = ',',
   ) {
@@ -747,7 +749,7 @@ class HelpFormatter {
       result.style(descStyle).push(brackets[0]);
     }
     values.forEach((value, i) => {
-      this.formatNumber(value, result);
+      formatFn(value, result);
       if (i < values.length - 1) {
         result.style(descStyle).push(separator);
       }
@@ -946,28 +948,18 @@ class HelpFormatter {
         assert(typeof value === 'number');
         this.formatNumber(value, result);
         break;
-      case 'strings':
+      case 'strings': {
         assert(typeof value === 'object');
-        if (descStyle) {
-          this.formatStrings(value as Array<string>, descStyle, result, ['[', ']']);
-        } else if (option.separator) {
-          this.formatString(value.join(option.separator), result);
-        } else {
-          const style = this.config.styles.whitespace;
-          this.formatStrings(value as Array<string>, style, result, undefined, ' ');
-        }
+        const formatFn = this.formatString.bind(this);
+        this.formatArrayVal(option, value as Array<string>, result, formatFn, descStyle);
         break;
-      case 'numbers':
+      }
+      case 'numbers': {
         assert(typeof value === 'object');
-        if (descStyle) {
-          this.formatNumbers(value as Array<number>, descStyle, result, ['[', ']']);
-        } else if (option.separator) {
-          this.formatString(value.join(option.separator), result);
-        } else {
-          const style = this.config.styles.whitespace;
-          this.formatNumbers(value as Array<number>, style, result, undefined, ' ');
-        }
+        const formatFn = this.formatNumber.bind(this);
+        this.formatArrayVal(option, value as Array<number>, result, formatFn, descStyle);
         break;
+      }
       default: {
         const _exhaustiveCheck: never = option;
         return _exhaustiveCheck;
