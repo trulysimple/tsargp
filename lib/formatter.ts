@@ -42,21 +42,9 @@ type HelpIndent = {
 };
 
 /**
- * A merged formatter configuration.
+ * A concrete version of the help format.
  */
-type FormatterConfig = {
-  readonly indent: {
-    readonly names: number;
-    readonly param: number;
-    readonly desc: number;
-    readonly paramAbsolute?: true;
-    readonly descAbsolute?: true;
-  };
-  readonly hidden?: HelpFormat['hidden'];
-  readonly breaks: Concrete<HelpFormat['breaks']>;
-  readonly styles: Concrete<HelpFormat['styles']>;
-  readonly items: Array<HelpItem>;
-};
+type ConcreteFormat = Concrete<HelpFormat>;
 
 /**
  * The user-provided help format configuration.
@@ -82,12 +70,12 @@ type HelpFormat = {
      * True if the indentation level for the parameter column should be relative to the beginning
      * of the line.
      */
-    readonly paramAbsolute?: true;
+    readonly paramAbsolute?: boolean;
     /**
      * True if the indentation level for the description column should be relative to the beginning
      * of the line.
      */
-    readonly descAbsolute?: true;
+    readonly descAbsolute?: boolean;
   };
 
   /**
@@ -167,16 +155,23 @@ const enum HelpItem {
 /**
  * The default configuration used by the formatter.
  */
-const defaultConfig: FormatterConfig = {
+const defaultConfig: ConcreteFormat = {
   indent: {
     names: 2,
     param: 2,
     desc: 2,
+    paramAbsolute: false,
+    descAbsolute: false,
   },
   breaks: {
     names: 0,
     param: 0,
     desc: 0,
+  },
+  hidden: {
+    names: false,
+    param: false,
+    desc: false,
   },
   styles: {
     names: sgr('0'),
@@ -222,7 +217,7 @@ class HelpFormatter {
   private readonly nameWidths = new Array<number>();
   private readonly namesWidth: number = 0;
   private readonly paramWidth: number = 0;
-  private readonly config: FormatterConfig;
+  private readonly config: ConcreteFormat;
   private readonly indent: HelpIndent;
 
   /**
@@ -276,7 +271,7 @@ class HelpFormatter {
    * @param config The user configuration, which may override default settings
    * @returns The merged configuration
    */
-  private static mergeConfig(config: HelpFormat): FormatterConfig {
+  private static mergeConfig(config: HelpFormat): ConcreteFormat {
     return {
       indent: Object.assign({}, defaultConfig.indent, config.indent),
       breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
@@ -431,7 +426,7 @@ class HelpFormatter {
    */
   private formatDescription(option: Option): StyledString {
     const result = new StyledString();
-    if (this.config.hidden?.desc || !this.config.items) {
+    if (this.config.hidden?.desc) {
       return result;
     }
     const descStyle = option.styles?.desc ?? this.config.styles.desc;

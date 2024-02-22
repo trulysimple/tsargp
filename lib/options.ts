@@ -724,7 +724,7 @@ type Resolve<T> = T & unknown;
  */
 type Concrete<T> = Exclude<
   {
-    [K in keyof T]-?: T[K];
+    [K in keyof T]-?: Concrete<T[K]>;
   },
   undefined
 >;

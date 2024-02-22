@@ -88,6 +88,32 @@ describe('HelpFormatter', () => {
         );
       });
 
+      it('should hide the option names from the help message when configured to do so', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
+          },
+        } as const satisfies Options;
+        const formatter = new HelpFormatter(options, { hidden: { names: true } });
+        const message = formatter.formatHelp(200).replace(styleRegex, '');
+        expect(message).toMatch(/^ +A flag option\.$/);
+      });
+
+      it('should hide the option description from the help message when configured to do so', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
+          },
+        } as const satisfies Options;
+        const formatter = new HelpFormatter(options, { hidden: { desc: true } });
+        const message = formatter.formatHelp(200).replace(styleRegex, '');
+        expect(message).toMatch(/^ +-f, +--flag +$/);
+      });
+
       it('should hide an option from the help message when it asks so', () => {
         const options = {
           flag: {
@@ -275,6 +301,19 @@ describe('HelpFormatter', () => {
     });
 
     describe('boolean', () => {
+      it('should hide the option param from the help message when configured to do so', () => {
+        const options = {
+          flag: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+          },
+        } as const satisfies Options;
+        const formatter = new HelpFormatter(options, { hidden: { param: true } });
+        const message = formatter.formatHelp(200).replace(styleRegex, '');
+        expect(message).toMatch(/^ +-b, +--boolean +A boolean option\.$/);
+      });
+
       it('should handle a boolean option with a parameter name', () => {
         const options = {
           boolean: {
