@@ -10,6 +10,7 @@ import type {
   RequiresVal,
   OtherStyles,
   ArrayOption,
+  Concrete,
 } from './options';
 import type { Style } from './styles';
 
@@ -39,13 +40,6 @@ type HelpIndent = {
   readonly desc: string;
   readonly wrap: string;
 };
-
-type Concrete<T> = Exclude<
-  {
-    [K in keyof T]-?: T[K];
-  },
-  undefined
->;
 
 /**
  * A merged formatter configuration.

@@ -35,6 +35,7 @@ export type {
   RequiresExp,
   RequiresVal,
   Positional,
+  Concrete,
 };
 
 export {
@@ -629,12 +630,22 @@ type Option = NiladicOption | ParamOption;
 type Options = Readonly<Record<string, Option>>;
 
 /**
- * The data type of an option.
+ * The data type of an option that has a value.
  * @template T The option definition type
  * @template D The option value data type
  * @template E The effective data type
  */
-type DataType<T extends Option, D, E> = T extends
+type DataType<T extends ValuedOption, D, E = D> = Resolve<
+  E | (T extends { default: D } ? never : undefined)
+>;
+
+/**
+ * The data type of an option that accepts parameters.
+ * @template T The option definition type
+ * @template D The option value data type
+ * @template E The effective data type
+ */
+type ParamDataType<T extends ParamOption, D, E> = T extends
   | { parse: (name: string, value: string) => D }
   | { parseDelimited: (name: string, value: string) => Array<D> }
   ? E
@@ -651,33 +662,37 @@ type DataType<T extends Option, D, E> = T extends
  * @template T The option definition type
  * @template D The option value data type
  */
-type SingleDataType<T extends Option, D> =
-  | DataType<T, D, T extends { enums: Array<D> } ? T['enums'][number] : D>
-  | (T extends { default: D } ? never : undefined);
+type SingleDataType<T extends SingleOption, D> = Resolve<
+  DataType<T, D, ParamDataType<T, D, T extends { enums: Array<D> } ? T['enums'][number] : D>>
+>;
 
 /**
  * The data type of an array option.
  * @template T The option definition type
  * @template D The option value data type
  */
-type ArrayDataType<T extends Option, D> =
-  | DataType<T, D, T extends { enums: Array<D> } ? Array<T['enums'][number]> : Array<D>>
-  | (T extends Record<'separator' | 'parseDelimited', unknown> ? never : [])
-  | (T extends { default: Array<D> } ? never : undefined);
+type ArrayDataType<T extends ArrayOption, D> = Resolve<
+  DataType<
+    T,
+    Array<D>,
+    | ParamDataType<T, D, T extends { enums: Array<D> } ? Array<T['enums'][number]> : Array<D>>
+    | (T extends { separator: string } | { parseDelimited: ParseCallback<Array<D>> } ? never : [])
+  >
+>;
 
 /**
  * The data type of an option.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option = Option> = T extends { type: 'flag' | 'boolean' }
-  ? SingleDataType<T, boolean>
-  : T extends { type: 'string' }
+type OptionDataType<T extends Option = Option> = T extends FlagOption | BooleanOption
+  ? DataType<T, boolean>
+  : T extends StringOption
     ? SingleDataType<T, string>
-    : T extends { type: 'number' }
+    : T extends NumberOption
       ? SingleDataType<T, number>
-      : T extends { type: 'strings' }
+      : T extends StringsOption
         ? ArrayDataType<T, string>
-        : T extends { type: 'numbers' }
+        : T extends NumbersOption
           ? ArrayDataType<T, number>
           : never;
 
@@ -685,9 +700,9 @@ type OptionDataType<T extends Option = Option> = T extends { type: 'flag' | 'boo
  * A collection of option values.
  * @template T The type of the option definitions
  */
-type OptionValues<T extends Options = Options> = {
+type OptionValues<T extends Options = Options> = Resolve<{
   -readonly [key in keyof T as T[key] extends ValuedOption ? key : never]: OptionDataType<T[key]>;
-};
+}>;
 
 /**
  * Information regarding a positional option.
@@ -699,9 +714,24 @@ type Positional = {
   marker?: string;
 };
 
-type Concrete<T> = {
-  [K in keyof T]-?: T[K];
-};
+/**
+ * A helper type to resolve types in IntelliSense.
+ */
+type Resolve<T> = T & unknown;
+
+/**
+ * A helper type to remove optionality from types and properties.
+ */
+type Concrete<T> = Exclude<
+  {
+    [K in keyof T]-?: T[K];
+  },
+  undefined
+>;
+
+/**
+ * A concrete version of the error message styles.
+ */
 type ConcreteStyles = Concrete<OtherStyles>;
 
 //--------------------------------------------------------------------------------------------------
