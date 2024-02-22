@@ -1,6 +1,6 @@
 {
   "name": "@trulysimple/tsargp-docs",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Documentation for tsargp",
   "homepage": "https://github.com/trulysimple/tsargp/tree/main/docs#readme",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "xterm-readline": "^1.1.1"
   },
   "scripts": {
-    "prepublishOnly": "npm version patch",
+    "prepublishOnly": "next build && npm version patch",
     "dev": "next",
     "dist": "next build",
     "start": "serve dist"
