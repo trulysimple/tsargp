@@ -1,56 +1,68 @@
 import { describe, expect, it } from 'vitest';
-import { StyledString, sgr, fg, bg } from '../lib';
+import { TerminalString, tf, ed, sc, mv } from '../lib';
+import { isStyle, move, moveTo, edit, style, margin, scroll, fg8, bg8, ul8 } from '../lib';
 
-describe('StyledString', () => {
-  it('should not append the same style twice', () => {
-    const str = new StyledString();
-    str.style(sgr('0')).style(sgr('0'));
+describe('TerminalString', () => {
+  it('should not add the same sequence twice', () => {
+    const str = new TerminalString();
+    str.addSequence(move(1, mv.cbt)).addSequence(move(1, mv.cbt));
     expect(str).toHaveLength(0);
-    expect(str.string).toEqual('\x1b[0m');
-    expect(str.maxWordLen).toEqual(0);
+    expect(str.string).toEqual('\x9b1Z');
+    expect(str.maxTextLen).toEqual(0);
   });
 
-  it('should append two different styles', () => {
-    const str = new StyledString();
-    str.style(sgr('0')).style(sgr(fg('0'), bg('0')));
+  it('should add two different sequences', () => {
+    const str = new TerminalString();
+    str.addSequence(style(tf.clear)).addSequence(style(fg8(0), bg8(0), ul8(0)));
     expect(str).toHaveLength(0);
-    expect(str.string).toEqual('\x1b[0m\x1b[38;5;0;48;5;0m');
-    expect(str.maxWordLen).toEqual(0);
+    expect(str.string).toEqual('\x9b0m\x9b38;5;0;48;5;0;58;5;0m');
+    expect(str.maxTextLen).toEqual(0);
+    expect(isStyle(str.string)).toBeTruthy();
   });
 
-  it('should append texts', () => {
-    const str = new StyledString();
-    str.push('type', 'script');
+  it('should add texts', () => {
+    const str = new TerminalString();
+    str.addText('type', 'script');
     expect(str).toHaveLength(10);
     expect(str.string).toEqual('typescript');
-    expect(str.maxWordLen).toEqual(6);
+    expect(str.maxTextLen).toEqual(6);
   });
 
-  it('should not append the same style twice when intermingled with text', () => {
-    const str = new StyledString();
-    str.style(sgr('0')).push('type', 'script').style(sgr('0'));
+  it('should not add the same sequence twice when intermingled with text', () => {
+    const str = new TerminalString();
+    str.addSequence(moveTo(1, 2)).addText('type', 'script').addSequence(moveTo(1, 2));
     expect(str).toHaveLength(10);
-    expect(str.string).toEqual('\x1b[0m' + 'typescript');
-    expect(str.maxWordLen).toEqual(6);
+    expect(str.string).toEqual('\x9b1;2H' + 'typescript');
+    expect(str.maxTextLen).toEqual(6);
   });
 
-  it('should append a styled string and keep the last applied style', () => {
-    const str1 = new StyledString();
-    const str2 = new StyledString();
-    str1.style(sgr('0')).push('type', 'script');
-    str2.pushStyled(str1).style(sgr('0'));
+  it('should add a terminal string and keep its last applied sequence', () => {
+    const str1 = new TerminalString();
+    const str2 = new TerminalString();
+    str1.addSequence(edit(1, ed.dch)).addText('type', 'script');
+    str2.addOther(str1).addSequence(edit(1, ed.dch));
     expect(str2).toHaveLength(10);
-    expect(str2.string).toEqual('\x1b[0m' + 'typescript');
-    expect(str2.maxWordLen).toEqual(6);
+    expect(str2.string).toEqual('\x9b1P' + 'typescript');
+    expect(str2.maxTextLen).toEqual(6);
   });
 
-  it('should append a styled string whose first style is the same as his last style', () => {
-    const str1 = new StyledString();
-    const str2 = new StyledString();
-    str1.style(sgr('0')).push('type', 'script');
-    str2.style(sgr('0')).pushStyled(str1);
+  it('should add a terminal string without sequences', () => {
+    const str1 = new TerminalString();
+    const str2 = new TerminalString();
+    str1.addText('type', 'script');
+    str2.addSequence(scroll(1, sc.sd)).addOther(str1);
     expect(str2).toHaveLength(10);
-    expect(str2.string).toEqual('\x1b[0m' + 'typescript');
-    expect(str2.maxWordLen).toEqual(6);
+    expect(str2.string).toEqual('\x9b1T' + 'typescript');
+    expect(str2.maxTextLen).toEqual(6);
+  });
+
+  it('should add a terminal string whose first sequence is the same as its last sequence', () => {
+    const str1 = new TerminalString();
+    const str2 = new TerminalString();
+    str1.addSequence(margin(1, 2)).addText('type', 'script');
+    str2.addSequence(margin(1, 2)).addOther(str1);
+    expect(str2).toHaveLength(10);
+    expect(str2.string).toEqual('\x9b1;2r' + 'typescript');
+    expect(str2.maxTextLen).toEqual(6);
   });
 });

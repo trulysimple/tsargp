@@ -1,4 +1,4 @@
-import { fg, sgr, req, type Options } from 'tsargp';
+import { fg, style, req, tf, fg8, type Options } from 'tsargp';
 
 /**
  * The option definitions
@@ -8,13 +8,13 @@ export default {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'A help option. Prints this help message',
-    usage: `${sgr('0', '1')}Argument parser for TypeScript.
+    usage: `${style(tf.clear, tf.bold)}Argument parser for TypeScript.
 
-  ${sgr('0', '33')}tsargp ${sgr('39')}--help ${sgr('32')}# print help${sgr('39')}`,
+  ${style(tf.clear, fg.yellow)}tsargp ${style(fg.default)}--help ${style(fg.green)}# print help${style(fg.default)}`,
     footer: `MIT License
-Copyright (c) 2024 ${sgr('1', '3', '36')}TrulySimple${sgr('0')}
+Copyright (c) 2024 ${style(tf.bold, tf.italic, fg.cyan)}TrulySimple${style(tf.clear)}
 
-Report a bug: ${sgr('2')}https://github.com/trulysimple/tsargp/issues${sgr('0')}
+Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${style(tf.clear)}
 `,
   },
   version: {
@@ -30,8 +30,8 @@ Report a bug: ${sgr('2')}https://github.com/trulysimple/tsargp/issues${sgr('0')}
     desc: 'A flag option',
     deprecated: 'some reason',
     styles: {
-      names: sgr('0', '7', fg('138')),
-      desc: sgr('0', '3', '9'),
+      names: style(tf.clear, tf.inverse, fg8(138)),
+      desc: style(tf.clear, tf.italic, tf.crossedOut),
     },
   },
   boolean: {
@@ -40,7 +40,7 @@ Report a bug: ${sgr('2')}https://github.com/trulysimple/tsargp/issues${sgr('0')}
     desc: `A boolean option
     with:
     * a paragraph
-    - ${sgr('4', fg('223'))}inline styles${sgr('39', '24')}
+    - ${style(tf.underlined, fg8(223))}inline styles${style(fg.default, tf.notUnderlined)}
     1. and a list
     
     `,

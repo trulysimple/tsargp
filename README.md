@@ -85,7 +85,7 @@ complete -o default -C <your_cli_name> <your_cli_name>
 curl -fsSL https://bun.sh/install | bash
 bun install   # install dependencies
 bun test      # run unit tests
-bun run dist  # build JS bundle
+bun dist      # build JS bundle
 npm publish   # publish to npm registry
 ```
 

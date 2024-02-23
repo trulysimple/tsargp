@@ -1,6 +1,5 @@
-import type { Options, OptionValues } from '../lib';
 import { describe, expect, it, vi } from 'vitest';
-import { ArgumentParser, req } from '../lib';
+import { ArgumentParser, req, type Options, OptionValues } from '../lib';
 import './utils.spec';
 
 describe('ArgumentParser', () => {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { HelpFormatter, req, sgr, fg, type Options } from '../lib';
+import { HelpFormatter, req, style, tf, fg8, type Options } from '../lib';
 
 // eslint-disable-next-line no-control-regex
-const styleRegex = /\x1b\[[\d;]+m/g;
+const styleRegex = /\x9b[\d;]+m/g;
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
@@ -33,8 +33,8 @@ describe('HelpFormatter', () => {
             names: ['-f', '--flag'],
             desc: 'A flag option with custom styles',
             styles: {
-              names: sgr('0', '7', fg('138')),
-              desc: sgr('0', '3', '9'),
+              names: style(tf.clear, tf.inverse, fg8(138)),
+              desc: style(tf.clear, tf.italic, tf.crossedOut),
             },
           },
         } as const satisfies Options;
@@ -47,7 +47,7 @@ describe('HelpFormatter', () => {
           flag: {
             type: 'flag',
             names: ['-f', '--flag'],
-            desc: `A flag option with ${sgr('1', fg('123'))}inline styles${sgr('0')}.`,
+            desc: `A flag option with ${style(tf.bold, fg8(123))}inline styles${style(tf.clear)}.`,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');

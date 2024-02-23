@@ -5,20 +5,22 @@
   "homepage": "https://github.com/trulysimple/tsargp#readme",
   "license": "MIT",
   "keywords": [
-    "args",
-    "argument",
-    "option",
-    "parser"
+    "argument-parser",
+    "command-line",
+    "typescript"
   ],
   "bin": {
     "tsargp": "dist/demo.js"
   },
   "type": "module",
-  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/index.min.js"
+    },
+    "./lib": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/lib/index.js"
     },
     "./demo": {
       "default": "./dist/demo.options.js"
@@ -47,7 +49,7 @@
   "scripts": {
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
-    "dist": "bun build lib/index.ts --outdir dist && tsc -p lib && tsc -p examples"
+    "dist": "tsc -p lib && tsc -p examples && bun build dist/lib/index.js --outfile dist/index.min.js --minify"
   },
   "prettier": {
     "printWidth": 100,

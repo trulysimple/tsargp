@@ -31,7 +31,7 @@ import {
   isNiladic,
   isValued,
 } from './options';
-import { sgr } from './styles';
+import { style, tf } from './styles';
 
 export { ArgumentParser, type ParseConfig };
 
@@ -455,7 +455,7 @@ class ParserLoop {
   private handleHelp(option: HelpOption): never {
     const help = option.usage ? [option.usage] : [];
     const groups = new HelpFormatter(this.registry.options, option.format).formatGroups(this.width);
-    const headingStyle = option.headingStyle ?? sgr('0', '1');
+    const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
     for (const [group, message] of groups.entries()) {
       const heading = group ? group + ' options' : 'Options';
       help.push(`${headingStyle}${heading}:`, message);

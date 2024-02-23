@@ -2,9 +2,10 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
+    "outDir": "../dist/lib",
     "declarationDir": "../dist/types",
     "declaration": true,
-    "emitDeclarationOnly": true,
+    "removeComments": true
     // "verbatimModuleSyntax": true, // https://github.com/microsoft/TypeScript/issues/40344
-  },
+  }
 }

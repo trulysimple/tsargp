@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { HelpFormat } from './formatter';
 import type { Style } from './styles';
-import { sgr } from './styles';
+import { fg, style } from './styles';
 
 export type {
   ParseCallback,
@@ -89,12 +89,12 @@ const req = {
  * The default styles of error messages
  */
 const defaultStyles: ConcreteStyles = {
-  regex: sgr('31'),
-  boolean: sgr('33'),
-  string: sgr('32'),
-  number: sgr('33'),
-  option: sgr('35'),
-  whitespace: sgr('0'),
+  regex: style(fg.red),
+  boolean: style(fg.yellow),
+  string: style(fg.green),
+  number: style(fg.yellow),
+  option: style(fg.magenta),
+  whitespace: style(fg.default),
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -465,12 +465,6 @@ type WithResolve = {
 };
 
 /**
- * A helper type for optional objects.
- * @template T The actual object type
- */
-type Optional<T extends object> = T | Record<never, never>;
-
-/**
  * Defines attributes common to all options that accept string parameters.
  */
 type WithString = Optional<WithEnums<string> | WithRegex> & {
@@ -715,12 +709,20 @@ type Positional = {
 };
 
 /**
+ * A helper type for optional objects.
+ * @template T The actual object type
+ */
+type Optional<T extends object> = T | Record<never, never>;
+
+/**
  * A helper type to resolve types in IntelliSense.
+ * @template T The actual type
  */
 type Resolve<T> = T & unknown;
 
 /**
  * A helper type to remove optionality from types and properties.
+ * @template T The actual type
  */
 type Concrete<T> = Exclude<
   {
