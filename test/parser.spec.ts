@@ -2454,7 +2454,7 @@ describe('ArgumentParser', () => {
           type: 'boolean',
           names: ['-b'],
           complete: async () => {
-            throw '';
+            throw 'abc';
           },
         },
       } as const satisfies Options;
@@ -2480,7 +2480,7 @@ describe('ArgumentParser', () => {
           type: 'string',
           names: ['-s'],
           complete: async () => {
-            throw '';
+            throw 'abc';
           },
         },
       } as const satisfies Options;
@@ -2506,7 +2506,7 @@ describe('ArgumentParser', () => {
           type: 'number',
           names: ['-n'],
           complete: async () => {
-            throw '';
+            throw 'abc';
           },
         },
       } as const satisfies Options;
@@ -2532,7 +2532,7 @@ describe('ArgumentParser', () => {
           type: 'strings',
           names: ['-ss'],
           complete: async () => {
-            throw '';
+            throw 'abc';
           },
         },
       } as const satisfies Options;
@@ -2558,7 +2558,7 @@ describe('ArgumentParser', () => {
           type: 'numbers',
           names: ['-ns'],
           complete: async () => {
-            throw '';
+            throw 'abc';
           },
         },
       } as const satisfies Options;

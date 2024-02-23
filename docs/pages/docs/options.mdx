@@ -4,10 +4,10 @@ title: Options - Docs
 
 # Options
 
-Any command-line interface is composed of commands and options (sometimes called flags). The options
-allow the calling application or user to configure the command that will be run. **tsargp** offers a
-selection of option types that should suit most applications. In the next sections, we present the
-available types and describe them in detail.
+Any command-line interface is composed of commands and options (sometimes called _flags_). The
+options allow the calling application or user to configure the command that will be run. **tsargp**
+offers a selection of option types that should suit most applications. In the next sections, we
+present the available types and describe them in detail.
 
 ## Option types
 
@@ -37,43 +37,42 @@ themselves are described later in this page.
 
 ### Basic attributes
 
-All option types share a set of attributes in addition to their type. From these, only the `names`
-attribute is required, the rest is optional. They are described below.
+All option types share a set of attributes in addition to their type. From these, only the
+[names](#names--preferred-name) attribute is required, while the rest is optional. They are
+described below.
 
 #### Names & preferred name
 
 The `names` attribute lists the option names as they may appear on the command-line (e.g. `-h` or
 `--help`). Names must not contain whitespace or the equals sign `=` (since it may be used as
 option-value separator). Empty names or `null`s can be specified in order to skip the respective
-"slot" in the help message "names" column (see the [formatter docs](./formatter) for details),
-although there must be at least one non-empty name.
+"slot" in the help message "names" column (see [formatter](formatter.mdx) for details), although
+there must be at least one _non-empty_ name.
 
 The `preferredName` attribute, if present, is displayed in error and help messages in cases where a
 name is not available (e.g., when evaluating option requirements or processing positional arguments).
-It is not validated and can be anything. If not specified, the first name in the `names` array will
-be used.
+It is not validated, so it can be any string. If not specified, the first name in the `names` array
+will be used.
 
-#### Description, group, hide, styles
+#### Description, group, hide, styles & deprecated
 
 These attributes only have effect in the formatting of the help message.
 
-The `desc` attribute is the option synopsis, and may contain inline [styles](./styles). The `group`
-attribute is the name of a group under which the option should appear. The `hide` attribute, if
-present, indicates to the formatter that the option should be excluded from the help message. The
+The `desc` attribute is the option synopsis, and may contain [inline styles](styles.mdx). The
+`group` attribute is the name of a group under which the option should appear. The `hide` attribute,
+if present, indicates to the formatter that the option should be excluded from the help message. The
 `styles` attribute can be used to customize the styling of the help message columns (names,
-parameter and description) for this option.
+parameter and description) for this option. The `deprecated` attribute is just syntactic sugar for
+the option deprecation reason.
 
-#### Deprecated
-
-The `deprecated` attribute is just syntactic sugar for the option deprecation reason that appears in
-the help message. Since the library was designed to avoid using the console directly, it doesn't
-have a proper way to handle deprecated options specified on the command-line (e.g., by logging a
-warning). For this purpose, you may want to use a custom parsing callback (more on that later),
-although it is only available for non-niladic options.
+> NOTE: Since the library was designed to avoid using the console directly, it doesn't have a proper
+> way to handle deprecated options specified on the command-line (e.g., by logging a warning). For
+> this purpose, you may want to use a custom parsing callback (more on that later), although it is
+> only available for non-niladic options.
 
 #### Requires & required
 
-The `requires` attribute, if present, specifies the option requirements. This can be either:
+The `requires` attribute, if present, specifies the option requirements, which can be either:
 
 - an option key;
 - an object that maps option keys to required values; or
@@ -81,12 +80,15 @@ The `requires` attribute, if present, specifies the option requirements. This ca
 
 If set, then these requirements will be verified whenever the option is specified on the
 command-line. If it is an option key, then the referenced option must also be present on the
-command-line. If an object, then every referenced option should be present and have the required
-value. If an expression, then it is evaluated as follows:
+command-line. If an object, then every referenced option should be present and have the
+corresponding value. If an expression, then it is evaluated as follows:
 
-- `req.all`: an expression that is satisfied only when _all_ items are satisfied
-- `req.one`: an expression that is satisfied when _at least one_ item is satisfied
-- `req.not`: an expression that is satisfied when the item is _not_ satisfied.
+- `req.all` - an expression that is satisfied only when _all_ items are satisfied
+- `req.one` - an expression that is satisfied when _at least one_ item is satisfied
+- `req.not` - an expression that is satisfied when the item is _not_ satisfied.
+
+> NOTE: When an object is specified, `undefined` values can be used to signify required presence,
+> and `null` values to signify required absence.
 
 The `required` attribute indicates that the option is _always_ required, independently of other
 options.
@@ -97,9 +99,11 @@ All option types that accept parameters share a set of attributes, which are des
 
 #### Default value
 
-The `default` attribute, if present, specifies the option default value. If this value is not known
-beforehand (e.g., if it depends on the values of other options), it should be left undefined, so
-that you can detect whether it was specified on the command line and take appropriate action.
+The `default` attribute, if present, specifies the option default value.
+
+> NOTE: If this value is not known beforehand (e.g., if it depends on the values of other options),
+> it should be left undefined, so that you can detect whether it was specified on the command-line
+> and take appropriate action.
 
 #### Example value
 
@@ -109,9 +113,10 @@ message "parameter" column. Mutually exclusive with [parameter name](#parameter-
 #### Parameter name
 
 The `paramName` attribute, if present, replaces the option type in the help message "parameter"
-column. If it contains an opening angle bracket (`<` character), it is printed as-is; otherwise it
-is enclosed in angle brackets, like so: `<param_name>`. Mutually exclusive with
-[example value](#example-value).
+column. Mutually exclusive with [example value](#example-value).
+
+> NOTE: If it contains an opening angle bracket (`<` character), it is printed as-is; otherwise it
+> is enclosed in angle brackets (e.g., `<param_name>`).
 
 #### Positional | marker
 
@@ -119,8 +124,8 @@ The `positional` attribute, if present, indicates that the option accepts positi
 There may be _at most one_ option with this setting.
 
 If set to `true`, then any argument not recognized as an option name will be considered positional.
-Additionally, this attribute accepts a string which is used as positional marker. In this case,
-all arguments that appear _beyond the marker_ will be considered positional.
+Additionally, this attribute accepts a string which acts as positional marker. In this case, all
+arguments that appear _beyond the marker_ will be considered positional.
 
 When using this attribute, we recommend also setting [preferred name](#names--preferred-name) to
 some explanatory name.
@@ -128,13 +133,13 @@ some explanatory name.
 #### Complete callback
 
 The `complete` attribute, if present, specifies a custom completion callback. This can be used to
-make better suggestions for bash completion than the default algorithm would (see the [parser
-docs](./parser) for details). It accepts two parameters:
+make better suggestions for bash completion than the [default algorithm](parser.mdx) would. It
+accepts two parameters:
 
-- `values`: the values parsed up until the current iteration. It is a generic record that should be
+- `values` - the values parsed up until the current iteration. It is a generic record that should be
   cast to `OptionValues<typeof _your_options_>` or to the type of your values class.
-- `rest`: the remaining command-line arguments. The first element in this list is the one triggering
-  the completion (which may be an empty string).
+- `rest` - the remaining command-line arguments. The first element in this list is the one
+  triggering the completion (it may be an empty string).
 
 It returns the list of completion words. This callback should not throw errors. If asynchronous,
 you should call `ArgumentParser.parseAsync` and await its result.
@@ -144,8 +149,8 @@ you should call `ArgumentParser.parseAsync` and await its result.
 The `parse` attribute, if present, specifies a custom callback to parse the value of the option
 parameter. It accepts two parameters:
 
-- `name`: the option name, as was specified on the command-line
-- `value`: the parameter value (string)
+- `name` - the option name, as was specified on the command-line
+- `value` - the parameter value (string)
 
 It returns a single value. If asynchronous, then the data type of the option value in the resulting
 object will be enclosed in a promise. Mutually exclusive with [separator](#separator) and
@@ -213,8 +218,8 @@ a regular expression. Mutually exclusive with [parse callback](#parse-callback) 
 The `parseDelimited` attribute, if present, specifies a custom callback to parse the value of the
 option parameter. It accepts two parameters:
 
-- `name`: the option name, as was specified on the command-line
-- `value`: the parameter value (string)
+- `name` - the option name, as was specified on the command-line
+- `value` - the parameter value (string)
 
 Unlike the [parse callback](#parse-callback) that returns a single value, this callback returns an
 array. If specified, the option will accept a single parameter and not multiple parameters. If
@@ -248,7 +253,7 @@ argument parsing. However, they do have side-effects, as explained below.
 The **help** option is a convenient specialization of the [function](#function-option) option that
 handles the formatting of the help message. Internally, it performs the following actions:
 
-1. instantiate a [formatter](./formatter) class with the provided configuration
+1. instantiate a [formatter](formatter.mdx) class with the provided (or default) configuration
 2. get the formatted messages (one for each option group)
 3. assemble them into a single message with group headings
 4. throw the resulting string
@@ -267,39 +272,43 @@ or reference to other media.
 
 #### Format & heading style
 
-The `format` attribute, if present, specifies the [help format](./formatter) configuration. The
-`headingStyle` attribute, if present, specifies a [style](./styles) to be applied to group headings.
+The `format` attribute, if present, specifies the [help format](formatter.mdx) configuration. The
+`headingStyle` attribute, if present, specifies a [style](styles.mdx) to be applied to group
+headings.
 
 ### Version option
 
 The **version** option is another specialization of the [function](#function-option) option that
 throws a version message. You may specify either of the following attributes.
 
-#### Version
+#### Semantic version
 
-The `version` attribute is a semantic version or version information.
+The `version` attribute is a semantic version or version information. Mutually exclusive with
+[resolve callback](#resolve-callback).
 
-#### Resolve
+#### Resolve callback
 
 The `resolve` attribute is a resolution function scoped to the module where a `package.json` file
-should be searched. For use in non-browser environments only. You should use [`import.meta.resolve`]
-as value. This results in an asynchronous operation, so you should call `ArgumentParser.parseAsync`
-and await its result.
+will be searched and read to extract its `version` field. For use in non-browser environments only.
+You should use [`import.meta.resolve`] as value. This results in an asynchronous operation, so you
+should call `ArgumentParser.parseAsync` and await its result. Mutually exclusive with
+[semantic version](#semantic-version).
 
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 
 ### Function option
 
-The **function** option executes a callback function. The following attributes can be specified.
+The **function** option executes a generic callback function. The following attributes can be
+specified.
 
 #### Execute
 
 The `exec` attribute is the callback function that should be executed. It accepts three parameters:
 
-- `values`: the values parsed up until the current iteration. It is a generic record that should be
+- `values` - the values parsed up until the current iteration. It is a generic record that should be
   cast to `OptionValues<typeof _your_options_>` or to the type of your values class.
-- `rest`: the remaining command-line arguments
-- `completing`: `true` if performing completion (but not in the current iteration)
+- `rest` - the remaining command-line arguments
+- `completing` - `true` if performing completion (but not in the current iteration)
 
 It returns no value. It can be asynchronous, in which case you should call
 `ArgumentParser.parseAsync` and await its result.
@@ -309,6 +318,10 @@ It returns no value. It can be asynchronous, in which case you should call
 The `break` attribute, if present, indicates that the parser should exit the parsing loop
 immediately after returning from the callback. This is useful for creating sub-commands, as
 explained in the [sub-commands guide](/guides/sub-commands).
+
+> BEWARE: If set, the requirements of all options specified before it on the command-line (including
+> itself) will be analyzed. Hence, you should make it clear in the help message that any required
+> option should be specified before the affected one.
 
 ### Flag option
 
