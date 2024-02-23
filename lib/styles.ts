@@ -312,7 +312,7 @@ const enum TypeFace {
    */
   alternative9,
   /**
-   * Black-letter font (Fraktur or Gothic).
+   * Black-letter font (Fraktur/Gothic).
    */
   gothic,
   /**
@@ -322,7 +322,7 @@ const enum TypeFace {
   /**
    * Normal intensity (neither bold nor faint).
    */
-  notBoldNorFaint,
+  notBoldOrFaint,
   /**
    * Regular face (neither italic nor black-letter).
    */
@@ -370,7 +370,7 @@ const enum TypeFace {
   /**
    * Neither framed nor encircled
    */
-  notFramedNorEncircled,
+  notFramedOrEncircled,
   /**
    * Not overlined.
    */
@@ -410,7 +410,7 @@ const enum TypeFace {
   /**
    * Neither superscript nor subscript.
    */
-  notSuperscriptNorSubscript,
+  notSuperscriptOrSubscript,
 }
 
 /**
@@ -470,7 +470,7 @@ const enum Underline {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * A control sequence introducer command.
+ * A control sequence introducer command. It is divided into subgroups for convenience.
  */
 type Command =
   | MoveCommand
@@ -482,10 +482,9 @@ type Command =
   | MiscCommand;
 
 /**
- * A control sequence introducer.
+ * A generic control sequence introducer string.
  * @template P The type of the sequence parameter
  * @template C The type of the sequence command
- * @see https://xtermjs.org/docs/api/vtfeatures/#csi
  */
 type CSI<P extends string | number, C extends Command> = `\x9b${P}${C}`;
 
@@ -520,7 +519,7 @@ type Style = CSI<string, StyleCommand>;
 type Margin = CSI<`${number};${number}`, MarginCommand>;
 
 /**
- * A miscellaneous sequence.
+ * A miscellaneous sequence. For completeness only, but not currently used.
  */
 type Misc =
   | CSI<string, MiscCommand.sm | MiscCommand.rm>
@@ -528,12 +527,14 @@ type Misc =
   | CSI<'', MiscCommand.str | MiscCommand.scp | MiscCommand.rcp>;
 
 /**
- * A CSI sequence.
+ * A control sequence introducer sequence.
+ * @see https://xtermjs.org/docs/api/vtfeatures/#csi
  */
 type Sequence = Move | MoveTo | Edit | Scroll | Style | Margin | Misc;
 
 /**
- * Helper type to enumerate numbers.
+ * A helper type to enumerate numbers.
+ * @template N The type of last enumerated number
  */
 type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['length'] extends N
   ? Acc[number]
@@ -545,8 +546,8 @@ type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['length']
 type Decimal = Enumerate<256>;
 
 /**
- * A helper type to elide type resolution in IntelliSense.
- * @template T The actual type
+ * A helper type to alias another type while eliding type resolution in IntelliSense.
+ * @template T The type to be aliased
  */
 type Alias<T> = T extends T ? T : T;
 
@@ -585,18 +586,18 @@ class TerminalString {
   readonly strings = new Array<string>();
 
   /**
-   * The length of the largest text.
+   * The length of the largest (non-sequence) text.
    */
   maxTextLen = 0;
 
   /**
-   * The sum of the text lengths.
+   * The sum of the (non-sequence) text lengths.
    */
   length = 0;
 
   /**
    * Appends sequences to the list of strings.
-   * @param sequences The sequence strings
+   * @param sequences The sequences to be appended
    * @returns This
    */
   addSequence(...sequences: Array<Sequence>): this {

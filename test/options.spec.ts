@@ -17,52 +17,6 @@ describe('OptionRegistry', () => {
       expect(() => new OptionRegistry(options)).not.toThrow();
     });
 
-    it('should throw an error on invalid option name', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['a = b'],
-        },
-      } as const satisfies Options;
-      expect(() => new OptionRegistry(options)).toThrow(/Invalid option name .+a = b.+\./);
-    });
-
-    it('should throw an error on option with no name', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: [],
-        },
-      } as const satisfies Options;
-      expect(() => new OptionRegistry(options)).toThrow(/Option .+string.+ has no name\./);
-    });
-
-    it('should throw an error on option with empty positional marker', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          positional: '',
-        },
-      } as const satisfies Options;
-      expect(() => new OptionRegistry(options)).toThrow(
-        /Option .+string.+ has empty positional marker\./,
-      );
-    });
-
-    it('should throw an error on version option with no version and no resolve', () => {
-      const options = {
-        version: {
-          type: 'version',
-          names: ['-v'],
-          version: '',
-        },
-      } as const satisfies Options;
-      expect(() => new OptionRegistry(options)).toThrow(
-        /Option .+version.+ contains no version or resolve function\./,
-      );
-    });
-
     describe('duplicates', () => {
       it('should throw an error on duplicate option name in the same option', () => {
         const options = {
@@ -135,6 +89,54 @@ describe('OptionRegistry', () => {
   });
 
   describe('validate', () => {
+    it('should throw an error on option with no name', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: [],
+        },
+      } as const satisfies Options;
+      const registry = new OptionRegistry(options);
+      expect(() => registry.validate()).toThrow(/Option .+string.+ has no name\./);
+    });
+
+    it('should throw an error on invalid option name', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['a = b'],
+        },
+      } as const satisfies Options;
+      const registry = new OptionRegistry(options);
+      expect(() => registry.validate()).toThrow(/Invalid option name .+a = b.+\./);
+    });
+
+    it('should throw an error on option with empty positional marker', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          positional: '',
+        },
+      } as const satisfies Options;
+      const registry = new OptionRegistry(options);
+      expect(() => registry.validate()).toThrow(/Option .+string.+ has empty positional marker\./);
+    });
+
+    it('should throw an error on version option with no version and no resolve', () => {
+      const options = {
+        version: {
+          type: 'version',
+          names: ['-v'],
+          version: '',
+        },
+      } as const satisfies Options;
+      const registry = new OptionRegistry(options);
+      expect(() => registry.validate()).toThrow(
+        /Option .+version.+ contains no version or resolve function\./,
+      );
+    });
+
     describe('requires', () => {
       it('should throw an error on option required by itself', () => {
         const options = {

@@ -86,58 +86,6 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(/-f,--flagA flag option with lists:\n- item1\n\* item2\n1. item3/);
       });
 
-      it('should break option names in the help message when configured to do so', () => {
-        const options = {
-          flag: {
-            type: 'flag',
-            names: ['-f', '--flag'],
-            desc: 'A flag option',
-          },
-        } as const satisfies Options;
-        const formatter = new HelpFormatter(options, { breaks: { names: 1 } });
-        const message = formatter.formatHelp(200).replace(sequenceRegex, '');
-        expect(message).toMatch(/^\n-f,--flagA flag option\.$/);
-      });
-
-      it('should break option description in the help message when configured to do so', () => {
-        const options = {
-          flag: {
-            type: 'flag',
-            names: ['-f', '--flag'],
-            desc: 'A flag option',
-          },
-        } as const satisfies Options;
-        const formatter = new HelpFormatter(options, { breaks: { desc: 1 } });
-        const message = formatter.formatHelp(200).replace(sequenceRegex, '');
-        expect(message).toMatch(/^-f,--flag\nA flag option\.$/);
-      });
-
-      it('should hide the option names from the help message when configured to do so', () => {
-        const options = {
-          flag: {
-            type: 'flag',
-            names: ['-f', '--flag'],
-            desc: 'A flag option',
-          },
-        } as const satisfies Options;
-        const formatter = new HelpFormatter(options, { hidden: { names: true } });
-        const message = formatter.formatHelp(200).replace(sequenceRegex, '');
-        expect(message).toMatch(/^A flag option\.$/);
-      });
-
-      it('should hide the option description from the help message when configured to do so', () => {
-        const options = {
-          flag: {
-            type: 'flag',
-            names: ['-f', '--flag'],
-            desc: 'A flag option',
-          },
-        } as const satisfies Options;
-        const formatter = new HelpFormatter(options, { hidden: { desc: true } });
-        const message = formatter.formatHelp(200).replace(sequenceRegex, '');
-        expect(message).toMatch(/^-f,--flag$/);
-      });
-
       it('should hide an option from the help message when it asks so', () => {
         const options = {
           flag: {
@@ -323,7 +271,7 @@ describe('HelpFormatter', () => {
     });
 
     describe('boolean', () => {
-      it('should break option param in the help message when configured to do so', () => {
+      it('should not break columns in the help message when configured with negative values', () => {
         const options = {
           flag: {
             type: 'boolean',
@@ -331,9 +279,37 @@ describe('HelpFormatter', () => {
             desc: 'A boolean option',
           },
         } as const satisfies Options;
-        const formatter = new HelpFormatter(options, { breaks: { param: 1 } });
+        const config = { breaks: { names: -1, param: -1, desc: -1 } };
+        const formatter = new HelpFormatter(options, config);
         const message = formatter.formatHelp(200).replace(sequenceRegex, '');
-        expect(message).toMatch(`-b,--boolean\n<boolean>A boolean option.`);
+        expect(message).toMatch(/^-b,--boolean<boolean>A boolean option\.$/);
+      });
+
+      it('should break columns in the help message when configured with positive values', () => {
+        const options = {
+          flag: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+          },
+        } as const satisfies Options;
+        const config = { breaks: { names: 1, param: 1, desc: 1 } };
+        const formatter = new HelpFormatter(options, config);
+        const message = formatter.formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(/^\n-b,--boolean\n<boolean>\nA boolean option\.$/);
+      });
+
+      it('should hide the option names from the help message when configured to do so', () => {
+        const options = {
+          flag: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+          },
+        } as const satisfies Options;
+        const formatter = new HelpFormatter(options, { hidden: { names: true } });
+        const message = formatter.formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(/^<boolean>A boolean option\.$/);
       });
 
       it('should hide the option param from the help message when configured to do so', () => {
@@ -346,7 +322,20 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const formatter = new HelpFormatter(options, { hidden: { param: true } });
         const message = formatter.formatHelp(200).replace(sequenceRegex, '');
-        expect(message).toMatch(`-b,--booleanA boolean option.`);
+        expect(message).toMatch(/^-b,--booleanA boolean option\./);
+      });
+
+      it('should hide the option description from the help message when configured to do so', () => {
+        const options = {
+          flag: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+          },
+        } as const satisfies Options;
+        const formatter = new HelpFormatter(options, { hidden: { desc: true } });
+        const message = formatter.formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(/^-b,--boolean<boolean>$/);
       });
 
       it('should handle a boolean option with a parameter name', () => {
@@ -646,6 +635,22 @@ describe('HelpFormatter', () => {
     });
 
     describe('strings', () => {
+      it('should handle a strings option delimited with a regular expression', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss', '--strings'],
+            desc: 'A strings option',
+            append: true,
+            separator: /[,;]/s,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(
+          `-ss,--strings<strings>A strings option. Values are delimited by /[,;]/s. May be specified multiple times.`,
+        );
+      });
+
       it('should handle a delimited strings option that can be specified multiple times', () => {
         const options = {
           strings: {
@@ -674,6 +679,22 @@ describe('HelpFormatter', () => {
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(
           `-ss,--strings<strings>A strings option. Accepts multiple parameters. Defaults to ['one', 'two'].`,
+        );
+      });
+
+      it('should handle a strings option delimited with a regular expression with an example value', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss', '--strings'],
+            desc: 'A strings option',
+            example: ['one', 'two'],
+            separator: /[,;]/s,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(
+          `-ss,--strings'one[,;]two'A strings option. Values are delimited by /[,;]/s.`,
         );
       });
 

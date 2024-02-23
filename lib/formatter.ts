@@ -14,7 +14,14 @@ import type {
 } from './options';
 import type { Style } from './styles';
 
-import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './options';
+import {
+  RequiresAll,
+  RequiresNot,
+  RequiresOne,
+  isArray,
+  isMultivalued,
+  isNiladic,
+} from './options';
 import { fg, isStyle, move, mv, style, TerminalString, tf } from './styles';
 
 export { HelpFormatter, HelpItem, type HelpFormat };
@@ -23,7 +30,7 @@ export { HelpFormatter, HelpItem, type HelpFormat };
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * Precomputed texts.
+ * Precomputed texts used by the formatter.
  */
 type HelpEntry = {
   readonly names: TerminalString;
@@ -32,7 +39,7 @@ type HelpEntry = {
 };
 
 /**
- * A concrete version of the help format.
+ * A concrete version of the help format configuration.
  */
 type ConcreteFormat = Concrete<HelpFormat>;
 
@@ -45,25 +52,25 @@ type HelpFormat = {
    */
   readonly indent?: {
     /**
-     * The indentation level for the names column, relative to the beginning of the line.
+     * The indentation level for the names column.
      */
     readonly names?: number;
     /**
-     * The indentation level for the parameter column, relative to the end of the names column.
+     * The indentation level for the parameter column.
      */
     readonly param?: number;
     /**
-     * The indentation level for the description column, relative to the end of the parameter column.
+     * The indentation level for the description column.
      */
     readonly desc?: number;
     /**
      * True if the indentation level for the parameter column should be relative to the beginning
-     * of the line.
+     * of the line instead of the end of the names column. (Defaults to false)
      */
     readonly paramAbsolute?: boolean;
     /**
      * True if the indentation level for the description column should be relative to the beginning
-     * of the line.
+     * of the line instead of the end of the parameter column. (Defaults to false)
      */
     readonly descAbsolute?: boolean;
   };
@@ -73,15 +80,15 @@ type HelpFormat = {
    */
   readonly breaks?: {
     /**
-     * The number of line breaks to insert before the names column.
+     * The number of line breaks to insert before the names column. (Defaults to 0)
      */
     readonly names?: number;
     /**
-     * The number of line breaks to insert before the parameter column.
+     * The number of line breaks to insert before the parameter column. (Defaults to 0)
      */
     readonly param?: number;
     /**
-     * The number of line breaks to insert before the description column.
+     * The number of line breaks to insert before the description column. (Defaults to 0)
      */
     readonly desc?: number;
   };
@@ -91,26 +98,27 @@ type HelpFormat = {
    */
   readonly hidden?: {
     /**
-     * Hide the names column.
+     * True if the names column should be hidden. (Defaults to false)
      */
     readonly names?: boolean;
     /**
-     * Hide the parameter column.
+     * True if the parameter column should be hidden. (Defaults to false)
      */
     readonly param?: boolean;
     /**
-     * Hide the description column.
+     * True if the description column should be hidden. (Defaults to false)
      */
     readonly desc?: boolean;
   };
 
   /**
-   * The default option styles and the styles of other elements.
+   * The default option styles and styles of other elements.
    */
   readonly styles?: OptionStyles & OtherStyles;
 
   /**
    * The order of items to be shown in the option description.
+   * @see HelpItem
    */
   readonly items?: Array<HelpItem>;
 };
@@ -127,7 +135,7 @@ const enum HelpItem {
    */
   desc,
   /**
-   * The negation names of a flag option, if enabled.
+   * The negation names of a flag option, if any.
    */
   negation,
   /**
@@ -254,7 +262,7 @@ const defaultConfig: ConcreteFormat = {
 // Classes
 //--------------------------------------------------------------------------------------------------
 /**
- * Implements formatting of help messages for predefined options.
+ * Implements formatting of help messages for a set of option definitions.
  */
 class HelpFormatter {
   private readonly groups = new Map<string, Array<HelpEntry>>();
@@ -297,7 +305,7 @@ class HelpFormatter {
     private readonly options: Options,
     config: HelpFormat = {},
   ) {
-    this.config = HelpFormatter.mergeConfig(config);
+    this.config = mergeConfig(config);
     this.nameWidths = getNameWidths(options);
     const namesWidth = this.nameWidths.reduce((acc, len) => acc + len, 2);
     let paramWidth = 0;
@@ -324,24 +332,9 @@ class HelpFormatter {
   }
 
   /**
-   * Merges a user-provided format configuration with the default configuration.
-   * @param config The user configuration, which may override default settings
-   * @returns The merged configuration
-   */
-  private static mergeConfig(config: HelpFormat): ConcreteFormat {
-    return {
-      indent: Object.assign({}, defaultConfig.indent, config.indent),
-      breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
-      styles: Object.assign({}, defaultConfig.styles, config.styles),
-      hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
-      items: config.items ?? defaultConfig.items,
-    };
-  }
-
-  /**
-   * Formats an option to be printed on the console.
+   * Formats an option to be printed on the terminal.
    * @param option The option definition
-   * @returns The help entry
+   * @returns The computed help entry
    */
   private formatOption(option: Option): HelpEntry {
     const names = this.formatNames(option);
@@ -358,9 +351,9 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's names to be printed on the console.
+   * Formats an option's names to be printed on the terminal.
    * @param option The option definition
-   * @returns A styled string with the formatted names
+   * @returns A terminal string with the formatted names
    */
   private formatNames(option: Option): TerminalString {
     const result = new TerminalString();
@@ -373,12 +366,12 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a list of names to be printed on the console.
-   * @param names The list of names
+   * Formats a list of names to be printed on the terminal.
+   * @param names The list of option names
    * @param namesStyle The names style
    * @param result The resulting string
    */
-  private formatNames2(names: Array<string | null>, namesStyle: Style, result: TerminalString) {
+  private formatNames2(names: Option['names'], namesStyle: Style, result: TerminalString) {
     const textStyle = this.config.styles.text;
     let prev = false;
     let prefix = 0;
@@ -403,9 +396,9 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's parameter to be printed on the console.
+   * Formats an option's parameter to be printed on the terminal.
    * @param option The option definition
-   * @returns A styled string with the formatted option parameter
+   * @returns A terminal string with the formatted option parameter
    */
   private formatParam(option: Option): TerminalString {
     const result = new TerminalString();
@@ -427,9 +420,9 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's description to be printed on the console.
+   * Formats an option's description to be printed on the terminal.
    * @param option The option definition
-   * @returns A styled string with the formatted option description
+   * @returns A terminal string with the formatted option description
    */
   private formatDescription(option: Option): TerminalString {
     const result = new TerminalString();
@@ -485,7 +478,11 @@ class HelpFormatter {
   private formatSeparator(option: Option, descStyle: Style, result: TerminalString) {
     if ('separator' in option && option.separator) {
       result.addSequence(descStyle).addText('Values', 'are', 'delimited', 'by');
-      this.formatString(option.separator, result);
+      if (typeof option.separator === 'string') {
+        this.formatString(option.separator, result);
+      } else {
+        this.formatRegex2(option.separator, result);
+      }
       result.addSequence(descStyle).addText('.');
     }
   }
@@ -497,7 +494,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatMultivalued(option: Option, descStyle: Style, result: TerminalString) {
-    if (isArray(option) && !option.separator) {
+    if (isArray(option) && isMultivalued(option)) {
       result.addSequence(descStyle).addText('Accepts', 'multiple', 'parameters.');
     }
   }
@@ -587,10 +584,10 @@ class HelpFormatter {
       result.addSequence(descStyle).addText('Values', 'must', 'be', 'one', 'of');
       if (option.type === 'string' || option.type === 'strings') {
         const formatFn = this.formatString.bind(this);
-        this.formatArray(option.enums, descStyle, result, formatFn, ['{', '}']);
+        this.formatArray2(option.enums, descStyle, result, formatFn, ['{', '}']);
       } else {
         const formatFn = this.formatNumber.bind(this);
-        this.formatArray(option.enums, descStyle, result, formatFn, ['{', '}']);
+        this.formatArray2(option.enums, descStyle, result, formatFn, ['{', '}']);
       }
       result.addSequence(descStyle).addText('.');
     }
@@ -620,7 +617,7 @@ class HelpFormatter {
     if ('range' in option && option.range) {
       result.addSequence(descStyle).addText('Values', 'must', 'be', 'in', 'the', 'range');
       const formatFn = this.formatNumber.bind(this);
-      this.formatArray(option.range, descStyle, result, formatFn, ['[', ']']);
+      this.formatArray2(option.range, descStyle, result, formatFn, ['[', ']']);
       result.addSequence(descStyle).addText('.');
     }
   }
@@ -660,7 +657,7 @@ class HelpFormatter {
   private formatRequires(option: Option, descStyle: Style, result: TerminalString) {
     if (option.requires) {
       result.addSequence(descStyle).addText('Requires');
-      this.formatRequiresRecursive(option.requires, descStyle, result);
+      this.formatRequirements(option.requires, descStyle, result);
       result.addSequence(descStyle).addText('.');
     }
   }
@@ -705,14 +702,14 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a list of values to be printed on the console.
+   * Formats a list of values to be printed on the terminal.
    * @param option The option definition
    * @param values The array values
    * @param result The resulting string
    * @param formatFn The function to convert a value to string
    * @param descStyle The description style
    */
-  private formatArrayVal<T extends string | number>(
+  private formatArray<T extends string | number>(
     option: ArrayOption,
     value: Array<T>,
     result: TerminalString,
@@ -720,17 +717,21 @@ class HelpFormatter {
     descStyle?: Style,
   ) {
     if (descStyle) {
-      this.formatArray(value, descStyle, result, formatFn, ['[', ']']);
-    } else if (option.separator) {
-      this.formatString(value.join(option.separator), result);
+      this.formatArray2(value, descStyle, result, formatFn, ['[', ']']);
+    } else if ('separator' in option && option.separator) {
+      if (typeof option.separator === 'string') {
+        this.formatString(value.join(option.separator), result);
+      } else {
+        this.formatString(value.join(option.separator.source), result);
+      }
     } else {
       const textStyle = this.config.styles.text;
-      this.formatArray(value, textStyle, result, formatFn, undefined, ' ');
+      this.formatArray2(value, textStyle, result, formatFn, undefined, ' ');
     }
   }
 
   /**
-   * Formats a list of values to be included in the description.
+   * Formats a list of values to be printed on the terminal.
    * @param values The array values
    * @param descStyle The description style
    * @param result The resulting string
@@ -738,7 +739,7 @@ class HelpFormatter {
    * @param brackets An optional pair of brackets to surround the values
    * @param separator An optional separator to delimit the values
    */
-  private formatArray<T extends string | number>(
+  private formatArray2<T extends string | number>(
     values: Array<T>,
     descStyle: Style,
     result: TerminalString,
@@ -761,8 +762,8 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a boolean value to be printed on the console.
-   * @param values The boolean value
+   * Formats a boolean value to be printed on the terminal.
+   * @param value The boolean value
    * @param result The resulting string
    */
   private formatBoolean(value: boolean, result: TerminalString) {
@@ -770,8 +771,8 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a string value to be printed on the console.
-   * @param values The string value
+   * Formats a string value to be printed on the terminal.
+   * @param value The string value
    * @param result The resulting string
    */
   private formatString(value: string, result: TerminalString) {
@@ -779,8 +780,8 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a number value to be printed on the console.
-   * @param values The number value
+   * Formats a number value to be printed on the terminal.
+   * @param value The number value
    * @param result The resulting string
    */
   private formatNumber(value: number, result: TerminalString) {
@@ -788,8 +789,8 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a regex value to be printed on the console.
-   * @param values The regex value
+   * Formats a regex value to be printed on the terminal.
+   * @param value The regex value
    * @param result The resulting string
    */
   private formatRegex2(value: RegExp, result: TerminalString) {
@@ -797,7 +798,7 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option name to be printed on the console.
+   * Formats an option name to be printed on the terminal.
    * @param name The option name
    * @param result The resulting string
    */
@@ -812,7 +813,7 @@ class HelpFormatter {
    * @param result The resulting string
    * @param negate True if the requirement should be negated
    */
-  private formatRequiresRecursive(
+  private formatRequirements(
     requires: Requires,
     descStyle: Style,
     result: TerminalString,
@@ -826,7 +827,7 @@ class HelpFormatter {
       }
       this.formatName(name, result);
     } else if (requires instanceof RequiresNot) {
-      this.formatRequiresRecursive(requires.item, descStyle, result, !negate);
+      this.formatRequirements(requires.item, descStyle, result, !negate);
     } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
       this.formatRequiresExp(requires, descStyle, result, negate);
     } else {
@@ -852,7 +853,7 @@ class HelpFormatter {
       result.addSequence(descStyle).addText('(');
     }
     requires.items.forEach((item, i) => {
-      this.formatRequiresRecursive(item, descStyle, result, negate);
+      this.formatRequirements(item, descStyle, result, negate);
       if (i < requires.items.length - 1) {
         result.addSequence(descStyle).addText(op);
       }
@@ -863,8 +864,8 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a map of key-value pairs to be included in the description.
-   * @param requires The requirement expression
+   * Formats a map of requirements to be included in the description.
+   * @param requires The requirement map
    * @param descStyle The description style
    * @param result The resulting string
    * @param negate True if the requirement should be negated
@@ -891,7 +892,7 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a map of key-value pairs to be included in the description.
+   * Formats an option's required value to be included in the description.
    * @param option The option definition
    * @param value The option value
    * @param descStyle The description style
@@ -952,13 +953,13 @@ class HelpFormatter {
       case 'strings': {
         assert(typeof value === 'object');
         const formatFn = this.formatString.bind(this);
-        this.formatArrayVal(option, value as Array<string>, result, formatFn, descStyle);
+        this.formatArray(option, value as Array<string>, result, formatFn, descStyle);
         break;
       }
       case 'numbers': {
         assert(typeof value === 'object');
         const formatFn = this.formatNumber.bind(this);
-        this.formatArrayVal(option, value as Array<number>, result, formatFn, descStyle);
+        this.formatArray(option, value as Array<number>, result, formatFn, descStyle);
         break;
       }
       default: {
@@ -970,7 +971,7 @@ class HelpFormatter {
 
   /**
    * Formats a help message for the default option group.
-   * @param width The desired console width
+   * @param width The desired terminal width
    * @returns The formatted help message
    */
   formatHelp(width = process.stdout.columns ?? process.stderr.columns): string {
@@ -980,7 +981,7 @@ class HelpFormatter {
 
   /**
    * Formats help messages for all option groups.
-   * @param width The desired console width
+   * @param width The desired terminal width
    * @returns The formatted help messages
    */
   formatGroups(width = process.stdout.columns ?? process.stderr.columns): Map<string, string> {
@@ -993,24 +994,28 @@ class HelpFormatter {
 
   /**
    * Formats a help message from a list of help entries.
-   * @param width The desired console width
+   * @param width The desired terminal width
    * @param entries The help entries
    * @returns The formatted help message
    */
   private formatEntries(width: number, entries: Array<HelpEntry>): string {
+    function formatCol(text: TerminalString, start: number, breaks: number, wrap = false) {
+      if (text.length) {
+        if (breaks > 0) {
+          result.push('\n'.repeat(breaks));
+        }
+        if (wrap) {
+          wrapText(result, text, width, start);
+        } else {
+          result.push(move(start, mv.cha), ...text.strings);
+        }
+      }
+    }
     const result = new Array<string>();
     for (const { names, param, desc } of entries) {
-      result.push(
-        '\n'.repeat(this.config.breaks.names),
-        move(this.namesStart, mv.cha),
-        ...names.strings,
-        '\n'.repeat(this.config.breaks.param),
-        move(this.paramStart, mv.cha),
-        ...param.strings,
-        '\n'.repeat(this.config.breaks.desc),
-        move(this.descStart, mv.cha),
-      );
-      wrapText(result, desc, width, this.descStart);
+      formatCol(names, this.namesStart, this.config.breaks.names);
+      formatCol(param, this.paramStart, this.config.breaks.param);
+      formatCol(desc, this.descStart, this.config.breaks.desc, true);
       result.push('\n');
     }
     result.length--; // pop the last line break
@@ -1022,9 +1027,24 @@ class HelpFormatter {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Gets the maximum option name length in each name slot.
+ * Merges a user-provided format configuration with the default configuration.
+ * @param config The user configuration, which may override default settings
+ * @returns The merged configuration
+ */
+function mergeConfig(config: HelpFormat): ConcreteFormat {
+  return {
+    indent: Object.assign({}, defaultConfig.indent, config.indent),
+    breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
+    styles: Object.assign({}, defaultConfig.styles, config.styles),
+    hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
+    items: config.items ?? defaultConfig.items,
+  };
+}
+
+/**
+ * Gets the required width of each name slot for a set of options.
  * @param options The option definitions
- * @returns The maximum length of each name slot
+ * @returns The required width of each name slot
  */
 function getNameWidths(options: Options): Array<number> {
   const result = new Array<number>();
@@ -1044,7 +1064,7 @@ function getNameWidths(options: Options): Array<number> {
 }
 
 /**
- * Split a text into words.
+ * Split a text into words and style sequences.
  * @param text The text to be split
  * @param result The resulting string to append to
  */
@@ -1093,11 +1113,11 @@ function splitWords(text: string, result: TerminalString) {
 }
 
 /**
- * Wraps the option description to fit in the console.
+ * Wraps an option's description to fit in the terminal width.
  * @param result The resulting strings to append to
- * @param text The text to be wrapped (styled string)
- * @param width The desired console width
- * @param start The column number to start at each wrapped line
+ * @param text The terminal string to be wrapped
+ * @param width The desired terminal width
+ * @param start The column number to start each line at
  */
 function wrapText(result: Array<string>, text: TerminalString, width: number, start: number) {
   const startStyle = text.strings.length && isStyle(text.strings[0]) ? text.strings[0] : '';
@@ -1105,6 +1125,7 @@ function wrapText(result: Array<string>, text: TerminalString, width: number, st
   if (width >= start + text.maxTextLen) {
     width -= start;
     moveToStart = move(start, mv.cha);
+    result.push(moveToStart);
   } else {
     result.push('\n');
   }

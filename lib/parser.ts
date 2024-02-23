@@ -8,7 +8,6 @@ import type {
   OptionValues,
   Requires,
   HelpOption,
-  VersionOption,
   RequiresVal,
   ValuedOption,
   SpecialOption,
@@ -18,6 +17,7 @@ import type {
   OtherStyles,
   ArrayOption,
   SingleOption,
+  ResolveCallback,
 } from './options';
 
 import { HelpFormatter } from './formatter';
@@ -43,7 +43,7 @@ export { ArgumentParser, type ParseConfig };
  */
 type ParseConfig = {
   /**
-   * The desired console width (to print the help message).
+   * The desired terminal width (to print the help message).
    */
   width?: number;
   /**
@@ -57,7 +57,7 @@ type ParseConfig = {
 //--------------------------------------------------------------------------------------------------
 /**
  * Implements parsing of command-line arguments into option values.
- * @template T The type of the options' definitions
+ * @template T The type of the option definitions
  */
 class ArgumentParser<T extends Options> {
   private readonly registry: OptionRegistry;
@@ -72,7 +72,8 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Validates the options' definitions
+   * Validates the option definitions. This should only be called during development and in unit
+   * tests, but should be skipped in production.
    * @returns The parser instance
    */
   validate(): this {
@@ -82,9 +83,9 @@ class ArgumentParser<T extends Options> {
 
   /**
    * Convenience method to parse command-line arguments into option values.
-   * @param command The command line or command-line arguments
+   * @param command The raw command line or command-line arguments
    * @param config The parse configuration
-   * @returns The option values
+   * @returns The options' values
    */
   parse(command?: string | Array<string>, config?: ParseConfig): OptionValues<T> {
     const result = this.createValues();
@@ -94,7 +95,7 @@ class ArgumentParser<T extends Options> {
 
   /**
    * Create option values initialized with undefined.
-   * @returns The option values
+   * @returns The options' values
    */
   private createValues(): OptionValues<T> {
     const result = {} as OptionValues<T>;
@@ -107,8 +108,8 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
-   * Async version
-   * @returns A promise that resolves to the option values
+   * Async version. Use this if the option definitions contain async callbacks.
+   * @returns A promise that resolves to the options' values
    * @see parse
    */
   async parseAsync(
@@ -123,9 +124,9 @@ class ArgumentParser<T extends Options> {
   /**
    * Parses command-line arguments into option values.
    * @param values The options' values to parse into
-   * @param command The command line or command-line arguments
+   * @param command The raw command line or command-line arguments
    * @param config The parse configuration
-   * @returns A promise that can be awaited in order to await any async callbacks
+   * @returns A promise that can be awaited in order to await any async callback.
    */
   parseInto(
     values: OptionValues<T>,
@@ -134,7 +135,8 @@ class ArgumentParser<T extends Options> {
   ): Promise<Array<void>> {
     const args =
       typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
-    return new ParserLoop(this.registry, values, args, config).loop();
+    const promises = new ParserLoop(this.registry, values, args, config).loop();
+    return Promise.all(promises);
   }
 }
 
@@ -148,9 +150,9 @@ class ParserLoop {
   private readonly width?: number;
 
   /**
-   * Constructs a parser loop.
+   * Creates a parser loop.
    * @param registry The option registry
-   * @param values The option values
+   * @param values The option's values
    * @param args The command-line arguments
    * @param config The parse configuration
    */
@@ -166,9 +168,9 @@ class ParserLoop {
 
   /**
    * Loops through the command-line arguments.
-   * @returns A promise that can be awaited in order to await any async callbacks
+   * @returns The list of async callback promises. Can be ignored if empty.
    */
-  loop(): Promise<Array<void>> {
+  loop(): Array<Promise<void>> {
     function assert(_condition: unknown): asserts _condition {}
 
     let inline = false;
@@ -200,19 +202,19 @@ class ParserLoop {
             `Option ${this.registry.formatOption(name)} does not accept inline values.`,
           );
         } else if (this.handleNiladic(key, option, name, i)) {
-          return Promise.all(this.promises);
+          return this.promises;
         }
         current = undefined;
       } else if (comp !== undefined) {
         if (this.handleCompletion(option, i, value)) {
-          return Promise.all(this.promises);
+          return this.promises;
         }
         if (!inline && !marker && (addKey || (isArray(option) && isMultivalued(option)))) {
           this.handleNameCompletion(value);
         }
         throw ''; // use default completion
       } else {
-        if (addKey) {
+        if (addKey && isArray(option)) {
           this.resetValue(key, option);
         }
         if (value !== undefined) {
@@ -244,13 +246,13 @@ class ParserLoop {
     }
     this.checkRequired();
     this.setDefaultValues();
-    return Promise.all(this.promises);
+    return this.promises;
   }
 
   /**
    * Parses an option from a command-line argument.
    * @param arg The current argument
-   * @param index The current argument index
+   * @param index The argument index
    * @param comp Undefined if not completing at the current iteration
    * @param current The current option information
    * @returns A tuple of [addKey, marker, inline, current, value]
@@ -359,8 +361,10 @@ class ParserLoop {
       this.handleHelp(option);
     } else if (option.version) {
       throw option.version;
+    } else if (option.resolve) {
+      this.promises.push(resolveVersion(option.resolve));
     }
-    this.promises.push(resolveVersion(option));
+    // should not reach this point
   }
 
   /**
@@ -394,7 +398,7 @@ class ParserLoop {
    * Handles the completion of an option that has a completion callback.
    * @param complete The completion callback
    * @param index The current argument index
-   * @param param The option parameter
+   * @param param The option parameter, if any
    */
   private handleComplete(complete: CompletionCallback, index: number, param: string = '') {
     let result;
@@ -440,7 +444,7 @@ class ParserLoop {
 
   /**
    * Handles the completion of an option name.
-   * @param prefix The name prefix
+   * @param prefix The name prefix, if any
    */
   private handleNameCompletion(prefix?: string): never {
     const names = [...this.registry.names.keys()];
@@ -467,7 +471,7 @@ class ParserLoop {
   }
 
   /**
-   * Set options' values to their default value, if not set.
+   * Set options' values to their default value, if not previously set.
    */
   private setDefaultValues() {
     for (const key in this.registry.options) {
@@ -483,7 +487,7 @@ class ParserLoop {
    * Gets the normalized default value of an option.
    * @param name The option name
    * @param option The option definition
-   * @returns The default value
+   * @returns The normalized value
    */
   private getDefaultValue(name: string, option: ValuedOption): ValuedOption['default'] {
     if (option.default === undefined) {
@@ -677,7 +681,7 @@ class ParserLoop {
    * @param name The option name
    * @param option The option definition
    * @param negate True if the requirement should be negated
-   * @param key The required option key
+   * @param key The required option key (to get the specified value)
    * @param value The required value
    * @returns An error reason or null if no error
    */
@@ -794,31 +798,29 @@ class ParserLoop {
   }
 
   /**
-   * Resets the value of an option.
+   * Resets the value of an array option.
    * @param key The option key
    * @param option The option definition
    */
-  private resetValue(key: string, option: ParamOption) {
-    if (isArray(option)) {
-      type ArrayVal =
-        | Array<string>
-        | Array<number>
-        | Promise<Array<string>>
-        | Promise<Array<number>>
-        | undefined;
-      const previous = (this.values as Record<string, ArrayVal>)[key];
-      if (!previous) {
-        (this.values as Record<string, []>)[key] = [];
-      } else if (!option.append) {
-        if (previous instanceof Promise) {
-          const promise = previous.then((val) => {
-            val.length = 0;
-            return val;
-          });
-          (this.values as Record<string, typeof promise>)[key] = promise;
-        } else {
-          previous.length = 0;
-        }
+  private resetValue(key: string, option: ArrayOption) {
+    type ArrayVal =
+      | Array<string>
+      | Array<number>
+      | Promise<Array<string>>
+      | Promise<Array<number>>
+      | undefined;
+    const previous = (this.values as Record<string, ArrayVal>)[key];
+    if (!previous) {
+      (this.values as Record<string, []>)[key] = [];
+    } else if (!option.append) {
+      if (previous instanceof Promise) {
+        const promise = previous.then((val) => {
+          val.length = 0;
+          return val;
+        });
+        (this.values as Record<string, typeof promise>)[key] = promise;
+      } else {
+        previous.length = 0;
       }
     }
   }
@@ -828,7 +830,7 @@ class ParserLoop {
    * @param key The option key
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
-   * @param value The option value
+   * @param value The parameter value
    */
   private parseValue(key: string, option: ParamOption, name: string, value: string) {
     switch (option.type) {
@@ -866,11 +868,11 @@ class ParserLoop {
   }
 
   /**
-   * Parses the value of a single-valued option (except boolean).
+   * Parses the value of a single-valued option parameter.
    * @param key The option key
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
-   * @param value The option value
+   * @param value The parameter value
    * @param convertFn The function to convert from string
    * @param normalizeFn The function to normalize the value after conversion
    */
@@ -899,13 +901,13 @@ class ParserLoop {
   }
 
   /**
-   * Parses the value of an array option.
+   * Parses the value of an array option parameter.
    * @template O The type of the option
    * @template T The type of the parsed array element
    * @param key The option key
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
-   * @param value The option value
+   * @param value The parameter value
    * @param convertFn The function to convert from string
    * @param normalizeFn The function to normalize the value after conversion
    */
@@ -948,9 +950,10 @@ class ParserLoop {
         result = res.map((val) => normalizeFn(option, name, val as T));
       }
     } else {
-      const vals = option.separator
-        ? value.split(option.separator).map((val) => convertFn(val))
-        : [convertFn(value)];
+      const vals =
+        'separator' in option && option.separator
+          ? value.split(option.separator).map((val) => convertFn(val))
+          : [convertFn(value)];
       result = vals.map((val) => normalizeFn(option, name, val as T));
     }
     if (previous instanceof Promise) {
@@ -971,7 +974,7 @@ class ParserLoop {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Gets a list of command arguments from a command line.
+ * Gets a list of command arguments from a raw command line.
  * @param line The command line
  * @param compIndex The completion index, if any
  * @returns The list of arguments
@@ -1024,17 +1027,15 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
 }
 
 /**
- * Handles the special "version" option with a module-resolve function.
- * @param option The option definition
+ * Resolve a package version using a module-resolve function.
+ * @param resolve The resolve callback
  */
-async function resolveVersion(option: VersionOption): Promise<never> {
-  function assert(_condition: unknown): asserts _condition {}
-  assert(option.resolve);
+async function resolveVersion(resolve: ResolveCallback): Promise<never> {
   const { promises } = await import('fs');
   for (
-    let path = './package.json', lastResolved = '', resolved = option.resolve(path);
+    let path = './package.json', lastResolved = '', resolved = resolve(path);
     resolved != lastResolved;
-    path = '../' + path, lastResolved = resolved, resolved = option.resolve(path)
+    path = '../' + path, lastResolved = resolved, resolved = resolve(path)
   ) {
     try {
       const jsonData = await promises.readFile(new URL(resolved));
@@ -1053,7 +1054,7 @@ async function resolveVersion(option: VersionOption): Promise<never> {
  * @param actual The specified value
  * @param expected The expected value
  * @param negate True if the requirement should be negated
- * @param unique True if array elements should are unique
+ * @param unique True if array elements should be unique
  * @returns An error reason or null if no error
  */
 function checkRequiredArray(

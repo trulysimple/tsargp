@@ -54,7 +54,7 @@ export {
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
- * A helper to create option requirement expressions.
+ * A helper object to create option requirement expressions.
  */
 const req = {
   /**
@@ -101,7 +101,7 @@ const defaultStyles: ConcreteStyles = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * A set of styles for displaying an option on the console.
+ * A set of styles for displaying an option on the terminal.
  */
 type OptionStyles = {
   /**
@@ -119,7 +119,7 @@ type OptionStyles = {
 };
 
 /**
- * A set of styles for displaying text on the console.
+ * A set of styles for displaying text on the terminal.
  */
 type OtherStyles = {
   /**
@@ -177,7 +177,7 @@ type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
 /**
  * A map of option keys to required values.
  *
- * Values can be `undefined` to indicate presence and `null` to indicate absence.
+ * Values can be `undefined` to indicate presence, or `null` to indicate absence.
  */
 type RequiresVal = { [key: string]: ValuedOption['default'] | null };
 
@@ -191,17 +191,18 @@ type RequiresVal = { [key: string]: ValuedOption['default'] | null };
 type Requires = string | RequiresVal | RequiresExp;
 
 /**
- * A callback to parse the value of options that accept parameters. Any specified normalization or
- * constraint will be applied to the returned value.
+ * A callback to parse the value of option parameters. Any specified normalization or * constraint
+ * will be applied to the returned value.
  * @template T The return data type
  * @param name The option name (as specified on the command-line)
  * @param value The parameter value
  * @returns The parsed value
  */
-type ParseCallback<T> = (name: string, value: string) => T | Promise<T>;
+type ParseCallback<T> = (name: string, value: string) => T;
 
 /**
- * A module-relative resolution function scoped to each module. Non-Web environments only.
+ * A module-relative resolution function (i.e., scoped to a module). To be used in non-browser
+ * environments only.
  */
 type ResolveCallback = (specifier: string) => string;
 
@@ -237,7 +238,7 @@ type CompletionCallback = (
  */
 type WithType<T extends string> = {
   /**
-   * The option type. Booleans always default to false.
+   * The option type.
    */
   readonly type: T;
   /**
@@ -261,7 +262,7 @@ type WithType<T extends string> = {
    */
   readonly desc?: string;
   /**
-   * The option group to display in the help message.
+   * The option group in the help message.
    */
   readonly group?: string;
   /**
@@ -292,27 +293,23 @@ type WithType<T extends string> = {
  */
 type WithParam<T> = {
   /**
-   * The element separator. If not specified, the option is multivalued.
-   */
-  readonly separator?: string;
-  /**
    * The option default value.
    */
   readonly default?: T;
   /**
-   * The option example value. Replaces the option type.
+   * The option example value. Replaces the option type in the help message parameter column.
    */
   readonly example?: T;
   /**
-   * The option parameter name. Replaces the option type.
+   * The option parameter name. Replaces the option type in the help message parameter column.
    */
   readonly paramName?: string;
   /**
    * Allows positional arguments. There may be at most one option with this setting.
    *
    * If set, then any argument not recognized as an option name will be considered positional.
-   * Additionally, if a string is specified as marker, then all arguments beyond this marker will
-   * be considered positional.
+   * Additionally, if a string is specified as positional marker, then all arguments beyond this
+   * marker will be considered positional.
    *
    * We recommend also setting {@link WithType.preferredName} to some explanatory name.
    */
@@ -324,11 +321,14 @@ type WithParam<T> = {
   readonly complete?: CompletionCallback;
 };
 
+/**
+ * Defines attributes for a custom callback that parses single-value parameters.
+ */
 type WithParse<T> = {
   /**
-   * A custom function to parse the option parameter.
+   * A custom function to parse the value of the option parameter.
    */
-  readonly parse: ParseCallback<T>;
+  readonly parse: ParseCallback<T | Promise<T>>;
   /**
    * @deprecated mutually exclusive property
    */
@@ -339,11 +339,15 @@ type WithParse<T> = {
   readonly parseDelimited?: never;
 };
 
+/**
+ * Defines attributes for a custom callback that parses delimited-value parameters.
+ */
 type WithParseDelimited<T> = {
   /**
-   * A custom function to parse the option parameter.
+   * A custom function to parse the delimited values of the option parameter. If specified, the
+   * option accepts a single parameter.
    */
-  readonly parseDelimited: ParseCallback<Array<T>>;
+  readonly parseDelimited: ParseCallback<Array<T> | Promise<Array<T>>>;
   /**
    * @deprecated mutually exclusive property
    */
@@ -354,9 +358,12 @@ type WithParseDelimited<T> = {
   readonly separator?: never;
 };
 
+/**
+ * Defines attributes for an option that accepts delimited-value parameters.
+ */
 type WithDelimited = {
   /**
-   * The array element separator.
+   * The parameter value separator. If specified, the option accepts a single parameter.
    */
   readonly separator: string | RegExp;
   /**
@@ -370,7 +377,7 @@ type WithDelimited = {
 };
 
 /**
- * Defines attributes common to all options that accept array parameters.
+ * Defines attributes common to all options that have array values.
  */
 type WithArray = {
   /**
@@ -382,7 +389,7 @@ type WithArray = {
    */
   readonly append?: true;
   /**
-   * The maximum number of elements.
+   * The maximum allowed number of elements.
    */
   readonly limit?: number;
 };
@@ -425,7 +432,7 @@ type WithRegex = {
  */
 type WithRange = {
   /**
-   * The (closed) numeric range. You may want to use [-Infinity, Infinity] to disallow NaN.
+   * The (closed) numeric range. You may want to use `[-Infinity, Infinity]` to disallow `NaN`.
    */
   readonly range: [floor: number, ceiling: number];
   /**
@@ -439,7 +446,7 @@ type WithRange = {
  */
 type WithVersion = {
   /**
-   * The semantic version.
+   * The semantic version (e.g., 0.1.0).
    */
   readonly version: string;
   /**
@@ -454,8 +461,8 @@ type WithVersion = {
 type WithResolve = {
   /**
    * A resolution function scoped to the module where a `package.json` file should be searched. Use
-   * `import.meta.resolve`. Use in non-browser environments only. This is an asynchronous operation,
-   * so you should call `ArgumentParser.parseAsync` and await its result.
+   * `import.meta.resolve`. Use in non-browser environments only. This results in an asynchronous
+   * operation, so you should call `ArgumentParser.parseAsync` and await its result.
    */
   readonly resolve: ResolveCallback;
   /**
@@ -489,12 +496,12 @@ type WithNumber = Optional<WithEnums<number> | WithRange> & {
 };
 
 /**
- * An option that accepts a single boolean parameter.
+ * An option that has a boolean value (accepts a single boolean parameter).
  */
 type BooleanOption = WithType<'boolean'> & WithParam<boolean> & Optional<WithParse<boolean>>;
 
 /**
- * An option that accepts a single string parameter.
+ * An option that has a string value (accepts a single string parameter).
  */
 type StringOption = WithType<'string'> &
   WithParam<string> &
@@ -502,7 +509,7 @@ type StringOption = WithType<'string'> &
   Optional<WithParse<string>>;
 
 /**
- * An option that accepts a single number parameter.
+ * An option that has a number value (accepts a single number parameter).
  */
 type NumberOption = WithType<'number'> &
   WithParam<number> &
@@ -510,7 +517,7 @@ type NumberOption = WithType<'number'> &
   Optional<WithParse<number>>;
 
 /**
- * An option that accepts a list of string parameters.
+ * An option that has a string array value (may accept single or multiple parameters).
  */
 type StringsOption = WithType<'strings'> &
   WithParam<Array<string>> &
@@ -519,7 +526,7 @@ type StringsOption = WithType<'strings'> &
   Optional<WithParse<string> | WithParseDelimited<string> | WithDelimited>;
 
 /**
- * An option that accepts a list of number parameters.
+ * An option that has a number array value (may accept single or multiple parameters).
  */
 type NumbersOption = WithType<'numbers'> &
   WithParam<Array<number>> &
@@ -528,7 +535,7 @@ type NumbersOption = WithType<'numbers'> &
   Optional<WithParse<number> | WithParseDelimited<number> | WithDelimited>;
 
 /**
- * An option which is enabled if specified.
+ * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
 type FlagOption = WithType<'flag'> & {
   /**
@@ -561,19 +568,19 @@ type FunctionOption = WithType<'function'> & {
  */
 type HelpOption = WithType<'help'> & {
   /**
-   * The usage message.
+   * The usage message. This goes before everything else.
    */
   readonly usage?: string;
   /**
-   * The footer message.
+   * The footer message. This goes after everything else.
    */
   readonly footer?: string;
   /**
-   * The help format.
+   * The help format configuration.
    */
   readonly format?: HelpFormat;
   /**
-   * The style of option headings.
+   * The style of option group headings.
    */
   readonly headingStyle?: Style;
 };
@@ -594,12 +601,12 @@ type SpecialOption = HelpOption | VersionOption;
 type NiladicOption = FlagOption | FunctionOption | SpecialOption;
 
 /**
- * An option that accepts a single parameter.
+ * A single-valued option that accepts a single parameter.
  */
 type SingleOption = BooleanOption | StringOption | NumberOption;
 
 /**
- * An option that accepts a list of parameters.
+ * An array-valued option that may accept multiple parameters.
  */
 type ArrayOption = StringsOption | NumbersOption;
 
@@ -640,19 +647,21 @@ type DataType<T extends ValuedOption, D, E = D> = Resolve<
  * @template E The effective data type
  */
 type ParamDataType<T extends ParamOption, D, E> = T extends
-  | { parse: (name: string, value: string) => D }
-  | { parseDelimited: (name: string, value: string) => Array<D> }
+  | { parse: ParseCallback<D> }
+  | { parseDelimited: ParseCallback<Array<D>> }
   ? E
   : T extends
-        | { parse: (name: string, value: string) => Promise<D> }
-        | { parseDelimited: (name: string, value: string) => Promise<Array<D>> }
+        | { parse: ParseCallback<Promise<D>> }
+        | { parseDelimited: ParseCallback<Promise<Array<D>>> }
     ? Promise<E>
-    : T extends { parse: ParseCallback<D> } | { parseDelimited: ParseCallback<Array<D>> }
+    : T extends
+          | { parse: ParseCallback<D | Promise<D>> }
+          | { parseDelimited: ParseCallback<Array<D> | Promise<Array<D>>> }
       ? E | Promise<E>
       : E;
 
 /**
- * The data type of a non-array option.
+ * The data type of a single-valued option.
  * @template T The option definition type
  * @template D The option value data type
  */
@@ -661,7 +670,7 @@ type SingleDataType<T extends SingleOption, D> = Resolve<
 >;
 
 /**
- * The data type of an array option.
+ * The data type of an array-valued option.
  * @template T The option definition type
  * @template D The option value data type
  */
@@ -699,7 +708,7 @@ type OptionValues<T extends Options = Options> = Resolve<{
 }>;
 
 /**
- * Information regarding a positional option.
+ * Information regarding a positional option. Used internally.
  */
 type Positional = {
   key: string;
@@ -709,20 +718,20 @@ type Positional = {
 };
 
 /**
- * A helper type for optional objects.
- * @template T The actual object type
+ * A helper type to make an object type optional.
+ * @template T The source object type
  */
 type Optional<T extends object> = T | Record<never, never>;
 
 /**
  * A helper type to resolve types in IntelliSense.
- * @template T The actual type
+ * @template T The type to be resolved
  */
 type Resolve<T> = T & unknown;
 
 /**
  * A helper type to remove optionality from types and properties.
- * @template T The actual type
+ * @template T The source type
  */
 type Concrete<T> = Exclude<
   {
@@ -752,6 +761,7 @@ class OptionRegistry {
    * Creates an option registry based on a set of option definitions.
    * @param options The option definitions
    * @param styles The error message styles
+   * @throws On duplicate option names and duplicate positional options
    */
   constructor(
     readonly options: Options,
@@ -761,18 +771,68 @@ class OptionRegistry {
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option);
-      if (!isNiladic(option)) {
-        if (option.positional) {
-          if (this.positional) {
-            throw this.error(`Duplicate positional option ${this.formatOption(key)}.`);
-          }
-          const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
-          const marker = typeof option.positional === 'string' ? option.positional : undefined;
-          this.positional = { key, name, option, marker };
+      if ('positional' in option && option.positional) {
+        if (this.positional) {
+          throw this.error(`Duplicate positional option ${this.formatOption(key)}.`);
         }
+        const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+        const marker = typeof option.positional === 'string' ? option.positional : undefined;
+        this.positional = { key, name, option, marker };
       }
       if (option.required) {
         this.required.push(key);
+      }
+    }
+  }
+
+  /**
+   * Registers an option's names.
+   * @param key The option key
+   * @param option The option definition
+   * @throws On duplicate option names
+   */
+  private registerNames(key: string, option: Option) {
+    const names = option.names.filter((name): name is string => name !== null && name !== '');
+    if (option.type === 'flag' && option.negationNames) {
+      names.push(...option.negationNames.filter((name) => name));
+    }
+    if ('positional' in option && typeof option.positional === 'string') {
+      names.push(option.positional);
+    }
+    for (const name of names) {
+      if (this.names.has(name)) {
+        throw this.error(`Duplicate option name ${this.formatOption(name)}.`);
+      }
+      this.names.set(name, key);
+    }
+  }
+
+  /**
+   * Validates all options' definitions
+   * @throws On options with no name, invalid name, empty positional marker, invalid enum values,
+   * invalid default value, invalid example value, invalid requirements, invalid required values,
+   * version option with empty version and module-resolve function
+   */
+  validate() {
+    for (const key in this.options) {
+      const option = this.options[key];
+      if (!option.names.find((name) => name)) {
+        throw this.error(`Option ${this.formatOption(key)} has no name.`);
+      }
+      const invalidName = option.names.find((name) => name && name.match(/[\s=]+/));
+      if (invalidName) {
+        throw this.error(`Invalid option name ${this.formatOption(invalidName)}.`);
+      }
+      if (!isNiladic(option)) {
+        if (typeof option.positional === 'string' && !option.positional) {
+          throw this.error(`Option ${this.formatOption(key)} has empty positional marker.`);
+        }
+        this.validateEnums(key, option);
+        this.validateValue(key, option, option.default);
+        this.validateValue(key, option, option.example);
+      }
+      if (option.requires) {
+        this.validateRequirements(key, option.requires);
       }
       if (option.type === 'version' && !option.version && !option.resolve) {
         throw this.error(
@@ -783,56 +843,10 @@ class OptionRegistry {
   }
 
   /**
-   * Registers an option's names.
-   * @param key The option key
-   * @param option The option definition
-   */
-  private registerNames(key: string, option: Option) {
-    const names = option.names.filter((name): name is string => name !== null && name !== '');
-    if (!names.length) {
-      throw this.error(`Option ${this.formatOption(key)} has no name.`);
-    }
-    if (option.type === 'flag' && option.negationNames) {
-      names.push(...option.negationNames.filter((name) => name));
-    }
-    if ('positional' in option && typeof option.positional === 'string') {
-      if (!option.positional) {
-        throw this.error(`Option ${this.formatOption(key)} has empty positional marker.`);
-      }
-      names.push(option.positional);
-    }
-    for (const name of names) {
-      if (name.match(/[\s=]+/)) {
-        throw this.error(`Invalid option name ${this.formatOption(name)}.`);
-      }
-      if (this.names.has(name)) {
-        throw this.error(`Duplicate option name ${this.formatOption(name)}.`);
-      }
-      this.names.set(name, key);
-    }
-  }
-
-  /**
-   * Validates all options' definitions
-   */
-  validate() {
-    for (const key in this.options) {
-      const option = this.options[key];
-      if (!isNiladic(option)) {
-        this.validateEnums(key, option);
-        this.validateValue(key, option, option.default);
-        this.validateValue(key, option, option.example);
-      }
-      if (option.requires) {
-        this.validateRequirements(key, option.requires);
-      }
-    }
-  }
-
-  /**
    * Validates an option's requirements.
    * @param key The option key
    * @param requires The option requirements
+   * @throws On invalid requirements or invalid required values
    */
   private validateRequirements(key: string, requires: Requires) {
     if (typeof requires === 'string') {
@@ -855,6 +869,8 @@ class OptionRegistry {
    * @param key The requiring option key
    * @param requiredKey The required option key
    * @param requiredValue The required value, if any
+   * @throws On option requiring itself, unknown required option, niladic option required with value
+   * or invalid required values for non-niladic options
    */
   private validateRequirement(
     key: string,
@@ -882,6 +898,7 @@ class OptionRegistry {
    * Checks the sanity of the option's enumerated values.
    * @param key The option key
    * @param option The option definition
+   * @throws On zero or duplicate enumerated values or values not satisfying specified constraints
    */
   private validateEnums(key: string, option: ParamOption) {
     if ('enums' in option && option.enums) {
@@ -908,6 +925,7 @@ class OptionRegistry {
    * @param value The option value
    * @param key The option key
    * @param type The data type name
+   * @throws On value not conforming to the given type
    */
   private assertType<T>(value: unknown, key: string, type: string): asserts value is T {
     if (typeof value !== type) {
@@ -924,6 +942,7 @@ class OptionRegistry {
    * @param key The option key
    * @param option The option definition
    * @param value The option value
+   * @throws On value not satisfying specified constraints
    */
   private validateValue(key: string, option: ParamOption, value: ParamOption['default']) {
     if (value === undefined) {
@@ -971,6 +990,7 @@ class OptionRegistry {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @throws On value not satisfying the specified enumeration or regex constraint
    */
   normalizeString(option: StringOption | StringsOption, name: string, value: string): string {
     if (option.trim) {
@@ -1000,6 +1020,7 @@ class OptionRegistry {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @throws On value not satisfying the specified enumeration or range constraint
    */
   normalizeNumber(option: NumberOption | NumbersOption, name: string, value: number): number {
     switch (option.round) {
@@ -1042,6 +1063,7 @@ class OptionRegistry {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @throws On value not satisfying the specified limit constraint
    */
   normalizeArray(
     option: StringsOption | NumbersOption,
@@ -1062,54 +1084,54 @@ class OptionRegistry {
   }
 
   /**
-   * Formats an option name to be printed on the console.
+   * Formats an option name to be printed on the terminal.
    * @param name The option name
-   * @returns The formatted option name
+   * @returns The formatted string
    */
-  formatOption(name: string) {
+  formatOption(name: string): string {
     return `${this.styles.option}${name}${this.styles.text}`;
   }
 
   /**
-   * Formats a boolean value to be printed on the console.
+   * Formats a boolean value to be printed on the terminal.
    * @param value The boolean value
-   * @returns The formatted boolean value
+   * @returns The formatted string
    */
-  formatBoolean(value: boolean) {
+  formatBoolean(value: boolean): string {
     return `${this.styles.boolean}${value}${this.styles.text}`;
   }
 
   /**
-   * Formats a string value to be printed on the console.
+   * Formats a string value to be printed on the terminal.
    * @param value The string value
-   * @returns The formatted string value
+   * @returns The formatted string
    */
-  formatString(value: string) {
+  formatString(value: string): string {
     return `${this.styles.string}'${value}'${this.styles.text}`;
   }
 
   /**
-   * Formats a number value to be printed on the console.
+   * Formats a number value to be printed on the terminal.
    * @param value The number value
-   * @returns The formatted number value
+   * @returns The formatted string
    */
-  formatNumber(value: number) {
+  formatNumber(value: number): string {
     return `${this.styles.number}${value}${this.styles.text}`;
   }
 
   /**
-   * Formats a regex value to be printed on the console.
+   * Formats a regex value to be printed on the terminal.
    * @param value The regex value
-   * @returns The formatted regex value
+   * @returns The formatted string
    */
-  formatRegex(value: RegExp) {
+  formatRegex(value: RegExp): string {
     return `${this.styles.regex}${String(value)}${this.styles.text}`;
   }
 
   /**
-   * Creates an error from a message with style.
+   * Creates an error with a formatted message.
    * @param msg The error message
-   * @returns The error
+   * @returns The formatted error
    */
   error(msg: string): Error {
     return Error(`${this.styles.text}${msg}`);
@@ -1129,7 +1151,7 @@ function isNiladic(option: Option): option is NiladicOption {
 }
 
 /**
- * Tests if an option is an array option (i.e., accepts a list of parameters).
+ * Tests if an option is an array option (i.e., has an array value).
  * @param option The option definition
  * @returns True if the option is an array option
  */
@@ -1138,9 +1160,9 @@ function isArray(option: Option): option is ArrayOption {
 }
 
 /**
- * Tests if an option is valued.
+ * Tests if an option has a value.
  * @param option The option definition
- * @returns True if the option is niladic
+ * @returns True if the option has a value
  */
 function isValued(option: Option): option is ValuedOption {
   return !['function', 'help', 'version'].includes(option.type);
