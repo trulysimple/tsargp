@@ -707,8 +707,9 @@ class HelpFormatter {
    * Formats a list of values to be printed on the console.
    * @param option The option definition
    * @param values The array values
-   * @param descStyle The description style
    * @param result The resulting string
+   * @param formatFn The function to convert a value to string
+   * @param descStyle The description style
    */
   private formatArrayVal<T extends string | number>(
     option: ArrayOption,
@@ -732,6 +733,9 @@ class HelpFormatter {
    * @param values The array values
    * @param descStyle The description style
    * @param result The resulting string
+   * @param formatFn The function to convert a value to string
+   * @param brackets An optional pair of brackets to surround the values
+   * @param separator An optional separator to delimit the values
    */
   private formatArray<T extends string | number>(
     values: Array<T>,
@@ -989,12 +993,13 @@ class HelpFormatter {
   /**
    * Formats a help message from a list of help entries.
    * @param width The desired console width
+   * @param entries The help entries
    * @returns The formatted help message
    */
   private formatEntries(width: number, entries: Array<HelpEntry>): string {
     function formatCol(line: TerminalString, col: number, breaks: number): TerminalString {
       if (breaks > 0) {
-        line.addSequence(move(breaks, mv.cud));
+        line.addText('\n'.repeat(breaks)); // cursor down is not supported in some terminals
       }
       line.addSequence(move(col, mv.cha));
       return line;
