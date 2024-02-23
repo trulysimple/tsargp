@@ -254,7 +254,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-h'])).toThrow(/usage.+Options:.+ {3}.*-h.+footer/s);
+        expect(() => parser.parse(['-h'])).toThrow(/^usage\n.+Options:\n.+-h.+footer$/s);
       });
     });
 

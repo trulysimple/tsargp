@@ -94,7 +94,7 @@ const defaultStyles: ConcreteStyles = {
   string: style(fg.green),
   number: style(fg.yellow),
   option: style(fg.magenta),
-  whitespace: style(fg.default),
+  text: style(fg.default),
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -143,9 +143,9 @@ type OtherStyles = {
    */
   readonly option?: Style;
   /**
-   * The style of whitespace or error messages.
+   * The style of general text.
    */
-  readonly whitespace?: Style;
+  readonly text?: Style;
 };
 
 /**
@@ -469,7 +469,7 @@ type WithResolve = {
  */
 type WithString = Optional<WithEnums<string> | WithRegex> & {
   /**
-   * True if the values should be trimmed.
+   * True if the values should be trimmed (remove leading and trailing whitespace).
    */
   readonly trim?: true;
   /**
@@ -911,7 +911,7 @@ class OptionRegistry {
    */
   private assertType<T>(value: unknown, key: string, type: string): asserts value is T {
     if (typeof value !== type) {
-      const valType = `${this.styles.string}'${type}'${this.styles.whitespace}`;
+      const valType = `${this.styles.string}'${type}'${this.styles.text}`;
       throw this.error(
         `Option ${this.formatOption(key)} has incompatible value <${value}>. ` +
           `Should be of type ${valType}.`,
@@ -1067,7 +1067,7 @@ class OptionRegistry {
    * @returns The formatted option name
    */
   formatOption(name: string) {
-    return `${this.styles.option}${name}${this.styles.whitespace}`;
+    return `${this.styles.option}${name}${this.styles.text}`;
   }
 
   /**
@@ -1076,7 +1076,7 @@ class OptionRegistry {
    * @returns The formatted boolean value
    */
   formatBoolean(value: boolean) {
-    return `${this.styles.boolean}${value}${this.styles.whitespace}`;
+    return `${this.styles.boolean}${value}${this.styles.text}`;
   }
 
   /**
@@ -1085,7 +1085,7 @@ class OptionRegistry {
    * @returns The formatted string value
    */
   formatString(value: string) {
-    return `${this.styles.string}'${value}'${this.styles.whitespace}`;
+    return `${this.styles.string}'${value}'${this.styles.text}`;
   }
 
   /**
@@ -1094,7 +1094,7 @@ class OptionRegistry {
    * @returns The formatted number value
    */
   formatNumber(value: number) {
-    return `${this.styles.number}${value}${this.styles.whitespace}`;
+    return `${this.styles.number}${value}${this.styles.text}`;
   }
 
   /**
@@ -1103,7 +1103,7 @@ class OptionRegistry {
    * @returns The formatted regex value
    */
   formatRegex(value: RegExp) {
-    return `${this.styles.regex}${String(value)}${this.styles.whitespace}`;
+    return `${this.styles.regex}${String(value)}${this.styles.text}`;
   }
 
   /**
@@ -1112,7 +1112,7 @@ class OptionRegistry {
    * @returns The error
    */
   error(msg: string): Error {
-    return Error(`${this.styles.whitespace}${msg}`);
+    return Error(`${this.styles.text}${msg}`);
   }
 }
 

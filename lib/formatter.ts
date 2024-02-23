@@ -15,7 +15,7 @@ import type {
 import type { Style } from './styles';
 
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isNiladic } from './options';
-import { fg, isStyle, style, TerminalString, tf } from './styles';
+import { fg, isStyle, move, mv, style, TerminalString, tf } from './styles';
 
 export { HelpFormatter, HelpItem, type HelpFormat };
 
@@ -29,16 +29,6 @@ type HelpEntry = {
   readonly names: TerminalString;
   readonly param: TerminalString;
   readonly desc: TerminalString;
-};
-
-/**
- * Precomputed indentation.
- */
-type HelpIndent = {
-  readonly names: string;
-  readonly param: string;
-  readonly desc: string;
-  readonly wrap: string;
 };
 
 /**
@@ -132,23 +122,77 @@ type HelpFormat = {
  * The kind of items that can be shown in the option description.
  */
 const enum HelpItem {
+  /**
+   * The user-provided option description.
+   */
   desc,
+  /**
+   * The negation names of a flag option, if enabled.
+   */
   negation,
+  /**
+   * The element delimiter of an array option, if enabled.
+   */
   separator,
+  /**
+   * Reports if an array option is multivalued.
+   */
   multivalued,
+  /**
+   * Reports if an option accepts positional arguments.
+   */
   positional,
+  /**
+   * Reports if an array option can be specified multiple times.
+   */
   append,
+  /**
+   * Reports if string parameters will be trimmed (leading and trailing whitespace removed).
+   */
   trim,
+  /**
+   * The kind of case-conversion applied to string parameters, if enabled.
+   */
   case,
+  /**
+   * The kind of rounding applied to number parameters, if enabled.
+   */
   round,
+  /**
+   * The enumerated values that the option accepts as parameters, if enabled.
+   */
   enums,
+  /**
+   * The regular expression that string parameters should match, if enabled.
+   */
   regex,
+  /**
+   * The numeric range that number parameters should be within, if enabled.
+   */
   range,
+  /**
+   * Reports if duplicate elements will be removed from an array option value.
+   */
   unique,
+  /**
+   * The value count limit of an array option, if enabled.
+   */
   limit,
+  /**
+   * The option requirements, if any.
+   */
   requires,
+  /**
+   * Reports if the option is always required.
+   */
   required,
+  /**
+   * The option default value, if any.
+   */
   default,
+  /**
+   * Reports if the option is deprecated.
+   */
   deprecated,
 }
 
@@ -182,7 +226,7 @@ const defaultConfig: ConcreteFormat = {
     string: style(fg.green),
     number: style(fg.yellow),
     option: style(fg.magenta),
-    whitespace: style(tf.clear),
+    text: style(tf.clear),
   },
   items: [
     HelpItem.desc,
@@ -214,11 +258,11 @@ const defaultConfig: ConcreteFormat = {
  */
 class HelpFormatter {
   private readonly groups = new Map<string, Array<HelpEntry>>();
-  private readonly nameWidths = new Array<number>();
-  private readonly namesWidth: number = 0;
-  private readonly paramWidth: number = 0;
   private readonly config: ConcreteFormat;
-  private readonly indent: HelpIndent;
+  private readonly nameWidths: Array<number>;
+  private readonly namesStart: number;
+  private readonly paramStart: number;
+  private readonly descStart: number;
 
   /**
    * Keep this in-sync with {@link HelpItem}.
@@ -254,16 +298,29 @@ class HelpFormatter {
     config: HelpFormat = {},
   ) {
     this.config = HelpFormatter.mergeConfig(config);
-    this.nameWidths = this.getNameWidths();
+    this.nameWidths = getNameWidths(options);
+    const namesWidth = this.nameWidths.reduce((acc, len) => acc + len, 2);
+    let paramWidth = 0;
     for (const key in options) {
       const option = options[key];
       if (!option.hide) {
         const entry = this.formatOption(option);
-        this.namesWidth = Math.max(this.namesWidth, entry.names.length);
-        this.paramWidth = Math.max(this.paramWidth, entry.param.length);
+        paramWidth = Math.max(paramWidth, entry.param.length);
       }
     }
-    this.indent = this.getIndent();
+    this.namesStart = Math.max(1, this.config.indent.names + 1);
+    this.paramStart = Math.max(
+      1,
+      this.config.indent.paramAbsolute
+        ? this.config.indent.param + 1
+        : this.namesStart + namesWidth + this.config.indent.param,
+    );
+    this.descStart = Math.max(
+      1,
+      this.config.indent.descAbsolute
+        ? this.config.indent.desc + 1
+        : this.paramStart + paramWidth + this.config.indent.desc,
+    );
   }
 
   /**
@@ -279,61 +336,6 @@ class HelpFormatter {
       hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
       items: config.items ?? defaultConfig.items,
     };
-  }
-
-  /**
-   * @returns The precomputed indentation strings
-   */
-  private getIndent(): HelpIndent {
-    const namesIndent = this.config.indent.names;
-    const paramIndent = this.config.indent.paramAbsolute
-      ? this.config.indent.param - (namesIndent + this.namesWidth)
-      : this.config.indent.param;
-    const descIndent = this.config.indent.descAbsolute
-      ? this.config.indent.desc - (namesIndent + this.namesWidth + paramIndent + this.paramWidth)
-      : this.config.indent.desc;
-    const indent = {
-      names: ' '.repeat(Math.max(0, namesIndent)),
-      param: ' '.repeat(Math.max(0, paramIndent)),
-      desc: ' '.repeat(Math.max(0, descIndent)),
-    };
-    const breaks = {
-      names: '\n'.repeat(Math.max(0, this.config.breaks.names)),
-      param: '\n'.repeat(Math.max(0, this.config.breaks.param)),
-      desc: '\n'.repeat(Math.max(0, this.config.breaks.desc)),
-    };
-    const paramStart = namesIndent + this.namesWidth + paramIndent;
-    const descStart = paramStart + this.paramWidth + descIndent;
-    const paramBlank = this.config.indent.paramAbsolute ? this.config.indent.param : paramStart;
-    const descBlank = this.config.indent.descAbsolute ? this.config.indent.desc : descStart;
-    const blanks = {
-      param: ' '.repeat(Math.max(0, paramBlank)),
-      desc: ' '.repeat(Math.max(0, descBlank)),
-    };
-    return {
-      names: breaks.names + indent.names,
-      param: breaks.param ? breaks.param + blanks.param : indent.param,
-      desc: breaks.desc ? breaks.desc + blanks.desc : indent.desc,
-      wrap: blanks.desc,
-    };
-  }
-
-  /**
-   * @returns The maximum length of each name slot
-   */
-  private getNameWidths(): Array<number> {
-    const result = new Array<number>();
-    for (const key in this.options) {
-      const option = this.options[key];
-      option.names.forEach((name, i) => {
-        if (i == result.length) {
-          result.push(name?.length ?? 0);
-        } else if (name && name.length > result[i]) {
-          result[i] = name.length;
-        }
-      });
-    }
-    return result;
   }
 
   /**
@@ -377,20 +379,25 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatNames2(names: Array<string | null>, namesStyle: Style, result: TerminalString) {
-    const whitespaceStyle = this.config.styles.whitespace;
-    let sep = '';
-    let prefix = '';
+    const textStyle = this.config.styles.text;
+    let prev = false;
+    let prefix = 0;
     function formatName(name: string | null, width: number) {
-      if (sep || prefix) {
-        result.addSequence(whitespaceStyle).addText((name ? sep : '  ') + prefix);
+      if (prev && name) {
+        result.addSequence(textStyle).addText(',');
+      } else if (prefix) {
+        prefix++;
+      }
+      if (prefix) {
+        result.addSequence(move(prefix, mv.cuf));
       }
       if (name) {
         result.addSequence(namesStyle).addText(name);
-        sep = ', ';
+        prev = true;
       } else {
-        sep = '  ';
+        prev = false;
       }
-      prefix = ' '.repeat(width - (name?.length ?? 0));
+      prefix = width - (name?.length ?? 0) + 1;
     }
     names.forEach((name, i) => formatName(name, this.nameWidths[i]));
   }
@@ -715,8 +722,8 @@ class HelpFormatter {
     } else if (option.separator) {
       this.formatString(value.join(option.separator), result);
     } else {
-      const style = this.config.styles.whitespace;
-      this.formatArray(value, style, result, formatFn, undefined, ' ');
+      const textStyle = this.config.styles.text;
+      this.formatArray(value, textStyle, result, formatFn, undefined, ' ');
     }
   }
 
@@ -985,18 +992,20 @@ class HelpFormatter {
    * @returns The formatted help message
    */
   private formatEntries(width: number, entries: Array<HelpEntry>): string {
-    function formatCol(line: TerminalString, indent: string, str: TerminalString, width: number) {
-      line.addText(indent).addOther(str);
-      line.addSequence(whitespaceStyle).addText(' '.repeat(width - str.length));
+    function formatCol(line: TerminalString, col: number, breaks: number): TerminalString {
+      if (breaks > 0) {
+        line.addSequence(move(breaks, mv.cud));
+      }
+      line.addSequence(move(col, mv.cha));
+      return line;
     }
-    const whitespaceStyle = this.config.styles.whitespace;
     const lines = new Array<string>();
     for (const entry of entries) {
-      const line = new TerminalString().addSequence(whitespaceStyle);
-      formatCol(line, this.indent.names, entry.names, this.namesWidth);
-      formatCol(line, this.indent.param, entry.param, this.paramWidth);
-      line.addText(this.indent.desc);
-      wrapText(lines, entry.desc, width, line.string, this.indent.wrap, whitespaceStyle);
+      const line = new TerminalString();
+      formatCol(line, this.namesStart, this.config.breaks.names).addOther(entry.names);
+      formatCol(line, this.paramStart, this.config.breaks.param).addOther(entry.param);
+      formatCol(line, this.descStart, this.config.breaks.desc);
+      wrapText(lines, entry.desc, width, line.string, this.descStart);
     }
     return lines.join('\n');
   }
@@ -1005,6 +1014,33 @@ class HelpFormatter {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Gets the maximum option name length in each name slot.
+ * @param options The option definitions
+ * @returns The maximum length of each name slot
+ */
+function getNameWidths(options: Options): Array<number> {
+  const result = new Array<number>();
+  for (const key in options) {
+    const option = options[key];
+    if (!option.hide) {
+      option.names.forEach((name, i) => {
+        if (i == result.length) {
+          result.push(name?.length ?? 0);
+        } else if (name && name.length > result[i]) {
+          result[i] = name.length;
+        }
+      });
+    }
+  }
+  return result;
+}
+
+/**
+ * Split a text into words.
+ * @param text The text to be split
+ * @returns The terminal string
+ */
 function splitWords(text: string): TerminalString {
   const regex = {
     para: /(?:[ \t]*\r?\n){2,}/,
@@ -1056,30 +1092,27 @@ function splitWords(text: string): TerminalString {
  * @param text The text to be wrapped (styled string)
  * @param width The desired console width
  * @param prefix The prefix at the start of the first line
- * @param indent The indentation at the start of each wrapped line
- * @param whitespaceStyle The style for whitespace
+ * @param start The column number to start at each wrapped line
  */
 function wrapText(
   lines: Array<string>,
   text: TerminalString,
   width: number,
   prefix: string,
-  indent: string,
-  whitespaceStyle: Style,
+  start: number,
 ) {
-  const firstStyle = text.strings.length && isStyle(text.strings[0]) ? text.strings[0] : '';
-  const descStyle = firstStyle != whitespaceStyle ? firstStyle : '';
-  if (width >= indent.length + text.maxTextLen) {
-    width -= indent.length;
-    indent = whitespaceStyle + indent;
+  const descStyle = text.strings.length && isStyle(text.strings[0]) ? text.strings[0] : '';
+  let moveToStart = '';
+  let line = [prefix];
+  if (width >= start + text.maxTextLen) {
+    width -= start;
+    moveToStart = move(start, mv.cha);
   } else {
-    prefix += '\n';
-    indent = '';
+    line.push('\n');
   }
   const punctuation = /^[.,:;!?](?!=)/;
   const closingBrackets = /^[)\]}]/;
   const openingBrackets = /^[{[(]/;
-  let line = [prefix];
   let merge = false;
   let lineLength = 0;
   let currentLen = 0;
@@ -1097,12 +1130,12 @@ function wrapText(
       lineLength += space.length + currentLen;
     } else {
       lines.push(line.join(''));
-      line = [indent, lastStyle, currentWord];
+      line = [moveToStart, lastStyle, currentWord];
       lineLength = currentLen;
     }
     if (currentStyle) {
       lastStyle = descStyle;
-      if ((descStyle && currentStyle != descStyle) || currentStyle != whitespaceStyle) {
+      if (currentStyle != descStyle) {
         lastStyle += currentStyle;
       }
       currentStyle = '';
@@ -1122,7 +1155,7 @@ function wrapText(
       if (word == '\n\n') {
         lines.push('');
       }
-      line = [indent, lastStyle];
+      line = [moveToStart, lastStyle];
       lineLength = 0;
       currentWord = '';
       currentLen = 0;

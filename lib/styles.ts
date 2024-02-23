@@ -597,16 +597,17 @@ class TerminalString {
   }
 
   /**
-   * Appends a sequence to the list of strings.
-   * @param seq The sequence string
+   * Appends sequences to the list of strings.
+   * @param sequences The sequence strings
    * @returns This
    */
-  addSequence(seq: Sequence): this {
-    if (seq != this.lastSequence) {
-      const index = this.strings.push(seq);
-      this.lastSequence = seq;
+  addSequence(...sequences: Array<Sequence>): this {
+    const index = sequences.findIndex((seq) => seq != this.lastSequence);
+    if (index >= 0) {
+      const len = this.strings.push(...sequences.slice(index));
+      this.lastSequence = sequences[sequences.length - 1];
       if (this.firstSeqIndex == undefined) {
-        this.firstSeqIndex = index - 1;
+        this.firstSeqIndex = len - 1;
       }
     }
     return this;

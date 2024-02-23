@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HelpFormatter, req, style, tf, fg8, type Options } from '../lib';
 
 // eslint-disable-next-line no-control-regex
-const styleRegex = /\x9b[\d;]+m/g;
+const styleRegex = /(?:\x9b[\d;]+[BCGm])+/g;
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
@@ -21,7 +21,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--function +A function option\./);
+        expect(message).toMatch(`-f,--functionA function option.`);
       });
     });
 
@@ -39,7 +39,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option with custom styles\./);
+        expect(message).toMatch(`-f,--flagA flag option with custom styles.`);
       });
 
       it('should handle an option with inline styles in the description', () => {
@@ -51,7 +51,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option with inline styles\./);
+        expect(message).toMatch(`-f,--flagA flag option with inline styles.`);
       });
 
       it('should handle an option with paragraphs in the description', () => {
@@ -67,7 +67,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-f, +--flag +A flag option with line breaks, tabs and\.{3}\n\n +paragraphs\./,
+          `-f,--flagA flag option with line breaks, tabs and...\n\nparagraphs.`,
         );
       });
 
@@ -83,9 +83,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(
-          /-f, +--flag +A flag option with lists:\n +- item1\n +\* item2\n +1\. item3/,
-        );
+        expect(message).toMatch(/-f,--flagA flag option with lists:\n- item1\n\* item2\n1. item3/);
       });
 
       it('should hide the option names from the help message when configured to do so', () => {
@@ -98,7 +96,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const formatter = new HelpFormatter(options, { hidden: { names: true } });
         const message = formatter.formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/^ +A flag option\.$/);
+        expect(message).toMatch(/^A flag option\.$/);
       });
 
       it('should hide the option description from the help message when configured to do so', () => {
@@ -111,7 +109,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const formatter = new HelpFormatter(options, { hidden: { desc: true } });
         const message = formatter.formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/^ +-f, +--flag +$/);
+        expect(message).toMatch(/^-f,--flag$/);
       });
 
       it('should hide an option from the help message when it asks so', () => {
@@ -140,7 +138,7 @@ describe('HelpFormatter', () => {
         const group = groups.get('group');
         assert(group);
         const message = group.replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\./);
+        expect(message).toMatch(`-f,--flagA flag option.`);
       });
 
       it('should handle a deprecated option', () => {
@@ -153,7 +151,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\. Deprecated for reason\./);
+        expect(message).toMatch(`-f,--flagA flag option. Deprecated for reason.`);
       });
 
       it('should handle a required option', () => {
@@ -166,7 +164,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\. Always required\./);
+        expect(message).toMatch(`-f,--flagA flag option. Always required.`);
       });
 
       it('should handle an option that requires the presence of another', () => {
@@ -183,7 +181,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\. Requires -req\./);
+        expect(message).toMatch(`-f,--flagA flag option. Requires -req.`);
       });
 
       it('should handle an option that requires the presence of another (2)', () => {
@@ -200,7 +198,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\. Requires -req\./);
+        expect(message).toMatch(`-f,--flagA flag option. Requires -req.`);
       });
 
       it('should handle an option that requires the absence of another', () => {
@@ -217,7 +215,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\. Requires no -req\./);
+        expect(message).toMatch(`-f,--flagA flag option. Requires no -req.`);
       });
 
       it('should handle an option that requires the absence of another (2)', () => {
@@ -234,7 +232,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\. Requires no -req\./);
+        expect(message).toMatch(`-f,--flagA flag option. Requires no -req.`);
       });
 
       it('should handle an option that requires another option with a value', () => {
@@ -251,7 +249,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-f, +--flag +A flag option\. Requires -req = 'abc'\./);
+        expect(message).toMatch(`-f,--flagA flag option. Requires -req = 'abc'.`);
       });
 
       it('should handle a option with a requirement expression', () => {
@@ -280,7 +278,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-f, +--flag +A flag option\. Requires \(-req1 and \(-req2 = 1 or -req3 != '2'\)\)\./,
+          `-f,--flagA flag option. Requires (-req1 and (-req2 = 1 or -req3 != '2')).`,
         );
       });
 
@@ -294,9 +292,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(
-          /-f, +--flag +A flag option\. Can be negated with -no-f or --no-flag\./,
-        );
+        expect(message).toMatch(/-f,--flagA flag option. Can be negated with -no-f or --no-flag./);
       });
     });
 
@@ -311,7 +307,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const formatter = new HelpFormatter(options, { hidden: { param: true } });
         const message = formatter.formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/^ +-b, +--boolean +A boolean option\.$/);
+        expect(message).toMatch(/^-b,--booleanA boolean option\.$/);
       });
 
       it('should handle a boolean option with a parameter name', () => {
@@ -324,7 +320,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-b, +--boolean +<param> +A boolean option\./);
+        expect(message).toMatch(`-b,--boolean<param>A boolean option.`);
       });
 
       it('should handle a boolean option with a parameter name with angle brackets', () => {
@@ -337,7 +333,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-b, +--boolean +<token>=<value> +A boolean option\./);
+        expect(message).toMatch(`-b,--boolean<token>=<value>A boolean option.`);
       });
 
       it('should handle a boolean option with a default value', () => {
@@ -350,7 +346,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-b, +--boolean +<boolean> +A boolean option\. Defaults to true\./);
+        expect(message).toMatch(`-b,--boolean<boolean>A boolean option. Defaults to true.`);
       });
 
       it('should handle a boolean option with an example value', () => {
@@ -363,7 +359,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-b, +--boolean +true +A boolean option\./);
+        expect(message).toMatch(`-b,--boolean` + `trueA boolean option.`);
       });
     });
 
@@ -378,7 +374,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-s, +--string +<param> +A string option\./);
+        expect(message).toMatch(`-s,--string<param>A string option.`);
       });
 
       it('should handle a string option with a parameter name with angle brackets', () => {
@@ -391,7 +387,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-s, +--string +<token>=<value> +A string option\./);
+        expect(message).toMatch(`-s,--string<token>=<value>A string option.`);
       });
 
       it('should handle a string option with a default value', () => {
@@ -404,7 +400,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-s, +--string +<string> +A string option\. Defaults to '123'\./);
+        expect(message).toMatch(`-s,--string<string>A string option. Defaults to '123'.`);
       });
 
       it('should handle a string option with an example value', () => {
@@ -417,7 +413,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-s, +--string +'123' +A string option\./);
+        expect(message).toMatch(`-s,--string'123'A string option.`);
       });
 
       it('should handle a string option with enumeration constraint', () => {
@@ -431,7 +427,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-s, +--string +<string> +A string option\. Values must be one of \{'one', 'two'\}\./,
+          `-s,--string<string>A string option. Values must be one of {'one', 'two'}.`,
         );
       });
 
@@ -446,7 +442,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-s, +--string +<string> +A string option\. Values must match the regex \/\\d\+\/s\./,
+          `-s,--string<string>A string option. Values must match the regex /\\d+/s.`,
         );
       });
 
@@ -460,9 +456,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(
-          /-s, +--string +<string> +A string option\. Values will be trimmed\./,
-        );
+        expect(message).toMatch(/-s,--string<string>A string option. Values will be trimmed./);
       });
 
       it('should handle a string option whose values will be converted to lowercase', () => {
@@ -476,7 +470,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-s, +--string +<string> +A string option\. Values will be converted to lowercase\./,
+          `-s,--string<string>A string option. Values will be converted to lowercase.`,
         );
       });
 
@@ -491,7 +485,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-s, +--string +<string> +A string option\. Values will be converted to uppercase\./,
+          `-s,--string<string>A string option. Values will be converted to uppercase.`,
         );
       });
     });
@@ -507,7 +501,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-n, +--number +<number> +A number option\. Defaults to 123\./);
+        expect(message).toMatch(`-n,--number<number>A number option. Defaults to 123.`);
       });
 
       it('should handle a number option with an example value', () => {
@@ -520,7 +514,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(/-n, +--number +123 +A number option\./);
+        expect(message).toMatch(`-n,--number123A number option.`);
       });
 
       it('should handle a number option with enumeration constraint', () => {
@@ -534,7 +528,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-n, +--number +<number> +A number option\. Values must be one of \{1, 2\}\./,
+          `-n,--number<number>A number option. Values must be one of {1, 2}.`,
         );
       });
 
@@ -549,7 +543,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-n, +--number +<number> +A number option\. Values must be in the range \[0, Infinity\]\./,
+          `-n,--number<number>A number option. Values must be in the range [0, Infinity].`,
         );
       });
 
@@ -563,9 +557,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(
-          /-n, +--number +<number> +A number option\. Values will be truncated\./,
-        );
+        expect(message).toMatch(/-n,--number<number>A number option. Values will be truncated./);
       });
 
       it('should handle a number option with ceil rounding', () => {
@@ -579,7 +571,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-n, +--number +<number> +A number option\. Values will be rounded to the ceil integer\./,
+          `-n,--number<number>A number option. Values will be rounded to the ceil integer.`,
         );
       });
 
@@ -594,7 +586,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-n, +--number +<number> +A number option\. Values will be rounded to the floor integer\./,
+          `-n,--number<number>A number option. Values will be rounded to the floor integer.`,
         );
       });
 
@@ -609,7 +601,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-n, +--number +<number> +A number option\. Values will be rounded to the nearest integer\./,
+          `-n,--number<number>A number option. Values will be rounded to the nearest integer.`,
         );
       });
     });
@@ -627,7 +619,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Values are delimited by ','\. May be specified multiple times\./,
+          `-ss,--strings<strings>A strings option. Values are delimited by ','. May be specified multiple times.`,
         );
       });
 
@@ -642,7 +634,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Accepts multiple parameters\. Defaults to \['one', 'two'\]\./,
+          `-ss,--strings<strings>A strings option. Accepts multiple parameters. Defaults to ['one', 'two'].`,
         );
       });
 
@@ -658,7 +650,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +'one,two' +A strings option\. Values are delimited by ','\./,
+          `-ss,--strings'one,two'A strings option. Values are delimited by ','.`,
         );
       });
 
@@ -673,7 +665,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Accepts multiple parameters\. Values must be one of \{'one', 'two'\}\./,
+          `-ss,--strings<strings>A strings option. Accepts multiple parameters. Values must be one of {'one', 'two'}.`,
         );
       });
 
@@ -689,7 +681,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Values are delimited by ','\. Values must match the regex \/\\d\+\/s\./,
+          `-ss,--strings<strings>A strings option. Values are delimited by ','. Values must match the regex /\\d+/s.`,
         );
       });
 
@@ -704,7 +696,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Accepts multiple parameters\. Accepts positional parameters\./,
+          `-ss,--strings<strings>A strings option. Accepts multiple parameters. Accepts positional parameters.`,
         );
       });
 
@@ -719,7 +711,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Accepts multiple parameters\. Accepts positional parameters preceded by --\./,
+          `-ss,--strings<strings>A strings option. Accepts multiple parameters. Accepts positional parameters preceded by --.`,
         );
       });
 
@@ -735,7 +727,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Values are delimited by ','\. Values will be trimmed\./,
+          `-ss,--strings<strings>A strings option. Values are delimited by ','. Values will be trimmed.`,
         );
       });
 
@@ -751,7 +743,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Values are delimited by ','\. Values will be converted to lowercase\./,
+          `-ss,--strings<strings>A strings option. Values are delimited by ','. Values will be converted to lowercase.`,
         );
       });
 
@@ -767,7 +759,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Values are delimited by ','\. Values will be converted to uppercase\./,
+          `-ss,--strings<strings>A strings option. Values are delimited by ','. Values will be converted to uppercase.`,
         );
       });
 
@@ -782,7 +774,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Accepts multiple parameters\. Value count is limited to 2\./,
+          `-ss,--strings<strings>A strings option. Accepts multiple parameters. Value count is limited to 2.`,
         );
       });
 
@@ -798,7 +790,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ss, +--strings +<strings> +A strings option\. Values are delimited by ','\. Duplicate values will be removed\./,
+          `-ss,--strings<strings>A strings option. Values are delimited by ','. Duplicate values will be removed.`,
         );
       });
     });
@@ -816,7 +808,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Values are delimited by ','\. May be specified multiple times\./,
+          `-ns,--numbers<numbers>A numbers option. Values are delimited by ','. May be specified multiple times.`,
         );
       });
 
@@ -831,7 +823,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Accepts multiple parameters\. Defaults to \[1, 2\]\./,
+          `-ns,--numbers<numbers>A numbers option. Accepts multiple parameters. Defaults to [1, 2].`,
         );
       });
 
@@ -846,9 +838,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
-        expect(message).toMatch(
-          /-ns, +--numbers +'1,2' +A numbers option\. Values are delimited by ','\./,
-        );
+        expect(message).toMatch(/-ns,--numbers'1,2'A numbers option. Values are delimited by ','./);
       });
 
       it('should handle a multivalued numbers option with enumerated values', () => {
@@ -862,7 +852,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Accepts multiple parameters\. Values must be one of \{1, 2\}\./,
+          `-ns,--numbers<numbers>A numbers option. Accepts multiple parameters. Values must be one of {1, 2}.`,
         );
       });
 
@@ -878,7 +868,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Values are delimited by ','\. Values must be in the range \[0, Infinity\]\./,
+          `-ns,--numbers<numbers>A numbers option. Values are delimited by ','. Values must be in the range [0, Infinity].`,
         );
       });
 
@@ -893,7 +883,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Accepts multiple parameters\. Accepts positional parameters\./,
+          `-ns,--numbers<numbers>A numbers option. Accepts multiple parameters. Accepts positional parameters.`,
         );
       });
 
@@ -909,7 +899,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Values are delimited by ','\. Duplicate values will be removed\./,
+          `-ns,--numbers<numbers>A numbers option. Values are delimited by ','. Duplicate values will be removed.`,
         );
       });
 
@@ -924,7 +914,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Accepts multiple parameters\. Value count is limited to 2\./,
+          `-ns,--numbers<numbers>A numbers option. Accepts multiple parameters. Value count is limited to 2.`,
         );
       });
 
@@ -940,7 +930,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Values are delimited by ','\. Values will be truncated\./,
+          `-ns,--numbers<numbers>A numbers option. Values are delimited by ','. Values will be truncated.`,
         );
       });
 
@@ -955,7 +945,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Accepts multiple parameters\. Values will be rounded to the ceil integer\./,
+          `-ns,--numbers<numbers>A numbers option. Accepts multiple parameters. Values will be rounded to the ceil integer.`,
         );
       });
 
@@ -971,7 +961,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Values are delimited by ','\. Values will be rounded to the floor integer\./,
+          `-ns,--numbers<numbers>A numbers option. Values are delimited by ','. Values will be rounded to the floor integer.`,
         );
       });
 
@@ -986,7 +976,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(styleRegex, '');
         expect(message).toMatch(
-          /-ns, +--numbers +<numbers> +A numbers option\. Accepts multiple parameters\. Values will be rounded to the nearest integer\./,
+          `-ns,--numbers<numbers>A numbers option. Accepts multiple parameters. Values will be rounded to the nearest integer.`,
         );
       });
     });
