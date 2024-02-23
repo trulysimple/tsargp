@@ -545,19 +545,25 @@ type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['length']
 type Decimal = Enumerate<256>;
 
 /**
+ * A helper type to elide type resolution in IntelliSense.
+ * @template T The actual type
+ */
+type Alias<T> = T extends T ? T : T;
+
+/**
  * An 8-bit foreground color.
  */
-type FgColor = `38;5;${Decimal}`;
+type FgColor = Alias<`38;5;${Decimal}`>;
 
 /**
  * An 8-bit background color.
  */
-type BgColor = `48;5;${Decimal}`;
+type BgColor = Alias<`48;5;${Decimal}`>;
 
 /**
  * An 8-bit underline color.
  */
-type UlColor = `58;5;${Decimal}`;
+type UlColor = Alias<`58;5;${Decimal}`>;
 
 /**
  * A text style attribute.
@@ -656,7 +662,9 @@ class TerminalString {
 //--------------------------------------------------------------------------------------------------
 /**
  * Creates a CSI sequence.
- * @param param The sequence parameters
+ * @template P The type of the sequence parameter
+ * @template C The type of the sequence command
+ * @param param The sequence parameter
  * @param cmd The sequence command
  * @returns The CSI sequence
  */
