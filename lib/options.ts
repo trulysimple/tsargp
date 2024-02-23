@@ -514,7 +514,7 @@ type WithNumber = Optional<WithEnums<number> | WithRange> & {
   /**
    * The kind of rounding to apply.
    */
-  readonly round?: 'trunc' | 'ceil' | 'floor' | 'nearest';
+  readonly round?: 'trunc' | 'floor' | 'ceil' | 'nearest';
 };
 
 /**

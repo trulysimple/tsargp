@@ -2,44 +2,359 @@
 title: Options - Docs
 ---
 
+# Options
+
+Any command-line interface is composed of commands and options (sometimes called flags). The options
+allow the calling application or user to configure the command that will be run. **tsargp** offers a
+selection of option types that should suit most applications. In the next sections, we present the
+available types and describe them in detail.
+
 ## Option types
 
-Here's a summary of the available option types and some of their attributes:
+Here's a summary of the available types and some of their attributes:
 
-| Option type | Parameters                           | Data type  | Normalization      | Constraints         |
-| ----------- | ------------------------------------ | ---------- | ------------------ | ------------------- |
-| help        | niladic                              |            |                    |                     |
-| version     | niladic                              |            |                    |                     |
-| function    | niladic                              |            |                    |                     |
-| flag        | niladic                              | `boolean`  |                    |                     |
-| boolean     | positional, single                   | `boolean`  |                    |                     |
-| string      | positional, single                   | `string`   | trim, case         | enums, regex        |
-| number      | positional, single                   | `number`   | round              | enums, range        |
-| strings     | positional, multi, delimited, append | `string[]` | unique, trim, case | enums, regex, limit |
-| numbers     | positional, multi, delimited, append | `number[]` | unique, round      | enums, range, limit |
+| Option type                  | Parameters                           | Data type  | Normalization      | Constraints         |
+| ---------------------------- | ------------------------------------ | ---------- | ------------------ | ------------------- |
+| [help](#help-option)         | niladic                              |            |                    |                     |
+| [version](#version-option)   | niladic                              |            |                    |                     |
+| [function](#function-option) | niladic                              |            |                    |                     |
+| [flag](#flag-option)         | niladic                              | `boolean`  |                    |                     |
+| [boolean](#boolean-option)   | positional, single                   | `boolean`  |                    |                     |
+| [string](#string-option)     | positional, single                   | `string`   | trim, case         | enums, regex        |
+| [number](#number-option)     | positional, single                   | `number`   | round              | enums, range        |
+| [strings](#strings-option)   | positional, multi, delimited, append | `string[]` | unique, trim, case | enums, regex, limit |
+| [numbers](#numbers-option)   | positional, multi, delimited, append | `number[]` | unique, round      | enums, range, limit |
+
+In the above table, _niladic_ means that the option expects no parameter on the command-line,
+whereas the other options accept either single or multiple parameters. The data type indicates the
+base type of the option value in the object resulting from argument parsing. The meaning of the
+other attributes is explained in the next sections.
 
 ## Common attributes
 
+This section describes the attributes that are common to a subset of option types. The option types
+themselves are described later in this page.
+
+### Basic attributes
+
+All option types share a set of attributes in addition to their type. From these, only the `names`
+attribute is required, the rest is optional. They are described below.
+
+#### Names & preferred name
+
+The `names` attribute lists the option names as they may appear on the command-line (e.g. `-h` or
+`--help`). Names must not contain whitespace or the equals sign `=` (since it may be used as
+option-value separator). Empty names or `null`s can be specified in order to skip the respective
+"slot" in the help message "names" column (see the [formatter docs](./formatter) for details),
+although there must be at least one non-empty name.
+
+The `preferredName` attribute, if present, is displayed in error and help messages in cases where a
+name is not available (e.g., when evaluating option requirements or processing positional arguments).
+It is not validated and can be anything. If not specified, the first name in the `names` array will
+be used.
+
+#### Description, group, hide, styles
+
+These attributes only have effect in the formatting of the help message.
+
+The `desc` attribute is the option synopsis, and may contain inline [styles](./styles). The `group`
+attribute is the name of a group under which the option should appear. The `hide` attribute, if
+present, indicates to the formatter that the option should be excluded from the help message. The
+`styles` attribute can be used to customize the styling of the help message columns (names,
+parameter and description) for this option.
+
+#### Deprecated
+
+The `deprecated` attribute is just syntactic sugar for the option deprecation reason that appears in
+the help message. Since the library was designed to avoid using the console directly, it doesn't
+have a proper way to handle deprecated options specified on the command-line (e.g., by logging a
+warning). For this purpose, you may want to use a custom parsing callback (more on that later),
+although it is only available for non-niladic options.
+
+#### Requires & required
+
+The `requires` attribute, if present, specifies the option requirements. This can be either:
+
+- an option key;
+- an object that maps option keys to required values; or
+- a requirement expression
+
+If set, then these requirements will be verified whenever the option is specified on the
+command-line. If it is an option key, then the referenced option must also be present on the
+command-line. If an object, then every referenced option should be present and have the required
+value. If an expression, then it is evaluated as follows:
+
+- `req.all`: an expression that is satisfied only when _all_ items are satisfied
+- `req.one`: an expression that is satisfied when _at least one_ item is satisfied
+- `req.not`: an expression that is satisfied when the item is _not_ satisfied.
+
+The `required` attribute indicates that the option is _always_ required, independently of other
+options.
+
+### Parameter attributes
+
+All option types that accept parameters share a set of attributes, which are described below.
+
+#### Default value
+
+The `default` attribute, if present, specifies the option default value. If this value is not known
+beforehand (e.g., if it depends on the values of other options), it should be left undefined, so
+that you can detect whether it was specified on the command line and take appropriate action.
+
+#### Example value
+
+The `example` attribute, if present, specifies a value that replaces the option type in the help
+message "parameter" column. Mutually exclusive with [parameter name](#parameter-name).
+
+#### Parameter name
+
+The `paramName` attribute, if present, replaces the option type in the help message "parameter"
+column. If it contains an opening angle bracket (`<` character), it is printed as-is; otherwise it
+is enclosed in angle brackets, like so: `<param_name>`. Mutually exclusive with
+[example value](#example-value).
+
+#### Positional | marker
+
+The `positional` attribute, if present, indicates that the option accepts positional arguments.
+There may be _at most one_ option with this setting.
+
+If set to `true`, then any argument not recognized as an option name will be considered positional.
+Additionally, this attribute accepts a string which is used as positional marker. In this case,
+all arguments that appear _beyond the marker_ will be considered positional.
+
+When using this attribute, we recommend also setting [preferred name](#names--preferred-name) to
+some explanatory name.
+
+#### Complete callback
+
+The `complete` attribute, if present, specifies a custom completion callback. This can be used to
+make better suggestions for bash completion than the default algorithm would (see the [parser
+docs](./parser) for details). It accepts two parameters:
+
+- `values`: the values parsed up until the current iteration. It is a generic record that should be
+  cast to `OptionValues<typeof _your_options_>` or to the type of your values class.
+- `rest`: the remaining command-line arguments. The first element in this list is the one triggering
+  the completion (which may be an empty string).
+
+It returns the list of completion words. This callback should not throw errors. If asynchronous,
+you should call `ArgumentParser.parseAsync` and await its result.
+
+#### Parse callback
+
+The `parse` attribute, if present, specifies a custom callback to parse the value of the option
+parameter. It accepts two parameters:
+
+- `name`: the option name, as was specified on the command-line
+- `value`: the parameter value (string)
+
+It returns a single value. If asynchronous, then the data type of the option value in the resulting
+object will be enclosed in a promise. Mutually exclusive with [separator](#separator) and
+[parse delimited](#parse-delimited).
+
+#### Enumeration
+
+The `enums` attribute, if present, specifies enumerated values that the option accepts as parameter.
+Any parameter that does not equal one of these values (after normalization) will cause an error to
+be thrown. Explicitly not available for the [boolean](#boolean-option) option. Mutually exclusive
+with [regular expression](#regular-expression) and [numeric range](#numeric-range).
+
+### String attributes
+
+String-valued option types share a set of attributes, as described below.
+
+#### Regular expression
+
+The `regex` attribute, if present, specifies a regular expression that string parameters should
+match. Any parameter that does _not match_ the regular expression will will cause an error to be
+thrown. Mutually exclusive with [enumeration](#enumeration).
+
+#### Trim whitespace
+
+The `trim` attribute, if present, indicates that string parameters will be trimmed (i.e., have
+leading and trailing whitespace removed). This normalization is applied _before_ checking value
+constraints.
+
+#### Case conversion
+
+The `case` attribute, if present, specifies the kind of case conversion to apply to string
+parameters. Can be one of `lower` (convert to lowercase) or `upper` (convert to uppercase). This
+normalization is applied _before_ checking value constraints.
+
+### Number attributes
+
+Number-valued option types share a set of attributes, as described below.
+
+#### Numeric range
+
+The `range` attribute, if present, specifies a (closed) numeric range that number parameters should
+be within. Any parameter that is _not within_ the given range will will cause an error to be thrown.
+You may want to use `[-Infinity, Infinity]` to disallow `NaN`. Mutually exclusive with
+[enumeration](#enumeration).
+
+#### Rounding
+
+The `round` attribute, if present, specifies the kind of rounding to apply to number parameters. Can
+be one of `trunc` (truncate), `floor` (round down), `ceil` (round up) or `nearest` (round to nearest
+integer). This normalization is applied _before_ checking value constraints.
+
+### Array attributes
+
+Array-valued option types share a set of attributes, as described below.
+
+#### Separator
+
+The `separator` attribute, if present, specifies a delimiter to split string parameters. If
+specified, the option will accept a single parameter and not multiple parameters. Can be a string or
+a regular expression. Mutually exclusive with [parse callback](#parse-callback) and
+[parse delimited](#parse-delimited).
+
+#### Parse delimited
+
+The `parseDelimited` attribute, if present, specifies a custom callback to parse the value of the
+option parameter. It accepts two parameters:
+
+- `name`: the option name, as was specified on the command-line
+- `value`: the parameter value (string)
+
+Unlike the [parse callback](#parse-callback) that returns a single value, this callback returns an
+array. If specified, the option will accept a single parameter and not multiple parameters. If
+asynchronous, then the data type of the option value in the resulting object will be enclosed in a
+promise. Mutually exclusive with [separator](#separator) and [parse callback](#parse-callback).
+
+#### Remove duplicates
+
+The `unique` attribute, if present, indicates that duplicate elements will be removed. This
+normalization is applied _before_ checking the [count limit](#count-limit) constraint.
+
+#### Append values
+
+The `append` attribute, if present, indicates that the option allows appending elements if
+specified multiple times on the command-line. Both the [unique](#unique) normalization and
+the [count limit](#count-limit) constraint (if enabled) are applied after appending.
+
+#### Count limit
+
+The `limit` attribute, if present, indicates the maximum allowed number of array elements. Any
+parameter that causes the option value to _exceed_ the given limit will will cause an error to be
+thrown.
+
 ## Niladic options
+
+These option types have no intrinsic value, hence they do not appear in the object resulting from
+argument parsing. However, they do have side-effects, as explained below.
 
 ### Help option
 
+The **help** option is a convenient specialization of the [function](#function-option) option that
+handles the formatting of the help message. Internally, it performs the following actions:
+
+1. instantiate a [formatter](./formatter) class with the provided configuration
+2. get the formatted messages (one for each option group)
+3. assemble them into a single message with group headings
+4. throw the resulting string
+
+The application should catch the string and print it on a terminal. This string contains control
+sequences that can only be interpreted by a terminal, so it should not, for instance, be written to
+a file.
+
+This option has the following set of optional attributes.
+
+#### Usage & footer
+
+The `usage` attribute describes your CLI usage instructions. It goes before everything else in the
+help message. The `footer` attribute is an afterword that can be used to insert a copyright notice
+or reference to other media.
+
+#### Format & heading style
+
+The `format` attribute, if present, specifies the [help format](./formatter) configuration. The
+`headingStyle` attribute, if present, specifies a [style](./styles) to be applied to group headings.
+
 ### Version option
+
+The **version** option is another specialization of the [function](#function-option) option that
+throws a version message. You may specify either of the following attributes.
+
+#### Version
+
+The `version` attribute is a semantic version or version information.
+
+#### Resolve
+
+The `resolve` attribute is a resolution function scoped to the module where a `package.json` file
+should be searched. For use in non-browser environments only. You should use [`import.meta.resolve`]
+as value. This results in an asynchronous operation, so you should call `ArgumentParser.parseAsync`
+and await its result.
+
+[`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 
 ### Function option
 
+The **function** option executes a callback function. The following attributes can be specified.
+
+#### Execute
+
+The `exec` attribute is the callback function that should be executed. It accepts three parameters:
+
+- `values`: the values parsed up until the current iteration. It is a generic record that should be
+  cast to `OptionValues<typeof _your_options_>` or to the type of your values class.
+- `rest`: the remaining command-line arguments
+- `completing`: `true` if performing completion (but not in the current iteration)
+
+It returns no value. It can be asynchronous, in which case you should call
+`ArgumentParser.parseAsync` and await its result.
+
+#### Break
+
+The `break` attribute, if present, indicates that the parser should exit the parsing loop
+immediately after returning from the callback. This is useful for creating sub-commands, as
+explained in the [sub-commands guide](/guides/sub-commands).
+
 ### Flag option
+
+The **flag** option is special in the sense that it is both niladic and has a value. The way it
+differs from the boolean option is that it does not expect a parameter.
+
+> NOTE: We could have reused the boolean option for this purpose and make the parameter optional,
+> but it would complicate the parser implementation unnecessarily. Besides, the flag option has a
+> particularly useful feature, which is described below.
+
+#### Negation names
+
+The `negationNames` attribute specifies alternate option names that can be used to turn the option
+value `false` (e.g., _--no-flag_). This is useful in scripting scenarios where a flag that has been
+previously specified must be reset by a new list of arguments.
+
+#### Default value
+
+The `default` attribute is the same as that of the set of [parameter attributes](#default-value)
+for a `boolean` data type.
 
 ## Non-niladic options
 
-### Boolean
+### Boolean option
 
-### String
+The **boolean** option has the same set of [parameter attributes](#parameter-attributes) for a
+`boolean` data type.
 
-### Number
+### String option
 
-### Strings
+The **string** option has the set of [parameter attributes](#parameter-attributes) for a `string`
+data type, as well as the set of [string attributes](#string-attributes).
 
-### Numbers
+### Number option
 
-{/* Other attributes include: default value, example value, custom value parsing, and more. */}
+The **number** option has the set of [parameter attributes](#parameter-attributes) for a `number`
+data type, as well as the set of [number attributes](#number-attributes).
+
+### Strings option
+
+The **strings** option has the set of [parameter attributes](#parameter-attributes) for a `string[]`
+data type, as well as the sets of [string attributes](#string-attributes) and [array
+attributes](#array-attributes).
+
+### Numbers option
+
+The **numbers** option has the set of [parameter attributes](#parameter-attributes) for a `number[]`
+data type, as well as the sets of [number attributes](#number-attributes) and [array
+attributes](#array-attributes).
