@@ -405,16 +405,15 @@ class HelpFormatter {
     if (this.config.hidden?.param || isNiladic(option)) {
       return result;
     }
-    if (option.example !== undefined) {
+    if ('example' in option) {
       this.formatValue(option, option.example, result);
+    } else if ('paramName' in option) {
+      const paramStyle = option.styles?.param ?? this.config.styles.param;
+      const param = option.paramName.includes('<') ? option.paramName : `<${option.paramName}>`;
+      result.addSequence(paramStyle).addText(param);
     } else {
       const paramStyle = option.styles?.param ?? this.config.styles.param;
-      const param = option.paramName
-        ? option.paramName.includes('<')
-          ? option.paramName
-          : `<${option.paramName}>`
-        : `<${option.type}>`;
-      result.addSequence(paramStyle).addText(param);
+      result.addSequence(paramStyle).addText(`<${option.type}>`);
     }
     return result;
   }

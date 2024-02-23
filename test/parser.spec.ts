@@ -176,9 +176,9 @@ describe('ArgumentParser', () => {
           requires: {
             type: 'flag',
             names: ['req0'],
-            requires: req.and(
+            requires: req.all(
               'required1',
-              req.or({ required2: [' a', 'b '] }, req.not({ required3: ['c'] })),
+              req.one({ required2: [' a', 'b '] }, req.not({ required3: ['c'] })),
             ),
           },
           required1: {
@@ -197,7 +197,7 @@ describe('ArgumentParser', () => {
             names: ['req3'],
             preferredName: 'preferred',
             positional: true,
-            requires: req.and('required1', 'required4'),
+            requires: req.all('required1', 'required4'),
           },
           required4: {
             type: 'function',

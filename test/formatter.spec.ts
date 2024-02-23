@@ -232,7 +232,7 @@ describe('HelpFormatter', () => {
             type: 'flag',
             names: ['-f', '--flag'],
             desc: 'A flag option',
-            requires: req.and('required1', req.or({ required2: 1 }, req.not({ required3: '2' }))),
+            requires: req.all('required1', req.one({ required2: 1 }, req.not({ required3: '2' }))),
           },
           required1: {
             type: 'boolean',

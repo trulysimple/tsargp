@@ -62,7 +62,7 @@ const req = {
    * @param items The requirement items
    * @returns The requirement expression
    */
-  and(...items: Array<Requires>): RequiresAll {
+  all(...items: Array<Requires>): RequiresAll {
     return new RequiresAll(items);
   },
 
@@ -71,7 +71,7 @@ const req = {
    * @param items The requirement items
    * @returns The requirement expression
    */
-  or(...items: Array<Requires>): RequiresOne {
+  one(...items: Array<Requires>): RequiresOne {
     return new RequiresOne(items);
   },
 
@@ -175,7 +175,7 @@ class RequiresNot {
 type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
 
 /**
- * A map of option keys to required values.
+ * An object that maps option keys to required values.
  *
  * Values can be `undefined` to indicate presence, or `null` to indicate absence.
  */
@@ -185,7 +185,7 @@ type RequiresVal = { [key: string]: ValuedOption['default'] | null };
  * An option requirement can be either:
  *
  * - an option key;
- * - a map of option keys to required values; or
+ * - an object that maps option keys to required values; or
  * - a requirement expression.
  */
 type Requires = string | RequiresVal | RequiresExp;
@@ -209,7 +209,7 @@ type ResolveCallback = (specifier: string) => string;
 /**
  * A callback for function options.
  * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
- * or to your values class)
+ * or to the type of your values class)
  * @param rest The remaining command-line arguments
  * @param completing True if performing completion (but not in the current iteration)
  */
@@ -222,7 +222,7 @@ type FunctionCallback = (
 /**
  * A callback for option completion.
  * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
- * or to your values class)
+ * or to the type of your values class)
  * @param rest The remaining command-line arguments. The first element is the one triggering the
  * completion (it may be an empty string).
  * @returns The list of completion words
@@ -258,7 +258,7 @@ type WithType<T extends string> = {
    */
   readonly preferredName?: string;
   /**
-   * The option description.
+   * The option description. It may contain inline styles.
    */
   readonly desc?: string;
   /**
@@ -274,7 +274,7 @@ type WithType<T extends string> = {
    */
   readonly styles?: OptionStyles;
   /**
-   * The option deprecation reason.
+   * The option deprecation reason. It may contain inline styles.
    */
   readonly deprecated?: string;
   /**
@@ -291,19 +291,11 @@ type WithType<T extends string> = {
  * Defines attributes common to all options that accept parameters.
  * @template T The parameter data type
  */
-type WithParam<T> = {
+type WithParam<T> = Optional<WithExample<T> | WithParamName> & {
   /**
    * The option default value.
    */
   readonly default?: T;
-  /**
-   * The option example value. Replaces the option type in the help message parameter column.
-   */
-  readonly example?: T;
-  /**
-   * The option parameter name. Replaces the option type in the help message parameter column.
-   */
-  readonly paramName?: string;
   /**
    * Allows positional arguments. There may be at most one option with this setting.
    *
@@ -319,6 +311,35 @@ type WithParam<T> = {
    * `ArgumentParser.parseAsync` and await its result.
    */
   readonly complete?: CompletionCallback;
+};
+
+/**
+ * Defines attributes for an example value.
+ * @template T The example data type
+ */
+type WithExample<T> = {
+  /**
+   * The option example value. Replaces the option type in the help message parameter column.
+   */
+  readonly example: T;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly paramName?: never;
+};
+
+/**
+ * Defines attributes for a parameter name.
+ */
+type WithParamName = {
+  /**
+   * The option parameter name. Replaces the option type in the help message parameter column.
+   */
+  readonly paramName: string;
+  /**
+   * @deprecated mutually exclusive property
+   */
+  readonly example?: never;
 };
 
 /**
@@ -446,7 +467,8 @@ type WithRange = {
  */
 type WithVersion = {
   /**
-   * The semantic version (e.g., 0.1.0).
+   * The semantic version (e.g., 0.1.0) or version information. It is not validated, but cannot be
+   * empty. It may contain inline styles.
    */
   readonly version: string;
   /**
@@ -539,13 +561,13 @@ type NumbersOption = WithType<'numbers'> &
  */
 type FlagOption = WithType<'flag'> & {
   /**
-   * The default value.
-   */
-  readonly default?: boolean;
-  /**
    * The names used for negation (e.g., '--no-flag').
    */
   readonly negationNames?: Array<string>;
+  /**
+   * The default value.
+   */
+  readonly default?: boolean;
 };
 
 /**
@@ -829,7 +851,9 @@ class OptionRegistry {
         }
         this.validateEnums(key, option);
         this.validateValue(key, option, option.default);
-        this.validateValue(key, option, option.example);
+        if ('example' in option) {
+          this.validateValue(key, option, option.example);
+        }
       }
       if (option.requires) {
         this.validateRequirements(key, option.requires);

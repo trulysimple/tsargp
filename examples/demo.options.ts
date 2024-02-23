@@ -45,10 +45,10 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     
     `,
     default: false,
-    requires: req.and(
+    requires: req.all(
       'stringEnum',
       { numberEnum: 2 },
-      req.or({ stringsRegex: ['a', 'b'] }, req.not({ numbersRange: [3, 4] })),
+      req.one({ stringsRegex: ['a', 'b'] }, req.not({ numbersRange: [3, 4] })),
     ),
   },
   stringRegex: {

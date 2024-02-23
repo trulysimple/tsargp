@@ -143,7 +143,7 @@ describe('OptionRegistry', () => {
           requires: {
             type: 'flag',
             names: ['-f1'],
-            requires: req.and('required', req.or({ requires: 'o' })),
+            requires: req.all('required', req.one({ requires: 'o' })),
           },
           required: {
             type: 'flag',
@@ -159,7 +159,7 @@ describe('OptionRegistry', () => {
           requires: {
             type: 'flag',
             names: ['-f1'],
-            requires: req.and('required', req.or({ unknown: 'o' })),
+            requires: req.all('required', req.one({ unknown: 'o' })),
           },
           required: {
             type: 'flag',
