@@ -4,8 +4,7 @@
     "rootDir": ".",
     "outDir": "../dist/lib",
     "declarationDir": "../dist/types",
-    "declaration": true,
-    "removeComments": true
+    "declaration": true
     // "verbatimModuleSyntax": true, // https://github.com/microsoft/TypeScript/issues/40344
   }
 }
