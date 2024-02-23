@@ -577,8 +577,12 @@ type StyleAttr = TypeFace | Foreground | Background | Underline | FgColor | BgCo
  * Implements concatenation of strings that can be printed on a terminal.
  */
 class TerminalString {
-  private firstSeqIndex: number | undefined;
   private lastSequence: Sequence | undefined;
+
+  /**
+   * The list of strings that have been appended (sequences and text).
+   */
+  readonly strings = new Array<string>();
 
   /**
    * The length of the largest text.
@@ -591,29 +595,15 @@ class TerminalString {
   length = 0;
 
   /**
-   * The list of strings that have been appended (sequences and text).
-   */
-  readonly strings = new Array<string>();
-
-  /**
-   * @returns The concatenation of all strings, including sequences.
-   */
-  get string(): string {
-    return this.strings.join('');
-  }
-
-  /**
    * Appends sequences to the list of strings.
    * @param sequences The sequence strings
    * @returns This
    */
   addSequence(...sequences: Array<Sequence>): this {
-    const index = sequences.findIndex((seq) => seq != this.lastSequence);
-    if (index >= 0) {
-      const len = this.strings.push(...sequences.slice(index));
-      this.lastSequence = sequences[sequences.length - 1];
-      if (this.firstSeqIndex == undefined) {
-        this.firstSeqIndex = len - 1;
+    for (const sequence of sequences) {
+      if (sequence != this.lastSequence) {
+        this.strings.push(sequence);
+        this.lastSequence = sequence;
       }
     }
     return this;
@@ -626,33 +616,12 @@ class TerminalString {
    */
   addText(...texts: Array<string>): this {
     this.strings.push(...texts);
-    const lengths = texts.map((str) => str.length);
-    this.maxTextLen = Math.max(this.maxTextLen, ...lengths);
-    this.length += lengths.reduce((acc, len) => acc + len);
-    return this;
-  }
-
-  /**
-   * Appends another terminal string to the list of strings.
-   * @param str The terminal string to be appended.
-   * @returns This
-   */
-  addOther(str: TerminalString): this {
-    if (str.firstSeqIndex === undefined || str.strings[str.firstSeqIndex] != this.lastSequence) {
-      this.strings.push(...str.strings);
-    } else {
-      this.strings.push(
-        ...str.strings.slice(0, str.firstSeqIndex),
-        ...str.strings.slice(str.firstSeqIndex + 1),
-      );
+    for (const str of texts) {
+      if (str.length > this.maxTextLen) {
+        this.maxTextLen = str.length;
+      }
+      this.length += str.length;
     }
-    if (str.lastSequence) {
-      this.lastSequence = str.lastSequence;
-    }
-    if (str.maxTextLen > this.maxTextLen) {
-      this.maxTextLen = str.maxTextLen;
-    }
-    this.length += str.length;
     return this;
   }
 }

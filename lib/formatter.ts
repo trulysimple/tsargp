@@ -451,7 +451,8 @@ class HelpFormatter {
    */
   private formatDesc(option: Option, descStyle: Style, result: TerminalString) {
     if (option.desc) {
-      result.addSequence(descStyle).addOther(splitWords(option.desc));
+      result.addSequence(descStyle);
+      splitWords(option.desc, result);
     }
   }
 
@@ -699,7 +700,7 @@ class HelpFormatter {
   private formatDeprecated(option: Option, descStyle: Style, result: TerminalString) {
     if (option.deprecated) {
       result.addSequence(descStyle).addText('Deprecated', 'for');
-      result.addOther(splitWords(option.deprecated));
+      splitWords(option.deprecated, result);
     }
   }
 
@@ -997,22 +998,23 @@ class HelpFormatter {
    * @returns The formatted help message
    */
   private formatEntries(width: number, entries: Array<HelpEntry>): string {
-    function formatCol(line: TerminalString, col: number, breaks: number): TerminalString {
-      if (breaks > 0) {
-        line.addText('\n'.repeat(breaks)); // cursor down is not supported in some terminals
-      }
-      line.addSequence(move(col, mv.cha));
-      return line;
+    const result = new Array<string>();
+    for (const { names, param, desc } of entries) {
+      result.push(
+        '\n'.repeat(this.config.breaks.names),
+        move(this.namesStart, mv.cha),
+        ...names.strings,
+        '\n'.repeat(this.config.breaks.param),
+        move(this.paramStart, mv.cha),
+        ...param.strings,
+        '\n'.repeat(this.config.breaks.desc),
+        move(this.descStart, mv.cha),
+      );
+      wrapText(result, desc, width, this.descStart);
+      result.push('\n');
     }
-    const lines = new Array<string>();
-    for (const entry of entries) {
-      const line = new TerminalString();
-      formatCol(line, this.namesStart, this.config.breaks.names).addOther(entry.names);
-      formatCol(line, this.paramStart, this.config.breaks.param).addOther(entry.param);
-      formatCol(line, this.descStart, this.config.breaks.desc);
-      wrapText(lines, entry.desc, width, line.string, this.descStart);
-    }
-    return lines.join('\n');
+    result.length--; // pop the last line break
+    return result.join('');
   }
 }
 
@@ -1044,9 +1046,9 @@ function getNameWidths(options: Options): Array<number> {
 /**
  * Split a text into words.
  * @param text The text to be split
- * @returns The terminal string
+ * @param result The resulting string to append to
  */
-function splitWords(text: string): TerminalString {
+function splitWords(text: string, result: TerminalString) {
   const regex = {
     para: /(?:[ \t]*\r?\n){2,}/,
     item: /\r?\n[ \t]*(-|\*|\d+\.) /,
@@ -1057,7 +1059,7 @@ function splitWords(text: string): TerminalString {
     punctEnd: /[.,:;!?]$/,
   };
   const paragraphs = text.split(regex.para);
-  return paragraphs.reduce((acc, para, i) => {
+  paragraphs.forEach((para, i) => {
     para.split(regex.item).forEach((item, j) => {
       if (j % 2 == 0) {
         item = item.trim();
@@ -1070,51 +1072,43 @@ function splitWords(text: string): TerminalString {
             for (const word of words) {
               for (const str of word.split(regex.style)) {
                 if (isStyle(str)) {
-                  acc.addSequence(str);
+                  result.addSequence(str);
                 } else if (str) {
-                  acc.addText(str);
+                  result.addText(str);
                 }
               }
             }
           } else {
-            acc.addText(...words);
+            result.addText(...words);
           }
         }
       } else {
-        acc.addText('\n', item);
+        result.addText('\n', item);
       }
     });
     if (i < paragraphs.length - 1) {
-      acc.addText('\n\n');
+      result.addText('\n\n');
     }
-    return acc;
-  }, new TerminalString());
+  });
 }
 
 /**
  * Wraps the option description to fit in the console.
- * @param lines The resulting lines to append to
+ * @param result The resulting strings to append to
  * @param text The text to be wrapped (styled string)
  * @param width The desired console width
- * @param prefix The prefix at the start of the first line
  * @param start The column number to start at each wrapped line
  */
-function wrapText(
-  lines: Array<string>,
-  text: TerminalString,
-  width: number,
-  prefix: string,
-  start: number,
-) {
-  const descStyle = text.strings.length && isStyle(text.strings[0]) ? text.strings[0] : '';
+function wrapText(result: Array<string>, text: TerminalString, width: number, start: number) {
+  const startStyle = text.strings.length && isStyle(text.strings[0]) ? text.strings[0] : '';
   let moveToStart = '';
-  let line = [prefix];
   if (width >= start + text.maxTextLen) {
     width -= start;
     moveToStart = move(start, mv.cha);
   } else {
-    line.push('\n');
+    result.push('\n');
   }
+  moveToStart += startStyle;
   const punctuation = /^[.,:;!?](?!=)/;
   const closingBrackets = /^[)\]}]/;
   const openingBrackets = /^[{[(]/;
@@ -1131,18 +1125,14 @@ function wrapText(
     }
     const space = lineLength ? ' ' : '';
     if (lineLength + space.length + currentLen <= width) {
-      line.push(space + currentWord);
+      result.push(space + currentWord);
       lineLength += space.length + currentLen;
     } else {
-      lines.push(line.join(''));
-      line = [moveToStart, lastStyle, currentWord];
+      result.push('\n', moveToStart, lastStyle, currentWord);
       lineLength = currentLen;
     }
     if (currentStyle) {
-      lastStyle = descStyle;
-      if (currentStyle != descStyle) {
-        lastStyle += currentStyle;
-      }
+      lastStyle = currentStyle != startStyle ? currentStyle : '';
       currentStyle = '';
     }
   }
@@ -1156,11 +1146,7 @@ function wrapText(
     }
     if (word.startsWith('\n')) {
       addWord();
-      lines.push(line.join(''));
-      if (word == '\n\n') {
-        lines.push('');
-      }
-      line = [moveToStart, lastStyle];
+      result.push(word, moveToStart, lastStyle);
       lineLength = 0;
       currentWord = '';
       currentLen = 0;
@@ -1182,5 +1168,4 @@ function wrapText(
     }
   }
   addWord();
-  lines.push(line.join(''));
 }
