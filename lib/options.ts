@@ -288,14 +288,20 @@ type WithType<T extends string> = {
 };
 
 /**
- * Defines attributes common to all options that accept parameters.
- * @template T The parameter data type
+ * Defines attributes for a default value.
+ * @template T The default data type
  */
-type WithParam<T> = Optional<WithExample<T> | WithParamName> & {
+type WithDefault<T> = {
   /**
    * The option default value.
    */
   readonly default?: T;
+};
+
+/**
+ * Defines attributes common to all options that accept parameters.
+ */
+type WithParam = {
   /**
    * Allows positional arguments. There may be at most one option with this setting.
    *
@@ -317,16 +323,18 @@ type WithParam<T> = Optional<WithExample<T> | WithParamName> & {
  * Defines attributes for an example value.
  * @template T The example data type
  */
-type WithExample<T> = {
-  /**
-   * The option example value. Replaces the option type in the help message parameter column.
-   */
-  readonly example: T;
-  /**
-   * @deprecated mutually exclusive property
-   */
-  readonly paramName?: never;
-};
+type WithExample<T> =
+  | WithParamName
+  | {
+      /**
+       * The option example value. Replaces the option type in the help message parameter column.
+       */
+      readonly example?: T;
+      /**
+       * @deprecated mutually exclusive property
+       */
+      readonly paramName?: never;
+    };
 
 /**
  * Defines attributes for a parameter name.
@@ -335,7 +343,7 @@ type WithParamName = {
   /**
    * The option parameter name. Replaces the option type in the help message parameter column.
    */
-  readonly paramName: string;
+  readonly paramName?: string;
   /**
    * @deprecated mutually exclusive property
    */
@@ -349,7 +357,7 @@ type WithParse<T> = {
   /**
    * A custom function to parse the value of the option parameter.
    */
-  readonly parse: ParseCallback<T | Promise<T>>;
+  readonly parse?: ParseCallback<T | Promise<T>>;
   /**
    * @deprecated mutually exclusive property
    */
@@ -363,21 +371,24 @@ type WithParse<T> = {
 /**
  * Defines attributes for a custom callback that parses delimited-value parameters.
  */
-type WithParseDelimited<T> = {
-  /**
-   * A custom function to parse the delimited values of the option parameter. If specified, the
-   * option accepts a single parameter.
-   */
-  readonly parseDelimited: ParseCallback<Array<T> | Promise<Array<T>>>;
-  /**
-   * @deprecated mutually exclusive property
-   */
-  readonly parse?: never;
-  /**
-   * @deprecated mutually exclusive property
-   */
-  readonly separator?: never;
-};
+type WithParseDelimited<T> =
+  | WithParse<T>
+  | WithDelimited
+  | {
+      /**
+       * A custom function to parse the delimited values of the option parameter. If specified, the
+       * option accepts a single parameter.
+       */
+      readonly parseDelimited?: ParseCallback<Array<T> | Promise<Array<T>>>;
+      /**
+       * @deprecated mutually exclusive property
+       */
+      readonly parse?: never;
+      /**
+       * @deprecated mutually exclusive property
+       */
+      readonly separator?: never;
+    };
 
 /**
  * Defines attributes for an option that accepts delimited-value parameters.
@@ -386,7 +397,7 @@ type WithDelimited = {
   /**
    * The parameter value separator. If specified, the option accepts a single parameter.
    */
-  readonly separator: string | RegExp;
+  readonly separator?: string | RegExp;
   /**
    * @deprecated mutually exclusive property
    */
@@ -423,7 +434,7 @@ type WithEnums<T> = {
   /**
    * The enumerated values.
    */
-  readonly enums: Array<T>;
+  readonly enums?: Array<T>;
   /**
    * @deprecated mutually exclusive property
    */
@@ -441,7 +452,7 @@ type WithRegex = {
   /**
    * The regular expression.
    */
-  readonly regex: RegExp;
+  readonly regex?: RegExp;
   /**
    * @deprecated mutually exclusive property
    */
@@ -455,7 +466,7 @@ type WithRange = {
   /**
    * The (closed) numeric range. You may want to use `[-Infinity, Infinity]` to disallow `NaN`.
    */
-  readonly range: [floor: number, ceiling: number];
+  readonly range?: [floor: number, ceiling: number];
   /**
    * @deprecated mutually exclusive property
    */
@@ -496,7 +507,7 @@ type WithResolve = {
 /**
  * Defines attributes common to all options that accept string parameters.
  */
-type WithString = Optional<WithEnums<string> | WithRegex> & {
+type WithString = (WithEnums<string> | WithRegex) & {
   /**
    * True if the values should be trimmed (remove leading and trailing whitespace).
    */
@@ -510,7 +521,7 @@ type WithString = Optional<WithEnums<string> | WithRegex> & {
 /**
  * Defines attributes common to all options that accept number parameters.
  */
-type WithNumber = Optional<WithEnums<number> | WithRange> & {
+type WithNumber = (WithEnums<number> | WithRange) & {
   /**
    * The kind of rounding to apply.
    */
@@ -520,55 +531,64 @@ type WithNumber = Optional<WithEnums<number> | WithRange> & {
 /**
  * An option that has a boolean value (accepts a single boolean parameter).
  */
-type BooleanOption = WithType<'boolean'> & WithParam<boolean> & Optional<WithParse<boolean>>;
+type BooleanOption = WithType<'boolean'> &
+  WithParam &
+  WithDefault<boolean> &
+  WithExample<boolean> &
+  WithParse<boolean>;
 
 /**
  * An option that has a string value (accepts a single string parameter).
  */
 type StringOption = WithType<'string'> &
-  WithParam<string> &
+  WithParam &
+  WithDefault<string> &
+  WithExample<string> &
   WithString &
-  Optional<WithParse<string>>;
+  WithParse<string>;
 
 /**
  * An option that has a number value (accepts a single number parameter).
  */
 type NumberOption = WithType<'number'> &
-  WithParam<number> &
+  WithParam &
+  WithDefault<number> &
+  WithExample<number> &
   WithNumber &
-  Optional<WithParse<number>>;
+  WithParse<number>;
 
 /**
  * An option that has a string array value (may accept single or multiple parameters).
  */
 type StringsOption = WithType<'strings'> &
-  WithParam<Array<string>> &
+  WithParam &
+  WithDefault<Array<string>> &
+  WithExample<Array<string>> &
   WithString &
   WithArray &
-  Optional<WithParse<string> | WithParseDelimited<string> | WithDelimited>;
+  WithParseDelimited<string>;
 
 /**
  * An option that has a number array value (may accept single or multiple parameters).
  */
 type NumbersOption = WithType<'numbers'> &
-  WithParam<Array<number>> &
+  WithParam &
+  WithDefault<Array<number>> &
+  WithExample<Array<number>> &
   WithNumber &
   WithArray &
-  Optional<WithParse<number> | WithParseDelimited<number> | WithDelimited>;
+  WithParseDelimited<number>;
 
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
-type FlagOption = WithType<'flag'> & {
-  /**
-   * The names used for negation (e.g., '--no-flag').
-   */
-  readonly negationNames?: Array<string>;
-  /**
-   * The default value.
-   */
-  readonly default?: boolean;
-};
+type FlagOption = WithType<'flag'> &
+  WithDefault<boolean> & {
+    /**
+     * The names used for negation (e.g., '--no-flag').
+     */
+    readonly negationNames?: Array<string>;
+  };
 
 /**
  * An option that executes a callback function.
@@ -743,7 +763,7 @@ type Positional = {
  * A helper type to make an object type optional.
  * @template T The source object type
  */
-type Optional<T extends object> = T | Record<never, never>;
+// type Optional<T extends object> = T | Record<never, never>;
 
 /**
  * A helper type to resolve types in IntelliSense.

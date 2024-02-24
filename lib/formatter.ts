@@ -405,9 +405,9 @@ class HelpFormatter {
     if (this.config.hidden?.param || isNiladic(option)) {
       return result;
     }
-    if ('example' in option) {
+    if ('example' in option && option.example !== undefined) {
       this.formatValue(option, option.example, result);
-    } else if ('paramName' in option) {
+    } else if ('paramName' in option && option.paramName) {
       const paramStyle = option.styles?.param ?? this.config.styles.param;
       const param = option.paramName.includes('<') ? option.paramName : `<${option.paramName}>`;
       result.addSequence(paramStyle).addText(param);

@@ -885,7 +885,7 @@ class ParserLoop {
     normalizeFn?: (option: O, name: string, value: T) => T,
   ) {
     let result: T;
-    if ('parse' in option) {
+    if ('parse' in option && option.parse) {
       const res = option.parse(name, value);
       if (res instanceof Promise) {
         const promise = normalizeFn ? res.then((val) => normalizeFn(option, name, val as T)) : res;
