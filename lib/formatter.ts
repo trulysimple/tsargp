@@ -1001,7 +1001,7 @@ class HelpFormatter {
     function formatCol(text: TerminalString, start: number, breaks: number, wrap = false) {
       if (text.length) {
         if (breaks > 0) {
-          result.push('\n'.repeat(breaks));
+          result.push('\n'.repeat(breaks)); // some terminals do not support cursor down movement
         }
         if (wrap) {
           wrapText(result, text, width, start);

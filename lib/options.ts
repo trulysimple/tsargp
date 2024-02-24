@@ -323,18 +323,16 @@ type WithParam = {
  * Defines attributes for an example value.
  * @template T The example data type
  */
-type WithExample<T> =
-  | WithParamName
-  | {
-      /**
-       * The option example value. Replaces the option type in the help message parameter column.
-       */
-      readonly example?: T;
-      /**
-       * @deprecated mutually exclusive property
-       */
-      readonly paramName?: never;
-    };
+type WithExample<T> = {
+  /**
+   * The option example value. Replaces the option type in the help message parameter column.
+   */
+  readonly example?: T;
+  /**
+   * @deprecated mutually exclusive with {@link WithExample.example}
+   */
+  readonly paramName?: never;
+};
 
 /**
  * Defines attributes for a parameter name.
@@ -345,7 +343,7 @@ type WithParamName = {
    */
   readonly paramName?: string;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithParamName.paramName}
    */
   readonly example?: never;
 };
@@ -359,11 +357,11 @@ type WithParse<T> = {
    */
   readonly parse?: ParseCallback<T | Promise<T>>;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithParse.parse}
    */
   readonly separator?: never;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithParse.parse}
    */
   readonly parseDelimited?: never;
 };
@@ -371,24 +369,21 @@ type WithParse<T> = {
 /**
  * Defines attributes for a custom callback that parses delimited-value parameters.
  */
-type WithParseDelimited<T> =
-  | WithParse<T>
-  | WithDelimited
-  | {
-      /**
-       * A custom function to parse the delimited values of the option parameter. If specified, the
-       * option accepts a single parameter.
-       */
-      readonly parseDelimited?: ParseCallback<Array<T> | Promise<Array<T>>>;
-      /**
-       * @deprecated mutually exclusive property
-       */
-      readonly parse?: never;
-      /**
-       * @deprecated mutually exclusive property
-       */
-      readonly separator?: never;
-    };
+type WithParseDelimited<T> = {
+  /**
+   * A custom function to parse the delimited values of the option parameter. If specified, the
+   * option accepts a single parameter.
+   */
+  readonly parseDelimited?: ParseCallback<Array<T> | Promise<Array<T>>>;
+  /**
+   * @deprecated mutually exclusive with {@link WithParseDelimited.parseDelimited}
+   */
+  readonly parse?: never;
+  /**
+   * @deprecated mutually exclusive with {@link WithParseDelimited.parseDelimited}
+   */
+  readonly separator?: never;
+};
 
 /**
  * Defines attributes for an option that accepts delimited-value parameters.
@@ -399,11 +394,11 @@ type WithDelimited = {
    */
   readonly separator?: string | RegExp;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithDelimited.separator}
    */
   readonly parse?: never;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithDelimited.separator}
    */
   readonly parseDelimited?: never;
 };
@@ -436,11 +431,11 @@ type WithEnums<T> = {
    */
   readonly enums?: Array<T>;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithEnums.enums}
    */
   readonly regex?: never;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithEnums.enums}
    */
   readonly range?: never;
 };
@@ -454,7 +449,7 @@ type WithRegex = {
    */
   readonly regex?: RegExp;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithRegex.regex}
    */
   readonly enums?: never;
 };
@@ -468,7 +463,7 @@ type WithRange = {
    */
   readonly range?: [floor: number, ceiling: number];
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithRange.range}
    */
   readonly enums?: never;
 };
@@ -483,7 +478,7 @@ type WithVersion = {
    */
   readonly version: string;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithVersion.version}
    */
   readonly resolve?: never;
 };
@@ -499,7 +494,7 @@ type WithResolve = {
    */
   readonly resolve: ResolveCallback;
   /**
-   * @deprecated mutually exclusive property
+   * @deprecated mutually exclusive with {@link WithResolve.resolve}
    */
   readonly version?: never;
 };
@@ -534,7 +529,7 @@ type WithNumber = (WithEnums<number> | WithRange) & {
 type BooleanOption = WithType<'boolean'> &
   WithParam &
   WithDefault<boolean> &
-  WithExample<boolean> &
+  (WithExample<boolean> | WithParamName) &
   WithParse<boolean>;
 
 /**
@@ -543,7 +538,7 @@ type BooleanOption = WithType<'boolean'> &
 type StringOption = WithType<'string'> &
   WithParam &
   WithDefault<string> &
-  WithExample<string> &
+  (WithExample<string> | WithParamName) &
   WithString &
   WithParse<string>;
 
@@ -553,7 +548,7 @@ type StringOption = WithType<'string'> &
 type NumberOption = WithType<'number'> &
   WithParam &
   WithDefault<number> &
-  WithExample<number> &
+  (WithExample<number> | WithParamName) &
   WithNumber &
   WithParse<number>;
 
@@ -563,10 +558,10 @@ type NumberOption = WithType<'number'> &
 type StringsOption = WithType<'strings'> &
   WithParam &
   WithDefault<Array<string>> &
-  WithExample<Array<string>> &
+  (WithExample<Array<string>> | WithParamName) &
   WithString &
   WithArray &
-  WithParseDelimited<string>;
+  (WithParse<string> | WithParseDelimited<string> | WithDelimited);
 
 /**
  * An option that has a number array value (may accept single or multiple parameters).
@@ -574,10 +569,10 @@ type StringsOption = WithType<'strings'> &
 type NumbersOption = WithType<'numbers'> &
   WithParam &
   WithDefault<Array<number>> &
-  WithExample<Array<number>> &
+  (WithExample<Array<number>> | WithParamName) &
   WithNumber &
   WithArray &
-  WithParseDelimited<number>;
+  (WithParse<number> | WithParseDelimited<number> | WithDelimited);
 
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
@@ -760,12 +755,6 @@ type Positional = {
 };
 
 /**
- * A helper type to make an object type optional.
- * @template T The source object type
- */
-// type Optional<T extends object> = T | Record<never, never>;
-
-/**
  * A helper type to resolve types in IntelliSense.
  * @template T The type to be resolved
  */
@@ -867,21 +856,18 @@ class OptionRegistry {
       }
       if (!isNiladic(option)) {
         if (typeof option.positional === 'string' && !option.positional) {
-          throw this.error(`Option ${this.formatOption(key)} has empty positional marker.`);
+          throw this.error(`Option ${this.formatOption(key)} contains empty positional marker.`);
         }
         this.validateEnums(key, option);
         this.validateValue(key, option, option.default);
-        if ('example' in option) {
-          this.validateValue(key, option, option.example);
-        }
+        this.validateValue(key, option, option.example);
       }
+      // no need to verify flag option default value
       if (option.requires) {
         this.validateRequirements(key, option.requires);
       }
-      if (option.type === 'version' && !option.version && !option.resolve) {
-        throw this.error(
-          `Option ${this.formatOption(key)} contains no version or resolve function.`,
-        );
+      if (option.type === 'version' && typeof option.version === 'string' && !option.version) {
+        throw this.error(`Option ${this.formatOption(key)} contains contains empty version.`);
       }
     }
   }

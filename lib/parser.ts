@@ -43,11 +43,11 @@ export { ArgumentParser, type ParseConfig };
  */
 type ParseConfig = {
   /**
-   * The desired terminal width (to print the help message).
+   * The desired terminal width to print the help message (in number of columns).
    */
-  width?: number;
+  termWidth?: number;
   /**
-   * The completion index (only applicable to raw command lines).
+   * The completion index of a raw command line.
    */
   compIndex?: number;
 };
@@ -163,7 +163,7 @@ class ParserLoop {
     config: ParseConfig,
   ) {
     this.completing = config.compIndex !== undefined && config.compIndex >= 0;
-    this.width = config.width;
+    this.width = config.termWidth;
   }
 
   /**

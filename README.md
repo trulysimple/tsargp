@@ -2,25 +2,11 @@
 
 **tsargp** is a command-line argument parsing library that helps you write clean code.
 
-Get started with the [documentation].
-
-## Features
-
-| Usability              | Functionality           | Presentation              |
-| ---------------------- | ----------------------- | ------------------------- |
-| Zero-dependency        | Bash completion         | Help message formatting   |
-| Purely declarative     | Various option types    | Inline styles             |
-| Type checking          | Value normalization     | Text wrapping             |
-| Browser-compatible     | Value constraints       | Paragraphs and lists      |
-| Moderate footprint[^1] | Option requirements     | [SGR] display attributes  |
-| ESM-native             | Option name suggestions | Styling of error messages |
-|                        | Asynchronous callbacks  | Option grouping/hiding    |
-
-[^1]: ~30KB minified
+Get started with the [documentation](https://trulysimple.dev/tsargp/docs).
 
 ## Demo
 
-Test it [online] or install it locally:
+Test it [online](https://trulysimple.dev/tsargp/demo) or install it locally:
 
 ```sh
 npm install -g tsargp
@@ -34,10 +20,6 @@ tsargp ... # play with option values
 See the [source](examples/demo.options.ts).
 
 ## Usage
-
-```sh
-npm install tsargp
-```
 
 Define your command-line options (we recommend placing them in a separate file):
 
@@ -88,7 +70,3 @@ bun test      # run unit tests
 bun dist      # build JS bundle
 npm publish   # publish to npm registry
 ```
-
-[documentation]: https://trulysimple.dev/tsargp/docs
-[online]: https://trulysimple.dev/tsargp/demo
-[SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

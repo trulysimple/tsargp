@@ -120,10 +120,12 @@ describe('OptionRegistry', () => {
         },
       } as const satisfies Options;
       const registry = new OptionRegistry(options);
-      expect(() => registry.validate()).toThrow(/Option .+string.+ has empty positional marker\./);
+      expect(() => registry.validate()).toThrow(
+        /Option .+string.+ contains empty positional marker\./,
+      );
     });
 
-    it('should throw an error on version option with no version and no resolve', () => {
+    it('should throw an error on version option with empty version', () => {
       const options = {
         version: {
           type: 'version',
@@ -132,9 +134,7 @@ describe('OptionRegistry', () => {
         },
       } as const satisfies Options;
       const registry = new OptionRegistry(options);
-      expect(() => registry.validate()).toThrow(
-        /Option .+version.+ contains no version or resolve function\./,
-      );
+      expect(() => registry.validate()).toThrow(/Option .+version.+ contains empty version\./);
     });
 
     describe('requires', () => {
