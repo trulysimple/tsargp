@@ -100,11 +100,35 @@ describe('OptionRegistry', () => {
       expect(() => registry.validate()).toThrow(/Option .+string.+ has no name\./);
     });
 
-    it('should throw an error on invalid option name', () => {
+    it('should throw an error on option with invalid name', () => {
       const options = {
         string: {
           type: 'string',
           names: ['a = b'],
+        },
+      } as const satisfies Options;
+      const registry = new OptionRegistry(options);
+      expect(() => registry.validate()).toThrow(/Invalid option name .+a = b.+\./);
+    });
+
+    it('should throw an error on flag option with invalid negation name', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          negationNames: ['a = b'],
+        },
+      } as const satisfies Options;
+      const registry = new OptionRegistry(options);
+      expect(() => registry.validate()).toThrow(/Invalid option name .+a = b.+\./);
+    });
+
+    it('should throw an error on option with invalid positional marker', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          positional: 'a = b',
         },
       } as const satisfies Options;
       const registry = new OptionRegistry(options);

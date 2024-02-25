@@ -847,17 +847,8 @@ class OptionRegistry {
   validate() {
     for (const key in this.options) {
       const option = this.options[key];
-      if (!option.names.find((name) => name)) {
-        throw this.error(`Option ${this.formatOption(key)} has no name.`);
-      }
-      const invalidName = option.names.find((name) => name && name.match(/[\s=]+/));
-      if (invalidName) {
-        throw this.error(`Invalid option name ${this.formatOption(invalidName)}.`);
-      }
+      this.validateNames(key, option);
       if (!isNiladic(option)) {
-        if (typeof option.positional === 'string' && !option.positional) {
-          throw this.error(`Option ${this.formatOption(key)} contains empty positional marker.`);
-        }
         this.validateEnums(key, option);
         this.validateValue(key, option, option.default);
         this.validateValue(key, option, option.example);
@@ -869,6 +860,32 @@ class OptionRegistry {
       if (option.type === 'version' && typeof option.version === 'string' && !option.version) {
         throw this.error(`Option ${this.formatOption(key)} contains contains empty version.`);
       }
+    }
+  }
+
+  /**
+   * Validates an option's names.
+   * @param key The option key
+   * @param option The option definition
+   * @throws On no name, invalid name or empty positional marker
+   */
+  private validateNames(key: string, option: Option) {
+    const names = option.names.filter((name): name is string => name !== null && name !== '');
+    if (!names.length) {
+      throw this.error(`Option ${this.formatOption(key)} has no name.`);
+    }
+    if (option.type === 'flag' && option.negationNames) {
+      names.push(...option.negationNames.filter((name) => name));
+    }
+    if ('positional' in option && typeof option.positional === 'string') {
+      if (!option.positional) {
+        throw this.error(`Option ${this.formatOption(key)} contains empty positional marker.`);
+      }
+      names.push(option.positional);
+    }
+    const invalidName = names.find((name) => name.match(/[\s=]+/));
+    if (invalidName) {
+      throw this.error(`Invalid option name ${this.formatOption(invalidName)}.`);
     }
   }
 

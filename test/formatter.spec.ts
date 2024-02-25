@@ -262,7 +262,7 @@ describe('HelpFormatter', () => {
             type: 'flag',
             names: ['-f', '--flag'],
             desc: 'A flag option',
-            negationNames: ['-no-f', '--no-flag'],
+            negationNames: ['-no-f', '', '--no-flag'],
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');

@@ -457,7 +457,7 @@ class HelpFormatter {
   private formatNegation(option: Option, descStyle: Style, result: TerminalString) {
     if ('negationNames' in option && option.negationNames) {
       result.addSequence(descStyle).addText('Can', 'be', 'negated', 'with');
-      const names = option.negationNames;
+      const names = option.negationNames.filter((name) => name);
       names.forEach((name, i) => {
         this.formatName(name, result);
         if (i < names.length - 1) {
