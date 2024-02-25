@@ -30,6 +30,10 @@ Normally you should _not_ need to pass these parameters, as they have sensible d
 If you feel the need to configure the parser, make sure to first understand how
 [bash completion](#bash-completion) works.
 
+When declaring async [executing callbacks](#executing-callbacks) in the option definitions, you
+should call the `parseAsync` method instead, which returns a promise that can be awaited in order
+resolve those callbacks.
+
 ### Using your own class
 
 This is a more flexible method that allows you to pass an existing object or class instance, which
@@ -43,19 +47,19 @@ of the option values for a given set of option definitions. You may want to use 
 at the resulting type of the `parse` method (or declare a temporary type alias for
 `OptionValues<typeof _your_options_>`) to see how the object is structured.
 
-This method returns a promise that can be awaited in order to await any
-[async callback](#asynchronous-parsing).
+This method returns a promise that can be awaited in order to resolve async
+[executing callbacks](#executing-callbacks).
 
 ## Option validation
 
 The term _validation_ here means verifying the sanity of an option's definition. It is intended for
-development and testing, and should _not_ be used in production, in order to improve the performance
-of your application. The validations behave like assertions: they assert that your options will work
-as expected when delivered to end users.
+development and for testing, _not_ for use in production, where it would unnecessarily impose a
+performance penalty on your application. The validations behave like assertions: they assert that
+your options will work as expected when delivered to end users.
 
-To validate a set of option definitions, call the `validate` method on the parser instance. The
-following sections describe the various kinds of validation performed. In most of them, the option
-key specified in the definitions object is included in the error message.
+To validate a set of option definitions, you must call the `validate` method on the parser instance.
+The following sections describe the various kinds of validation performed. In most of them, the
+option key specified in the definitions object is included in the error message.
 
 ### Names validation
 
@@ -207,16 +211,16 @@ below.
 ### Parsing callbacks
 
 Both the parse and parse delimited callbacks can return promises. They may even return different
-data types from one invocation to another (a promise and a non-promise). To support these use cases,
-the library checks the return type of each invocation to know if it is a promise or not, and act
-accordingly.
+data types from one invocation to the next (e.g., a promise and a non-promise). To support these use
+cases, the library checks the return type of each invocation to know if it is a promise or not, and
+act accordingly.
 
-There are four possible combinations of sequenced invocations:
+There are four possible combinations of previous value and invocation result:
 
-1. `non-promise` followed by `non-promise`
-2. `non-promise` followed by `promise`
-3. `promise` followed by `promise`
-4. `promise` followed by `non-promise`
+1. `non-promise` and `non-promise`
+2. `non-promise` and `promise`
+3. `promise` and `promise`
+4. `promise` and `non-promise`
 
 These cases are handled differently for single-valued and array-valued option types. Since
 single-valued options do not need the previous value (it is simply replaced), their handling is very
@@ -226,7 +230,7 @@ option value.
 
 For array-valued options, they are handled in this manner:
 
-- The first case is handled simply by appending the normalized elements to the previous value, since
+- The first case is handled by simply appending the normalized elements to the previous value, since
   it is a synchronous operation.
 - The second and third cases are handled by chaining the returned promise with an async callback
   that appends the normalized elements to the previous value (which may also be a promise).
@@ -236,12 +240,13 @@ For array-valued options, they are handled in this manner:
 Note that, once a promise is returned from a parsing callback, there's no turning back to a
 non-promise.
 
-A special case occurs when a multivalued array option (i.e., one that accepts multiple parameters)
-is specified on the command-line without parameters. In this case, the parser must initialize the
-option value to an empty array. This means that, even if an option declares an async parsing
-callback in its definition, the parsing loop might exit before calling it and the option value will
-remain an empty array (non-promise). If using TypeScript this will be evident when trying to await
-the option value.
+> **NOTE**:
+> A special case occurs when a multivalued array option (i.e., one that accepts multiple parameters)
+> is specified on the command-line without parameters. In this case, the parser must initialize the
+> option value to an empty array. This means that, even if an option declares an async parsing
+> callback in its definition, the parser might exit the parsing loop before calling the callback and
+> therefore the option value will remain an empty array (non-promise). If using TypeScript this will
+> be evident when trying to await the option value.
 
 In all of these cases, there's no need to await the result of the `parseAsync` or `parseInto`
 methods, since the callback promises are _inside_ the object resulting from argument parsing. You
@@ -258,9 +263,11 @@ should be caught and printed on a terminal. They are the version or the completi
 respectively. In the case of the execute callback, once awaited, the result will be the option
 values.
 
-In both cases you can call the `parseAsync` method, which, like the `parse` method, is just
-syntactic sugar for creating a bare result object into which the values will be parsed. But unlike
-its sibling, `parseAsync` returns a promise, so you must await it in order to use the option values.
+> **TIP**:
+> In both cases you can call the `parseAsync` method, which, like the `parse` method, is just
+> syntactic sugar for creating a bare result object into which the values will be parsed. But
+> unlike its sibling, `parseAsync` returns a promise, so you must await it in order to obtain the
+> option values.
 
 ## Bash completion
 
