@@ -13,22 +13,22 @@ present the available types and describe them in detail.
 
 Here's a summary of the available types and some of their attributes:
 
-| Option type                  | Parameters                           | Data type       | Normalization      | Constraints         |
-| ---------------------------- | ------------------------------------ | --------------- | ------------------ | ------------------- |
-| [help](#help-option)         | niladic                              |                 |                    |                     |
-| [version](#version-option)   | niladic                              |                 |                    |                     |
-| [function](#function-option) | niladic                              |                 |                    |                     |
-| [flag](#flag-option)         | niladic                              | `boolean{:ts}`  |                    |                     |
-| [boolean](#boolean-option)   | positional, single                   | `boolean{:ts}`  |                    |                     |
-| [string](#string-option)     | positional, single                   | `string{:ts}`   | trim, case         | enums, regex        |
-| [number](#number-option)     | positional, single                   | `number{:ts}`   | round              | enums, range        |
-| [strings](#strings-option)   | positional, multi, delimited, append | `string[]{:ts}` | unique, trim, case | enums, regex, limit |
-| [numbers](#numbers-option)   | positional, multi, delimited, append | `number[]{:ts}` | unique, round      | enums, range, limit |
+| Option type                  | Parameters                              | Data type       | Normalization      | Constraints         |
+| ---------------------------- | --------------------------------------- | --------------- | ------------------ | ------------------- |
+| [help](#help-option)         | niladic                                 |                 |                    |                     |
+| [version](#version-option)   | niladic                                 |                 |                    |                     |
+| [function](#function-option) | niladic                                 |                 |                    |                     |
+| [flag](#flag-option)         | niladic                                 | `boolean{:ts}`  |                    |                     |
+| [boolean](#boolean-option)   | positional, monadic                     | `boolean{:ts}`  |                    |                     |
+| [string](#string-option)     | positional, monadic                     | `string{:ts}`   | trim, case         | enums, regex        |
+| [number](#number-option)     | positional, monadic                     | `number{:ts}`   | round              | enums, range        |
+| [strings](#strings-option)   | positional, variadic, delimited, append | `string[]{:ts}` | unique, trim, case | enums, regex, limit |
+| [numbers](#numbers-option)   | positional, variadic, delimited, append | `number[]{:ts}` | unique, round      | enums, range, limit |
 
 In the above table, _niladic_ means that the option expects no parameter on the command-line,
-whereas the other options accept either single or multiple parameters. The data type indicates the
-base type of the option value in the object resulting from argument parsing. The meaning of the
-other attributes is explained in the next sections.
+_monadic_ means that the option accepts a single parameter, and _variadic_ means multiple parameters
+(including zero). The data type indicates the base type of the option value in the object resulting
+from argument parsing. The meaning of the other attributes is explained in the next sections.
 
 ## Common attributes
 
@@ -59,9 +59,9 @@ will be used.
 These attributes only have effect in the formatting of the help message.
 
 The `desc` attribute is the option synopsis, and may contain
-[inline styles](styles.mdx#inline-styles). The `group` attribute is the name of a group under which
-the option should appear. The `hide` attribute, if present, indicates to the formatter that the
-option should not be displayed in the help message. The `deprecated` attribute is just syntactic
+[inline styles](formatter.mdx#inline-styles). The `group` attribute is the name of a group under
+which the option should appear. The `hide` attribute, if present, indicates to the formatter that
+the option should not be displayed in the help message. The `deprecated` attribute is just syntactic
 sugar for the option deprecation reason, and may contain inline styles.
 
 > **NOTE**:
@@ -145,8 +145,8 @@ some explanatory name.
 #### Complete callback
 
 The `complete` attribute, if present, specifies a custom completion callback. This can be used to
-make better suggestions for bash completion than the [default algorithm](parser.mdx#bash-completion)
-would. It accepts two parameters:
+make better suggestions for bash completion than the [default
+algorithm](parser.mdx#completion-algorithm) would for the option. It accepts two parameters:
 
 - `values` - the values parsed up until the current iteration. It is a generic record that should be
   cast to `OptionValues<typeof _your_options_>{:ts}` or to the type of your values class.
@@ -221,10 +221,10 @@ Array-valued option types share a set of attributes, as described below.
 
 #### Separator
 
-The `separator` attribute, if present, specifies a delimiter to split string parameters. If
-specified, the option will accept a single parameter and not multiple parameters. Can be a string or
-a regular expression. Mutually exclusive with [parse callback](#parse-callback) and
-[parse delimited](#parse-delimited).
+The `separator` attribute, if present, specifies a delimiter to split parameter values. If
+specified, the option will accept a single parameter and not multiple parameters (we say that it is
+_delimited_, or _not variadic_). Can be a string or a regular expression. Mutually exclusive with
+[parse callback](#parse-callback) and [parse delimited](#parse-delimited).
 
 #### Parse delimited
 
@@ -235,9 +235,10 @@ option parameter. It accepts two parameters:
 - `value` - the parameter string value
 
 Unlike the [parse callback](#parse-callback) that returns a single value, this callback returns an
-array. If specified, the option will accept a single parameter and not multiple parameters. If
-asynchronous, then the data type of the option value in the resulting object will be enclosed in a
-promise. Mutually exclusive with [separator](#separator) and [parse callback](#parse-callback).
+array. If specified, the option will accept a single parameter and not multiple parameters (we say
+that it is _delimited_, or _not variadic_). If asynchronous, then the data type of the option value
+in the resulting object will be enclosed in a promise. Mutually exclusive with
+[separator](#separator) and [parse callback](#parse-callback).
 
 #### Remove duplicates
 

@@ -241,12 +241,12 @@ Note that, for array-valued options, once a promise is returned from a parsing c
 turning back to a non-promise.
 
 > **NOTE**:
-> A special case occurs when a multivalued array option (i.e., one that accepts multiple parameters)
-> is specified on the command-line without parameters. In this case, the parser must initialize the
-> option value to an empty array. This means that, even if an option declares an async parsing
-> callback in its definition, the parser might exit the parsing loop before calling the callback and
-> therefore the option value will remain an empty array (non-promise). If using TypeScript this will
-> be evident when trying to await the option value.
+> A special case occurs when a variadic array option is specified on the command-line without
+> parameters. In this case, the parser must initialize the option value to an empty array. This
+> means that, even if an option declares an async parsing > callback in its definition, the parser
+> might exit the parsing loop before calling the callback and therefore the option value will remain
+> an empty array (non-promise). If using TypeScript this will be evident when trying to await the
+> option value.
 
 In all of these cases, there's no need to await the result of the `parseAsync` or `parseInto`
 methods, since the callback promises are _inside_ the object resulting from argument parsing. You
@@ -288,5 +288,54 @@ environment variables (available when performing completion):
 The way it does this is by inserting a placeholder into the command-line argument that is under the
 completion index. This placeholder is then looked for at each iteration in the parsing loop to know
 when to perform completion.
+
+The result of completion is a list of words separated by line breaks, and should be printed on the
+terminal so that the `complete` builtin can perform the final completion step.
+
+### Completion algorithm
+
+The completion algorithm implemented by the library is explained below. In what follows, _arg_ is
+the word being completed, i.e., the command-line argument ending at the completion index (it may be
+an empty string):
+
+1. If _arg_ is expected to be an option name:
+   - If _arg_ is a known option name, that name is returned; else
+   - If there's no positional option, the available option names are filtered by the prefix _arg_,
+     and then returned; else
+   - _arg_ is treated as a parameter of the positional option; go to step 2
+2. _arg_ is the parameter of a non-niladic option:
+   - If the option has a [complete callback](options.mdx#complete-callback), the result of the
+     callback is returned; else
+   - If it is a boolean option, the words `'true'{:ts}` and `'false'{:ts}` are filtered by the
+     prefix _arg_, and then returned; else
+   - If the option has enumerated values, those values are converted to string, filtered by the
+     prefix _arg_, and then returned; else
+   - If it is a variadic array option, and was not specified with a positional marker, the available
+     option names are filtered by the prefix _arg_ and returned; else
+   - No words are returned, and the default bash completion (if enabled with `-o`) is attempted.
+
+During completion, help and version options are skipped, but others are processed as usual. This
+means that completion callbacks can inspect the values parsed before it, in order to make better
+suggestions based on those values.
+
+## Miscellaneous
+
+### Error styles
+
+Both validation and parsing methods may throw errors, and the error messages can be styled. The
+styles can be configured with an additional parameter to the parser constructor, which contains the
+following optional properties:
+
+- `boolean` - the style of boolean values
+- `string` - the style of string values
+- `number` - the style of number values
+- `regex` - the style of regular expressions
+- `option` - the style of option names
+- `text` - The style of general text
+
+### Inline values
+
+Option parameters may be passed on the command-line using the syntax `<name>=<value>`. This syntax
+is only valid for non-niladic options and cannot be used with the positional marker.
 
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

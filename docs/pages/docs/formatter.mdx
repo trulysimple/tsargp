@@ -11,7 +11,7 @@ instantiated with a set of option _definitions_ and provides methods to format h
 
 The help message is a string that may contain control sequences and can only be printed on a
 terminal that supports control sequences. There are two methods to obtain help messages, both of
-them accepting an optional parameter:
+them accepting a single optional parameter:
 
 - `width` - the desired terminal width (in number of terminal columns)
 
@@ -25,13 +25,13 @@ available.
 
 The `formatHelp` method returns a help message corresponding to the _default_ option group, which is
 the set of options that did not explicitly declare an
-[option group](options.mdx#description-group-hide-styles--deprecated) in their definition. The
+[option group](options.mdx#description-group-hide--deprecated) in their definition. The
 `formatGroups` method, its sibling, returns a `Map{:ts}` of option group names to help messages
 (including the default group with an empty name).
 
 ## Help entries
 
-Each option definition will result in a help entry to be included in the message. An entry is
+Each option definition will result in a help entry being included in the message. An entry is
 divided into "columns" (not to be confused with terminal columns), each containing a piece of
 information, as described below.
 
@@ -48,6 +48,7 @@ formatted as:
 ```
 
 Note how the empty string produced whitespace between its neighbors, and the commas were suppressed.
+The length of each name slot will be the length of the largest name in that slot, among all options.
 
 ### Parameter column
 
@@ -180,7 +181,7 @@ and in what order. It is an array whose values can be one of the following.
 - `desc` - the user-provided option description
 - `negation` - the negation names of a flag option, if any
 - `separator` - the element delimiter of an array option, if enabled
-- `multivalued` - reports if an array option is multivalued
+- `variadic` - reports if an array option accepts multiple parameters
 - `positional` - reports if an option accepts positional arguments
 - `append` - reports if an array option can be specified multiple times
 - `trim` - reports if string parameters will be trimmed (leading and trailing whitespace removed)
@@ -195,3 +196,45 @@ and in what order. It is an array whose values can be one of the following.
 - `required` - reports if the option is always required
 - `default` - the option default value, if any
 - `deprecated` - reports if the option is deprecated
+
+## User-provided text
+
+The user-provided [text attributes](options.mdx#description-group-hide--deprecated) are split into
+words and styles before being added to a help entry's description column. The following formatting
+features are supported for these attributes.
+
+### Inline styles
+
+Texts can contain inline styles. The formatter will try its best to preserve styles while formatting
+the help message and wrapping text in the option description. However, it might happen that some
+corner case is not covered by the unit tests. If you find one, please submit a [bug report].
+
+### Paragraphs and lists
+
+Although markdown is not supported, paragraphs and itemized/numbered lists are formatted in a manner
+akin to how they would be in markdown. For example, the following text
+
+```ansi
+A paragraph with
+  single line breaks,  redundant  spacing  and:
+  - itemized; or
+  1. numbered lists
+
+  Another paragraph
+```
+
+Would be rendered as:
+
+```md
+A paragraph with single line breaks, redundant spacing and:
+
+- itemized; or
+
+1. numbered lists
+
+Another paragraph.
+```
+
+Notice how a period is appended to the end of the second paragraph.
+
+[bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
