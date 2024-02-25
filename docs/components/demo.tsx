@@ -219,7 +219,7 @@ class Demo extends React.Component<Props, State> {
    */
   private run(line: string) {
     try {
-      const values = this.parser.parse(line, { width: this.state.width });
+      const values = this.parser.parse(line, { termWidth: this.state.width });
       this.readline.println(JSON.stringify(values, null, 2));
     } catch (err) {
       this.readline.println(`${err}`);
