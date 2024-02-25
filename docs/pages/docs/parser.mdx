@@ -1,3 +1,285 @@
 ---
 title: Parser - Docs
 ---
+
+# Parser
+
+The `ArgumentParser` class is the central piece of the library. It can be instantiated with a set of
+option _definitions_ and provides methods to parse command-line arguments into option values.
+
+## Option values
+
+The result of argument parsing is an object that contains the option values corresponding to the
+option definitions given in the parser constructor. There are two main ways to get the values, as
+explained below.
+
+### Using a newly-created object
+
+This is the easiest, most common method: you just call `parse` and use its result. This method
+accepts two optional parameters:
+
+- `command` - the raw command line (`string`) or the command-line arguments (`string[]`)
+- `config` - the parse [configuration](#parse-configuration)
+
+Normally you should _not_ need to pass these parameters, as they have sensible default values:
+
+- `command` - `process.env['COMP_LINE']` or `process.argv.slice(2)`
+- `config.termWidth` - `process.stdout.columns` or `process.stderr.columns`
+- `config.compIndex` - `Number(process.env['COMP_POINT'])` or `undefined`
+
+If you feel the need to configure the parser, make sure to first understand how
+[bash completion](#bash-completion) works.
+
+### Using your own class
+
+This is a more flexible method that allows you to pass an existing object or class instance, which
+will be filled with the parsed option values. The method is named `parseInto` and accepts the same
+parameters as above, except for an additional (first) parameter:
+
+- `values` - the options' values to parse into
+
+When using TypeScript, this parameter will be type-checked at compile-time against the expected type
+of the option values for a given set of option definitions. You may want to use IntelliSense to peak
+at the resulting type of the `parse` method (or declare a temporary type alias for
+`OptionValues<typeof _your_options_>`) to see how the object is structured.
+
+This method returns a promise that can be awaited in order to await any
+[async callback](#asynchronous-parsing).
+
+## Option validation
+
+The term _validation_ here means verifying the sanity of an option's definition. It is intended for
+development and testing, and should _not_ be used in production, in order to improve the performance
+of your application. The validations behave like assertions: they assert that your options will work
+as expected when delivered to end users.
+
+To validate a set of option definitions, call the `validate` method on the parser instance. The
+following sections describe the various kinds of validation performed. In most of them, the option
+key specified in the definitions object is included in the error message.
+
+### Names validation
+
+Option names are subject to some restrictions, and any option definition that does not satisfy one
+of them will trigger an error. They are listed below.
+
+#### No option name
+
+An option should have at least one _non-empty_ name.
+
+#### Invalid option name
+
+An option name must not contain whitespace or the equals sign `=`, since this character may be used
+as option-value separator on the command-line. Any other character (including Unicode code points)
+is allowed. Empty strings and `null`s are ignored. A flag option's
+[negation names](options.mdx#negation-names) and the
+[positional marker](options.mdx#positional--marker) are included in the validation.
+
+#### Duplicate option name
+
+An option should not have duplicate names, and there cannot be two options with the same name. Empty
+strings and `null`s are ignored. A flag option's [negation names](options.mdx#negation-names) and
+the [positional marker](options.mdx#positional--marker) are included in the validation.
+
+### Enums validation
+
+Enumerated values are subject to some restrictions, and any option definition that does not satisfy
+one of them will trigger an error. They are listed below.
+
+#### Zero enum values
+
+There may not be an option with zero enumerated values. The enumeration array should have non-zero
+length.
+
+#### Duplicate enum value
+
+There may not be an option with duplicate enumerated values. The enumeration array should not
+contain duplicate elements.
+
+### Value validation
+
+Non-niladic options may define a default value and an example value. If present, these attributes
+are subject to the same set of constraints as that of the command-line arguments, and any option
+definition whose values do not satisfy one of them will trigger an error. They are listed below.
+
+#### Enums constraint violation
+
+If the `enums` attribute is present, then default and example values must equal one of the
+enumerated values after being normalized. (The enumerated values themselves are not normalized.)
+
+#### Regex constraint violation
+
+In a string-valued option, if the `regex` attribute is present, then default and example values must
+match the regular expression after being normalized.
+
+#### Range constraint violation
+
+In a number-valued option, if the `range` attribute is present, then default and example values must be
+within this range after being normalized.
+
+#### Limit constraint violation
+
+In an array-valued option, if the `limit` attribute is present, then default and example values must
+have a length that does not exceed the given limit after being normalized.
+
+### Requirements validation
+
+When an option declares that it requires other options, these requirements are subject to some
+restrictions, and any option definition that does not satisfy one of them will trigger an error.
+They are listed below.
+
+#### Option requiring itself
+
+An option must not declare a requirement/expression that includes its own option key.
+
+#### Unknown required option
+
+An option must not declare a requirement/expression that includes an unknown option key.
+
+#### Niladic option required with a value
+
+An option must not declare a requirement/expression that includes an option key referencing a
+niladic option, _if_ it includes a required value that is neither `undefined` nor `null`.
+
+#### Incompatible required value data type
+
+Since a requirement may be an object with values of any kind, the data type of these values must be
+validated at run-time. An option must not declare a requirement/expression that includes an option
+key referencing a non-niladic option, _if_ it includes a required value that does not conform to the
+data type expected by that option.
+
+#### Constraint violation
+
+If an option declares a requirement/expression that includes a required value, then that value is
+subject to the same set of constraints as that of the command-line arguments, so it must satisfy the
+restrictions listed in [value validation](#value-validation).
+
+### Positional validation
+
+Options declared with the [positional](options.mdx#positional--marker) attribute are subject to some
+restrictions, and any option definition that does not satisfy one of them will trigger an error.
+They are listed below.
+
+#### Duplicate positional option
+
+Since positional arguments are unnamed, they must pertain to exactly one option. Hence, there cannot
+be two options with the positional attribute in the same set of option definitions.
+
+#### Empty positional marker
+
+If an option is declared with a positional marker, this marker cannot be the empty string.
+
+### Version validation
+
+Version options are very simple and have only one restraint: they must not contain an empty version
+string (if the attribute is specified); otherwise it will trigger an error.
+
+## Parse configuration
+
+The parsing procedure can be configured with a `ParseConfig` object that has a few optional
+properties, as described below.
+
+### Terminal width
+
+The `termWidth` property is the desired terminal width to print the help message (in number of
+columns). This value is passed directly to the constructor of the [formatter](formatter.mdx) class,
+when processing a help option.
+
+### Completion index
+
+The `compIndex` property is the completion index of a raw command line. When supplying the parsing
+methods with a command-line string, this value instructs the parser to perform bash completion when
+parsing the argument that overlaps this position in the string.
+
+## Asynchronous parsing
+
+To understand how the parser supports asynchronous operations, we need to review the kinds of
+callbacks that an option definition may declare. There are five of them:
+
+- [parse callback](options.mdx#parse-callback)
+- [parse delimited](options.mdx#parse-delimited)
+- [resolve callback](options.mdx#resolve-callback)
+- [execute callback](options.mdx#execute-callback)
+- [complete callback](options.mdx#complete-callback)
+
+They can be classified into "parsing" callbacks and "executing" callbacks, and are further explained
+below.
+
+### Parsing callbacks
+
+Both the parse and parse delimited callbacks can return promises. They may even return different
+data types from one invocation to another (a promise and a non-promise). To support these use cases,
+the library checks the return type of each invocation to know if it is a promise or not, and act
+accordingly.
+
+There are four possible combinations of sequenced invocations:
+
+1. `non-promise` followed by `non-promise`
+2. `non-promise` followed by `promise`
+3. `promise` followed by `promise`
+4. `promise` followed by `non-promise`
+
+These cases are handled differently for single-valued and array-valued option types. Since
+single-valued options do not need the previous value (it is simply replaced), their handling is very
+simple: if the returned value is a promise, then it is chained with a callback that normalizes the
+value, and the new promise becomes the option value; otherwise, the returned value is set as the
+option value.
+
+For array-valued options, they are handled in this manner:
+
+- The first case is handled simply by appending the normalized elements to the previous value, since
+  it is a synchronous operation.
+- The second and third cases are handled by chaining the returned promise with an async callback
+  that appends the normalized elements to the previous value (which may also be a promise).
+- The fourth case is handled by chaining the existing promise with a callback that appends the
+  normalized elements to the previous value.
+
+Note that, once a promise is returned from a parsing callback, there's no turning back to a
+non-promise.
+
+A special case occurs when a multivalued array option (i.e., one that accepts multiple parameters)
+is specified on the command-line without parameters. In this case, the parser must initialize the
+option value to an empty array. This means that, even if an option declares an async parsing
+callback in its definition, the parsing loop might exit before calling it and the option value will
+remain an empty array (non-promise). If using TypeScript this will be evident when trying to await
+the option value.
+
+In all of these cases, there's no need to await the result of the `parseAsync` or `parseInto`
+methods, since the callback promises are _inside_ the object resulting from argument parsing. You
+must then await each value in this object that is a promise, in order to use the value.
+
+### Executing callbacks
+
+The resolve, execute and complete callbacks are the ones that may cause the parser to accumulate
+promises that will be returned by the `parseAsync` or `parseInto` methods, which can then be awaited
+in order to await their resolution.
+
+In the case of the resolve and complete callbacks, once awaited, the promise throws a string that
+should be caught and printed on a terminal. They are the version or the completion words,
+respectively. In the case of the execute callback, once awaited, the result will be the option
+values.
+
+In both cases you can call the `parseAsync` method, which, like the `parse` method, is just
+syntactic sugar for creating a bare result object into which the values will be parsed. But unlike
+its sibling, `parseAsync` returns a promise, so you must await it in order to use the option values.
+
+## Bash completion
+
+Quoting the [Bash docs]:
+
+> When word completion is attempted for an argument to a command for which a completion
+> specification (a compspec) has been defined using the `complete` builtin (see Programmable
+> Completion Builtins), the programmable completion facilities are invoked.
+
+The parser does not use the completion facilities, because it relies simply on the command line
+string and the completion index into that string, which can be retrieved from the following
+environment variables, available when performing completion:
+
+- `COMP_LINE` - the current command line
+- `COMP_POINT` - the index of the current cursor position relative to the beginning of the current
+  command
+
+The way it does this is by inserting a placeholder into the command-line argument that is under the
+completion index. This placeholder is then looked for at each iteration in the parsing loop to know
+when to perform completion.
+
+[Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

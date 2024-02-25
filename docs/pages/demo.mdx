@@ -12,16 +12,18 @@ Commands:
 - `tsargp ...` play with option values
 - `clear` clear the screen
 
-> **TIP:**
+> **TIPS:**
 > Select text from the terminal and paste it with `Ctrl`+`V`.
 > Use the `Up` and `Down` arrow keys to navigate the history.
+> For a full experience, you may want to try it locally:
+> `npm i -g tsargp && complete -C tsargp tsargp`.
 
 Things to try out:
 
 - completion:
   - check if completion works by pressing `Tab` (it behaves slightly differently than a real bash)
   - check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`)
-  - check if an option parameter gets completed (e.g., `<Tab>`, `-se o<Tab>`, `--ne <Tab>`)
+  - check if an option parameter gets completed (e.g., `o<Tab>`, `-se <Tab>`, `--ne <Tab>`)
 - names:
   - check if similar names are suggested for unkown options (e.g., `-nof`)
   - check if option names can be used as option parameters (e.g., `-ss -s`)

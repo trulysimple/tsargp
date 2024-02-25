@@ -2,7 +2,7 @@
 title: Introduction - Docs
 ---
 
-# tsargp
+# Introduction
 
 **tsargp** is a command-line argument parsing library that helps you write clean code.
 
@@ -11,7 +11,7 @@ title: Introduction - Docs
 | Usability              | Functionality           | Presentation              |
 | ---------------------- | ----------------------- | ------------------------- |
 | Zero-dependency        | Bash completion         | Help message formatting   |
-| Purely declarative     | Various option types    | Inline styles             |
+| Fully declarative      | Various option types    | Inline styles             |
 | Type checking          | Value normalization     | Text wrapping             |
 | Browser-compatible     | Value constraints       | Paragraphs and lists      |
 | Moderate footprint[^1] | Option requirements     | [SGR] display attributes  |
@@ -19,6 +19,20 @@ title: Introduction - Docs
 |                        | Asynchronous callbacks  | Option grouping/hiding    |
 
 [^1]: ~30KB minified
+
+## Motivation
+
+Why use this library when there are already dozens of argument parsers on npm?
+
+The single most distinctive feature is its _declarative_ API. Very few libraries on npm that we know
+of at the time of writing have this feature (and none of those support requirements between options).
+Most others have either imperative or fluent interface, whereas **tsargp** offers a way to declare
+all of your command-line options in a single `object`.
+
+Another feature that stands out is its capability (with the help of TypeScript) of ensuring that the
+object resulting from argument parsing has _accurate_ data types, i.e., they reflect the attributes
+specified in the options' definitions. In particular, an option's value will be a union literal if
+you declare enumeration constraints in its definition.
 
 ## Installation
 
@@ -30,7 +44,7 @@ npm install tsargp
 
 Define your command-line options (we recommend placing them in a separate file):
 
-```ts filename="<your_cli_name>.options.ts"
+```ts filename="<your_cli_name>.options.ts" /<your_cli_name>/
 // <your_cli_name>.options.ts
 import { Options, ... } from 'tsargp';
 
@@ -41,7 +55,7 @@ export default {
 
 Import them in your main script:
 
-```ts filename="<your_cli_name>.ts" {8-10} /ArgumentParser/
+```ts filename="<your_cli_name>.ts" {8-10} /<your_cli_name>/
 #!/usr/bin/env node
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
@@ -64,7 +78,7 @@ try {
 
 Optionally, enable bash completion:
 
-```sh
+```sh /<your_cli_name>/
 complete -o default -C <your_cli_name> <your_cli_name>
 ```
 

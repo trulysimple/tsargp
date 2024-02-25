@@ -13,7 +13,8 @@
     "nextra",
     "niladic",
     "multivalued",
-    "println"
+    "println",
+    "compspec"
   ],
   "ignorePaths": ["*.lockb", "*.dvc"],
   "useGitignore": true
