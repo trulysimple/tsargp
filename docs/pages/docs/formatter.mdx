@@ -3,3 +3,195 @@ title: Formatter - Docs
 ---
 
 # Formatter
+
+The `HelpFormatter` class is the component that handles the formatting of help messages. It can be
+instantiated with a set of option _definitions_ and provides methods to format help message strings.
+
+## Help message
+
+The help message is a string that may contain control sequences and can only be printed on a
+terminal that supports control sequences. There are two methods to obtain help messages, both of
+them accepting an optional parameter:
+
+- `width` - the desired terminal width (in number of terminal columns)
+
+Its default value is the number of columns of the standard output or error stream, whichever is
+available.
+
+> **NOTE:**
+> When redirecting the output of a command to a file, the associated stream will not have the
+> `columns` property. Hence, if both `stdout` and `stderr` are being redirected, the default value
+> of the above parameter will be `undefined{:ts}`.
+
+The `formatHelp` method returns a help message corresponding to the _default_ option group, which is
+the set of options that did not explicitly declare an
+[option group](options.mdx#description-group-hide-styles--deprecated) in their definition. The
+`formatGroups` method, its sibling, returns a `Map{:ts}` of option group names to help messages
+(including the default group with an empty name).
+
+## Help entries
+
+Each option definition will result in a help entry to be included in the message. An entry is
+divided into "columns" (not to be confused with terminal columns), each containing a piece of
+information, as described below.
+
+### Names column
+
+This column contains the option's names separated by commas. The names are listed in the same order
+as was specified in the [names](options.mdx#names--preferred-name) attribute. Each option name
+reserves a "slot" in the corresponding index in this column. For example, if the list contains the
+names `'-f'{:ts}`, `'-ff'{:ts}`, `''{:ts}` and `'--flag'{:ts}`, the resulting entry might be
+formatted as:
+
+```
+-f, -ff      --flag
+```
+
+Note how the empty string produced whitespace between its neighbors, and the commas were suppressed.
+
+### Parameter column
+
+This column contains either of:
+
+- the option example value, if present
+- the option parameter name, if present
+- the option type (the default), formatted as `<type>`
+
+### Description column
+
+The last column contains the option description. It is composed of [help items](#help-items) and is
+wrapped to the desired terminal width, respecting the [indentation level](#description-indentation)
+setting. If the width does not accommodate an entry's description column while respecting the
+indentation level, it is instead wrapped relative to the beginning of each line.
+
+## Help format
+
+In addition to option definitions, the formatter constructor accepts a `HelpFormat` object that can
+be used to customize the message format. This configuration will apply to all the help entries. It
+contains a set of optional properties, as described below.
+
+### Indentation level
+
+The `indent` property specifies the indentation level for various help message elements. It has the
+following set of optional properties.
+
+#### Names indentation
+
+The `names` property specifies the level of indentation for the option names (in number of terminal
+columns). This value should not be negative. It defaults to `2{:ts}`.
+
+#### Parameter indentation
+
+The `param` property specifies the level of indentation for the option parameter (in number of
+terminal columns). This value may be negative if [parameter absolute](#parameter-absolute) is false.
+It defaults to `2{:ts}`.
+
+#### Description indentation
+
+The `desc` property specifies the level of indentation for the option description (in number of
+terminal columns). This value may be negative if [description absolute](#description-absolute) is
+false. It defaults to `2{:ts}`.
+
+#### Parameter absolute
+
+The `paramAbsolute` property, if true, indicates that the indentation level for the option parameter
+should be relative to the beginning of the line instead of the end of the option names. It defaults
+to `false{:ts}`.
+
+#### Description absolute
+
+The `descAbsolute` property, if true, indicates that the indentation level for the option
+description should be relative to the beginning of the line instead of the end of the option
+parameter. It defaults to `false{:ts}`.
+
+### Line breaks
+
+The `breaks` property specifies the number of line breaks to insert before various help message
+elements. It has the following set of optional properties.
+
+#### Breaks before names
+
+The `names` property specifies the number of line breaks to insert before the option names. It
+defaults to `0{:ts}`.
+
+#### Breaks before parameter
+
+The `param` property specifies the number of line breaks to insert before the option parameter. It
+defaults to `0{:ts}`.
+
+#### Breaks before description
+
+The `desc` property specifies the number of line breaks to insert before the option description. It
+defaults to `0{:ts}`.
+
+### Hidden columns
+
+The `hidden` property can be used to select help entry columns that should _not_ be displayed. It
+has the following set of optional properties.
+
+#### Hidden names
+
+The `names` property, if true, indicates that the option names should not be displayed. It defaults
+to `false{:ts}`.
+
+#### Hidden parameter
+
+The `param` property, if true, indicates that the option parameter should not be displayed. It
+defaults to `false{:ts}`.
+
+#### Hidden description
+
+The `desc` property, if true, indicates that the option description should not be displayed. It
+defaults to `false{:ts}`.
+
+### Display styles
+
+The `styles` property specifies the default option styles and styles of other text elements in the
+help message. It has the following optional properties:
+
+- `names` - the default style of the option names
+- `param` - the default style of the option paramater
+- `desc` - the default style of the option description
+- `boolean` - the style of boolean values
+- `string` - the style of string values
+- `number` - the style of number values
+- `regex` - the style of regular expressions
+- `option` - the style of option names in the description (but not the option's own names)
+- `text` - The style of general text
+
+The first three of these properties may be overriden by the [option's styles](options.mdx#styles)
+attribute, if present.
+
+> **TIP:**
+> Whitespace around help entries is not styled. For that purpose, you may need to tweak your
+> terminal settings.
+
+> **NOTE:**
+> The styles are cumulative, i.e., they can add to previous styles depending on the kind of styling
+> attribute. For instance, if the style of option description is `tf.bold` and the style of number
+> value is `fg.yellow`, then any number value that appears in the option description (except those
+> embedded in user-provided texts) is rendered in bold intensity with yellow foreground color.
+
+### Help items
+
+The `items` property specifies the kind of items that will be displayed in the option description,
+and in what order. It is an array whose values can be one of the following.
+
+- `desc` - the user-provided option description
+- `negation` - the negation names of a flag option, if any
+- `separator` - the element delimiter of an array option, if enabled
+- `multivalued` - reports if an array option is multivalued
+- `positional` - reports if an option accepts positional arguments
+- `append` - reports if an array option can be specified multiple times
+- `trim` - reports if string parameters will be trimmed (leading and trailing whitespace removed)
+- `case` - the kind of case-conversion applied to string parameters, if enabled
+- `round` - the kind of rounding applied to number parameters, if enabled
+- `enums` - the enumerated values that the option accepts as parameters, if any
+- `regex` - the regular expression that string parameters should match, if enabled
+- `range` - the numeric range that number parameters should be within, if enabled
+- `unique` - reports if duplicate elements will be removed from an array option value
+- `limit` - the element count limit of an array option, if enabled
+- `requires` - the option requirements, if any
+- `required` - reports if the option is always required
+- `default` - the option default value, if any
+- `deprecated` - reports if the option is deprecated

@@ -52,15 +52,15 @@ type HelpFormat = {
    */
   readonly indent?: {
     /**
-     * The indentation level for the names column.
+     * The indentation level for the names column. (Defaults to 2)
      */
     readonly names?: number;
     /**
-     * The indentation level for the parameter column.
+     * The indentation level for the parameter column. (Defaults to 2)
      */
     readonly param?: number;
     /**
-     * The indentation level for the description column.
+     * The indentation level for the description column. (Defaults to 2)
      */
     readonly desc?: number;
     /**
@@ -112,7 +112,7 @@ type HelpFormat = {
   };
 
   /**
-   * The default option styles and styles of other elements.
+   * The default option styles and styles of other text elements.
    */
   readonly styles?: OptionStyles & OtherStyles;
 
@@ -167,7 +167,7 @@ const enum HelpItem {
    */
   round,
   /**
-   * The enumerated values that the option accepts as parameters, if enabled.
+   * The enumerated values that the option accepts as parameters, if any.
    */
   enums,
   /**
@@ -183,7 +183,7 @@ const enum HelpItem {
    */
   unique,
   /**
-   * The value count limit of an array option, if enabled.
+   * The element count limit of an array option, if enabled.
    */
   limit,
   /**

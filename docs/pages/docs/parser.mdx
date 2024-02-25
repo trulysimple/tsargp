@@ -18,14 +18,14 @@ explained below.
 This is the easiest, most common method: you just call `parse` and use its result. This method
 accepts two optional parameters:
 
-- `command` - the raw command line (`string`) or the command-line arguments (`string[]`)
-- `config` - the parse [configuration](#parse-configuration)
+- `command` - the raw command line (`string{:ts}`) or the command-line arguments (`string[]{:ts}`)
+- `config` - the [parse configuration](#parse-configuration)
 
 Normally you should _not_ need to pass these parameters, as they have sensible default values:
 
-- `command` - `process.env['COMP_LINE']` or `process.argv.slice(2)`
-- `config.termWidth` - `process.stdout.columns` or `process.stderr.columns`
-- `config.compIndex` - `Number(process.env['COMP_POINT'])` or `undefined`
+- `command` - `process.env['COMP_LINE']{:ts}` or `process.argv.slice(2){:ts}`
+- `config.termWidth` - `process.stdout.columns{:ts}` or `process.stderr.columns{:ts}`
+- `config.compIndex` - `Number(process.env['COMP_POINT']){:ts}` or `undefined{:ts}`
 
 If you feel the need to configure the parser, make sure to first understand how
 [bash completion](#bash-completion) works.
@@ -45,7 +45,7 @@ parameters as above, except for an additional (first) parameter:
 When using TypeScript, this parameter will be type-checked at compile-time against the expected type
 of the option values for a given set of option definitions. You may want to use IntelliSense to peak
 at the resulting type of the `parse` method (or declare a temporary type alias for
-`OptionValues<typeof _your_options_>`) to see how the object is structured.
+`OptionValues<typeof _your_options_>{:ts}`) to see how the object is structured.
 
 This method returns a promise that can be awaited in order to resolve async
 [executing callbacks](#executing-callbacks).
@@ -72,17 +72,17 @@ An option should have at least one _non-empty_ name.
 
 #### Invalid option name
 
-An option name must not contain whitespace or the equals sign `=`, since this character may be used
-as option-value separator on the command-line. Any other character (including Unicode code points)
-is allowed. Empty strings and `null`s are ignored. A flag option's
+An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character may
+be used as option-value separator on the command-line. Any other character (including Unicode code
+points) is allowed. Empty strings and `null{:ts}`s are ignored. A flag option's
 [negation names](options.mdx#negation-names) and the
 [positional marker](options.mdx#positional--marker) are included in the validation.
 
 #### Duplicate option name
 
 An option should not have duplicate names, and there cannot be two options with the same name. Empty
-strings and `null`s are ignored. A flag option's [negation names](options.mdx#negation-names) and
-the [positional marker](options.mdx#positional--marker) are included in the validation.
+strings and `null{:ts}`s are ignored. A flag option's [negation names](options.mdx#negation-names)
+and the [positional marker](options.mdx#positional--marker) are included in the validation.
 
 ### Enums validation
 
@@ -142,7 +142,7 @@ An option must not declare a requirement/expression that includes an unknown opt
 #### Niladic option required with a value
 
 An option must not declare a requirement/expression that includes an option key referencing a
-niladic option, _if_ it includes a required value that is neither `undefined` nor `null`.
+niladic option, _if_ it includes a required value that is neither `undefined{:ts}` nor `null{:ts}`.
 
 #### Incompatible required value data type
 
@@ -217,10 +217,10 @@ act accordingly.
 
 There are four possible combinations of previous value and invocation result:
 
-1. `non-promise` and `non-promise`
-2. `non-promise` and `promise`
-3. `promise` and `promise`
-4. `promise` and `non-promise`
+1. non-promise and non-promise
+2. non-promise and promise
+3. promise and promise
+4. promise and non-promise
 
 These cases are handled differently for single-valued and array-valued option types. Since
 single-valued options do not need the previous value (it is simply replaced), their handling is very
@@ -237,8 +237,8 @@ For array-valued options, they are handled in this manner:
 - The fourth case is handled by chaining the existing promise with a callback that appends the
   normalized elements to the previous value.
 
-Note that, once a promise is returned from a parsing callback, there's no turning back to a
-non-promise.
+Note that, for array-valued options, once a promise is returned from a parsing callback there's no
+turning back to a non-promise.
 
 > **NOTE**:
 > A special case occurs when a multivalued array option (i.e., one that accepts multiple parameters)
@@ -250,7 +250,7 @@ non-promise.
 
 In all of these cases, there's no need to await the result of the `parseAsync` or `parseInto`
 methods, since the callback promises are _inside_ the object resulting from argument parsing. You
-must then await each value in this object that is a promise, in order to use the value.
+must then await each value in this object that is a promise, in order to obtain the value.
 
 ### Executing callbacks
 
@@ -279,7 +279,7 @@ Quoting the [Bash docs]:
 
 The parser does not use the completion facilities, because it relies simply on the command line
 string and the completion index into that string, which can be retrieved from the following
-environment variables, available when performing completion:
+environment variables (available when performing completion):
 
 - `COMP_LINE` - the current command line
 - `COMP_POINT` - the index of the current cursor position relative to the beginning of the current

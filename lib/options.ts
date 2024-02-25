@@ -123,15 +123,15 @@ type OptionStyles = {
  */
 type OtherStyles = {
   /**
-   * The style of booleans.
+   * The style of boolean values.
    */
   readonly boolean?: Style;
   /**
-   * The style of strings.
+   * The style of string values.
    */
   readonly string?: Style;
   /**
-   * The style of numbers.
+   * The style of number values.
    */
   readonly number?: Style;
   /**
@@ -139,7 +139,7 @@ type OtherStyles = {
    */
   readonly regex?: Style;
   /**
-   * The style of option names
+   * The style of option names.
    */
   readonly option?: Style;
   /**
