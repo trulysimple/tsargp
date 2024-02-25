@@ -47,7 +47,7 @@ export {
   isNiladic,
   isArray,
   isValued,
-  isMultivalued,
+  isVariadic,
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -1216,11 +1216,11 @@ function isValued(option: Option): option is ValuedOption {
 }
 
 /**
- * Tests if an array option is multivalued.
+ * Tests if an array option is variadic (i.e., accepts multiple parameters).
  * @param option The option definition
- * @returns True if the option is multivalued
+ * @returns True if the option is variadic
  */
-function isMultivalued(option: ArrayOption): boolean {
+function isVariadic(option: ArrayOption): boolean {
   return (
     !('separator' in option && option.separator) &&
     !('parseDelimited' in option && option.parseDelimited)

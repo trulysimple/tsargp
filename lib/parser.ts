@@ -27,7 +27,7 @@ import {
   RequiresNot,
   RequiresOne,
   isArray,
-  isMultivalued,
+  isVariadic,
   isNiladic,
   isValued,
 } from './options';
@@ -209,7 +209,7 @@ class ParserLoop {
         if (this.handleCompletion(option, i, value)) {
           return this.promises;
         }
-        if (!inline && !marker && (addKey || (isArray(option) && isMultivalued(option)))) {
+        if (!inline && !marker && (addKey || (isArray(option) && isVariadic(option)))) {
           this.handleNameCompletion(value);
         }
         throw ''; // use default completion
@@ -223,7 +223,7 @@ class ParserLoop {
           } catch (err) {
             // do not propagate errors during completion
             if (!this.completing) {
-              if (!inline && !marker && isArray(option) && isMultivalued(option)) {
+              if (!inline && !marker && isArray(option) && isVariadic(option)) {
                 const error = err as Error;
                 error.message += `\nDid you mean to specify an option name instead of ${this.registry.formatOption(value)}?`;
                 this.handleUnknown(value, error);
@@ -235,7 +235,7 @@ class ParserLoop {
             singleParam = false;
             current = undefined;
           }
-        } else if (marker || (isArray(option) && isMultivalued(option))) {
+        } else if (marker || (isArray(option) && isVariadic(option))) {
           continue;
         } else if (i + 1 == this.args.length) {
           throw this.registry.error(`Missing parameter to ${this.registry.formatOption(name)}.`);
@@ -281,7 +281,7 @@ class ParserLoop {
         if (
           index + 1 == this.args.length &&
           (!isArray(this.registry.positional.option) ||
-            !isMultivalued(this.registry.positional.option))
+            !isVariadic(this.registry.positional.option))
         ) {
           throw this.registry.error(
             `Missing parameter after positional marker ${this.registry.formatOption(name)}.`,

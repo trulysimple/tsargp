@@ -14,14 +14,7 @@ import type {
 } from './options';
 import type { Style } from './styles';
 
-import {
-  RequiresAll,
-  RequiresNot,
-  RequiresOne,
-  isArray,
-  isMultivalued,
-  isNiladic,
-} from './options';
+import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { fg, isStyle, move, mv, style, TerminalString, tf } from './styles';
 
 export { HelpFormatter, HelpItem, type HelpFormat };
@@ -143,9 +136,9 @@ const enum HelpItem {
    */
   separator,
   /**
-   * Reports if an array option is multivalued.
+   * Reports if an array option accepts multiple parameters.
    */
-  multivalued,
+  variadic,
   /**
    * Reports if an option accepts positional arguments.
    */
@@ -240,7 +233,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.desc,
     HelpItem.negation,
     HelpItem.separator,
-    HelpItem.multivalued,
+    HelpItem.variadic,
     HelpItem.positional,
     HelpItem.append,
     HelpItem.trim,
@@ -279,7 +272,7 @@ class HelpFormatter {
     this.formatDesc.bind(this),
     this.formatNegation.bind(this),
     this.formatSeparator.bind(this),
-    this.formatMultivalued.bind(this),
+    this.formatVariadic.bind(this),
     this.formatPositional.bind(this),
     this.formatAppend.bind(this),
     this.formatTrim.bind(this),
@@ -487,13 +480,13 @@ class HelpFormatter {
   }
 
   /**
-   * Formats an option's multivalued nature to be included in the description.
+   * Formats an option's variadic nature to be included in the description.
    * @param values The option definition
    * @param descStyle The description style
    * @param result The resulting string
    */
-  private formatMultivalued(option: Option, descStyle: Style, result: TerminalString) {
-    if (isArray(option) && isMultivalued(option)) {
+  private formatVariadic(option: Option, descStyle: Style, result: TerminalString) {
+    if (isArray(option) && isVariadic(option)) {
       result.addSequence(descStyle).addText('Accepts', 'multiple', 'parameters.');
     }
   }

@@ -1492,7 +1492,7 @@ describe('ArgumentParser', () => {
         expect(options.strings.complete).toHaveBeenCalled();
       });
 
-      it('should handle the completion of a multivalued strings option', () => {
+      it('should handle the completion of a variadic strings option', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -1617,7 +1617,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw an error on multivalued strings option with too many values', () => {
+      it('should throw an error on variadic strings option with too many values', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -1631,7 +1631,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw a name suggestion on parse failure from multivalued strings option', () => {
+      it('should throw a name suggestion on parse failure from variadic strings option', () => {
         const regex = new RegExp(
           `Option .+-ss.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
             `\nDid you mean to specify an option name instead of .+ss.+\\?` +
@@ -1934,7 +1934,7 @@ describe('ArgumentParser', () => {
         expect(options.numbers.complete).toHaveBeenCalled();
       });
 
-      it('should handle the completion of a multivalued numbers option', () => {
+      it('should handle the completion of a variadic numbers option', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -2059,7 +2059,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw an error on multivalued numbers option with too many values', () => {
+      it('should throw an error on variadic numbers option with too many values', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -2073,7 +2073,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw a name suggestion on parse failure from multivalued numbers option', () => {
+      it('should throw a name suggestion on parse failure from variadic numbers option', () => {
         const regex = new RegExp(
           `Option .+-ns.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
             `\nDid you mean to specify an option name instead of .+ns.+\\?` +

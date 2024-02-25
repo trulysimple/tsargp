@@ -667,7 +667,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued strings option with a default value', () => {
+      it('should handle a variadic strings option with a default value', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -714,7 +714,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued strings option with enumerated values', () => {
+      it('should handle a variadic strings option with enumerated values', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -745,7 +745,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued strings option that accepts positional arguments', () => {
+      it('should handle a variadic strings option that accepts positional arguments', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -760,7 +760,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued strings option that accepts positional arguments after marker', () => {
+      it('should handle a variadic strings option that accepts positional arguments after marker', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -823,7 +823,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued strings option that has a value count limit', () => {
+      it('should handle a variadic strings option that has a value count limit', () => {
         const options = {
           strings: {
             type: 'strings',
@@ -872,7 +872,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued numbers option with a default value', () => {
+      it('should handle a variadic numbers option with a default value', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -901,7 +901,7 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(`-ns,--numbers'1,2'A numbers option. Values are delimited by ','.`);
       });
 
-      it('should handle a multivalued numbers option with enumerated values', () => {
+      it('should handle a variadic numbers option with enumerated values', () => {
         const options = {
           numbersEnum: {
             type: 'numbers',
@@ -932,7 +932,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued numbers option that accepts positional arguments', () => {
+      it('should handle a variadic numbers option that accepts positional arguments', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -963,7 +963,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued numbers option that has a value count limit', () => {
+      it('should handle a variadic numbers option that has a value count limit', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -994,7 +994,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued numbers option with ceil rounding', () => {
+      it('should handle a variadic numbers option with ceil rounding', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -1025,7 +1025,7 @@ describe('HelpFormatter', () => {
         );
       });
 
-      it('should handle a multivalued numbers option with nearest rounding', () => {
+      it('should handle a variadic numbers option with nearest rounding', () => {
         const options = {
           numbers: {
             type: 'numbers',
