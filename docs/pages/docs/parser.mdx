@@ -320,6 +320,19 @@ suggestions based on those values.
 
 ## Miscellaneous
 
+### Name suggestions
+
+During parsing, there are two situations where the parser may suggest option names:
+
+- when it expects an option name and the current argument is not a valid name (and there is no
+  positional option)
+- when it expects an option parameter and the current argument fails to be parsed, and the affected
+  option is a variadic array option (but only if it was specified neither with a positional marker
+  nor with an [inline value](#inline-values))
+
+In these cases, the parser selects option names that are similar to the current argument using the
+[Gestalt algorithm].
+
 ### Error styles
 
 Both validation and parsing methods may throw errors, and the error messages can be styled. The
@@ -340,3 +353,4 @@ Option parameters may be passed on the command-line using the syntax `<name>=<va
 is only valid for non-niladic options and cannot be used with the positional marker.
 
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
+[Gestalt algorithm]: https://www.wikiwand.com/en/Gestalt_pattern_matching

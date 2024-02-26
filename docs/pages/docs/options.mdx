@@ -25,14 +25,15 @@ Here's a summary of the available types and some of their attributes:
 | [strings](#strings-option)   | positional, variadic, delimited, append | `string[]{:ts}` | unique, trim, case | enums, regex, limit |
 | [numbers](#numbers-option)   | positional, variadic, delimited, append | `number[]{:ts}` | unique, round      | enums, range, limit |
 
-In the above table, _niladic_ means that the option expects no parameter on the command-line,
-_monadic_ means that the option accepts a single parameter, and _variadic_ means multiple parameters
-(including zero). The data type indicates the base type of the option value in the object resulting
-from argument parsing. The meaning of the other attributes is explained in the next sections.
+In the above table, _niladic_ means that the option expects no parameter on the command-line;
+_monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
+zero). The data type indicates the base type of the option value in the
+[result object](parser.mdx#option-values). The meaning of other attributes is explained in the next
+sections.
 
 ## Common attributes
 
-This section describes the attributes that are common to a subset of option types. The option types
+This section describes attributes that are common to a subset of option types. The option types
 themselves are explained later in this page.
 
 ### Basic attributes
@@ -75,13 +76,13 @@ displayed in the help message.
 #### Display styles
 
 The `styles` attribute can be used to customize the styling of the help message entry for the
-option. It has the following optional attributes:
+option. It has the following optional properties:
 
 - `names` - the style of the option names
 - `param` - the style of the option paramater
 - `descr` - the style of the option description
 
-#### Requires & required
+#### Requirements
 
 The `requires` attribute, if present, specifies the option requirements, which can be either:
 
@@ -102,9 +103,6 @@ corresponding value. If an expression, then it is evaluated as follows:
 > When an object is specified, `undefined{:ts}` values can be used to signify required presence, and
 > `null{:ts}` values to signify required absence.
 
-The `required` attribute indicates that the option is _always_ required, independently of other
-options.
-
 #### External reference
 
 The `link` attribute is a URL for an external resource or media, that is included in the help
@@ -114,14 +112,23 @@ message if specified.
 
 All option types that accept parameters share a set of attributes, which are described below.
 
+#### Required
+
+The `required` attribute indicates that the option is _always_ required, independently of other
+options. Mutually exclusive with [default value](#default-value).
+
 #### Default value
 
-The `default` attribute, if present, specifies the option default value.
+The `default` attribute, if present, specifies the option's default value or a callback that returns
+the default value. This value is set as the option's value at the end of the parsing loop _if_ the
+option was not specified on the command-line. Mutually exclusive with [required](#required).
 
-> **NOTE**:
-> If this value is not known beforehand (e.g., if it depends on the values of other options), it
-> should be left undefined, so that you can detect whether it was specified on the command-line and
-> take appropriate action.
+If the value is not known beforehand (e.g., if it depends on the values of other options), you may
+want to use a callback to inspect parsed values and determine the default value based on those
+values. This callback accepts one parameter:
+
+- `values` - the parsed values. It is a generic record that should be cast to
+  `OptionValues<typeof _your_options_>{:ts}` or to the type of your values class.
 
 #### Example value
 
@@ -346,8 +353,10 @@ returning from the callback. This is useful for creating commands, as explained 
 
 ### Flag option
 
-The **flag** option is special in the sense that it is both niladic and has a value. The way it
-differs from the boolean option is that it does not expect a parameter.
+The **flag** option is special in the sense that it is both niladic and has a value (boolean). The
+way it differs from the [boolean option](#boolean-option) is that it does not expect a parameter,
+although it may have the [required](#required) or the [default value](#default-value) attribute for
+a `boolean{:ts}` data type. In addition, it has the following attribute.
 
 > **NOTE**:
 > We could have reused the boolean option for this purpose and make the parameter optional, but it
@@ -358,12 +367,7 @@ differs from the boolean option is that it does not expect a parameter.
 
 The `negationNames` attribute specifies alternate option names that can be used to turn the option
 value `false{:ts}` (e.g., _--no-flag_). This is useful in scripting scenarios where a flag that has
-been previously specified must be reset by a new list of arguments.
-
-#### Default value
-
-The `default` attribute is the same as that of the set of [parameter attributes](#default-value)
-for a `boolean{:ts}` data type.
+been previously specified must be reset by a supplementary list of arguments.
 
 ## Non-niladic options
 
