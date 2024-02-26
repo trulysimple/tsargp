@@ -669,7 +669,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatRequired(option: Option, style: Style, result: TerminalString) {
-    if (option.required) {
+    if ('required' in option && option.required) {
       result.addSequence(style).addText('Always required.');
     }
   }

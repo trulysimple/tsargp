@@ -8,8 +8,8 @@ import { fg, style } from './styles';
 export type {
   ParseCallback,
   ResolveCallback,
-  FunctionCallback,
-  CompletionCallback,
+  ExecuteCallback,
+  CompleteCallback,
   Option,
   Options,
   OptionDataType,
@@ -218,7 +218,7 @@ type ResolveCallback = (specifier: string) => string;
  * @param rest The remaining command-line arguments
  * @param completing True if performing completion (but not in the current iteration)
  */
-type FunctionCallback = (
+type ExecuteCallback = (
   values: OptionValues,
   rest: Array<string>,
   completing: boolean,
@@ -232,7 +232,7 @@ type FunctionCallback = (
  * completion (it may be an empty string).
  * @returns The list of completion words
  */
-type CompletionCallback = (
+type CompleteCallback = (
   values: OptionValues,
   rest: Array<string>,
 ) => Array<string> | Promise<Array<string>>;
@@ -287,13 +287,23 @@ type WithType<T extends string> = {
    */
   readonly requires?: Requires;
   /**
+   * A reference to an external resource.
+   */
+  readonly link?: URL;
+};
+
+/**
+ * Defines attributes for a required option.
+ */
+type WithRequired = {
+  /**
    * True if the option is always required.
    */
   readonly required?: true;
   /**
-   * A reference to an external resource.
+   * @deprecated mutually exclusive with {@link WithRequired.required}
    */
-  readonly link?: URL;
+  readonly default?: never;
 };
 
 /**
@@ -305,6 +315,10 @@ type WithDefault<T> = {
    * The option default value.
    */
   readonly default?: T;
+  /**
+   * @deprecated mutually exclusive with {@link WithDefault.default}
+   */
+  readonly required?: never;
 };
 
 /**
@@ -325,7 +339,7 @@ type WithParam = {
    * A custom completion callback. It should not throw. If asynchronous, you should call
    * `ArgumentParser.parseAsync` and await its result.
    */
-  readonly complete?: CompletionCallback;
+  readonly complete?: CompleteCallback;
 };
 
 /**
@@ -533,11 +547,21 @@ type WithNumber = (WithEnums<number> | WithRange) & {
 };
 
 /**
+ * Defines attributes for a flag option with negation.
+ */
+type WithNegation = {
+  /**
+   * The names used for negation (e.g., '--no-flag').
+   */
+  readonly negationNames?: Array<string>;
+};
+
+/**
  * An option that has a boolean value (accepts a single boolean parameter).
  */
 type BooleanOption = WithType<'boolean'> &
   WithParam &
-  WithDefault<boolean> &
+  (WithDefault<boolean> | WithRequired) &
   (WithExample<boolean> | WithParamName) &
   WithParse<boolean>;
 
@@ -546,7 +570,7 @@ type BooleanOption = WithType<'boolean'> &
  */
 type StringOption = WithType<'string'> &
   WithParam &
-  WithDefault<string> &
+  (WithDefault<string> | WithRequired) &
   (WithExample<string> | WithParamName) &
   WithString &
   WithParse<string>;
@@ -556,7 +580,7 @@ type StringOption = WithType<'string'> &
  */
 type NumberOption = WithType<'number'> &
   WithParam &
-  WithDefault<number> &
+  (WithDefault<number> | WithRequired) &
   (WithExample<number> | WithParamName) &
   WithNumber &
   WithParse<number>;
@@ -566,7 +590,7 @@ type NumberOption = WithType<'number'> &
  */
 type StringsOption = WithType<'strings'> &
   WithParam &
-  WithDefault<Array<string>> &
+  (WithDefault<Array<string>> | WithRequired) &
   (WithExample<Array<string>> | WithParamName) &
   WithString &
   WithArray &
@@ -577,7 +601,7 @@ type StringsOption = WithType<'strings'> &
  */
 type NumbersOption = WithType<'numbers'> &
   WithParam &
-  WithDefault<Array<number>> &
+  (WithDefault<Array<number>> | WithRequired) &
   (WithExample<Array<number>> | WithParamName) &
   WithNumber &
   WithArray &
@@ -586,13 +610,7 @@ type NumbersOption = WithType<'numbers'> &
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
-type FlagOption = WithType<'flag'> &
-  WithDefault<boolean> & {
-    /**
-     * The names used for negation (e.g., '--no-flag').
-     */
-    readonly negationNames?: Array<string>;
-  };
+type FlagOption = WithType<'flag'> & (WithDefault<boolean> | WithRequired) & WithNegation;
 
 /**
  * An option that executes a callback function.
@@ -602,7 +620,7 @@ type FunctionOption = WithType<'function'> & {
    * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
    * its result.
    */
-  readonly exec: FunctionCallback;
+  readonly exec: ExecuteCallback;
   /**
    * True to break the parsing loop.
    */
@@ -819,7 +837,7 @@ class OptionRegistry {
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name, option, marker };
       }
-      if (option.required) {
+      if ('required' in option && option.required) {
         this.required.push(key);
       }
     }

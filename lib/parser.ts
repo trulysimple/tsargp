@@ -13,7 +13,7 @@ import type {
   SpecialOption,
   FunctionOption,
   NiladicOption,
-  CompletionCallback,
+  CompleteCallback,
   OtherStyles,
   ArrayOption,
   SingleOption,
@@ -400,7 +400,7 @@ class ParserLoop {
    * @param index The current argument index
    * @param param The option parameter, if any
    */
-  private handleComplete(complete: CompletionCallback, index: number, param: string = '') {
+  private handleComplete(complete: CompleteCallback, index: number, param: string = '') {
     let result;
     try {
       result = complete(this.values, [param, ...this.args.slice(index + 1)]);
