@@ -397,6 +397,19 @@ describe('HelpFormatter', () => {
         expect(message).toMatch(`-b,--boolean<boolean>A boolean option. Defaults to true.`);
       });
 
+      it('should handle a boolean option with a default callback', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+            desc: 'A boolean option',
+            default: () => true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(/^-b,--boolean<boolean>A boolean option\.$/);
+      });
+
       it('should handle a boolean option with an example value', () => {
         const options = {
           boolean: {
@@ -449,6 +462,19 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(`-s,--string<string>A string option. Defaults to '123'.`);
+      });
+
+      it('should handle a string option with a default callback', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s', '--string'],
+            desc: 'A string option',
+            default: () => '123',
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(/^-s,--string<string>A string option\.$/);
       });
 
       it('should handle a string option with an example value', () => {
@@ -550,6 +576,19 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(`-n,--number<number>A number option. Defaults to 123.`);
+      });
+
+      it('should handle a number option with a default callback', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n', '--number'],
+            desc: 'A number option',
+            default: () => 123,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(/^-n,--number<number>A number option\.$/);
       });
 
       it('should handle a number option with an example value', () => {
@@ -699,6 +738,21 @@ describe('HelpFormatter', () => {
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(
           `-ss,--strings<strings>A strings option. Accepts multiple parameters. Defaults to ['one', 'two'].`,
+        );
+      });
+
+      it('should handle a variadic strings option with a default callback', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss', '--strings'],
+            desc: 'A strings option',
+            default: () => ['one', 'two'],
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(
+          /^-ss,--strings<strings>A strings option. Accepts multiple parameters\.$/,
         );
       });
 
@@ -904,6 +958,21 @@ describe('HelpFormatter', () => {
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(
           `-ns,--numbers<numbers>A numbers option. Accepts multiple parameters. Defaults to [1, 2].`,
+        );
+      });
+
+      it('should handle a variadic numbers option with a default callback', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            desc: 'A numbers option',
+            default: () => [1, 2],
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(
+          /^-ns,--numbers<numbers>A numbers option. Accepts multiple parameters\.$/,
         );
       });
 

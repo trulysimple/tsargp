@@ -425,7 +425,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should handle a flag option', () => {
+      it('should handle a flag option with negation names', () => {
         const options = {
           boolean: {
             type: 'flag',
@@ -444,14 +444,37 @@ describe('ArgumentParser', () => {
           boolean: {
             type: 'flag',
             names: ['-f'],
-            negationNames: ['-no-f'],
             default: false,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).toMatchObject({ boolean: false });
-        expect(parser.parse(['-f'])).toMatchObject({ boolean: true });
-        expect(parser.parse(['-no-f'])).toMatchObject({ boolean: false });
+      });
+
+      it('should handle a flag option with a default callback', () => {
+        const options = {
+          boolean: {
+            type: 'flag',
+            names: ['-f'],
+            negationNames: ['-no-f'],
+            default: () => false,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ boolean: false });
+      });
+
+      it('should handle a flag option with an async default callback', () => {
+        const options = {
+          boolean: {
+            type: 'flag',
+            names: ['-f'],
+            negationNames: ['-no-f'],
+            default: async () => false,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ boolean: expect.toResolve(false) });
       });
     });
 
@@ -612,25 +635,55 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should handle a boolean option with default and example values', () => {
+      it('should handle a boolean option', () => {
         const options = {
           boolean: {
             type: 'boolean',
             names: ['-b', '--boolean'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ boolean: undefined });
+        expect(parser.parse(['-b', ' +0.0 '])).toMatchObject({ boolean: false });
+        expect(parser.parse(['-b', ' 1 '])).toMatchObject({ boolean: true });
+        expect(parser.parse(['--boolean', ''])).toMatchObject({ boolean: false });
+        expect(parser.parse(['-b=1', '-b= False '])).toMatchObject({ boolean: false });
+      });
+
+      it('should handle a boolean option with a default value', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
             default: true,
-            example: false,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).toMatchObject({ boolean: true });
-        expect(parser.parse(['-b', ' +0.0 '])).toMatchObject({ boolean: false });
-        expect(parser.parse(['-b', ' 1 '])).toMatchObject({ boolean: true });
-        expect(parser.parse(['--boolean', ''])).toMatchObject({
-          boolean: false,
-        });
-        expect(parser.parse(['-b=1', '-b= False '])).toMatchObject({
-          boolean: false,
-        });
+      });
+
+      it('should handle a boolean option with a default callback', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            default: () => true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ boolean: true });
+      });
+
+      it('should handle a boolean option with an async default callback', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            default: async () => true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ boolean: expect.toResolve(true) });
       });
 
       it('should handle a boolean option with positional arguments', () => {
@@ -879,20 +932,54 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should handle a string option with default and example values', () => {
+      it('should handle a string option', () => {
         const options = {
           string: {
             type: 'string',
             names: ['-s', '--string'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ string: undefined });
+        expect(parser.parse(['-s', '123'])).toMatchObject({ string: '123' });
+        expect(parser.parse(['--string', ''])).toMatchObject({ string: '' });
+        expect(parser.parse(['-s=1', '-s=2'])).toMatchObject({ string: '2' });
+      });
+
+      it('should handle a string option with a default value', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
             default: '123',
-            example: '456',
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).toMatchObject({ string: '123' });
-        expect(parser.parse(['-s', '789'])).toMatchObject({ string: '789' });
-        expect(parser.parse(['--string', ''])).toMatchObject({ string: '' });
-        expect(parser.parse(['-s=1', '-s=2'])).toMatchObject({ string: '2' });
+      });
+
+      it('should handle a string option with a default callback', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            default: () => '123',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ string: '123' });
+      });
+
+      it('should handle a string option with an async default callback', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            default: async () => '123',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ string: expect.toResolve('123') });
       });
 
       it('should handle a string option with a regex constraint', () => {
@@ -1233,20 +1320,54 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should handle a number option with default and example values', () => {
+      it('should handle a number option', () => {
         const options = {
           number: {
             type: 'number',
             names: ['-n', '--number'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ number: undefined });
+        expect(parser.parse(['-n', '123'])).toMatchObject({ number: 123 });
+        expect(parser.parse(['--number', '0'])).toMatchObject({ number: 0 });
+        expect(parser.parse(['-n=1', '-n=2'])).toMatchObject({ number: 2 });
+      });
+
+      it('should handle a number option with a default value', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
             default: 123,
-            example: 456,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).toMatchObject({ number: 123 });
-        expect(parser.parse(['-n', '789'])).toMatchObject({ number: 789 });
-        expect(parser.parse(['--number', '0'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n=1', '-n=2'])).toMatchObject({ number: 2 });
+      });
+
+      it('should handle a number option with a default callback', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            default: () => 123,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ number: 123 });
+      });
+
+      it('should handle a number option with an async default callback', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            default: async () => 123,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ number: expect.toResolve(123) });
       });
 
       it('should handle a number option with a range constraint', () => {
@@ -1650,25 +1771,59 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-ss', 'ss'])).toThrow(regex);
       });
 
-      it('should handle a strings option with default and example values', () => {
+      it('should handle a strings option that can be specified multiple times', () => {
         const options = {
           strings: {
             type: 'strings',
             names: ['-ss', '--strings'],
-            default: ['one', 'two'],
-            example: ['three', 'four'],
             append: true,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ strings: ['one', 'two'] });
-        expect(parser.parse(['-ss', '456', 'abc'])).toMatchObject({ strings: ['456', 'abc'] });
+        expect(parser.parse([])).toMatchObject({ strings: undefined });
+        expect(parser.parse(['-ss', '123', '456'])).toMatchObject({ strings: ['123', '456'] });
         expect(parser.parse(['--strings'])).toMatchObject({ strings: [] });
         expect(parser.parse(['--strings', '   '])).toMatchObject({ strings: ['   '] });
         expect(parser.parse(['-ss=123', '-ss=456'])).toMatchObject({ strings: ['123', '456'] });
         expect(parser.parse(['-ss', 'a', 'b', '-ss', 'c', 'd'])).toMatchObject({
           strings: ['a', 'b', 'c', 'd'],
         });
+      });
+
+      it('should handle a strings option with a default value', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss', '--strings'],
+            default: ['one', 'two'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ strings: ['one', 'two'] });
+      });
+
+      it('should handle a strings option with a default callback', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss', '--strings'],
+            default: () => ['one', 'two'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ strings: ['one', 'two'] });
+      });
+
+      it('should handle a strings option with an async default callback', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss', '--strings'],
+            default: async () => ['one', 'two'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ strings: expect.toResolve(['one', 'two']) });
       });
 
       it('should handle a strings option with enumeration constraint', () => {
@@ -2092,23 +2247,57 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-ns', 'ns'])).toThrow(regex);
       });
 
-      it('should handle a numbers option with default and example values', () => {
+      it('should handle a numbers option that can be specified multiple times', () => {
         const options = {
           numbers: {
             type: 'numbers',
             names: ['-ns', '--numbers'],
-            default: [1, 2],
-            example: [3, 4],
             append: true,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ numbers: [1, 2] });
+        expect(parser.parse([])).toMatchObject({ numbers: undefined });
         expect(parser.parse(['-ns', '456', ' 123 '])).toMatchObject({ numbers: [456, 123] });
         expect(parser.parse(['--numbers'])).toMatchObject({ numbers: [] });
         expect(parser.parse(['--numbers', '   '])).toMatchObject({ numbers: [0] });
         expect(parser.parse(['-ns=456', '-ns=123'])).toMatchObject({ numbers: [456, 123] });
         expect(parser.parse(['-ns', '5', '-ns', '6', '7'])).toMatchObject({ numbers: [5, 6, 7] });
+      });
+
+      it('should handle a numbers option with a default value', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            default: [1, 2],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ numbers: [1, 2] });
+      });
+
+      it('should handle a numbers option with a default callback', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            default: () => [1, 2],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ numbers: [1, 2] });
+      });
+
+      it('should handle a numbers option with an async default callback', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns', '--numbers'],
+            default: async () => [1, 2],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).toMatchObject({ numbers: expect.toResolve([1, 2]) });
       });
 
       it('should handle a numbers option with enumeration constraint', () => {

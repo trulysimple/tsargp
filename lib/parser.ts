@@ -477,39 +477,61 @@ class ParserLoop {
     for (const key in this.registry.options) {
       const option = this.registry.options[key];
       if ('default' in option && !this.specifiedKeys.has(key)) {
-        const value = this.getDefaultValue(key, option);
-        (this.values as Record<string, typeof value>)[key] = value;
+        this.setDefaultValue(key, option);
       }
     }
   }
 
   /**
-   * Gets the normalized default value of an option.
-   * @param name The option name
+   * Sets the normalized default value of an option.
+   * @param name The option key
    * @param option The option definition
-   * @returns The normalized value
    */
-  private getDefaultValue(name: string, option: ValuedOption): ValuedOption['default'] {
+  private setDefaultValue(key: string, option: ValuedOption) {
     if (option.default === undefined) {
-      return undefined;
+      (this.values as Record<string, undefined>)[key] = undefined;
+      return;
     }
     switch (option.type) {
-      case 'string':
-        return this.registry.normalizeString(option, name, option.default);
-      case 'number':
-        return this.registry.normalizeNumber(option, name, option.default);
+      case 'flag':
+      case 'boolean': {
+        const value =
+          typeof option.default === 'function' ? option.default(this.values) : option.default;
+        (this.values as Record<string, typeof value>)[key] = value;
+        break;
+      }
+      case 'string': {
+        const value =
+          typeof option.default === 'function' ? option.default(this.values) : option.default;
+        const normalizeFn = this.registry.normalizeString.bind(this.registry);
+        this.setSingle(key, option, key, value, normalizeFn);
+        break;
+      }
+      case 'number': {
+        const value =
+          typeof option.default === 'function' ? option.default(this.values) : option.default;
+        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
+        this.setSingle(key, option, key, value, normalizeFn);
+        break;
+      }
       case 'strings': {
-        const vals = option.default.map((val) => this.registry.normalizeString(option, name, val));
-        this.registry.normalizeArray(option, name, vals);
-        return vals;
+        const value =
+          typeof option.default === 'function' ? option.default(this.values) : option.default;
+        const normalizeFn = this.registry.normalizeString.bind(this.registry);
+        this.setArray(key, option, key, value, normalizeFn);
+        break;
       }
       case 'numbers': {
-        const vals = option.default.map((val) => this.registry.normalizeNumber(option, name, val));
-        this.registry.normalizeArray(option, name, vals);
-        return vals;
+        const value =
+          typeof option.default === 'function' ? option.default(this.values) : option.default;
+        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
+        this.setArray(key, option, key, value, normalizeFn);
+        break;
       }
-      default:
-        return option.default;
+      default: {
+        const _exhaustiveCheck: never = option;
+        return _exhaustiveCheck;
+      }
     }
   }
 
@@ -690,7 +712,7 @@ class ParserLoop {
     option: ParamOption,
     negate: boolean,
     key: string,
-    value: Exclude<ParamOption['default'], undefined>,
+    value: Exclude<RequiresVal[string], undefined | null>,
   ): string | null {
     function assert(_condition: unknown): asserts _condition {}
     switch (option.type) {
@@ -876,7 +898,7 @@ class ParserLoop {
    * @param convertFn The function to convert from string
    * @param normalizeFn The function to normalize the value after conversion
    */
-  private parseSingle<O extends SingleOption, T extends boolean | string | number>(
+  private parseSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
     key: string,
     option: O,
     name: string,
@@ -884,20 +906,61 @@ class ParserLoop {
     convertFn: (value: string) => T,
     normalizeFn?: (option: O, name: string, value: T) => T,
   ) {
-    let result: T;
-    if ('parse' in option && option.parse) {
-      const res = option.parse(name, value);
-      if (res instanceof Promise) {
-        const promise = normalizeFn ? res.then((val) => normalizeFn(option, name, val as T)) : res;
-        (this.values as Record<string, typeof promise>)[key] = promise;
-        return;
+    const result = 'parse' in option && option.parse ? option.parse(name, value) : convertFn(value);
+    this.setSingle(key, option, name, result as T | Promise<T>, normalizeFn);
+  }
+
+  /**
+   * Gets the value of a single-valued option parameter.
+   * @param key The option key
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The parameter value
+   * @param normalizeFn The function to normalize the value after conversion
+   */
+  private setSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
+    key: string,
+    option: O,
+    name: string,
+    value: T | Promise<T>,
+    normalizeFn?: (option: O, name: string, value: T) => T,
+  ) {
+    if (normalizeFn) {
+      if (value instanceof Promise) {
+        value = value.then((val) => normalizeFn(option, name, val));
       } else {
-        result = normalizeFn ? normalizeFn(option, name, res as T) : (res as T);
+        value = normalizeFn(option, name, value);
       }
-    } else {
-      result = normalizeFn ? normalizeFn(option, name, convertFn(value)) : convertFn(value);
     }
-    (this.values as Record<string, typeof result>)[key] = result;
+    (this.values as Record<string, typeof value>)[key] = value;
+  }
+
+  /**
+   * Gets the value of an array-valued option parameter.
+   * @param key The option key
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The parameter value
+   * @param normalizeFn The function to normalize the value after conversion
+   */
+  private setArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
+    key: string,
+    option: O,
+    name: string,
+    value: Array<T> | Promise<Array<T>>,
+    normalizeFn: (option: O, name: string, value: T) => T,
+  ) {
+    if (value instanceof Promise) {
+      value = value.then((vals) => {
+        vals.forEach((val) => normalizeFn(option, name, val));
+        this.registry.normalizeArray(option, name, vals);
+        return vals;
+      });
+    } else {
+      value.forEach((val) => normalizeFn(option, name, val));
+      this.registry.normalizeArray(option, name, value);
+    }
+    (this.values as Record<string, typeof value>)[key] = value;
   }
 
   /**
@@ -911,7 +974,7 @@ class ParserLoop {
    * @param convertFn The function to convert from string
    * @param normalizeFn The function to normalize the value after conversion
    */
-  private parseArray<O extends ArrayOption, T extends string | number>(
+  private parseArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
     key: string,
     option: O,
     name: string,

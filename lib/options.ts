@@ -184,7 +184,7 @@ type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
  *
  * Values can be `undefined` to indicate presence, or `null` to indicate absence.
  */
-type RequiresVal = { [key: string]: ValuedOption['default'] | null };
+type RequiresVal = { [key: string]: ParamOption['example'] | null };
 
 /**
  * An option requirement can be either:
@@ -210,6 +210,15 @@ type ParseCallback<T> = (name: string, value: string) => T;
  * environments only.
  */
 type ResolveCallback = (specifier: string) => string;
+
+/**
+ * A callback for default values.
+ * @template T The return data type
+ * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
+ * or to the type of your values class)
+ * @returns The default value
+ */
+type DefaultCallback<T> = (values: OptionValues) => T | Promise<T>;
 
 /**
  * A callback for function options.
@@ -312,9 +321,13 @@ type WithRequired = {
  */
 type WithDefault<T> = {
   /**
-   * The option default value.
+   * The option default value or a callback that returns the default value.
+   *
+   * The default value is set at the end of the parsing loop if the option was not specified on the
+   * command-line. You may use a callback to inspect parsed values and determine the default value
+   * based on those values.
    */
-  readonly default?: T;
+  readonly default?: T | DefaultCallback<T>;
   /**
    * @deprecated mutually exclusive with {@link WithDefault.default}
    */
@@ -877,7 +890,9 @@ class OptionRegistry {
       this.validateNames(key, option);
       if (!isNiladic(option)) {
         this.validateEnums(key, option);
-        this.validateValue(key, option, option.default);
+        if (typeof option.default !== 'function') {
+          this.validateValue(key, option, option.default);
+        }
         this.validateValue(key, option, option.example);
       }
       // no need to verify flag option default value
@@ -1018,7 +1033,7 @@ class OptionRegistry {
    * @param value The option value
    * @throws On value not satisfying specified constraints
    */
-  private validateValue(key: string, option: ParamOption, value: ParamOption['default']) {
+  private validateValue(key: string, option: ParamOption, value: ParamOption['example']) {
     if (value === undefined) {
       return;
     }

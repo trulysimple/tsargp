@@ -11,6 +11,7 @@ import type {
   OtherStyles,
   ArrayOption,
   Concrete,
+  ParamOption,
 } from './options';
 import type { Style } from './styles';
 
@@ -681,7 +682,11 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatDefault(option: Option, style: Style, result: TerminalString) {
-    if ('default' in option && option.default !== undefined) {
+    if (
+      'default' in option &&
+      option.default !== undefined &&
+      typeof option.default !== 'function'
+    ) {
       result.addSequence(style).addText('Defaults', 'to');
       this.formatValue(option, option.default, result, style);
       result.addSequence(style).addText('.');
@@ -951,7 +956,7 @@ class HelpFormatter {
    */
   private formatValue(
     option: ValuedOption,
-    value: ValuedOption['default'],
+    value: ParamOption['example'],
     result: TerminalString,
     style?: Style,
   ) {
