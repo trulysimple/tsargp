@@ -31,7 +31,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     deprecated: 'some reason',
     styles: {
       names: style(tf.clear, tf.inverse, fg8(138)),
-      desc: style(tf.clear, tf.italic, tf.crossedOut),
+      descr: style(tf.clear, tf.italic, tf.crossedOut),
     },
   },
   boolean: {

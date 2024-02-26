@@ -17,7 +17,7 @@ import type { Style } from './styles';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { fg, isStyle, move, mv, style, TerminalString, tf } from './styles';
 
-export { HelpFormatter, HelpItem, type HelpFormat };
+export { HelpFormatter, HelpItem, type FormatConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -28,18 +28,18 @@ export { HelpFormatter, HelpItem, type HelpFormat };
 type HelpEntry = {
   readonly names: TerminalString;
   readonly param: TerminalString;
-  readonly desc: TerminalString;
+  readonly descr: TerminalString;
 };
 
 /**
- * A concrete version of the help format configuration.
+ * A concrete version of the format configuration.
  */
-type ConcreteFormat = Concrete<HelpFormat>;
+type ConcreteFormat = Concrete<FormatConfig>;
 
 /**
- * The user-provided help format configuration.
+ * The help format configuration.
  */
-type HelpFormat = {
+type FormatConfig = {
   /**
    * The indentation level for each column.
    */
@@ -55,7 +55,7 @@ type HelpFormat = {
     /**
      * The indentation level for the description column. (Defaults to 2)
      */
-    readonly desc?: number;
+    readonly descr?: number;
     /**
      * True if the indentation level for the parameter column should be relative to the beginning
      * of the line instead of the end of the names column. (Defaults to false)
@@ -65,7 +65,7 @@ type HelpFormat = {
      * True if the indentation level for the description column should be relative to the beginning
      * of the line instead of the end of the parameter column. (Defaults to false)
      */
-    readonly descAbsolute?: boolean;
+    readonly descrAbsolute?: boolean;
   };
 
   /**
@@ -83,7 +83,7 @@ type HelpFormat = {
     /**
      * The number of line breaks to insert before the description column. (Defaults to 0)
      */
-    readonly desc?: number;
+    readonly descr?: number;
   };
 
   /**
@@ -101,7 +101,7 @@ type HelpFormat = {
     /**
      * True if the description column should be hidden. (Defaults to false)
      */
-    readonly desc?: boolean;
+    readonly descr?: boolean;
   };
 
   /**
@@ -124,9 +124,9 @@ type HelpFormat = {
  */
 const enum HelpItem {
   /**
-   * The user-provided option description.
+   * The option synopsis.
    */
-  desc,
+  synopsis,
   /**
    * The negation names of a flag option, if any.
    */
@@ -195,6 +195,10 @@ const enum HelpItem {
    * Reports if the option is deprecated.
    */
   deprecated,
+  /**
+   * The external resource reference, if any.
+   */
+  link,
 }
 
 /**
@@ -204,33 +208,34 @@ const defaultConfig: ConcreteFormat = {
   indent: {
     names: 2,
     param: 2,
-    desc: 2,
+    descr: 2,
     paramAbsolute: false,
-    descAbsolute: false,
+    descrAbsolute: false,
   },
   breaks: {
     names: 0,
     param: 0,
-    desc: 0,
+    descr: 0,
   },
   hidden: {
     names: false,
     param: false,
-    desc: false,
+    descr: false,
   },
   styles: {
     names: style(tf.clear),
     param: style(tf.clear, fg.brightBlack),
-    desc: style(tf.clear),
+    descr: style(tf.clear),
     regex: style(fg.red),
     boolean: style(fg.yellow),
     string: style(fg.green),
     number: style(fg.yellow),
     option: style(fg.magenta),
+    url: style(fg.brightBlack),
     text: style(tf.clear),
   },
   items: [
-    HelpItem.desc,
+    HelpItem.synopsis,
     HelpItem.negation,
     HelpItem.separator,
     HelpItem.variadic,
@@ -248,6 +253,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.required,
     HelpItem.default,
     HelpItem.deprecated,
+    HelpItem.link,
   ],
 };
 
@@ -263,13 +269,13 @@ class HelpFormatter {
   private readonly nameWidths: Array<number>;
   private readonly namesStart: number;
   private readonly paramStart: number;
-  private readonly descStart: number;
+  private readonly descrStart: number;
 
   /**
    * Keep this in-sync with {@link HelpItem}.
    */
-  private readonly format: Array<typeof this.formatDesc> = [
-    this.formatDesc.bind(this),
+  private readonly format: Array<typeof this.formatSynopsis> = [
+    this.formatSynopsis.bind(this),
     this.formatNegation.bind(this),
     this.formatSeparator.bind(this),
     this.formatVariadic.bind(this),
@@ -287,6 +293,7 @@ class HelpFormatter {
     this.formatRequired.bind(this),
     this.formatDefault.bind(this),
     this.formatDeprecated.bind(this),
+    this.formatLink.bind(this),
   ];
 
   /**
@@ -296,7 +303,7 @@ class HelpFormatter {
    */
   constructor(
     private readonly options: Options,
-    config: HelpFormat = {},
+    config: FormatConfig = {},
   ) {
     this.config = mergeConfig(config);
     this.nameWidths = getNameWidths(options);
@@ -316,11 +323,11 @@ class HelpFormatter {
         ? this.config.indent.param + 1
         : this.namesStart + namesWidth + this.config.indent.param,
     );
-    this.descStart = Math.max(
+    this.descrStart = Math.max(
       1,
-      this.config.indent.descAbsolute
-        ? this.config.indent.desc + 1
-        : this.paramStart + paramWidth + this.config.indent.desc,
+      this.config.indent.descrAbsolute
+        ? this.config.indent.descr + 1
+        : this.paramStart + paramWidth + this.config.indent.descr,
     );
   }
 
@@ -332,8 +339,8 @@ class HelpFormatter {
   private formatOption(option: Option): HelpEntry {
     const names = this.formatNames(option);
     const param = this.formatParam(option);
-    const desc = this.formatDescription(option);
-    const entry: HelpEntry = { names, param, desc };
+    const descr = this.formatDescription(option);
+    const entry: HelpEntry = { names, param, descr };
     const group = this.groups.get(option.group ?? '');
     if (!group) {
       this.groups.set(option.group ?? '', [entry]);
@@ -353,18 +360,18 @@ class HelpFormatter {
     if (this.config.hidden?.names) {
       return result;
     }
-    const namesStyle = option.styles?.names ?? this.config.styles.names;
-    this.formatNames2(option.names, namesStyle, result);
+    const style = option.styles?.names ?? this.config.styles.names;
+    this.formatNameSlots(option.names, style, result);
     return result;
   }
 
   /**
    * Formats a list of names to be printed on the terminal.
    * @param names The list of option names
-   * @param namesStyle The names style
+   * @param style The names style
    * @param result The resulting string
    */
-  private formatNames2(names: Option['names'], namesStyle: Style, result: TerminalString) {
+  private formatNameSlots(names: Option['names'], style: Style, result: TerminalString) {
     const textStyle = this.config.styles.text;
     let prev = false;
     let prefix = 0;
@@ -378,7 +385,7 @@ class HelpFormatter {
         result.addSequence(move(prefix, mv.cuf));
       }
       if (name) {
-        result.addSequence(namesStyle).addText(name);
+        result.addSequence(style).addText(name);
         prev = true;
       } else {
         prev = false;
@@ -400,13 +407,14 @@ class HelpFormatter {
     }
     if ('example' in option && option.example !== undefined) {
       this.formatValue(option, option.example, result);
-    } else if ('paramName' in option && option.paramName) {
-      const paramStyle = option.styles?.param ?? this.config.styles.param;
-      const param = option.paramName.includes('<') ? option.paramName : `<${option.paramName}>`;
-      result.addSequence(paramStyle).addText(param);
     } else {
-      const paramStyle = option.styles?.param ?? this.config.styles.param;
-      result.addSequence(paramStyle).addText(`<${option.type}>`);
+      const style = option.styles?.param ?? this.config.styles.param;
+      if ('paramName' in option && option.paramName) {
+        const param = option.paramName.includes('<') ? option.paramName : `<${option.paramName}>`;
+        result.addSequence(style).addText(param);
+      } else {
+        result.addSequence(style).addText(`<${option.type}>`);
+      }
     }
     return result;
   }
@@ -418,25 +426,25 @@ class HelpFormatter {
    */
   private formatDescription(option: Option): TerminalString {
     const result = new TerminalString();
-    if (this.config.hidden?.desc) {
+    if (this.config.hidden?.descr) {
       return result;
     }
-    const descStyle = option.styles?.desc ?? this.config.styles.desc;
+    const style = option.styles?.descr ?? this.config.styles.descr;
     for (const item of this.config.items) {
-      this.format[item](option, descStyle, result);
+      this.format[item](option, style, result);
     }
     return result;
   }
 
   /**
-   * Formats an option's user-provided description to be included in the description.
+   * Formats an option's synopsis to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatDesc(option: Option, descStyle: Style, result: TerminalString) {
+  private formatSynopsis(option: Option, style: Style, result: TerminalString) {
     if (option.desc) {
-      result.addSequence(descStyle);
+      result.addSequence(style);
       splitWords(option.desc, result);
     }
   }
@@ -444,66 +452,66 @@ class HelpFormatter {
   /**
    * Formats an option's negation names to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatNegation(option: Option, descStyle: Style, result: TerminalString) {
+  private formatNegation(option: Option, style: Style, result: TerminalString) {
     if ('negationNames' in option && option.negationNames) {
-      result.addSequence(descStyle).addText('Can', 'be', 'negated', 'with');
+      result.addSequence(style).addText('Can', 'be', 'negated', 'with');
       const names = option.negationNames.filter((name) => name);
       names.forEach((name, i) => {
         this.formatName(name, result);
         if (i < names.length - 1) {
-          result.addSequence(descStyle).addText('or');
+          result.addSequence(style).addText('or');
         }
       });
-      result.addSequence(descStyle).addText('.');
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
    * Formats an option's separator string to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatSeparator(option: Option, descStyle: Style, result: TerminalString) {
+  private formatSeparator(option: Option, style: Style, result: TerminalString) {
     if ('separator' in option && option.separator) {
-      result.addSequence(descStyle).addText('Values', 'are', 'delimited', 'by');
+      result.addSequence(style).addText('Values', 'are', 'delimited', 'by');
       if (typeof option.separator === 'string') {
         this.formatString(option.separator, result);
       } else {
-        this.formatRegex2(option.separator, result);
+        this.formatRegExp(option.separator, result);
       }
-      result.addSequence(descStyle).addText('.');
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
    * Formats an option's variadic nature to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatVariadic(option: Option, descStyle: Style, result: TerminalString) {
+  private formatVariadic(option: Option, style: Style, result: TerminalString) {
     if (isArray(option) && isVariadic(option)) {
-      result.addSequence(descStyle).addText('Accepts', 'multiple', 'parameters.');
+      result.addSequence(style).addText('Accepts', 'multiple', 'parameters.');
     }
   }
 
   /**
    * Formats an option's positional attribute to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatPositional(option: Option, descStyle: Style, result: TerminalString) {
+  private formatPositional(option: Option, style: Style, result: TerminalString) {
     if ('positional' in option && option.positional) {
-      result.addSequence(descStyle).addText('Accepts', 'positional');
+      result.addSequence(style).addText('Accepts', 'positional');
       if (typeof option.positional === 'string') {
         result.addText('parameters', 'preceded', 'by');
         this.formatName(option.positional, result);
-        result.addSequence(descStyle).addText('.');
+        result.addSequence(style).addText('.');
       } else {
         result.addText('parameters.');
       }
@@ -513,37 +521,37 @@ class HelpFormatter {
   /**
    * Formats an option's append attribute to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatAppend(option: Option, descStyle: Style, result: TerminalString) {
+  private formatAppend(option: Option, style: Style, result: TerminalString) {
     if ('append' in option && option.append) {
-      result.addSequence(descStyle).addText('May', 'be', 'specified', 'multiple', 'times.');
+      result.addSequence(style).addText('May', 'be', 'specified', 'multiple', 'times.');
     }
   }
 
   /**
    * Formats an option's trim normalization to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatTrim(option: Option, descStyle: Style, result: TerminalString) {
+  private formatTrim(option: Option, style: Style, result: TerminalString) {
     if ('trim' in option && option.trim) {
-      result.addSequence(descStyle).addText('Values', 'will', 'be', 'trimmed.');
+      result.addSequence(style).addText('Values', 'will', 'be', 'trimmed.');
     }
   }
 
   /**
    * Formats an option's case normalization to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatCase(option: Option, descStyle: Style, result: TerminalString) {
+  private formatCase(option: Option, style: Style, result: TerminalString) {
     if ('case' in option && option.case) {
       result
-        .addSequence(descStyle)
+        .addSequence(style)
         .addText('Values', 'will', 'be', 'converted', 'to', option.case + 'case.');
     }
   }
@@ -551,12 +559,12 @@ class HelpFormatter {
   /**
    * Formats an option's rounding normalization to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatRound(option: Option, descStyle: Style, result: TerminalString) {
+  private formatRound(option: Option, style: Style, result: TerminalString) {
     if ('round' in option && option.round) {
-      result.addSequence(descStyle);
+      result.addSequence(style);
       if (option.round === 'trunc') {
         result.addText('Values', 'will', 'be', 'truncated.');
       } else {
@@ -568,128 +576,142 @@ class HelpFormatter {
   /**
    * Formats an option's enumerated values to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatEnums(option: Option, descStyle: Style, result: TerminalString) {
+  private formatEnums(option: Option, style: Style, result: TerminalString) {
     if ('enums' in option && option.enums) {
-      result.addSequence(descStyle).addText('Values', 'must', 'be', 'one', 'of');
+      result.addSequence(style).addText('Values', 'must', 'be', 'one', 'of');
       if (option.type === 'string' || option.type === 'strings') {
         const formatFn = this.formatString.bind(this);
-        this.formatArray2(option.enums, descStyle, result, formatFn, ['{', '}']);
+        this.formatArray2(option.enums, style, result, formatFn, ['{', '}']);
       } else {
         const formatFn = this.formatNumber.bind(this);
-        this.formatArray2(option.enums, descStyle, result, formatFn, ['{', '}']);
+        this.formatArray2(option.enums, style, result, formatFn, ['{', '}']);
       }
-      result.addSequence(descStyle).addText('.');
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
    * Formats an option's regex constraint to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatRegex(option: Option, descStyle: Style, result: TerminalString) {
+  private formatRegex(option: Option, style: Style, result: TerminalString) {
     if ('regex' in option && option.regex) {
-      result.addSequence(descStyle).addText('Values', 'must', 'match', 'the', 'regex');
-      this.formatRegex2(option.regex, result);
-      result.addSequence(descStyle).addText('.');
+      result.addSequence(style).addText('Values', 'must', 'match', 'the', 'regex');
+      this.formatRegExp(option.regex, result);
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
    * Formats an option's range constraint to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatRange(option: Option, descStyle: Style, result: TerminalString) {
+  private formatRange(option: Option, style: Style, result: TerminalString) {
     if ('range' in option && option.range) {
-      result.addSequence(descStyle).addText('Values', 'must', 'be', 'in', 'the', 'range');
+      result.addSequence(style).addText('Values', 'must', 'be', 'in', 'the', 'range');
       const formatFn = this.formatNumber.bind(this);
-      this.formatArray2(option.range, descStyle, result, formatFn, ['[', ']']);
-      result.addSequence(descStyle).addText('.');
+      this.formatArray2(option.range, style, result, formatFn, ['[', ']']);
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
    * Formats an option's unique constraint to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatUnique(option: Option, descStyle: Style, result: TerminalString) {
+  private formatUnique(option: Option, style: Style, result: TerminalString) {
     if ('unique' in option && option.unique) {
-      result.addSequence(descStyle).addText('Duplicate', 'values', 'will', 'be', 'removed.');
+      result.addSequence(style).addText('Duplicate', 'values', 'will', 'be', 'removed.');
     }
   }
 
   /**
    * Formats an option's limit constraint to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatLimit(option: Option, descStyle: Style, result: TerminalString) {
+  private formatLimit(option: Option, style: Style, result: TerminalString) {
     if ('limit' in option && option.limit !== undefined) {
-      result.addSequence(descStyle).addText('Value', 'count', 'is', 'limited', 'to');
+      result.addSequence(style).addText('Value', 'count', 'is', 'limited', 'to');
       this.formatNumber(option.limit, result);
-      result.addSequence(descStyle).addText('.');
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
    * Formats an option's requirements to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatRequires(option: Option, descStyle: Style, result: TerminalString) {
+  private formatRequires(option: Option, style: Style, result: TerminalString) {
     if (option.requires) {
-      result.addSequence(descStyle).addText('Requires');
-      this.formatRequirements(option.requires, descStyle, result);
-      result.addSequence(descStyle).addText('.');
+      result.addSequence(style).addText('Requires');
+      this.formatRequirements(option.requires, style, result);
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
    * Formats an option's required attribute to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatRequired(option: Option, descStyle: Style, result: TerminalString) {
+  private formatRequired(option: Option, style: Style, result: TerminalString) {
     if (option.required) {
-      result.addSequence(descStyle).addText('Always required.');
+      result.addSequence(style).addText('Always required.');
     }
   }
 
   /**
    * Formats an option's default value to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatDefault(option: Option, descStyle: Style, result: TerminalString) {
+  private formatDefault(option: Option, style: Style, result: TerminalString) {
     if ('default' in option && option.default !== undefined) {
-      result.addSequence(descStyle).addText('Defaults', 'to');
-      this.formatValue(option, option.default, result, descStyle);
-      result.addSequence(descStyle).addText('.');
+      result.addSequence(style).addText('Defaults', 'to');
+      this.formatValue(option, option.default, result, style);
+      result.addSequence(style).addText('.');
     }
   }
 
   /**
-   * Formats a deprecation reason to be included in the description.
+   * Formats an option's deprecation reason to be included in the description.
    * @param values The option definition
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    */
-  private formatDeprecated(option: Option, descStyle: Style, result: TerminalString) {
+  private formatDeprecated(option: Option, style: Style, result: TerminalString) {
     if (option.deprecated) {
-      result.addSequence(descStyle).addText('Deprecated', 'for');
+      result.addSequence(style).addText('Deprecated', 'for');
       splitWords(option.deprecated, result);
+    }
+  }
+
+  /**
+   * Formats an option's external resource reference to be included in the description.
+   * @param values The option definition
+   * @param style The description style
+   * @param result The resulting string
+   */
+  private formatLink(option: Option, style: Style, result: TerminalString) {
+    if (option.link) {
+      result.addSequence(style).addText('Refer', 'to');
+      this.formatURL(option.link, result);
+      result.addSequence(style).addText('for', 'details.');
     }
   }
 
@@ -699,17 +721,17 @@ class HelpFormatter {
    * @param values The array values
    * @param result The resulting string
    * @param formatFn The function to convert a value to string
-   * @param descStyle The description style
+   * @param style The description style, if in the description
    */
   private formatArray<T extends string | number>(
     option: ArrayOption,
     value: Array<T>,
     result: TerminalString,
     formatFn: (value: T, result: TerminalString) => void,
-    descStyle?: Style,
+    style?: Style,
   ) {
-    if (descStyle) {
-      this.formatArray2(value, descStyle, result, formatFn, ['[', ']']);
+    if (style) {
+      this.formatArray2(value, style, result, formatFn, ['[', ']']);
     } else if ('separator' in option && option.separator) {
       if (typeof option.separator === 'string') {
         this.formatString(value.join(option.separator), result);
@@ -717,15 +739,15 @@ class HelpFormatter {
         this.formatString(value.join(option.separator.source), result);
       }
     } else {
-      const textStyle = this.config.styles.text;
-      this.formatArray2(value, textStyle, result, formatFn, undefined, ' ');
+      style = this.config.styles.text;
+      this.formatArray2(value, style, result, formatFn, undefined, ' ');
     }
   }
 
   /**
    * Formats a list of values to be printed on the terminal.
    * @param values The array values
-   * @param descStyle The description style
+   * @param style The style to be applied
    * @param result The resulting string
    * @param formatFn The function to convert a value to string
    * @param brackets An optional pair of brackets to surround the values
@@ -733,23 +755,23 @@ class HelpFormatter {
    */
   private formatArray2<T extends string | number>(
     values: Array<T>,
-    descStyle: Style,
+    style: Style,
     result: TerminalString,
     formatFn: (value: T, result: TerminalString) => void,
     brackets?: [string, string],
     separator = ',',
   ) {
     if (brackets) {
-      result.addSequence(descStyle).addText(brackets[0]);
+      result.addSequence(style).addText(brackets[0]);
     }
     values.forEach((value, i) => {
       formatFn(value, result);
       if (i < values.length - 1) {
-        result.addSequence(descStyle).addText(separator);
+        result.addSequence(style).addText(separator);
       }
     });
     if (brackets) {
-      result.addSequence(descStyle).addText(brackets[1]);
+      result.addSequence(style).addText(brackets[1]);
     }
   }
 
@@ -785,8 +807,17 @@ class HelpFormatter {
    * @param value The regex value
    * @param result The resulting string
    */
-  private formatRegex2(value: RegExp, result: TerminalString) {
+  private formatRegExp(value: RegExp, result: TerminalString) {
     result.addSequence(this.config.styles.regex).addText(String(value));
+  }
+
+  /**
+   * Formats a URL value to be printed on the terminal.
+   * @param value The URL value
+   * @param result The resulting string
+   */
+  private formatURL(value: URL, result: TerminalString) {
+    result.addSequence(this.config.styles.url).addText(value.href);
   }
 
   /**
@@ -801,13 +832,13 @@ class HelpFormatter {
   /**
    * Recursively formats an option's requirements to be included in the description.
    * @param requires The option requirements
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    * @param negate True if the requirement should be negated
    */
   private formatRequirements(
     requires: Requires,
-    descStyle: Style,
+    style: Style,
     result: TerminalString,
     negate: boolean = false,
   ) {
@@ -815,71 +846,71 @@ class HelpFormatter {
       const option = this.options[requires];
       const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
       if (negate) {
-        result.addSequence(descStyle).addText('no');
+        result.addSequence(style).addText('no');
       }
       this.formatName(name, result);
     } else if (requires instanceof RequiresNot) {
-      this.formatRequirements(requires.item, descStyle, result, !negate);
+      this.formatRequirements(requires.item, style, result, !negate);
     } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-      this.formatRequiresExp(requires, descStyle, result, negate);
+      this.formatRequiresExp(requires, style, result, negate);
     } else {
-      this.formatRequiresVal(requires, descStyle, result, negate);
+      this.formatRequiresVal(requires, style, result, negate);
     }
   }
 
   /**
    * Formats a requirement expression to be included in the description.
    * @param requires The requirement expression
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    * @param negate True if the requirement should be negated
    */
   private formatRequiresExp(
     requires: RequiresAll | RequiresOne,
-    descStyle: Style,
+    style: Style,
     result: TerminalString,
     negate: boolean,
   ) {
     const op = requires instanceof RequiresAll ? (negate ? 'or' : 'and') : negate ? 'and' : 'or';
     if (requires.items.length > 1) {
-      result.addSequence(descStyle).addText('(');
+      result.addSequence(style).addText('(');
     }
     requires.items.forEach((item, i) => {
-      this.formatRequirements(item, descStyle, result, negate);
+      this.formatRequirements(item, style, result, negate);
       if (i < requires.items.length - 1) {
-        result.addSequence(descStyle).addText(op);
+        result.addSequence(style).addText(op);
       }
     });
     if (requires.items.length > 1) {
-      result.addSequence(descStyle).addText(')');
+      result.addSequence(style).addText(')');
     }
   }
 
   /**
    * Formats a map of requirements to be included in the description.
    * @param requires The requirement map
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    * @param negate True if the requirement should be negated
    */
   private formatRequiresVal(
     requires: RequiresVal,
-    descStyle: Style,
+    style: Style,
     result: TerminalString,
     negate: boolean,
   ) {
     const entries = Object.entries(requires);
     if (entries.length > 1) {
-      result.addSequence(descStyle).addText('(');
+      result.addSequence(style).addText('(');
     }
     entries.forEach(([key, value], i) => {
-      this.formatRequiredValue(this.options[key], value, descStyle, result, negate);
+      this.formatRequiredValue(this.options[key], value, style, result, negate);
       if (i < entries.length - 1) {
-        result.addSequence(descStyle).addText('and');
+        result.addSequence(style).addText('and');
       }
     });
     if (entries.length > 1) {
-      result.addSequence(descStyle).addText(')');
+      result.addSequence(style).addText(')');
     }
   }
 
@@ -887,27 +918,27 @@ class HelpFormatter {
    * Formats an option's required value to be included in the description.
    * @param option The option definition
    * @param value The option value
-   * @param descStyle The description style
+   * @param style The description style
    * @param result The resulting string
    * @param negate True if the requirement should be negated
    */
   private formatRequiredValue(
     option: Option,
     value: RequiresVal[string],
-    descStyle: Style,
+    style: Style,
     result: TerminalString,
     negate: boolean,
   ) {
     function assert(_condition: unknown): asserts _condition {}
     const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
     if ((value === null && !negate) || (value === undefined && negate)) {
-      result.addSequence(descStyle).addText('no');
+      result.addSequence(style).addText('no');
     }
     this.formatName(name, result);
     if (value !== null && value !== undefined) {
       assert(!isNiladic(option));
-      result.addSequence(descStyle).addText(negate ? '!=' : '=');
-      this.formatValue(option, value, result, descStyle);
+      result.addSequence(style).addText(negate ? '!=' : '=');
+      this.formatValue(option, value, result, style);
     }
   }
 
@@ -916,13 +947,13 @@ class HelpFormatter {
    * @param option The option definition
    * @param value The option value
    * @param result The resulting string
-   * @param descStyle The description style, if in the description
+   * @param style The description style, if in the description
    */
   private formatValue(
     option: ValuedOption,
     value: ValuedOption['default'],
     result: TerminalString,
-    descStyle?: Style,
+    style?: Style,
   ) {
     if (value === undefined) {
       return;
@@ -945,13 +976,13 @@ class HelpFormatter {
       case 'strings': {
         assert(typeof value === 'object');
         const formatFn = this.formatString.bind(this);
-        this.formatArray(option, value as Array<string>, result, formatFn, descStyle);
+        this.formatArray(option, value as Array<string>, result, formatFn, style);
         break;
       }
       case 'numbers': {
         assert(typeof value === 'object');
         const formatFn = this.formatNumber.bind(this);
-        this.formatArray(option, value as Array<number>, result, formatFn, descStyle);
+        this.formatArray(option, value as Array<number>, result, formatFn, style);
         break;
       }
       default: {
@@ -1004,10 +1035,10 @@ class HelpFormatter {
       }
     }
     const result = new Array<string>();
-    for (const { names, param, desc } of entries) {
+    for (const { names, param, descr } of entries) {
       formatCol(names, this.namesStart, this.config.breaks.names);
       formatCol(param, this.paramStart, this.config.breaks.param);
-      formatCol(desc, this.descStart, this.config.breaks.desc, true);
+      formatCol(descr, this.descrStart, this.config.breaks.descr, true);
       result.push('\n');
     }
     result.length--; // pop the last line break
@@ -1019,11 +1050,11 @@ class HelpFormatter {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Merges a user-provided format configuration with the default configuration.
- * @param config The user configuration, which may override default settings
+ * Merges a format configuration with the default configuration.
+ * @param config The configuration, which may override default settings
  * @returns The merged configuration
  */
-function mergeConfig(config: HelpFormat): ConcreteFormat {
+function mergeConfig(config: FormatConfig): ConcreteFormat {
   return {
     indent: Object.assign({}, defaultConfig.indent, config.indent),
     breaks: Object.assign({}, defaultConfig.breaks, config.breaks),

@@ -26,6 +26,21 @@ describe('HelpFormatter', () => {
     });
 
     describe('flag', () => {
+      it('should handle an option with a link', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: `A flag option`,
+            link: new URL('https://trulysimple.dev/tsargp/docs'),
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
+        expect(message).toMatch(
+          `-f,--flagA flag option. Refer to https://trulysimple.dev/tsargp/docs for details.`,
+        );
+      });
+
       it('should handle an option with custom styles', () => {
         const options = {
           flag: {
@@ -34,7 +49,7 @@ describe('HelpFormatter', () => {
             desc: 'A flag option with custom styles',
             styles: {
               names: style(tf.clear, tf.inverse, fg8(138)),
-              desc: style(tf.clear, tf.italic, tf.crossedOut),
+              descr: style(tf.clear, tf.italic, tf.crossedOut),
             },
           },
         } as const satisfies Options;
@@ -152,6 +167,7 @@ describe('HelpFormatter', () => {
           required: {
             type: 'boolean',
             names: ['-req', '--req'],
+            hide: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
@@ -169,6 +185,7 @@ describe('HelpFormatter', () => {
           required: {
             type: 'boolean',
             names: ['-req', '--req'],
+            hide: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
@@ -186,6 +203,7 @@ describe('HelpFormatter', () => {
           required: {
             type: 'boolean',
             names: ['-req', '--req'],
+            hide: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
@@ -203,6 +221,7 @@ describe('HelpFormatter', () => {
           required: {
             type: 'boolean',
             names: ['-req', '--req'],
+            hide: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
@@ -220,6 +239,7 @@ describe('HelpFormatter', () => {
           required: {
             type: 'string',
             names: ['-req', '--req'],
+            hide: true,
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
@@ -293,7 +313,7 @@ describe('HelpFormatter', () => {
             desc: 'A boolean option',
           },
         } as const satisfies Options;
-        const config = { breaks: { names: 1, param: 1, desc: 1 } };
+        const config = { breaks: { names: 1, param: 1, descr: 1 } };
         const formatter = new HelpFormatter(options, config);
         const message = formatter.formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(/^\n-b,--boolean\n<boolean>\nA boolean option\.$/);
@@ -333,7 +353,7 @@ describe('HelpFormatter', () => {
             desc: 'A boolean option',
           },
         } as const satisfies Options;
-        const formatter = new HelpFormatter(options, { hidden: { desc: true } });
+        const formatter = new HelpFormatter(options, { hidden: { descr: true } });
         const message = formatter.formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(/^-b,--boolean<boolean>$/);
       });

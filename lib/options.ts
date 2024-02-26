@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { HelpFormat } from './formatter';
+import type { FormatConfig } from './formatter';
 import type { Style } from './styles';
 import { fg, style } from './styles';
 
@@ -94,6 +94,7 @@ const defaultStyles: ConcreteStyles = {
   string: style(fg.green),
   number: style(fg.yellow),
   option: style(fg.magenta),
+  url: style(fg.brightBlack),
   text: style(fg.default),
 };
 
@@ -115,7 +116,7 @@ type OptionStyles = {
   /**
    * The style of the option description.
    */
-  readonly desc?: Style;
+  readonly descr?: Style;
 };
 
 /**
@@ -142,6 +143,10 @@ type OtherStyles = {
    * The style of option names.
    */
   readonly option?: Style;
+  /**
+   * The style of URLs.
+   */
+  readonly url?: Style;
   /**
    * The style of general text.
    */
@@ -258,7 +263,7 @@ type WithType<T extends string> = {
    */
   readonly preferredName?: string;
   /**
-   * The option description. It may contain inline styles.
+   * The option synopsis. It may contain inline styles.
    */
   readonly desc?: string;
   /**
@@ -285,6 +290,10 @@ type WithType<T extends string> = {
    * True if the option is always required.
    */
   readonly required?: true;
+  /**
+   * A reference to an external resource.
+   */
+  readonly link?: URL;
 };
 
 /**
@@ -615,7 +624,7 @@ type HelpOption = WithType<'help'> & {
   /**
    * The help format configuration.
    */
-  readonly format?: HelpFormat;
+  readonly format?: FormatConfig;
   /**
    * The style of option group headings.
    */
