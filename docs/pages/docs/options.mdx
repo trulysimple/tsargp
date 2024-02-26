@@ -33,7 +33,7 @@ from argument parsing. The meaning of the other attributes is explained in the n
 ## Common attributes
 
 This section describes the attributes that are common to a subset of option types. The option types
-themselves are described later in this page.
+themselves are explained later in this page.
 
 ### Basic attributes
 
@@ -54,15 +54,11 @@ name is not available (e.g., when evaluating option requirements or processing p
 It is not validated, so it can be any string. If not specified, the first name in the `names` array
 will be used.
 
-#### Description, group, hide & deprecated
+#### Synopsis & deprecated
 
-These attributes only have effect in the formatting of the help message.
-
-The `desc` attribute is the option synopsis, and may contain
-[inline styles](formatter.mdx#inline-styles). The `group` attribute is the name of a group under
-which the option should appear. The `hide` attribute, if present, indicates to the formatter that
-the option should not be displayed in the help message. The `deprecated` attribute is just syntactic
-sugar for the option deprecation reason, and may contain inline styles.
+The `desc` attribute is the option synopsis. The `deprecated` attribute is just syntactic
+sugar for the option deprecation reason. Both attributes are formatted in the help message according
+to [text formatting](formatter.mdx#text-formatting) rules.
 
 > **NOTE**:
 > Since the library was designed to avoid using the console directly, it doesn't have a proper way
@@ -70,14 +66,20 @@ sugar for the option deprecation reason, and may contain inline styles.
 > purpose, you may want to use a custom parsing callback (more on that later), although it is only
 > available for non-niladic options.
 
-#### Styles
+#### Group & hide
+
+The `group` attribute is the name of a group under which the option should appear in the help
+message, whereas the `hide` attribute indicates to the formatter that the option should _not_ be
+displayed in the help message.
+
+#### Display styles
 
 The `styles` attribute can be used to customize the styling of the help message entry for the
 option. It has the following optional attributes:
 
 - `names` - the style of the option names
 - `param` - the style of the option paramater
-- `desc` - the style of the option description
+- `descr` - the style of the option description
 
 #### Requires & required
 
@@ -102,6 +104,11 @@ corresponding value. If an expression, then it is evaluated as follows:
 
 The `required` attribute indicates that the option is _always_ required, independently of other
 options.
+
+#### External reference
+
+The `link` attribute is a URL for an external resource or media, that is included in the help
+message if specified.
 
 ### Parameter attributes
 

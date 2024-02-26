@@ -24,10 +24,9 @@ available.
 > of the above parameter will be `undefined{:ts}`.
 
 The `formatHelp` method returns a help message corresponding to the _default_ option group, which is
-the set of options that did not explicitly declare an
-[option group](options.mdx#description-group-hide--deprecated) in their definition. The
-`formatGroups` method, its sibling, returns a `Map{:ts}` of option group names to help messages
-(including the default group with an empty name).
+the set of options that did not explicitly declare an [option group](options.mdx#group--hide) in
+their definition. The `formatGroups` method, its sibling, returns a `Map{:ts}` of option group names
+to help messages (including the default group with an empty name).
 
 ## Help entries
 
@@ -67,9 +66,9 @@ indentation level, it is instead wrapped relative to the beginning of each line.
 
 ## Help format
 
-In addition to option definitions, the formatter constructor accepts a `HelpFormat` object that can
-be used to customize the message format. This configuration will apply to all the help entries. It
-contains a set of optional properties, as described below.
+In addition to option definitions, the formatter constructor accepts a `FormatConfig` object that
+can be used to customize the message format. This configuration will apply to all the help entries.
+It contains a set of optional properties, as described below.
 
 ### Indentation level
 
@@ -89,7 +88,7 @@ It defaults to `2{:ts}`.
 
 #### Description indentation
 
-The `desc` property specifies the level of indentation for the option description (in number of
+The `descr` property specifies the level of indentation for the option description (in number of
 terminal columns). This value may be negative if [description absolute](#description-absolute) is
 false. It defaults to `2{:ts}`.
 
@@ -101,7 +100,7 @@ to `false{:ts}`.
 
 #### Description absolute
 
-The `descAbsolute` property, if true, indicates that the indentation level for the option
+The `descrAbsolute` property, if true, indicates that the indentation level for the option
 description should be relative to the beginning of the line instead of the end of the option
 parameter. It defaults to `false{:ts}`.
 
@@ -122,7 +121,7 @@ defaults to `0{:ts}`.
 
 #### Breaks before description
 
-The `desc` property specifies the number of line breaks to insert before the option description. It
+The `descr` property specifies the number of line breaks to insert before the option description. It
 defaults to `0{:ts}`.
 
 ### Hidden columns
@@ -142,7 +141,7 @@ defaults to `false{:ts}`.
 
 #### Hidden description
 
-The `desc` property, if true, indicates that the option description should not be displayed. It
+The `descr` property, if true, indicates that the option description should not be displayed. It
 defaults to `false{:ts}`.
 
 ### Display styles
@@ -152,12 +151,13 @@ help message. It has the following optional properties:
 
 - `names` - the default style of the option names
 - `param` - the default style of the option paramater
-- `desc` - the default style of the option description
+- `descr` - the default style of the option description
 - `boolean` - the style of boolean values
 - `string` - the style of string values
 - `number` - the style of number values
 - `regex` - the style of regular expressions
 - `option` - the style of option names in the description (but not the option's own names)
+- `url` - the style of URLs
 - `text` - The style of general text
 
 The first three of these properties may be overriden by the [option's styles](options.mdx#styles)
@@ -171,14 +171,15 @@ attribute, if present.
 > The styles are cumulative, i.e., they can add to previous styles depending on the kind of styling
 > attribute. For instance, if the style of option description is `tf.bold` and the style of number
 > value is `fg.yellow`, then any number value that appears in the option description (except those
-> embedded in user-provided texts) is rendered in bold intensity with yellow foreground color.
+> embedded in [text attributes](#text-formatting)) is rendered in bold intensity with yellow
+> foreground color.
 
 ### Help items
 
 The `items` property specifies the kind of items that will be displayed in the option description,
 and in what order. It is an array whose values can be one of the following.
 
-- `desc` - the user-provided option description
+- `desc` - the option synopsis
 - `negation` - the negation names of a flag option, if any
 - `separator` - the element delimiter of an array option, if enabled
 - `variadic` - reports if an array option accepts multiple parameters
@@ -196,23 +197,24 @@ and in what order. It is an array whose values can be one of the following.
 - `required` - reports if the option is always required
 - `default` - the option default value, if any
 - `deprecated` - reports if the option is deprecated
+- `link` - the external resource reference, if any
 
-## User-provided text
+## Text formatting
 
-The user-provided [text attributes](options.mdx#description-group-hide--deprecated) are split into
-words and styles before being added to a help entry's description column. The following formatting
-features are supported for these attributes.
+Both the [synopsis and the deprecation reason](options.mdx#synopsis--deprecated) are text attributes
+that get split into words and styles before being added to a help entry's description column. The
+following formatting features are supported for these attributes.
 
 ### Inline styles
 
 Texts can contain inline styles. The formatter will try its best to preserve styles while formatting
-the help message and wrapping text in the option description. However, it might happen that some
-corner case is not covered by the unit tests. If you find one, please submit a [bug report].
+the help message and wrapping text in the option description. However, if some corner case that is
+not currently covered by the unit tests happen to you, please submit a [bug report].
 
 ### Paragraphs and lists
 
-Although markdown is not supported, paragraphs and itemized/numbered lists are formatted in a manner
-akin to how they would be in markdown. For example, the following text
+Although markdown syntax is not currently supported, paragraphs and itemized/numbered lists are
+formatted similarly to how they would be in markdown. For example, the following text
 
 ```ansi
 A paragraph with
@@ -225,11 +227,9 @@ A paragraph with
 
 Would be rendered as:
 
-```md
+```ansi
 A paragraph with single line breaks, redundant spacing and:
-
 - itemized; or
-
 1. numbered lists
 
 Another paragraph.
