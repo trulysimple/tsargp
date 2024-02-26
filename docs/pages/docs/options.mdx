@@ -296,13 +296,14 @@ This option has the following set of optional attributes.
 
 The `usage` attribute describes your CLI usage instructions. It goes before everything else in the
 help message. The `footer` attribute is an afterword that can be used to insert a copyright notice
-or reference to other media.
+or reference to other media. Both attributes can include inline styles, but they will _not_ be
+formatted according to the [text formatting](formatter.mdx#text-formatting) rules.
 
 #### Format & heading style
 
-The `format` attribute, if present, specifies the [help format](formatter.mdx#help-format). The
-`headingStyle` attribute, if present, specifies a [style](styles.mdx#style) to be applied to group
-headings.
+The `format` attribute, if present, specifies the [help format](formatter.mdx#help-format)
+configuration. The `headingStyle` attribute, if present, specifies a [style](styles.mdx) to be
+applied to group headings.
 
 ### Version option
 

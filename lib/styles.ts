@@ -567,7 +567,7 @@ type BgColor = Alias<`48;5;${Decimal}`>;
 type UlColor = Alias<`58;5;${Decimal}`>;
 
 /**
- * A text style attribute.
+ * A text styling attribute.
  */
 type StyleAttr = TypeFace | Foreground | Background | Underline | FgColor | BgColor | UlColor;
 
@@ -684,7 +684,7 @@ function scroll(times: number, cmd: ScrollCommand): Scroll {
 
 /**
  * Creates an SGR sequence.
- * @param attrs The text style attributes
+ * @param attrs The text styling attributes
  * @returns The SGR sequence
  */
 function style(...attrs: Array<StyleAttr>): Style {

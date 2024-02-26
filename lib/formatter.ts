@@ -189,7 +189,7 @@ const enum HelpItem {
    */
   required,
   /**
-   * The option default value, if any.
+   * The option's default value, if not a callback.
    */
   default,
   /**
@@ -227,10 +227,10 @@ const defaultConfig: ConcreteFormat = {
     names: style(tf.clear),
     param: style(tf.clear, fg.brightBlack),
     descr: style(tf.clear),
-    regex: style(fg.red),
     boolean: style(fg.yellow),
     string: style(fg.green),
     number: style(fg.yellow),
+    regex: style(fg.red),
     option: style(fg.magenta),
     url: style(fg.brightBlack),
     text: style(tf.clear),

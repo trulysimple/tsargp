@@ -339,13 +339,13 @@ Both validation and parsing methods may throw errors, and the error messages can
 styles can be configured with an additional parameter to the parser constructor, which contains the
 following optional properties:
 
-- `boolean` - the style of boolean values
-- `string` - the style of string values
-- `number` - the style of number values
-- `regex` - the style of regular expressions
-- `option` - the style of option names
-- `url` - the style of URLs
-- `text` - The style of general text
+- `boolean` - the style of boolean values (defaults to `fg.yellow`)
+- `string` - the style of string values (defaults to `fg.green`)
+- `number` - the style of number values (defaults to `fg.yellow`)
+- `regex` - the style of regular expressions (defaults to `fg.red`)
+- `option` - the style of option names (defaults to `fg.magenta`)
+- `url` - the style of URLs (defaults to `fg.brightBlack`)
+- `text` - The style of general text (defaults to `tf.clear`)
 
 ### Inline values
 
