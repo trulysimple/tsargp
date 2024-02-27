@@ -4,7 +4,7 @@ title: Parser - Docs
 
 # Parser
 
-The `ArgumentParser` class is the central piece of the library. It can be instantiated with a set of
+The `ArgumentParser` class is the centerpiece of the library. It can be instantiated with a set of
 option _definitions_ and provides methods to parse command-line arguments into option values.
 
 ## Option values
@@ -53,13 +53,13 @@ This method returns a promise that can be awaited in order to resolve async
 ## Option validation
 
 The term _validation_ here means verifying the sanity of an option's definition. It is intended for
-development and testing, _not_ for use in production, where it would unnecessarily impose a
-performance penalty on your application. The validations behave like assertions: they assert that
-your options will work as expected when delivered to end users.
+development and testing, _not_ for use in production where it would impose an unwanted performance
+penalty on your application. The validations behave like assertions: they assert that your options
+will work as expected when delivered to end users.
 
 To validate a set of option definitions, you must call the `validate` method on the parser instance.
-The following sections describe the various kinds of validation performed. In most of them, the
-option key specified in the definitions object is included in the error message.
+The following sections describe the various kinds of validation performed by this method. In most of
+them, the option key specified in the option definitions object is included in the error message.
 
 ### Names validation
 
@@ -178,8 +178,8 @@ If an option is declared with a positional marker, this marker _cannot_ be the e
 
 ### Version validation
 
-Version options are very simple and have only one restraint: they must _not_ contain an empty
-version string (if the attribute is specified); otherwise it will trigger an error.
+A version option is very simple and has only one restraint: it must _not_ contain an empty version
+string; otherwise it will trigger an error.
 
 ## Parse configuration
 
@@ -188,9 +188,9 @@ properties, as described below.
 
 ### Terminal width
 
-The `termWidth` property is the desired terminal width to print the help message (in number of
-columns). This value is passed directly to the constructor of the [formatter](formatter.mdx) class,
-when processing a help option.
+The `termWidth` property is the desired terminal width in which to print the help message (in number
+of columns). This value is passed directly to the constructor of the [formatter](formatter.mdx)
+class, when processing a help option.
 
 ### Completion index
 
@@ -227,10 +227,10 @@ value is normalized and set as the option value. This is also the case of single
 since these options do not need the previous value: it is simply replaced.
 
 Array-valued options, on the other hand, suffer from the fact that the parser always appends the
-values it parses. This happens because it cannot know in advance how many parameters there will be
-(although it ensures that the option value is reset to an empty array when it encounters the option
-name if the [append](options.mdx#append-values) attribute is not set). In this case, there are four
-possible combinations of previous value and invocation result:
+values it parses. This happens because the parser does not know in advance how many parameters there
+will be for an option (although it ensures that the option value is reset to an empty array when it
+encounters the option name, if the [append](options.mdx#append-values) attribute is not set). In
+this case, there are four possible combinations of previous value and callback invocation result:
 
 1. non-promise and non-promise
 2. non-promise and promise
@@ -254,7 +254,7 @@ turning back to a non-promise.
 > parameters. In that case, the parser must initialize the option value to an empty array. This
 > means that, even if an option declares an async parsing callback in its definition, the parser
 > might exit the loop before calling the callback, thus leaving the value as an empty array
-> (non-promise). TypeScript would make this evident when trying to await the option value.
+> (non-promise). This is not a problem, since the `await` expression can be called on a non-promise.
 
 None of these cases make it necessary to call `parseAsync` or await the return of `parseInto`, since
 the callback promises are _inside_ the resulting object. But you must await each value in this
@@ -297,28 +297,28 @@ terminal so that the `complete` builtin can perform the final completion step.
 
 ### Completion algorithm
 
-The completion algorithm implemented by the library is explained below. In what follows, _arg_ is
+The completion algorithm implemented by the library is explained below. In what follows, _comp_ is
 the word being completed, i.e., the command-line argument ending at the completion index (it may be
 an empty string):
 
-1. If _arg_ is expected to be an option name:
-   - If _arg_ is a known option name, that name is returned; else
-   - If there's no positional option, the available option names are filtered by the prefix _arg_,
+1. If _comp_ is expected to be an option name:
+   - If _comp_ is a known option name, that name is returned; else
+   - If there's no positional option, the available option names are filtered by the prefix _comp_,
      and then returned; else
-   - _arg_ is treated as a parameter of the positional option; go to step 2
-2. _arg_ is the parameter of a non-niladic option:
-   - If the option has a [complete callback](options.mdx#complete-callback), the result of the
-     callback is returned; else
-   - If it is a boolean option, the words `'true'{:ts}` and `'false'{:ts}` are filtered by the
-     prefix _arg_, and then returned; else
-   - If the option has enumerated values, those values are converted to string, filtered by the
-     prefix _arg_, and then returned; else
+   - _comp_ is treated as a parameter of the positional option; go to step 2
+2. _comp_ is the parameter of a non-niladic option:
+   - If the option has a [complete callback](options.mdx#complete-callback), it is called with
+     _comp_ and its result is returned; else
+   - If it is a boolean option, the words `'true'{:ts}` and `'false'{:ts}` are filtered by the prefix
+     _comp_, and then returned; else
+   - If the option has [enumerated values](options.mdx#enumeration), those values are converted to
+     string, filtered by the prefix _comp_, and then returned; else
    - If it is a variadic array option, and the parameter was specified neither with a positional
      marker nor as an [inline value](#inline-values), the available option names are filtered by the
-     prefix _arg_ and returned; else
+     prefix _comp_ and returned; else
    - No words are returned, and the default bash completion (if enabled with `-o`) is attempted.
 
-During completion, help and version options are skipped, but others are processed as usual. This
+During completion, help and version options are skipped, while others are processed as usual. This
 means that completion callbacks can inspect the values parsed before it, in order to make better
 suggestions based on those values.
 
@@ -326,7 +326,7 @@ suggestions based on those values.
 
 ### Name suggestions
 
-During parsing, there are two situations where the parser may suggest option names:
+During parsing, there are two situations in which the parser might suggest option names:
 
 - when it expects an option name and the current argument is not a valid name (and there is no
   positional option)
@@ -335,7 +335,7 @@ During parsing, there are two situations where the parser may suggest option nam
   positional marker nor as an [inline value](#inline-values))
 
 In these cases, the parser selects option names that are similar to the current argument using the
-[Gestalt algorithm].
+[Gestalt algorithm], and includes them in the error message.
 
 ### Error styles
 

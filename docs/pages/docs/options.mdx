@@ -161,15 +161,16 @@ some explanatory name.
 #### Complete callback
 
 The `complete` attribute, if present, specifies a custom completion callback. This can be used to
-make better suggestions for bash completion than the [default
-algorithm](parser.mdx#completion-algorithm) would for the option. It accepts two parameters:
+make better suggestions for bash completion than the
+[default algorithm](parser.mdx#completion-algorithm) would do for the option. It accepts two
+parameters:
 
 - `values` - the values parsed up until the current iteration. It is a generic record that should be
   cast to `OptionValues<typeof _your_options_>{:ts}` or to the type of your values class.
-- `rest` - the remaining command-line arguments. The first element in this list is the one
-  triggering the completion (it may be an empty string).
+- `comp` - the word being completed (it may be an empty string)
+- `rest` - the remaining command-line arguments
 
-It should return the list of completion words and should not throw any error. If asynchronous, you
+It should return the list of completion words and should not throw any errors. If asynchronous, you
 should call [`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
 
 #### Parse callback
@@ -180,8 +181,9 @@ parameter. It accepts two parameters:
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
-It should return a single value. If asynchronous, then the data type of the option value in the
-resulting object will be enclosed in a promise. Mutually exclusive with [separator](#separator) and
+It should return a value of the data type expected by the option (this should be a single value, not
+an array). If asynchronous, then the data type of the option value in the resulting object will be
+enclosed in a promise. Mutually exclusive with [separator](#separator) and
 [parse delimited](#parse-delimited).
 
 #### Enumeration
@@ -198,8 +200,8 @@ String-valued option types share a set of attributes, as described below.
 #### Regular expression
 
 The `regex` attribute, if present, specifies a regular expression that string parameters should
-match. Any parameter that does _not match_ the regular expression (after normalization) will will
-cause an error to be thrown. Mutually exclusive with [enumeration](#enumeration).
+match. Any parameter that does _not match_ the regular expression (after normalization) will cause
+an error to be thrown. Mutually exclusive with [enumeration](#enumeration).
 
 #### Trim whitespace
 
@@ -220,8 +222,8 @@ Number-valued option types share a set of attributes, as described below.
 #### Numeric range
 
 The `range` attribute, if present, specifies a (closed) numeric range that number parameters should
-be within. Any parameter that is _not within_ the given range (after normalization) will will cause
-an error to be thrown. You may want to use `[-Infinity, Infinity]{:ts}` to disallow `NaN{:ts}`.
+be within. Any parameter that is _not within_ the given range (after normalization) will cause an
+error to be thrown. You may want to use `[-Infinity, Infinity]{:ts}` to disallow `NaN{:ts}`.
 Mutually exclusive with [enumeration](#enumeration).
 
 #### Rounding
@@ -250,16 +252,17 @@ option parameter. It accepts two parameters:
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
-Unlike the [parse callback](#parse-callback) that returns a single value, this callback returns an
-array. If specified, the option will accept a single parameter and not multiple parameters (we say
-that it is _delimited_, rather than being _variadic_). If asynchronous, then the data type of the
-option value in the resulting object will be enclosed in a promise. Mutually exclusive with
+Unlike the [parse callback](#parse-callback) that returns a single value, this callback should
+return an array. If specified, the option will accept a single parameter and not multiple parameters
+(we say that it is _delimited_, rather than being _variadic_). If asynchronous, then the data type
+of the option value in the resulting object will be enclosed in a promise. Mutually exclusive with
 [separator](#separator) and [parse callback](#parse-callback).
 
 #### Remove duplicates
 
-The `unique` attribute, if present, indicates that duplicate elements will be removed. This
-normalization is applied _before_ checking the [count limit](#count-limit) constraint.
+The `unique` attribute, if present, indicates that duplicate elements will be removed from the
+option value. This normalization is applied _before_ checking the [count limit](#count-limit)
+constraint.
 
 #### Append values
 
@@ -275,8 +278,8 @@ an error to be thrown.
 
 ## Niladic options
 
-These option types expect no parameter on the command-line and (with the notable exception of the
-[flag option](#flag-option)) have no intrinsic value. Hence, they do not appear in the object
+These option types expect no parameter on the command-line. With the notable exception of the
+[flag option](#flag-option), they have no intrinsic value and therefore do not appear in the object
 resulting from argument parsing. However, they do have side-effects, as explained below.
 
 ### Help option
@@ -285,7 +288,7 @@ The **help** option is a convenient specialization of the [function](#function-o
 handles the formatting of the help message. Internally, it performs the following actions:
 
 1. instantiate a [formatter](formatter.mdx) class with the provided (or default) configuration
-2. get the formatted messages (one for each option group)
+2. get the formatted messages, one for each option group
 3. assemble them into a single message with group headings
 4. throw the resulting string
 
@@ -339,10 +342,10 @@ The `exec` attribute is the callback function that should be executed. It accept
 
 - `values` - the values parsed up until the current iteration. It is a generic record that should be
   cast to `OptionValues<typeof _your_options_>{:ts}` or to the type of your values class.
+- `comp` - `true{:ts}` if performing completion (but not in the current iteration)
 - `rest` - the remaining command-line arguments
-- `completing` - `true{:ts}` if performing completion (but not in the current iteration)
 
-It should return no value (void). It can be asynchronous, in which case you should call
+It should return nothing. It can be asynchronous, in which case you should call
 [`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
 
 #### Break

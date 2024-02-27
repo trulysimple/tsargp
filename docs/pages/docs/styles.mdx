@@ -9,8 +9,8 @@ can be used to customize the display of text in a terminal.
 
 ## Styling attributes
 
-The `style` function creates a style from a list of styling attributes. The result can be used in
-any part of the API that expects the `Style` type, or it can be embedded directly in text
+With the `style` function you can create a style from a list of styling attributes. The result can
+be used in any part of the API that expects the `Style` type, or it can be embedded directly in text
 attributes, such as the [synopsis and deprecation reason](options.mdx#synopsis--deprecated) or the
 [usage and footer](options.mdx#usage--footer).
 
@@ -24,51 +24,51 @@ In the next sections we present the various styling attributes available.
 
 The `tf` enumeration declares text type faces that can be combined together. Here is the full list:
 
-- `clear` - Reset or normal. Resets any other preceding SGR attribute
-- `bold` - Bold or increased intensity
-- `faint` - Faint, decreased intensity, or dim
-- `italic` - Italic
-- `underlined` - Underlined
-- `slowlyBlinking` - Slowly blinking
-- `rapidlyBlinking` - Rapidly blinking
-- `inverse` - Reverse video or inverse. Flips foreground and background color
-- `invisible` - Invisible, concealed or hidden
-- `crossedOut` - Crossed-out or strikethrough
-- `primary` - Primary (default) font
-- `alternative1` - Alternative font 1
-- `alternative2` - Alternative font 2
-- `alternative3` - Alternative font 3
-- `alternative4` - Alternative font 4
-- `alternative5` - Alternative font 5
-- `alternative6` - Alternative font 6
-- `alternative7` - Alternative font 7
-- `alternative8` - Alternative font 8
-- `alternative9` -Alternative font 9
-- `gothic` - Black-letter font (Fraktur/Gothic)
-- `doublyUnderlined` - Doubly underlined
-- `notBoldOrFaint` - Normal intensity (neither bold nor faint)
-- `notItalic` - Regular face (neither italic nor black-letter)
-- `notUnderlined` - Not underlined
-- `notBlinking` - Steady (not blinking)
-- `proportionalSpacing` - Proportional spacing
-- `notInverse` - Positive (not inverse)
-- `notInvisible` - Visible (reveal, or not hidden)
-- `notCrossedOut` - Not crossed out (no strikethrough).
-- `notProportionalSpacing` - Disable proportional spacing
-- `framed` - Framed
-- `encircled` - Encircled
-- `overlined` - Overlined
-- `notFramedOrEncircled` - Neither framed nor encircled
-- `notOverlined` - Not overlined
-- `ideogramUnderline` - Ideogram underline or right side line
-- `ideogramDoubleUnderline` - Ideogram double underline, or double line on the right side
-- `ideogramOverline` - Ideogram overline or left side line
-- `ideogramDoubleOverline` - Ideogram double overline, or double line on the left side
-- `ideogramStressMarking` - Ideogram stress marking
-- `noIdeogram` - No ideogram attributes
-- `superscript` - Superscript
-- `subscript` - Subscript.
-- `notSuperscriptOrSubscript` - Neither superscript nor subscript.
+- `clear` - reset or normal (resets any other preceding SGR attribute)
+- `bold` - bold or increased intensity
+- `faint` - faint, decreased intensity, or dim
+- `italic` - italic
+- `underlined` - underlined
+- `slowlyBlinking` - slowly blinking
+- `rapidlyBlinking` - rapidly blinking
+- `inverse` - reverse video or inverse (flips foreground and background color)
+- `invisible` - invisible, concealed or hidden
+- `crossedOut` - crossed-out or strikethrough
+- `primary` - primary (default) font
+- `alternative1` - alternative font 1
+- `alternative2` - alternative font 2
+- `alternative3` - alternative font 3
+- `alternative4` - alternative font 4
+- `alternative5` - alternative font 5
+- `alternative6` - alternative font 6
+- `alternative7` - alternative font 7
+- `alternative8` - alternative font 8
+- `alternative9` - alternative font 9
+- `gothic` - black-letter font (Fraktur/Gothic)
+- `doublyUnderlined` - doubly underlined
+- `notBoldOrFaint` - normal intensity (neither bold nor faint)
+- `notItalic` - regular face (neither italic nor black-letter)
+- `notUnderlined` - not underlined
+- `notBlinking` - steady (not blinking)
+- `proportionalSpacing` - proportional spacing
+- `notInverse` - positive (not inverse)
+- `notInvisible` - visible (reveal, or not hidden)
+- `notCrossedOut` - not crossed out (no strikethrough)
+- `notProportionalSpacing` - disable proportional spacing
+- `framed` - framed
+- `encircled` - encircled
+- `overlined` - overlined
+- `notFramedOrEncircled` - neither framed nor encircled
+- `notOverlined` - not overlined
+- `ideogramUnderline` - ideogram underline or right side line
+- `ideogramDoubleUnderline` - ideogram double underline, or double line on the right side
+- `ideogramOverline` - ideogram overline or left side line
+- `ideogramDoubleOverline` - ideogram double overline, or double line on the left side
+- `ideogramStressMarking` - ideogram stress marking
+- `noIdeogram` - no ideogram attributes
+- `superscript` - superscript
+- `subscript` - subscript.
+- `notSuperscriptOrSubscript` - neither superscript nor subscript.
 
 ### Predefined text colors
 

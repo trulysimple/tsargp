@@ -193,7 +193,7 @@ const enum HelpItem {
    */
   default,
   /**
-   * Reports if the option is deprecated.
+   * Reports if the option is deprecated, and why.
    */
   deprecated,
   /**
