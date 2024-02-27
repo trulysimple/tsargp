@@ -708,17 +708,19 @@ type Option = NiladicOption | ParamOption;
 type Options = Readonly<Record<string, Option>>;
 
 /**
- * The data type of an option that has a value.
+ * The data type of an option with a default value.
  * @template T The option definition type
- * @template D The option value data type
- * @template E The effective data type
  */
-type DataType<T extends ValuedOption, D, E = D> = Resolve<
-  E | (T extends { default: D } ? never : undefined)
->;
+type DefaultDataType<T extends ValuedOption> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends { default: (...args: any) => infer R }
+    ? R
+    : T extends { default: infer D }
+      ? D
+      : undefined;
 
 /**
- * The data type of an option that accepts parameters.
+ * The data type of a non-niladic option.
  * @template T The option definition type
  * @template D The option value data type
  * @template E The effective data type
@@ -738,43 +740,53 @@ type ParamDataType<T extends ParamOption, D, E> = T extends
       : E;
 
 /**
+ * The data type of an option with enumerated values.
+ * @template T The option definition type
+ * @template D The option value data type
+ */
+type EnumsDataType<T extends ParamOption, D> = T extends { enums: Array<infer E> } ? E : D;
+
+/**
+ * The data type of a (possibly) delimited array-valued option.
+ * @template T The option definition type
+ */
+type DelimitedDataType<T extends ArrayOption> = T extends
+  | { separator: string }
+  | { parseDelimited: NonNullable<unknown> }
+  ? never
+  : [];
+
+/**
  * The data type of a single-valued option.
  * @template T The option definition type
  * @template D The option value data type
  */
-type SingleDataType<T extends SingleOption, D> = Resolve<
-  DataType<T, D, ParamDataType<T, D, T extends { enums: Array<D> } ? T['enums'][number] : D>>
->;
+type SingleDataType<T extends SingleOption, D> = ParamDataType<T, D, EnumsDataType<T, D>>;
 
 /**
  * The data type of an array-valued option.
  * @template T The option definition type
  * @template D The option value data type
  */
-type ArrayDataType<T extends ArrayOption, D> = Resolve<
-  DataType<
-    T,
-    Array<D>,
-    | ParamDataType<T, D, T extends { enums: Array<D> } ? Array<T['enums'][number]> : Array<D>>
-    | (T extends { separator: string } | { parseDelimited: ParseCallback<Array<D>> } ? never : [])
-  >
->;
+type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDataType<T, D>>>;
 
 /**
  * The data type of an option.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option = Option> = T extends FlagOption | BooleanOption
-  ? DataType<T, boolean>
-  : T extends StringOption
-    ? SingleDataType<T, string>
-    : T extends NumberOption
-      ? SingleDataType<T, number>
-      : T extends StringsOption
-        ? ArrayDataType<T, string>
-        : T extends NumbersOption
-          ? ArrayDataType<T, number>
-          : never;
+type OptionDataType<T extends Option = Option> = T extends FlagOption
+  ? boolean | DefaultDataType<T>
+  : T extends BooleanOption
+    ? SingleDataType<T, boolean> | DefaultDataType<T>
+    : T extends StringOption
+      ? SingleDataType<T, string> | DefaultDataType<T>
+      : T extends NumberOption
+        ? SingleDataType<T, number> | DefaultDataType<T>
+        : T extends StringsOption
+          ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
+          : T extends NumbersOption
+            ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
+            : never;
 
 /**
  * A collection of option values.
