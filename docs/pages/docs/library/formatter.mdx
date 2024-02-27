@@ -1,6 +1,8 @@
 ---
-title: Formatter - Docs
+title: Formatter - Library - Docs
 ---
+
+import { Callout } from 'nextra/components';
 
 # Formatter
 
@@ -18,10 +20,11 @@ them accepting a single optional parameter:
 Its default value is the number of columns of the standard output or error stream, whichever is
 available.
 
-> **NOTE:**
-> When redirecting the output of a command to a file, the associated stream will not have the
-> `columns` property. Hence, if both `stdout` and `stderr` are being redirected, the default value
-> of the above parameter will be `undefined{:ts}`.
+<Callout type="info">
+  When redirecting the output of a command to a file, the associated stream will not have the 
+  `columns` property. Hence, if both `stdout` and `stderr` are being redirected, the default value
+  of the above parameter will be `undefined{:ts}`.
+</Callout>
 
 The `formatHelp` method returns a help message corresponding to the _default_ option group, which is
 the set of options that did not explicitly declare an [option group](options.mdx#group--hide) in
@@ -164,16 +167,18 @@ help message. It has the following optional properties:
 The first three of these properties may be overriden by the option's
 [display styles](options.mdx#display-styles), if present.
 
-> **TIP:**
-> Whitespace around help entries is not styled. For that purpose, you may need to tweak your
-> terminal settings.
+<Callout type="default">
+  Whitespace around help entries is not styled. For that purpose, you may need to tweak your
+  terminal settings.
+</Callout>
 
-> **NOTE:**
-> The styles are cumulative, i.e., they can be combined with previous styles depending on the kind
-> of styling attribute. For instance, if the style of option description is `tf.bold` and the style
-> of number values is `fg.yellow`, then any number value that appears in the option description
-> (except those embedded in [text attributes](#text-formatting)) is rendered in bold intensity with
-> yellow foreground color.
+<Callout type="info">
+  The styles are cumulative, i.e., they can be combined with previous styles depending on the kind
+  of styling attribute. For instance, if the style of option description is `tf.bold` and the style
+  of number values is `fg.yellow`, then any number value that appears in the option description
+  (except those embedded in [text attributes](#text-formatting)) is rendered in bold intensity with
+  yellow foreground color.
+</Callout>
 
 ### Help items
 

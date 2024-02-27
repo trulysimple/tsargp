@@ -1,6 +1,8 @@
 ---
-title: Parser - Docs
+title: Parser - Library - Docs
 ---
+
+import { Callout } from 'nextra/components';
 
 # Parser
 
@@ -105,9 +107,10 @@ Non-niladic options may define a default value and an example value. If present,
 are subject to the same set of constraints as that of the command-line arguments, and any option
 definition whose values do not satisfy one of them will trigger an error. They are listed below.
 
-> **NOTE:**
-> This does not apply to [default callbacks](options.mdx#default-value--callback) (they are ignored
-> during validation).
+<Callout type="info">
+  This does not apply to [default callbacks](options.mdx#default-value--callback) (they are ignored
+  during validation).
+</Callout>
 
 #### Enums constraint violation
 
@@ -251,12 +254,13 @@ They are handled in following manner:
 Note that, for array-valued options, once a promise is returned from a parsing callback there's no
 turning back to a non-promise.
 
-> **NOTE**:
-> A special case occurs when a variadic array option is specified on the command-line without
-> parameters. In that case, the parser must initialize the option value to an empty array. This
-> means that, even if an option declares an async parsing callback in its definition, the parser
-> might exit the loop before calling the callback, thus leaving the value as an empty array
-> (non-promise). This is not a problem, since the `await` expression can be called on a non-promise.
+<Callout type="info">
+  A special case occurs when a variadic array option is specified on the command-line without
+  parameters. In that case, the parser must initialize the option value to an empty array. This
+  means that, even if an option declares an async parsing callback in its definition, the parser
+  might exit the loop before calling the callback, thus leaving the value as an empty array
+  (non-promise). This is not a problem, since the `await` expression can be called on a non-promise.
+</Callout>
 
 None of these cases make it necessary to call `parseAsync` or await the return of `parseInto`, since
 the callback promises are _inside_ the resulting object. But you must await each value in this

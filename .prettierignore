@@ -3,4 +3,5 @@
 .gitignore
 .prettierignore
 *.lockb
+*.svg
 *.toml

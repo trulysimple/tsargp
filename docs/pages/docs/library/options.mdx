@@ -1,6 +1,8 @@
 ---
-title: Options - Docs
+title: Options - Library - Docs
 ---
+
+import { Callout } from 'nextra/components';
 
 # Options
 
@@ -61,11 +63,12 @@ The `desc` attribute is the option synopsis. The `deprecated` attribute is just 
 sugar for the option deprecation reason. Both attributes are formatted in the help message according
 to [text formatting](formatter.mdx#text-formatting) rules.
 
-> **NOTE**:
-> Since the library was designed to avoid using the console directly, it doesn't have a proper way
-> to handle deprecated options specified on the command-line (e.g., by logging a warning). For this
-> purpose, you may want to use a custom parsing callback (more on that later), although it is only
-> available for non-niladic options.
+<Callout type="info">
+  Since the library was designed to avoid using the console directly, it does not have a proper way
+  to handle deprecated options specified on the command-line (e.g., by logging a warning). For this
+  purpose, you may want to use a custom parsing callback (more on that later), although it is only
+  available for non-niladic options.
+</Callout>
 
 #### Group & hide
 
@@ -99,9 +102,10 @@ corresponding value. If an expression, then it is evaluated as follows:
 - `req.one` - an expression that is satisfied when _at least one_ item is satisfied
 - `req.not` - an expression that is satisfied when the item is _not_ satisfied.
 
-> **NOTE**:
-> When an object is specified, `undefined{:ts}` values can be used to signify required presence, and
-> `null{:ts}` values to signify required absence.
+<Callout type="default">
+  When an object is specified, `undefined{:ts}` values can be used to signify required presence,
+  and `null{:ts}` values to signify required absence.
+</Callout>
 
 #### External reference
 
@@ -142,9 +146,10 @@ The `paramName` attribute, if present, replaces the option type in the help mess
 [parameter column](formatter.mdx#parameter-column). Mutually exclusive with
 [example value](#example-value).
 
-> **NOTE**:
-> If it contains an opening angle bracket `'<'{:ts}`, it is printed as-is; otherwise it is enclosed
-> in angle brackets (e.g., `<param_name>`).
+<Callout type="info">
+  If this attribute contains an opening angle bracket `'<'{:ts}`, it is printed as-is; otherwise it
+  is enclosed in angle brackets (e.g., `<param_name>`).
+</Callout>
 
 #### Positional | marker
 
@@ -354,9 +359,11 @@ The `break` attribute, if present, tells the parser to exit the parsing loop imm
 returning from the callback. This is useful for creating commands, as explained in the
 [commands guide](/guides/commands).
 
-> BEWARE: If set, the requirements of all options specified before it on the command-line (including
-> itself) will be analyzed. Hence, you should make it clear in the help message that any required
-> option should be specified before it.
+<Callout type="warning">
+  When this attribute is set, the requirements of all options specified before the affected option
+  on the command-line (including itself) will be analyzed. Hence, you should make it clear in the
+  help message that any required option should be specified before it.
+</Callout>
 
 ### Flag option
 
@@ -365,10 +372,11 @@ way it differs from the [boolean option](#boolean-option) is that it does not ex
 although it may have the [required](#required) or the [default value](#default-value--callback)
 attribute for a `boolean{:ts}` data type. In addition, it has the following attribute.
 
-> **NOTE**:
-> We could have reused the boolean option for this purpose and make the parameter optional, but it
-> would complicate the parser implementation unnecessarily. Besides, the flag option has a
-> particularly useful feature, which is described below.
+<Callout type="info">
+  We could have reused the boolean option for this purpose and make the parameter optional, but it
+  would complicate the parser implementation unnecessarily. Besides, the flag option has a
+  particularly useful feature, which is described below.
+</Callout>
 
 #### Negation names
 

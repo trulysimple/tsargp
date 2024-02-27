@@ -39,6 +39,7 @@
     "cspell": "^8.3.2",
     "eslint": "^8.56.0",
     "eslint-plugin-mdx": "^3.1.5",
+    "eslint-plugin-react": "^7.33.2",
     "husky": "^9.0.6",
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
@@ -71,7 +72,8 @@
           "*.mdx"
         ],
         "extends": [
-          "plugin:mdx/recommended"
+          "plugin:mdx/recommended",
+          "plugin:react/recommended"
         ]
       }
     ]

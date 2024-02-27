@@ -1,6 +1,6 @@
 {
   "name": "@trulysimple/tsargp-docs",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "description": "Documentation for tsargp",
   "homepage": "https://github.com/trulysimple/tsargp/tree/main/docs#readme",
   "license": "MIT",
@@ -18,6 +18,7 @@
     "url": "git+https://github.com/trulysimple/tsargp.git"
   },
   "devDependencies": {
+    "@svgr/webpack": "^8.1.0",
     "@xterm/addon-fit": "^0.9.0-beta.1",
     "@xterm/addon-web-links": "^0.10.0-beta.1",
     "next": "^14.1.0",

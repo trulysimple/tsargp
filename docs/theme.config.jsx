@@ -3,6 +3,7 @@ export default {
   project: {
     link: 'https://github.com/trulysimple/tsargp',
   },
+  faviconGlyph: 'ts',
   docsRepositoryBase: 'https://github.com/trulysimple/tsargp/tree/main/docs',
   footer: {
     text: (

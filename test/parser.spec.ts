@@ -202,7 +202,7 @@ describe('ArgumentParser', () => {
           required4: {
             type: 'function',
             names: ['req4'],
-            exec: () => {},
+            exec() {},
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -2653,7 +2653,7 @@ describe('ArgumentParser', () => {
         function: {
           type: 'function',
           names: ['-f'],
-          exec: async () => {
+          async exec() {
             throw 'function';
           },
         },
