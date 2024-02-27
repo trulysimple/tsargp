@@ -1594,7 +1594,7 @@ describe('ArgumentParser', () => {
           number: {
             type: 'number',
             names: ['-n'],
-            round: 'nearest',
+            round: 'near',
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -2579,7 +2579,7 @@ describe('ArgumentParser', () => {
           numbers: {
             type: 'numbers',
             names: ['-ns'],
-            round: 'nearest',
+            round: 'near',
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);

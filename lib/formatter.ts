@@ -565,11 +565,20 @@ class HelpFormatter {
    */
   private formatRound(option: Option, style: Style, result: TerminalString) {
     if ('round' in option && option.round) {
-      result.addSequence(style);
-      if (option.round === 'trunc') {
-        result.addText('Values', 'will', 'be', 'truncated.');
-      } else {
-        result.addText('Values', 'will', 'be', 'rounded', 'to', 'the', option.round, 'integer.');
+      result.addSequence(style).addText('Values', 'will', 'be');
+      switch (option.round) {
+        case 'trunc':
+          result.addText('truncated.');
+          break;
+        case 'floor':
+          result.addText('rounded', 'down.');
+          break;
+        case 'ceil':
+          result.addText('rounded', 'up.');
+          break;
+        case 'near':
+          result.addText('rounded', 'to', 'the', 'nearest', 'integer.');
+          break;
       }
     }
   }

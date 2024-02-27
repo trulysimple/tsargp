@@ -557,7 +557,7 @@ type WithNumber = (WithEnums<number> | WithRange) & {
   /**
    * The kind of rounding to apply.
    */
-  readonly round?: 'trunc' | 'floor' | 'ceil' | 'nearest';
+  readonly round?: 'trunc' | 'floor' | 'ceil' | 'near';
 };
 
 /**
@@ -1135,7 +1135,7 @@ class OptionRegistry {
       case 'floor':
         value = Math.floor(value);
         break;
-      case 'nearest':
+      case 'near':
         value = Math.round(value);
         break;
     }
