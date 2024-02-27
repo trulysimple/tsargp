@@ -38,15 +38,17 @@ as described below.
 
 This column contains the option's names separated by commas. The names are listed in the same order
 specified in the [names](options.mdx#names--preferred-name) attribute. Each option name reserves a
-"slot" in the corresponding index in this column. For example, if the list contains the names
-`'-f'{:ts}`, `'-ff'{:ts}`, `''{:ts}` and `'--flag'{:ts}`, the resulting entry might be formatted as:
+"slot" in the corresponding index in this column, and the length of a name slot will be the length
+of the largest name in that slot, among all options.
+
+For example, if an option's names are `'-f'{:ts}`, `'-ff'{:ts}`, `''{:ts}` and `'--flag'{:ts}`, the
+resulting entry might be formatted as:
 
 ```
 -f, -ff      --flag
 ```
 
 Note how the empty string produced whitespace between its neighbors, and the commas were suppressed.
-The length of each name slot will be the length of the largest name in that slot, among all options.
 
 ### Parameter column
 
@@ -82,24 +84,24 @@ columns). This value should _not_ be negative. It defaults to `2{:ts}`.
 #### Parameter indentation
 
 The `param` property specifies the level of indentation for the option parameter (in number of
-terminal columns). This value may be negative if [parameter absolute](#parameter-absolute) is false.
-It defaults to `2{:ts}`.
+terminal columns). This value may be negative if [parameter absolute](#parameter-absolute) is
+`false{:ts}`. It defaults to `2{:ts}`.
 
 #### Description indentation
 
 The `descr` property specifies the level of indentation for the option description (in number of
 terminal columns). This value may be negative if [description absolute](#description-absolute) is
-false. It defaults to `2{:ts}`.
+`false{:ts}`. It defaults to `2{:ts}`.
 
 #### Parameter absolute
 
-The `paramAbsolute` property, if true, indicates that the indentation level for the option parameter
-should be relative to the beginning of the line instead of the end of the option names. It defaults
-to `false{:ts}`.
+The `paramAbsolute` property, if `true{:ts}`, indicates that the indentation level for the option
+parameter should be relative to the beginning of the line instead of the end of the option names. It
+defaults to `false{:ts}`.
 
 #### Description absolute
 
-The `descrAbsolute` property, if true, indicates that the indentation level for the option
+The `descrAbsolute` property, if `true{:ts}`, indicates that the indentation level for the option
 description should be relative to the beginning of the line instead of the end of the option
 parameter. It defaults to `false{:ts}`.
 
@@ -130,18 +132,18 @@ has the following set of optional properties.
 
 #### Hidden names
 
-The `names` property, if true, indicates that the option names should not be displayed. It defaults
-to `false{:ts}`.
+The `names` property, if `true{:ts}`, indicates that the option names should not be displayed. It
+defaults to `false{:ts}`.
 
 #### Hidden parameter
 
-The `param` property, if true, indicates that the option parameter should not be displayed. It
-defaults to `false{:ts}`.
+The `param` property, if `true{:ts}`, indicates that the option parameter should not be displayed.
+It defaults to `false{:ts}`.
 
 #### Hidden description
 
-The `descr` property, if true, indicates that the option description should not be displayed. It
-defaults to `false{:ts}`.
+The `descr` property, if `true{:ts}`, indicates that the option description should not be displayed.
+It defaults to `false{:ts}`.
 
 ### Display styles
 
@@ -167,11 +169,11 @@ The first three of these properties may be overriden by the option's
 > terminal settings.
 
 > **NOTE:**
-> The styles are cumulative, i.e., they can add to previous styles depending on the kind of styling
-> attribute. For instance, if the style of option description is `tf.bold` and the style of number
-> value is `fg.yellow`, then any number value that appears in the option description (except those
-> embedded in [text attributes](#text-formatting)) is rendered in bold intensity with yellow
-> foreground color.
+> The styles are cumulative, i.e., they can be combined with previous styles depending on the kind
+> of styling attribute. For instance, if the style of option description is `tf.bold` and the style
+> of number values is `fg.yellow`, then any number value that appears in the option description
+> (except those embedded in [text attributes](#text-formatting)) is rendered in bold intensity with
+> yellow foreground color.
 
 ### Help items
 

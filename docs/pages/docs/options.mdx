@@ -4,10 +4,10 @@ title: Options - Docs
 
 # Options
 
-Any command-line interface is composed of commands and options (sometimes called _flags_). The
-options allow the calling application or user to configure the command that will run. **tsargp**
-offers a selection of option types that should suit most applications. In the next sections, we
-present the available types and describe them in detail.
+Any command-line interface is composed of commands and options (sometimes called _flags_). Options
+allow the calling application or user to configure the command that will run. **tsargp** offers a
+selection of option types that should suit most applications. In the next sections, we present the
+available types and describe them in detail.
 
 ## Option types
 
@@ -230,7 +230,7 @@ Mutually exclusive with [enumeration](#enumeration).
 
 The `round` attribute, if present, specifies the kind of rounding to apply to number parameters. Can
 be one of `'trunc'{:ts}` (truncate), `'floor'{:ts}` (round down), `'ceil'{:ts}` (round up) or
-`'nearest'{:ts}` (round to nearest integer). This normalization is applied _before_ checking value
+`'near'{:ts}` (round to nearest integer). This normalization is applied _before_ checking value
 constraints.
 
 ### Array attributes
@@ -239,7 +239,7 @@ Array-valued option types share a set of attributes, as described below.
 
 #### Separator
 
-The `separator` attribute, if present, specifies a delimiter to split parameter values. If
+The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
 specified, the option will accept a single parameter and not multiple parameters (we say that it is
 _delimited_, rather than being _variadic_). Can be a string or a regular expression. Mutually
 exclusive with [parse callback](#parse-callback) and [parse delimited](#parse-delimited).
@@ -280,16 +280,16 @@ an error to be thrown.
 
 These option types expect no parameter on the command-line. With the notable exception of the
 [flag option](#flag-option), they have no intrinsic value and therefore do not appear in the object
-resulting from argument parsing. However, they do have side-effects, as explained below.
+resulting from argument parsing. However, they do have side-effects, as explained next.
 
 ### Help option
 
-The **help** option is a convenient specialization of the [function](#function-option) option that
-handles the formatting of the help message. Internally, it performs the following actions:
+The **help** option is a convenient specialization of the [function option](#function-option) option
+that handles the formatting of the help message. Internally, it performs the following actions:
 
 1. instantiate a [formatter](formatter.mdx) class with the provided (or default) configuration
 2. get the formatted messages, one for each option group
-3. assemble them into a single message with group headings
+3. assemble them into a single message interspersed with group headings
 4. throw the resulting string
 
 The application should catch the string and print it on a terminal. This string contains control
@@ -356,7 +356,7 @@ returning from the callback. This is useful for creating commands, as explained 
 
 > BEWARE: If set, the requirements of all options specified before it on the command-line (including
 > itself) will be analyzed. Hence, you should make it clear in the help message that any required
-> option should be specified before the affected one.
+> option should be specified before it.
 
 ### Flag option
 

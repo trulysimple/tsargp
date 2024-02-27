@@ -111,23 +111,25 @@ definition whose values do not satisfy one of them will trigger an error. They a
 
 #### Enums constraint violation
 
-If the `enums` attribute is present, then default and example values must equal one of the
-enumerated values after being normalized. (The enumerated values themselves are not normalized.)
+If the [enums](options.mdx#enumeration) attribute is present, then default and example values must
+equal one of the enumerated values after being normalized. (The enumerated values themselves are not
+normalized.)
 
 #### Regex constraint violation
 
-In a string-valued option, if the `regex` attribute is present, then default and example values must
-match the regular expression after being normalized.
+In a string-valued option, if the [regex](options.mdx#regular-expression) attribute is present, then
+default and example values must match the regular expression after being normalized.
 
 #### Range constraint violation
 
-In a number-valued option, if the `range` attribute is present, then default and example values must be
-within this range after being normalized.
+In a number-valued option, if the [range](options.mdx#numeric-range) attribute is present, then
+default and example values must be within this range after being normalized.
 
 #### Limit constraint violation
 
-In an array-valued option, if the `limit` attribute is present, then default and example values must
-have a length that does not exceed the given limit after being normalized.
+In an array-valued option, if the [limit](options.mdx#count-limit) attribute is present, then
+default and example values must have a length that does not exceed the given limit after being
+normalized.
 
 ### Requirements validation
 
@@ -188,9 +190,9 @@ properties, as described below.
 
 ### Terminal width
 
-The `termWidth` property is the desired terminal width in which to print the help message (in number
-of columns). This value is passed directly to the constructor of the [formatter](formatter.mdx)
-class, when processing a help option.
+The `termWidth` property is the desired terminal width that is used to print the help message (in
+number of columns). This value is passed directly to the constructor of the
+[formatter](formatter.mdx) class, when processing a help option.
 
 ### Completion index
 
@@ -223,8 +225,8 @@ act accordingly.
 In the case of the default callback, since there is no previous value to worry about, its handling
 of promises is very simple: if the returned value is a promise, then it is chained with a callback
 that normalizes the value, and the new promise becomes the option value; otherwise, the returned
-value is normalized and set as the option value. This is also the case of single-valued option types,
-since these options do not need the previous value: it is simply replaced.
+value is normalized and set as the option value. This will also be the case of single-valued option
+types, since these options do not need the previous value: it simply gets replaced.
 
 Array-valued options, on the other hand, suffer from the fact that the parser always appends the
 values it parses. This happens because the parser does not know in advance how many parameters there
@@ -319,7 +321,7 @@ an empty string):
    - No words are returned, and the default bash completion (if enabled with `-o`) is attempted.
 
 During completion, help and version options are skipped, while others are processed as usual. This
-means that completion callbacks can inspect the values parsed before it, in order to make better
+means that a completion callback can inspect the values parsed before it, in order to make better
 suggestions based on those values.
 
 ## Miscellaneous
