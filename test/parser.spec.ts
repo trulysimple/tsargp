@@ -303,7 +303,8 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -f', { compIndex: 6 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -f=', { compIndex: 7 })).toThrow(/^$/);
-        expect(options.function.exec).toHaveBeenCalled();
+        const anything = expect.anything();
+        expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
       });
 
       it('should throw an error on function option specified with value', () => {
@@ -333,7 +334,8 @@ describe('ArgumentParser', () => {
         expect(parser.parse([])).not.toHaveProperty('function');
         expect(options.function.exec).not.toHaveBeenCalled();
         parser.parse(['-f']);
-        expect(options.function.exec).toHaveBeenCalled();
+        const anything = expect.anything();
+        expect(options.function.exec).toHaveBeenCalledWith(anything, false, anything);
       });
 
       it('should break the parsing loop when a function option explicitly asks so', () => {
@@ -488,8 +490,15 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        const anything = expect.anything();
         expect(() => parser.parse('cmd -b ', { compIndex: 7 })).toThrow(/^abc$/);
-        expect(options.boolean.complete).toHaveBeenCalled();
+        expect(options.boolean.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.boolean.complete.mockClear();
+        expect(() => parser.parse('cmd -b 123', { compIndex: 7 })).toThrow(/^abc$/);
+        expect(options.boolean.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.boolean.complete.mockClear();
+        expect(() => parser.parse('cmd -b 123', { compIndex: 9 })).toThrow(/^abc$/);
+        expect(options.boolean.complete).toHaveBeenCalledWith(anything, '12', anything);
       });
 
       it('should handle the completion of a boolean option with custom completion that throws', () => {
@@ -498,7 +507,7 @@ describe('ArgumentParser', () => {
             type: 'boolean',
             names: ['-b'],
             complete: vi.fn().mockImplementation(() => {
-              throw '';
+              throw 'abc';
             }),
           },
         } as const satisfies Options;
@@ -783,8 +792,15 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        const anything = expect.anything();
         expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^abc$/);
-        expect(options.string.complete).toHaveBeenCalled();
+        expect(options.string.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.string.complete.mockClear();
+        expect(() => parser.parse('cmd -s 123', { compIndex: 7 })).toThrow(/^abc$/);
+        expect(options.string.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.string.complete.mockClear();
+        expect(() => parser.parse('cmd -s 123', { compIndex: 9 })).toThrow(/^abc$/);
+        expect(options.string.complete).toHaveBeenCalledWith(anything, '12', anything);
       });
 
       it('should handle the completion of a string option with custom completion that throws', () => {
@@ -793,7 +809,7 @@ describe('ArgumentParser', () => {
             type: 'string',
             names: ['-s'],
             complete: vi.fn().mockImplementation(() => {
-              throw '';
+              throw 'abc';
             }),
           },
         } as const satisfies Options;
@@ -1171,8 +1187,15 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        const anything = expect.anything();
         expect(() => parser.parse('cmd -n ', { compIndex: 7 })).toThrow(/^abc$/);
-        expect(options.number.complete).toHaveBeenCalled();
+        expect(options.number.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.number.complete.mockClear();
+        expect(() => parser.parse('cmd -n 123', { compIndex: 7 })).toThrow(/^abc$/);
+        expect(options.number.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.number.complete.mockClear();
+        expect(() => parser.parse('cmd -n 123', { compIndex: 9 })).toThrow(/^abc$/);
+        expect(options.number.complete).toHaveBeenCalledWith(anything, '12', anything);
       });
 
       it('should handle the completion of a number option with custom completion that throws', () => {
@@ -1181,7 +1204,7 @@ describe('ArgumentParser', () => {
             type: 'number',
             names: ['-n'],
             complete: vi.fn().mockImplementation(() => {
-              throw '';
+              throw 'abc';
             }),
           },
         } as const satisfies Options;
@@ -1594,8 +1617,15 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        const anything = expect.anything();
         expect(() => parser.parse('cmd -ss ', { compIndex: 8 })).toThrow(/^abc$/);
-        expect(options.strings.complete).toHaveBeenCalled();
+        expect(options.strings.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.strings.complete.mockClear();
+        expect(() => parser.parse('cmd -ss 123', { compIndex: 8 })).toThrow(/^abc$/);
+        expect(options.strings.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.strings.complete.mockClear();
+        expect(() => parser.parse('cmd -ss 123', { compIndex: 10 })).toThrow(/^abc$/);
+        expect(options.strings.complete).toHaveBeenCalledWith(anything, '12', anything);
       });
 
       it('should handle the completion of a strings option with custom completion that throws', () => {
@@ -1604,7 +1634,7 @@ describe('ArgumentParser', () => {
             type: 'strings',
             names: ['-ss'],
             complete: vi.fn().mockImplementation(() => {
-              throw '';
+              throw 'abc';
             }),
           },
         } as const satisfies Options;
@@ -2070,8 +2100,15 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        const anything = expect.anything();
         expect(() => parser.parse('cmd -ns ', { compIndex: 8 })).toThrow(/^abc$/);
-        expect(options.numbers.complete).toHaveBeenCalled();
+        expect(options.numbers.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.numbers.complete.mockClear();
+        expect(() => parser.parse('cmd -ns 123', { compIndex: 8 })).toThrow(/^abc$/);
+        expect(options.numbers.complete).toHaveBeenCalledWith(anything, '', anything);
+        options.numbers.complete.mockClear();
+        expect(() => parser.parse('cmd -ns 123', { compIndex: 10 })).toThrow(/^abc$/);
+        expect(options.numbers.complete).toHaveBeenCalledWith(anything, '12', anything);
       });
 
       it('should handle the completion of a numbers option with custom completion that throws', () => {
@@ -2080,7 +2117,7 @@ describe('ArgumentParser', () => {
             type: 'numbers',
             names: ['-ns'],
             complete: vi.fn().mockImplementation(() => {
-              throw '';
+              throw 'abc';
             }),
           },
         } as const satisfies Options;

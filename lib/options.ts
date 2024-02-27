@@ -224,25 +224,26 @@ type DefaultCallback<T> = (values: OptionValues) => T | Promise<T>;
  * A callback for function options.
  * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
  * or to the type of your values class)
+ * @param comp True if performing completion (but not in the current iteration)
  * @param rest The remaining command-line arguments
- * @param completing True if performing completion (but not in the current iteration)
  */
 type ExecuteCallback = (
   values: OptionValues,
+  comp: boolean,
   rest: Array<string>,
-  completing: boolean,
 ) => void | Promise<void>;
 
 /**
  * A callback for option completion.
  * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
  * or to the type of your values class)
- * @param rest The remaining command-line arguments. The first element is the one triggering the
- * completion (it may be an empty string).
+ * @param comp The word being completed (it may be an empty string)
+ * @param rest The remaining command-line arguments
  * @returns The list of completion words
  */
 type CompleteCallback = (
   values: OptionValues,
+  comp: string,
   rest: Array<string>,
 ) => Array<string> | Promise<Array<string>>;
 

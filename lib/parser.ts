@@ -338,7 +338,7 @@ class ParserLoop {
       this.checkRequired();
     }
     try {
-      const result = option.exec(this.values, this.args.slice(index + 1), this.completing);
+      const result = option.exec(this.values, this.completing, this.args.slice(index + 1));
       if (typeof result === 'object') {
         this.promises.push(result);
       }
@@ -403,7 +403,7 @@ class ParserLoop {
   private handleComplete(complete: CompleteCallback, index: number, param: string = '') {
     let result;
     try {
-      result = complete(this.values, [param, ...this.args.slice(index + 1)]);
+      result = complete(this.values, param, this.args.slice(index + 1));
     } catch (err) {
       // do not propagate errors during completion
       console.error(err);
