@@ -4,25 +4,25 @@ title: Styles - Docs
 
 # Styles
 
-The `Style` type is a string literal forming a Select Graphic Rendition ([SGR]) sequence for
-customizing the display of text on a terminal.
+The `Style` type is a string literal consisting of a Select Graphic Rendition ([SGR]) sequence. It
+can be used to customize the display of text in a terminal.
 
 ## Styling attributes
 
-You can use the `style` function to create a style from a list of styling attributes. The result can
-be used in any part of the API that accepts the `Style` type, or it can be embedded directly in text
+The `style` function creates a style from a list of styling attributes. The result can be used in
+any part of the API that expects the `Style` type, or it can be embedded directly in text
 attributes, such as the [synopsis and deprecation reason](options.mdx#synopsis--deprecated) or the
 [usage and footer](options.mdx#usage--footer).
 
-In the next sections, we present the various styling attributes available.
+In the next sections we present the various styling attributes available.
 
 > **BEWARE:**
-> Not all of the attributes are available in every terminal, so you should experiment with them
+> Not all of the attributes are supported in every terminal, so you should experiment with them
 > before committing your code.
 
-### Type face
+### Type faces
 
-The `tf` type enumerates text type faces:
+The `tf` enumeration declares text type faces that can be combined together. Here is the full list:
 
 - `clear` - Reset or normal. Resets any other preceding SGR attribute
 - `bold` - Bold or increased intensity
@@ -72,7 +72,7 @@ The `tf` type enumerates text type faces:
 
 ### Predefined text colors
 
-The `fg` and `bg` types enumerate predefined foreground and background colors, respectively:
+The `fg` and `bg` enumerations declare predefined foreground and background colors, respectively:
 
 - `default` - the default color
 - standard colors:
@@ -94,7 +94,7 @@ The `fg` and `bg` types enumerate predefined foreground and background colors, r
   - `brightCyan` - bright cyan
   - `brightWhite` - bright white
 
-The `ul` type has a single value of `default` for the default underline color.
+The `ul` enumeration has a single value of `default` for the default underline color.
 
 ### Extended text colors
 

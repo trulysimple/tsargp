@@ -28,8 +28,8 @@ Here's a summary of the available types and some of their attributes:
 In the above table, _niladic_ means that the option expects no parameter on the command-line;
 _monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
 zero). The data type indicates the base type of the option value in the
-[result object](parser.mdx#option-values). The meaning of other attributes is explained in the next
-sections.
+[result object](parser.mdx#option-values). The meaning of the other attributes is explained in the
+next sections.
 
 ## Common attributes
 
@@ -46,7 +46,7 @@ described below.
 
 The `names` attribute lists the option names as they may appear on the command-line (e.g. `-h` or
 `--help`). Names must not contain whitespace or the equals sign `'='{:ts}` (since it may be used as
-option-value separator). Empty names or `null{:ts}`s can be specified in order to skip the
+option-value separator). Empty strings or `null{:ts}`s can be specified in order to skip the
 respective "slot" in the help message [names column](formatter.mdx#names-column), although there
 must be at least one _non-empty_ name.
 
@@ -105,19 +105,19 @@ corresponding value. If an expression, then it is evaluated as follows:
 
 #### External reference
 
-The `link` attribute is a URL for an external resource or media, that is included in the help
+The `link` attribute is the URL of an external resource or media, that is included in the help
 message if specified.
 
 ### Parameter attributes
 
-All option types that accept parameters share a set of attributes, which are described below.
+All non-niladic option types share a set of attributes, which are described below.
 
 #### Required
 
 The `required` attribute indicates that the option is _always_ required, independently of other
-options. Mutually exclusive with [default value](#default-value).
+options. Mutually exclusive with [default value](#default-value--callback).
 
-#### Default value
+#### Default value | callback
 
 The `default` attribute, if present, specifies the option's default value or a callback that returns
 the default value. This value is set as the option's value at the end of the parsing loop _if_ the
@@ -133,12 +133,14 @@ values. This callback accepts one parameter:
 #### Example value
 
 The `example` attribute, if present, specifies a value that replaces the option type in the help
-message "parameter" column. Mutually exclusive with [parameter name](#parameter-name).
+message [parameter column](formatter.mdx#parameter-column). Mutually exclusive with
+[parameter name](#parameter-name).
 
 #### Parameter name
 
-The `paramName` attribute, if present, replaces the option type in the help message "parameter"
-column. Mutually exclusive with [example value](#example-value).
+The `paramName` attribute, if present, replaces the option type in the help message
+[parameter column](formatter.mdx#parameter-column). Mutually exclusive with
+[example value](#example-value).
 
 > **NOTE**:
 > If it contains an opening angle bracket `'<'{:ts}`, it is printed as-is; otherwise it is enclosed
@@ -167,8 +169,8 @@ algorithm](parser.mdx#completion-algorithm) would for the option. It accepts two
 - `rest` - the remaining command-line arguments. The first element in this list is the one
   triggering the completion (it may be an empty string).
 
-It returns the list of completion words. This callback should not throw errors. If asynchronous,
-you should call [`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
+It should return the list of completion words and should not throw any error. If asynchronous, you
+should call [`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
 
 #### Parse callback
 
@@ -178,15 +180,15 @@ parameter. It accepts two parameters:
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
-It returns a single value. If asynchronous, then the data type of the option value in the resulting
-object will be enclosed in a promise. Mutually exclusive with [separator](#separator) and
+It should return a single value. If asynchronous, then the data type of the option value in the
+resulting object will be enclosed in a promise. Mutually exclusive with [separator](#separator) and
 [parse delimited](#parse-delimited).
 
 #### Enumeration
 
 The `enums` attribute, if present, specifies enumerated values that the option accepts as parameter.
 Any parameter that does not equal one of these values (after normalization) will cause an error to
-be thrown. Explicitly not available for the [boolean](#boolean-option) option. Mutually exclusive
+be thrown. Explicitly not available for the [boolean option](#boolean-option). Mutually exclusive
 with [regular expression](#regular-expression) and [numeric range](#numeric-range).
 
 ### String attributes
@@ -237,8 +239,8 @@ Array-valued option types share a set of attributes, as described below.
 
 The `separator` attribute, if present, specifies a delimiter to split parameter values. If
 specified, the option will accept a single parameter and not multiple parameters (we say that it is
-_delimited_, or _not variadic_). Can be a string or a regular expression. Mutually exclusive with
-[parse callback](#parse-callback) and [parse delimited](#parse-delimited).
+_delimited_, rather than being _variadic_). Can be a string or a regular expression. Mutually
+exclusive with [parse callback](#parse-callback) and [parse delimited](#parse-delimited).
 
 #### Parse delimited
 
@@ -250,8 +252,8 @@ option parameter. It accepts two parameters:
 
 Unlike the [parse callback](#parse-callback) that returns a single value, this callback returns an
 array. If specified, the option will accept a single parameter and not multiple parameters (we say
-that it is _delimited_, or _not variadic_). If asynchronous, then the data type of the option value
-in the resulting object will be enclosed in a promise. Mutually exclusive with
+that it is _delimited_, rather than being _variadic_). If asynchronous, then the data type of the
+option value in the resulting object will be enclosed in a promise. Mutually exclusive with
 [separator](#separator) and [parse callback](#parse-callback).
 
 #### Remove duplicates
@@ -261,9 +263,9 @@ normalization is applied _before_ checking the [count limit](#count-limit) const
 
 #### Append values
 
-The `append` attribute, if present, indicates that the option allows appending elements if
-specified multiple times on the command-line. Both the [unique](#unique) normalization and
-the [count limit](#count-limit) constraint (if enabled) are applied after appending.
+The `append` attribute, if present, indicates that the option allows appending elements to its
+value if specified multiple times on the command-line. Both the [unique](#unique) normalization and
+the [count limit](#count-limit) constraint (if enabled) are applied after appendage.
 
 #### Count limit
 
@@ -273,8 +275,9 @@ an error to be thrown.
 
 ## Niladic options
 
-These option types have no intrinsic value, hence they do not appear in the object resulting from
-argument parsing. However, they do have side-effects, as explained below.
+These option types expect no parameter on the command-line and (with the notable exception of the
+[flag option](#flag-option)) have no intrinsic value. Hence, they do not appear in the object
+resulting from argument parsing. However, they do have side-effects, as explained below.
 
 ### Help option
 
@@ -339,7 +342,7 @@ The `exec` attribute is the callback function that should be executed. It accept
 - `rest` - the remaining command-line arguments
 - `completing` - `true{:ts}` if performing completion (but not in the current iteration)
 
-It returns no value. It can be asynchronous, in which case you should call
+It should return no value (void). It can be asynchronous, in which case you should call
 [`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
 
 #### Break
@@ -356,8 +359,8 @@ returning from the callback. This is useful for creating commands, as explained 
 
 The **flag** option is special in the sense that it is both niladic and has a value (boolean). The
 way it differs from the [boolean option](#boolean-option) is that it does not expect a parameter,
-although it may have the [required](#required) or the [default value](#default-value) attribute for
-a `boolean{:ts}` data type. In addition, it has the following attribute.
+although it may have the [required](#required) or the [default value](#default-value--callback)
+attribute for a `boolean{:ts}` data type. In addition, it has the following attribute.
 
 > **NOTE**:
 > We could have reused the boolean option for this purpose and make the parameter optional, but it

@@ -53,7 +53,7 @@ This method returns a promise that can be awaited in order to resolve async
 ## Option validation
 
 The term _validation_ here means verifying the sanity of an option's definition. It is intended for
-development and for testing, _not_ for use in production, where it would unnecessarily impose a
+development and testing, _not_ for use in production, where it would unnecessarily impose a
 performance penalty on your application. The validations behave like assertions: they assert that
 your options will work as expected when delivered to end users.
 
@@ -91,12 +91,12 @@ one of them will trigger an error. They are listed below.
 
 #### Zero enum values
 
-There may not be an option with zero enumerated values. The enumeration array should have non-zero
+There may not be an option with zero enumerated values. The enumeration array should have _non-zero_
 length.
 
 #### Duplicate enum value
 
-There may not be an option with duplicate enumerated values. The enumeration array should not
+There may not be an option with duplicate enumerated values. The enumeration array _should not_
 contain duplicate elements.
 
 ### Value validation
@@ -104,6 +104,10 @@ contain duplicate elements.
 Non-niladic options may define a default value and an example value. If present, these attributes
 are subject to the same set of constraints as that of the command-line arguments, and any option
 definition whose values do not satisfy one of them will trigger an error. They are listed below.
+
+> **NOTE:**
+> This does not apply to [default callbacks](options.mdx#default-value--callback) (they are ignored
+> during validation).
 
 #### Enums constraint violation
 
@@ -133,21 +137,21 @@ They are listed below.
 
 #### Option requiring itself
 
-An option must not declare a requirement/expression that includes its own option key.
+An option must _not_ declare a requirement/expression that includes its own option key.
 
 #### Unknown required option
 
-An option must not declare a requirement/expression that includes an unknown option key.
+An option must _not_ declare a requirement/expression that includes an unknown option key.
 
 #### Niladic option required with a value
 
-An option must not declare a requirement/expression that includes an option key referencing a
+An option must _not_ declare a requirement/expression that includes an option key referencing a
 niladic option, _if_ it includes a required value that is neither `undefined{:ts}` nor `null{:ts}`.
 
 #### Incompatible required value data type
 
 Since a requirement may be an object with values of any kind, the data type of these values must be
-validated at run-time. An option must not declare a requirement/expression that includes an option
+validated at run-time. An option must _not_ declare a requirement/expression that includes an option
 key referencing a non-niladic option, _if_ it includes a required value that does not conform to the
 data type expected by that option.
 
@@ -165,17 +169,17 @@ They are listed below.
 
 #### Duplicate positional option
 
-Since positional arguments are unnamed, they must pertain to exactly one option. Hence, there cannot
-be two options with the positional attribute in the same set of option definitions.
+Since positional arguments are unnamed, they must pertain to exactly one option. Hence, there
+_cannot_ be two options with the positional attribute in the same set of option definitions.
 
 #### Empty positional marker
 
-If an option is declared with a positional marker, this marker cannot be the empty string.
+If an option is declared with a positional marker, this marker _cannot_ be the empty string.
 
 ### Version validation
 
-Version options are very simple and have only one restraint: they must not contain an empty version
-string (if the attribute is specified); otherwise it will trigger an error.
+Version options are very simple and have only one restraint: they must _not_ contain an empty
+version string (if the attribute is specified); otherwise it will trigger an error.
 
 ## Parse configuration
 
@@ -197,43 +201,48 @@ parsing the argument that overlaps this position in the string.
 ## Asynchronous parsing
 
 To understand how the parser supports asynchronous operations, we need to review the kinds of
-callbacks that an option definition may declare. There are five of them:
+callbacks that an option definition may declare. There are six of them:
 
+- [default callback](options.mdx#default-value--callback)
 - [parse callback](options.mdx#parse-callback)
 - [parse delimited](options.mdx#parse-delimited)
 - [resolve callback](options.mdx#resolve-callback)
 - [execute callback](options.mdx#execute-callback)
 - [complete callback](options.mdx#complete-callback)
 
-They can be classified into "parsing" callbacks and "executing" callbacks, and are further explained
-below.
+They can be categorized as either "parsing" callbacks or "executing" callbacks, and are further
+explained below.
 
 ### Parsing callbacks
 
-Both the parse and parse delimited callbacks can return promises. They may even return different
+The default, parse and parse delimited callbacks can return promises. They may even return different
 data types from one invocation to the next (e.g., a promise and a non-promise). To support these use
 cases, the library checks the return type of each invocation to know if it is a promise or not, and
 act accordingly.
 
-There are four possible combinations of previous value and invocation result:
+In the case of the default callback, since there is no previous value to worry about, its handling
+of promises is very simple: if the returned value is a promise, then it is chained with a callback
+that normalizes the value, and the new promise becomes the option value; otherwise, the returned
+value is normalized and set as the option value. This is also the case of single-valued option types,
+since these options do not need the previous value: it is simply replaced.
+
+Array-valued options, on the other hand, suffer from the fact that the parser always appends the
+values it parses. This happens because it cannot know in advance how many parameters there will be
+(although it ensures that the option value is reset to an empty array when it encounters the option
+name if the [append](options.mdx#append-values) attribute is not set). In this case, there are four
+possible combinations of previous value and invocation result:
 
 1. non-promise and non-promise
 2. non-promise and promise
 3. promise and promise
 4. promise and non-promise
 
-These cases are handled differently for single-valued and array-valued option types. Since
-single-valued options do not need the previous value (it is simply replaced), their handling is very
-simple: if the returned value is a promise, then it is chained with a callback that normalizes the
-value, and the new promise becomes the option value; otherwise, the returned value is set as the
-option value.
-
-For array-valued options, they are handled in this manner:
+They are handled in following manner:
 
 - The first case is handled by simply appending the normalized elements to the previous value, since
   it is a synchronous operation.
 - The second and third cases are handled by chaining the returned promise with an async callback
-  that appends the normalized elements to the previous value (which may also be a promise).
+  that appends the normalized elements to the (awaited) previous value.
 - The fourth case is handled by chaining the existing promise with a callback that appends the
   normalized elements to the previous value.
 
@@ -242,32 +251,26 @@ turning back to a non-promise.
 
 > **NOTE**:
 > A special case occurs when a variadic array option is specified on the command-line without
-> parameters. In this case, the parser must initialize the option value to an empty array. This
-> means that, even if an option declares an async parsing > callback in its definition, the parser
-> might exit the parsing loop before calling the callback and therefore the option value will remain
-> an empty array (non-promise). If using TypeScript this will be evident when trying to await the
-> option value.
+> parameters. In that case, the parser must initialize the option value to an empty array. This
+> means that, even if an option declares an async parsing callback in its definition, the parser
+> might exit the loop before calling the callback, thus leaving the value as an empty array
+> (non-promise). TypeScript would make this evident when trying to await the option value.
 
-In all of these cases, there's no need to await the result of the `parseAsync` or `parseInto`
-methods, since the callback promises are _inside_ the object resulting from argument parsing. You
-must then await each value in this object that is a promise, in order to obtain the value.
+None of these cases make it necessary to call `parseAsync` or await the return of `parseInto`, since
+the callback promises are _inside_ the resulting object. But you must await each value in this
+object that is a promise, in order to obtain the value.
 
 ### Executing callbacks
 
 The resolve, execute and complete callbacks are the ones that may cause the parser to accumulate
-promises that will be returned by the `parseAsync` or `parseInto` methods, which can then be awaited
-in order to await their resolution.
+promises that will be returned by the `parseAsync` or `parseInto` methods, which then need to be
+awaited in order to await their resolution.
 
 In the case of the resolve and complete callbacks, once awaited, the promise throws a string that
 should be caught and printed on a terminal. They are the version or the completion words,
-respectively. In the case of the execute callback, once awaited, the result will be the option
-values.
+respectively.
 
-> **TIP**:
-> In both cases you can call the `parseAsync` method, which, like the `parse` method, is just
-> syntactic sugar for creating a bare result object into which the values will be parsed. But
-> unlike its sibling, `parseAsync` returns a promise, so you must await it in order to obtain the
-> option values.
+In the case of the execute callback, once awaited, the result will be the option values.
 
 ## Bash completion
 
@@ -310,8 +313,9 @@ an empty string):
      prefix _arg_, and then returned; else
    - If the option has enumerated values, those values are converted to string, filtered by the
      prefix _arg_, and then returned; else
-   - If it is a variadic array option, and was not specified with a positional marker, the available
-     option names are filtered by the prefix _arg_ and returned; else
+   - If it is a variadic array option, and the parameter was specified neither with a positional
+     marker nor as an [inline value](#inline-values), the available option names are filtered by the
+     prefix _arg_ and returned; else
    - No words are returned, and the default bash completion (if enabled with `-o`) is attempted.
 
 During completion, help and version options are skipped, but others are processed as usual. This
@@ -327,16 +331,16 @@ During parsing, there are two situations where the parser may suggest option nam
 - when it expects an option name and the current argument is not a valid name (and there is no
   positional option)
 - when it expects an option parameter and the current argument fails to be parsed, and the affected
-  option is a variadic array option (but only if it was specified neither with a positional marker
-  nor with an [inline value](#inline-values))
+  option is a variadic array option (but only if the argument was specified neither with a
+  positional marker nor as an [inline value](#inline-values))
 
 In these cases, the parser selects option names that are similar to the current argument using the
 [Gestalt algorithm].
 
 ### Error styles
 
-Both validation and parsing methods may throw errors, and the error messages can be styled. The
-styles can be configured with an additional parameter to the parser constructor, which contains the
+The validation and parsing methods may throw errors, and the error messages can be styled. Styles
+can be configured with an additional parameter to the parser constructor, which contains the
 following optional properties:
 
 - `boolean` - the style of boolean values (defaults to `fg.yellow`)
@@ -346,6 +350,10 @@ following optional properties:
 - `option` - the style of option names (defaults to `fg.magenta`)
 - `url` - the style of URLs (defaults to `fg.brightBlack`)
 - `text` - The style of general text (defaults to `tf.clear`)
+
+These styles are _not_ used in the help option's [format](options.mdx#format--heading-style)
+attribute. They may have the same values, but you should configure both if you want to customize
+both error messages and help messages.
 
 ### Inline values
 

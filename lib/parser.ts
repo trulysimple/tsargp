@@ -126,7 +126,7 @@ class ArgumentParser<T extends Options> {
    * @param values The options' values to parse into
    * @param command The raw command line or command-line arguments
    * @param config The parse configuration
-   * @returns A promise that can be awaited in order to await any async callback.
+   * @returns A promise that can be awaited in order to resolve async callbacks.
    */
   parseInto(
     values: OptionValues<T>,

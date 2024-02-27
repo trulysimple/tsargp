@@ -37,10 +37,9 @@ information, as described below.
 ### Names column
 
 This column contains the option's names separated by commas. The names are listed in the same order
-as was specified in the [names](options.mdx#names--preferred-name) attribute. Each option name
-reserves a "slot" in the corresponding index in this column. For example, if the list contains the
-names `'-f'{:ts}`, `'-ff'{:ts}`, `''{:ts}` and `'--flag'{:ts}`, the resulting entry might be
-formatted as:
+specified in the [names](options.mdx#names--preferred-name) attribute. Each option name reserves a
+"slot" in the corresponding index in this column. For example, if the list contains the names
+`'-f'{:ts}`, `'-ff'{:ts}`, `''{:ts}` and `'--flag'{:ts}`, the resulting entry might be formatted as:
 
 ```
 -f, -ff      --flag
@@ -51,7 +50,7 @@ The length of each name slot will be the length of the largest name in that slot
 
 ### Parameter column
 
-This column contains either of:
+This column contains either:
 
 - the option example value, if present
 - the option parameter name, if present
@@ -61,14 +60,14 @@ This column contains either of:
 
 The last column contains the option description. It is composed of [help items](#help-items) and is
 wrapped to the desired terminal width, respecting the [indentation level](#description-indentation)
-setting. If the width does not accommodate an entry's description column while respecting the
-indentation level, it is instead wrapped relative to the beginning of each line.
+setting. If the width does not accommodate an entry's description column while respecting its
+indentation level, the text is instead wrapped relative to the beginning of each line.
 
 ## Help format
 
 In addition to option definitions, the formatter constructor accepts a `FormatConfig` object that
-can be used to customize the message format. This configuration will apply to all the help entries.
-It contains a set of optional properties, as described below.
+can be used to customize the message format. This configuration will apply to all help entries. It
+contains a set of optional properties, as described below.
 
 ### Indentation level
 
@@ -160,8 +159,8 @@ help message. It has the following optional properties:
 - `url` - the style of URLs (defaults to `fg.brightBlack`)
 - `text` - The style of general text (defaults to `tf.clear`)
 
-The first three of these properties may be overriden by the [option's styles](options.mdx#styles)
-attribute, if present.
+The first three of these properties may be overriden by the
+[option's styles](options.mdx#display-styles) attribute, if present.
 
 > **TIP:**
 > Whitespace around help entries is not styled. For that purpose, you may need to tweak your
@@ -176,8 +175,9 @@ attribute, if present.
 
 ### Help items
 
-The `items` property specifies the kind of items that should be displayed in the option description,
-and in what order. It is an array whose values can be one of the following.
+The `items` property specifies the kinds of items that should be displayed in the option
+description, and in what order. It is an array whose values can be one of the following (from the
+`HelpItem` enumeration):
 
 - `desc` - the option synopsis
 - `negation` - the negation names of a flag option, if any
