@@ -67,12 +67,12 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     },
   },
   /**
-   * A command option that prints the arguments passed after it.
+   * A command option that logs the arguments passed after it.
    */
   command: {
     type: 'command',
     names: ['hello'],
-    desc: 'A command option. Prints the arguments passed after it',
+    desc: 'A command option. Logs the arguments passed after it',
     options: helloOpts,
     cmd(_, cmdValues) {
       const values = cmdValues as OptionValues<typeof helloOpts>;

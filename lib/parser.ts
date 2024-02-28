@@ -152,6 +152,7 @@ class ArgumentParser<T extends Options> {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
+  private readonly formatOption: OptionRegistry['formatOption'];
   private readonly formatBoolean: OptionRegistry['formatBoolean'];
   private readonly formatString: OptionRegistry['formatString'];
   private readonly formatNumber: OptionRegistry['formatNumber'];
@@ -183,6 +184,7 @@ class ParserLoop {
         (values as Record<string, undefined>)[key] = undefined;
       }
     }
+    this.formatOption = registry.formatOption.bind(registry);
     this.formatBoolean = registry.formatBoolean.bind(registry);
     this.formatString = registry.formatString.bind(registry);
     this.formatNumber = registry.formatNumber.bind(registry);
@@ -210,8 +212,7 @@ class ParserLoop {
         value = arg;
         [addKey, inline] = [false, false];
       } else {
-        const result = this.parseOption(arg, i, comp, current);
-        [addKey, marker, inline, current, value] = result;
+        [addKey, marker, inline, current, value] = this.parseOption(arg, comp, current);
         if (addKey) {
           this.specifiedKeys.add(current.key);
         }
@@ -223,7 +224,7 @@ class ParserLoop {
           throw ''; // use default completion (value !== undefined)
         } else if (!this.completing && value !== undefined) {
           throw this.registry.error(
-            `Option ${this.registry.formatOption(name)} does not accept inline values.`,
+            `Option ${this.formatOption(name)} does not accept inline values.`,
           );
         } else if (this.handleNiladic(key, option, name, i)) {
           return this.promises;
@@ -249,7 +250,7 @@ class ParserLoop {
             if (!this.completing) {
               if (!inline && !marker && isArray(option) && isVariadic(option)) {
                 const error = err as Error;
-                error.message += `\nDid you mean to specify an option name instead of ${this.registry.formatOption(value)}?`;
+                error.message += `\nDid you mean to specify an option name instead of ${this.formatOption(value)}?`;
                 this.handleUnknown(value, error);
               }
               throw err;
@@ -259,11 +260,11 @@ class ParserLoop {
             singleParam = false;
             current = undefined;
           }
-        } else if (marker || (isArray(option) && isVariadic(option))) {
+        } else if (isArray(option) && isVariadic(option)) {
           continue;
         } else if (i + 1 == this.args.length) {
-          throw this.registry.error(`Missing parameter to ${this.registry.formatOption(name)}.`);
-        } else {
+          throw this.registry.error(`Missing parameter to ${this.formatOption(name)}.`);
+        } else if (!marker) {
           singleParam = true;
         }
       }
@@ -283,7 +284,6 @@ class ParserLoop {
    */
   private parseOption(
     arg: string,
-    index: number,
     comp?: string,
     current?: Positional,
   ): [boolean, boolean, boolean, Positional, string | undefined] {
@@ -299,16 +299,7 @@ class ParserLoop {
         }
         if (value !== undefined) {
           throw this.registry.error(
-            `Positional marker ${this.registry.formatOption(name)} does not accept inline values.`,
-          );
-        }
-        if (
-          index + 1 == this.args.length &&
-          (!isArray(this.registry.positional.option) ||
-            !isVariadic(this.registry.positional.option))
-        ) {
-          throw this.registry.error(
-            `Missing parameter after positional marker ${this.registry.formatOption(name)}.`,
+            `Positional marker ${this.formatOption(name)} does not accept inline values.`,
           );
         }
         return [true, true, false, this.registry.positional, undefined];
@@ -494,11 +485,11 @@ class ParserLoop {
    */
   private handleUnknown(name: string, error?: Error): never {
     if (!error) {
-      error = this.registry.error(`Unknown option ${this.registry.formatOption(name)}.`);
+      error = this.registry.error(`Unknown option ${this.formatOption(name)}.`);
     }
     const similar = this.findSimilarNames(name);
     if (similar.length) {
-      const optNames = similar.map((str) => this.registry.formatOption(str));
+      const optNames = similar.map((str) => this.formatOption(str));
       error.message += `\nSimilar names are: ${optNames.join(', ')}.`;
     }
     throw error;
@@ -622,7 +613,7 @@ class ParserLoop {
       if (!this.specifiedKeys.has(key)) {
         const option = this.registry.options[key];
         const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
-        throw this.registry.error(`Option ${this.registry.formatOption(name)} is required.`);
+        throw this.registry.error(`Option ${this.formatOption(name)} is required.`);
       }
     }
     for (const key of this.specifiedKeys) {
@@ -631,9 +622,7 @@ class ParserLoop {
         const error = this.checkRequires(option.requires);
         if (error) {
           const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
-          throw this.registry.error(
-            `Option ${this.registry.formatOption(name)} requires ${error}.`,
-          );
+          throw this.registry.error(`Option ${this.formatOption(name)} requires ${error}.`);
         }
       }
     }
@@ -680,10 +669,10 @@ class ParserLoop {
     if (isNiladic(option) || !specified || !required || !withValue) {
       return specified
         ? required == negate
-          ? `no ${this.registry.formatOption(name)}`
+          ? `no ${this.formatOption(name)}`
           : null
         : withValue || required != negate
-          ? this.registry.formatOption(name)
+          ? this.formatOption(name)
           : null;
     }
     return this.checkRequiredValue(name, option, negate, key, value);
@@ -794,7 +783,7 @@ class ParserLoop {
     if ((actual === expected) !== negate) {
       return null;
     }
-    const optName = this.registry.formatOption(name);
+    const optName = this.formatOption(name);
     return negate ? `${optName} != ${formatFn(expected)}` : `${optName} = ${formatFn(expected)}`;
   }
 
@@ -826,7 +815,7 @@ class ParserLoop {
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return null;
     }
-    const optName = this.registry.formatOption(name);
+    const optName = this.formatOption(name);
     const optVal = expected.map((val) => formatFn(val)).join(', ');
     return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
   }

@@ -949,7 +949,7 @@ class OptionRegistry {
       if (option.requires) {
         this.validateRequirements(key, option.requires);
       }
-      if (option.type === 'version' && typeof option.version === 'string' && !option.version) {
+      if (option.type === 'version' && option.version === '') {
         throw this.error(`Option ${this.formatOption(key)} contains contains empty version.`);
       }
     }
