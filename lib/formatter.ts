@@ -18,7 +18,7 @@ import type { Style } from './styles';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { fg, move, mv, style, TerminalString, tf } from './styles';
 
-export { HelpFormatter, HelpItem, type FormatConfig };
+export { HelpFormatter, DescItem, type FormatConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -98,19 +98,19 @@ type FormatConfig = {
 
   /**
    * The order of items to be shown in the option description.
-   * @see HelpItem
+   * @see DescItem
    */
-  readonly items?: ReadonlyArray<HelpItem>;
+  readonly items?: ReadonlyArray<DescItem>;
 
   /**
    * The phrases to be used for each kind of help item.
    *
    * If an item has a value, the `%s` specifier can be used to indicate where in the phrase to place
-   * the value. If an item has multiple alternatives, such as {@link HelpItem.case}, different texts
+   * the value. If an item has multiple alternatives, such as {@link DescItem.case}, different texts
    * can separated with `|` and grouped in parentheses, like this:
    * `'Values will be converted to (lowercase|uppercase)'`.
    */
-  readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
+  readonly phrases?: Readonly<Partial<Record<DescItem, string>>>;
 };
 
 /**
@@ -133,7 +133,7 @@ type HelpEntry = {
 /**
  * The kind of items that can be shown in the option description.
  */
-const enum HelpItem {
+const enum DescItem {
   /**
    * The option synopsis.
    */
@@ -246,47 +246,47 @@ const defaultConfig: ConcreteFormat = {
     text: style(tf.clear),
   },
   items: [
-    HelpItem.synopsis,
-    HelpItem.negation,
-    HelpItem.separator,
-    HelpItem.variadic,
-    HelpItem.positional,
-    HelpItem.append,
-    HelpItem.trim,
-    HelpItem.case,
-    HelpItem.round,
-    HelpItem.enums,
-    HelpItem.regex,
-    HelpItem.range,
-    HelpItem.unique,
-    HelpItem.limit,
-    HelpItem.requires,
-    HelpItem.required,
-    HelpItem.default,
-    HelpItem.deprecated,
-    HelpItem.link,
+    DescItem.synopsis,
+    DescItem.negation,
+    DescItem.separator,
+    DescItem.variadic,
+    DescItem.positional,
+    DescItem.append,
+    DescItem.trim,
+    DescItem.case,
+    DescItem.round,
+    DescItem.enums,
+    DescItem.regex,
+    DescItem.range,
+    DescItem.unique,
+    DescItem.limit,
+    DescItem.requires,
+    DescItem.required,
+    DescItem.default,
+    DescItem.deprecated,
+    DescItem.link,
   ],
   phrases: {
-    [HelpItem.synopsis]: '%s',
-    [HelpItem.negation]: 'Can be negated with %s',
-    [HelpItem.separator]: 'Values are delimited by %s',
-    [HelpItem.variadic]: 'Accepts multiple parameters',
-    [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %s)',
-    [HelpItem.append]: 'May be specified multiple times',
-    [HelpItem.trim]: 'Values will be trimmed',
-    [HelpItem.case]: 'Values will be converted to (lowercase|uppercase)',
-    [HelpItem.round]:
+    [DescItem.synopsis]: '%s',
+    [DescItem.negation]: 'Can be negated with %s',
+    [DescItem.separator]: 'Values are delimited by %s',
+    [DescItem.variadic]: 'Accepts multiple parameters',
+    [DescItem.positional]: 'Accepts positional parameters(| that may be preceded by %s)',
+    [DescItem.append]: 'May be specified multiple times',
+    [DescItem.trim]: 'Values will be trimmed',
+    [DescItem.case]: 'Values will be converted to (lowercase|uppercase)',
+    [DescItem.round]:
       'Values will be (truncated|rounded down|rounded up|rounded to the nearest integer)',
-    [HelpItem.enums]: 'Values must be one of %s',
-    [HelpItem.regex]: 'Values must match the regex %s',
-    [HelpItem.range]: 'Values must be in the range %s',
-    [HelpItem.unique]: 'Duplicate values will be removed',
-    [HelpItem.limit]: 'Value count is limited to %s',
-    [HelpItem.requires]: 'Requires %s',
-    [HelpItem.required]: 'Always required',
-    [HelpItem.default]: 'Defaults to %s',
-    [HelpItem.deprecated]: 'Deprecated for %s',
-    [HelpItem.link]: 'Refer to %s for details',
+    [DescItem.enums]: 'Values must be one of %s',
+    [DescItem.regex]: 'Values must match the regex %s',
+    [DescItem.range]: 'Values must be in the range %s',
+    [DescItem.unique]: 'Duplicate values will be removed',
+    [DescItem.limit]: 'Value count is limited to %s',
+    [DescItem.requires]: 'Requires %s',
+    [DescItem.required]: 'Always required',
+    [DescItem.default]: 'Defaults to %s',
+    [DescItem.deprecated]: 'Deprecated for %s',
+    [DescItem.link]: 'Refer to %s for details',
   },
 };
 
@@ -305,7 +305,7 @@ class HelpFormatter {
   private readonly descrStart: number;
 
   /**
-   * Keep this in-sync with {@link HelpItem}.
+   * Keep this in-sync with {@link DescItem}.
    */
   private readonly format: Array<typeof this.formatSynopsis> = [
     this.formatSynopsis.bind(this),
@@ -390,7 +390,7 @@ class HelpFormatter {
    */
   private formatNames(option: Option): TerminalString {
     const result = new TerminalString();
-    if (this.config.hidden?.names) {
+    if (this.config.hidden.names || !option.names) {
       return result;
     }
     const style = option.styles?.names ?? this.config.styles.names;
@@ -404,7 +404,11 @@ class HelpFormatter {
    * @param style The names style
    * @param result The resulting string
    */
-  private formatNameSlots(names: Option['names'], style: Style, result: TerminalString) {
+  private formatNameSlots(
+    names: ReadonlyArray<string | null>,
+    style: Style,
+    result: TerminalString,
+  ) {
     const textStyle = this.config.styles.text;
     let prev = false;
     let prefix = 0;
@@ -425,7 +429,7 @@ class HelpFormatter {
       }
       prefix = width - (name?.length ?? 0) + 1;
     }
-    names?.forEach((name, i) => formatName(name, this.nameWidths[i]));
+    names.forEach((name, i) => formatName(name, this.nameWidths[i]));
   }
 
   /**
@@ -435,7 +439,7 @@ class HelpFormatter {
    */
   private formatParam(option: Option): TerminalString {
     const result = new TerminalString();
-    if (this.config.hidden?.param || isNiladic(option)) {
+    if (this.config.hidden.param || isNiladic(option)) {
       return result;
     }
     const textStyle = this.config.styles.text;
@@ -461,7 +465,7 @@ class HelpFormatter {
    */
   private formatDescription(option: Option): TerminalString {
     const result = new TerminalString();
-    if (this.config.hidden?.descr || !this.config.items.length) {
+    if (this.config.hidden.descr || !this.config.items.length) {
       return result;
     }
     const style = option.styles?.descr ?? this.config.styles.descr;
@@ -628,12 +632,12 @@ class HelpFormatter {
    */
   private formatEnums(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('enums' in option && option.enums) {
-      type FormatFn = (value: string | number, style: Style, result: TerminalString) => void;
       const enums = option.enums;
       const formatFn =
         option.type === 'string' || option.type === 'strings'
           ? this.formatString.bind(this)
           : this.formatNumber.bind(this);
+      type FormatFn = (value: string | number, style: Style, result: TerminalString) => void;
       result.splitText(phrase, () => {
         this.formatArray2(enums, style, result, formatFn as FormatFn, ['{', '}'], ',');
       });
@@ -1149,8 +1153,8 @@ function getNameWidths(options: Options): Array<number> {
   const result = new Array<number>();
   for (const key in options) {
     const option = options[key];
-    if (!option.hide) {
-      option.names?.forEach((name, i) => {
+    if (!option.hide && option.names) {
+      option.names.forEach((name, i) => {
         if (i == result.length) {
           result.push(name?.length ?? 0);
         } else if (name && name.length > result[i]) {
