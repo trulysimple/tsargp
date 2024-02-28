@@ -20,6 +20,7 @@ import type {
   ResolveCallback,
   CommandOption,
   ConcreteStyles,
+  CastToOptionValues,
 } from './options';
 
 import { HelpFormatter } from './formatter';
@@ -31,7 +32,6 @@ import {
   isArray,
   isVariadic,
   isNiladic,
-  isValued,
 } from './options';
 import { style, tf, fg } from './styles';
 
@@ -161,20 +161,21 @@ class ParserLoop {
   /**
    * Creates a parser loop.
    * @param registry The option registry
-   * @param values The option's values
+   * @param values The option values
    * @param args The command-line arguments
    * @param completing True if performing completion
    * @param width The desired terminal width
    */
   constructor(
     private readonly registry: OptionRegistry,
-    private readonly values: OptionValues,
+    private readonly values: CastToOptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
     private readonly width?: number,
   ) {
     for (const key in registry.options) {
-      if (isValued(registry.options[key]) && !(key in values)) {
+      const option = registry.options[key];
+      if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
         (values as Record<string, undefined>)[key] = undefined;
       }
     }
@@ -337,9 +338,9 @@ class ParserLoop {
         (this.values as Record<string, boolean>)[key] = !option.negationNames?.includes(name);
         return false;
       case 'function':
-        return this.handleFunction(option, index);
+        return this.handleFunction(key, option, index);
       case 'command':
-        return this.handleCommand(option, index);
+        return this.handleCommand(key, option, index);
       default:
         return this.handleSpecial(option);
     }
@@ -347,11 +348,12 @@ class ParserLoop {
 
   /**
    * Handles a function option.
+   * @param key The option key
    * @param option The option definition
    * @param index The current argument index
    * @returns True if the parsing loop should be broken
    */
-  private handleFunction(option: FunctionOption, index: number): boolean {
+  private handleFunction(key: string, option: FunctionOption, index: number): boolean {
     if (option.break && !this.completing) {
       this.checkRequired();
     }
@@ -366,20 +368,22 @@ class ParserLoop {
         throw err;
       }
     }
+    (this.values as Record<string, true>)[key] = true;
     return option.break === true;
   }
 
   /**
    * Handles a command option.
+   * @param key The option key
    * @param option The option definition
    * @param index The current argument index
    * @returns True if the parsing loop should be broken
    */
-  private handleCommand(option: CommandOption, index: number): boolean {
+  private handleCommand(key: string, option: CommandOption, index: number): boolean {
     if (!this.completing) {
       this.checkRequired();
     }
-    const values: OptionValues = {};
+    const values: CastToOptionValues = {};
     const registry = new OptionRegistry(option.options, this.registry.styles);
     const args = this.args.slice(index + 1);
     const loop = new ParserLoop(registry, values, args, this.completing, this.width);
@@ -390,6 +394,7 @@ class ParserLoop {
         this.promises.push(result);
       }
     }
+    (this.values as Record<string, true>)[key] = true;
     return !this.completing;
   }
 
@@ -605,7 +610,7 @@ class ParserLoop {
     for (const key of this.registry.required) {
       if (!this.specifiedKeys.has(key)) {
         const option = this.registry.options[key];
-        const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+        const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
         throw this.registry.error(`Option ${this.registry.formatOption(name)} is required.`);
       }
     }
@@ -614,7 +619,7 @@ class ParserLoop {
       if (option.requires) {
         const error = this.checkRequires(option.requires);
         if (error) {
-          const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+          const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
           throw this.registry.error(
             `Option ${this.registry.formatOption(name)} requires ${error}.`,
           );
@@ -657,7 +662,7 @@ class ParserLoop {
   ): string | null {
     const [key, value] = kvp;
     const option = this.registry.options[key];
-    const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+    const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     const specified = this.specifiedKeys.has(key);
     const required = value !== null;
     const withValue = required && value !== undefined;
@@ -939,18 +944,18 @@ class ParserLoop {
     key: string,
     option: O,
     name: string,
-    value: Array<T> | Promise<Array<T>>,
+    value: ReadonlyArray<T> | Promise<ReadonlyArray<T>>,
     normalizeFn: (option: O, name: string, value: T) => T,
   ) {
     if (value instanceof Promise) {
       value = value.then((vals) => {
-        vals.forEach((val) => normalizeFn(option, name, val));
-        this.registry.normalizeArray(option, name, vals);
+        const normalized = vals.map((val) => normalizeFn(option, name, val));
+        this.registry.normalizeArray(option, name, normalized);
         return vals;
       });
     } else {
-      value.forEach((val) => normalizeFn(option, name, val));
-      this.registry.normalizeArray(option, name, value);
+      const normalized = value.map((val) => normalizeFn(option, name, val));
+      this.registry.normalizeArray(option, name, normalized);
     }
     (this.values as Record<string, typeof value>)[key] = value;
   }

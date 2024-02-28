@@ -1,9 +1,35 @@
-import { fg, style, req, tf, fg8, type Options } from 'tsargp';
+import type { Options, OptionValues } from 'tsargp';
+import { fg, style, req, tf, fg8 } from 'tsargp';
 
 /**
- * The option definitions
+ * The hello option definitions
+ */
+const helloOpts = {
+  /**
+   * A help option that throws the help message of the hello command.
+   */
+  help: {
+    type: 'help',
+    names: ['-h', '--help'],
+    desc: 'The help option for the hello command. Prints this help message',
+  },
+  /**
+   * A strings option that receives positional arguments for the hello command.
+   */
+  strings: {
+    type: 'strings',
+    default: ['world'],
+    positional: true,
+  },
+} as const satisfies Options;
+
+/**
+ * The main option definitions
  */
 export default {
+  /**
+   * A help option that throws the help message of the main command.
+   */
   help: {
     type: 'help',
     names: ['-h', '--help'],
@@ -17,12 +43,18 @@ Copyright (c) 2024 ${style(tf.bold, tf.italic, fg.cyan)}TrulySimple${style(tf.cl
 Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${style(tf.clear)}
 `,
   },
+  /**
+   * A version option that throws the package version.
+   */
   version: {
     type: 'version',
     names: ['-v', '--version'],
     desc: 'A version option. Prints the package version',
     resolve: import.meta.resolve,
   },
+  /**
+   * A flag option that is deprecated for some reason.
+   */
   flag: {
     type: 'flag',
     names: ['-f', '--flag'],
@@ -34,9 +66,25 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
       descr: style(tf.clear, tf.italic, tf.crossedOut),
     },
   },
+  /**
+   * A command option that prints the arguments passed after it.
+   */
+  command: {
+    type: 'command',
+    names: ['hello'],
+    desc: 'A command option. Prints the arguments passed after it',
+    options: helloOpts,
+    cmd(_, cmdValues) {
+      const values = cmdValues as OptionValues<typeof helloOpts>;
+      console.log(...values.strings);
+    },
+  },
+  /**
+   * A boolean option that has inline styles and requirements.
+   */
   boolean: {
     type: 'boolean',
-    names: ['-b'],
+    names: ['-b', '--boolean'],
     desc: `A boolean option
     with:
     * a paragraph
@@ -51,6 +99,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
       req.one({ stringsRegex: ['a', 'b'] }, req.not({ numbersRange: [3, 4] })),
     ),
   },
+  /**
+   * A string option that has a regex constraint.
+   */
   stringRegex: {
     type: 'string',
     names: ['-s', '--stringRegex'],
@@ -60,6 +111,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     default: '123456789',
     paramName: 'my string',
   },
+  /**
+   * A number option that has a range constraint.
+   */
   numberRange: {
     type: 'number',
     names: ['-n', '--numberRange'],
@@ -69,6 +123,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     default: -1.23,
     paramName: 'my number',
   },
+  /**
+   * A string option that has an enumeration constraint.
+   */
   stringEnum: {
     type: 'string',
     names: ['-se', '--stringEnum'],
@@ -77,6 +134,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     enums: ['one', 'two'],
     example: 'one',
   },
+  /**
+   * A number option that has an enumeration constraint.
+   */
   numberEnum: {
     type: 'number',
     names: ['-ne', '--numberEnum'],
@@ -85,6 +145,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     enums: [1, 2],
     example: 1,
   },
+  /**
+   * A strings option that has a regex constraint.
+   */
   stringsRegex: {
     type: 'strings',
     names: ['-ss', '--strings'],
@@ -96,6 +159,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     trim: true,
     case: 'upper',
   },
+  /**
+   * A numbers option that has a range constraint.
+   */
   numbersRange: {
     type: 'numbers',
     names: ['-ns', '--numbers'],
@@ -105,6 +171,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     default: [1, 2],
     round: 'round',
   },
+  /**
+   * A strings option that has an enumeration constraint.
+   */
   stringsEnum: {
     type: 'strings',
     names: ['', '--stringsEnum'],
@@ -115,6 +184,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     positional: '--',
     limit: 3,
   },
+  /**
+   * A numbers option that has an enumeration constraint.
+   */
   numbersEnum: {
     type: 'numbers',
     names: ['', '--numbersEnum'],

@@ -5,7 +5,7 @@ import './utils.spec';
 describe('ArgumentParser', () => {
   describe('parse', () => {
     it('should handle zero arguments', () => {
-      expect(new ArgumentParser({}).validate().parse([])).toMatchObject({});
+      expect(new ArgumentParser({}).validate().parse([])).toEqual({});
     });
 
     it('should throw an error on unknown option name specified in arguments', () => {
@@ -331,9 +331,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).not.toHaveProperty('function');
+        expect(parser.parse([])).toEqual({ function: undefined });
         expect(options.function.exec).not.toHaveBeenCalled();
-        parser.parse(['-f']);
+        expect(parser.parse(['-f'])).toEqual({ function: true });
         const anything = expect.anything();
         expect(options.function.exec).toHaveBeenCalledWith(anything, false, anything);
       });
@@ -353,7 +353,10 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        parser.parse(['-f1', '-f2']);
+        expect(parser.parse(['-f1', '-f2'])).toEqual({
+          function1: true,
+          function2: undefined,
+        });
         expect(options.function1.exec).toHaveBeenCalled();
         expect(options.function2.exec).not.toHaveBeenCalled();
       });
@@ -375,7 +378,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f1'])).toMatchObject({ flag: true });
+        expect(parser.parse(['-f1'])).toEqual({ function: true, flag: true });
       });
 
       it('should fill specified values during parsing', () => {
@@ -394,7 +397,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f2', '-f1'])).toMatchObject({ flag: true });
+        expect(parser.parse(['-f2', '-f1'])).toEqual({ function: true, flag: true });
       });
     });
 
@@ -448,9 +451,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).not.toHaveProperty('command');
+        expect(parser.parse([])).toEqual({ command: undefined });
         expect(options.command.cmd).not.toHaveBeenCalled();
-        parser.parse(['-c']);
+        expect(parser.parse(['-c'])).toEqual({ command: true });
         expect(options.command.cmd).toHaveBeenCalled();
       });
 
@@ -469,11 +472,11 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        parser.parse(['-c']);
+        expect(parser.parse(['-c'])).toEqual({ command: true });
         const cmdValues1 = expect.objectContaining({ flag: undefined });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues1);
         options.command.cmd.mockClear();
-        parser.parse(['-c', '-f']);
+        expect(parser.parse(['-c', '-f'])).toEqual({ command: true });
         const cmdValues2 = expect.objectContaining({ flag: true });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues2);
       });
@@ -517,9 +520,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: undefined });
-        expect(parser.parse(['-f'])).toMatchObject({ boolean: true });
-        expect(parser.parse(['-no-f'])).toMatchObject({ boolean: false });
+        expect(parser.parse([])).toEqual({ boolean: undefined });
+        expect(parser.parse(['-f'])).toEqual({ boolean: true });
+        expect(parser.parse(['-no-f'])).toEqual({ boolean: false });
       });
 
       it('should handle a flag option with a default value', () => {
@@ -531,7 +534,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: false });
+        expect(parser.parse([])).toEqual({ boolean: false });
       });
 
       it('should handle a flag option with a default callback', () => {
@@ -544,7 +547,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: false });
+        expect(parser.parse([])).toEqual({ boolean: false });
       });
 
       it('should handle a flag option with an async default callback', () => {
@@ -557,7 +560,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: expect.toResolve(false) });
+        expect(parser.parse([])).toEqual({ boolean: expect.toResolve(false) });
       });
     });
 
@@ -733,11 +736,11 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: undefined });
-        expect(parser.parse(['-b', ' +0.0 '])).toMatchObject({ boolean: false });
-        expect(parser.parse(['-b', ' 1 '])).toMatchObject({ boolean: true });
-        expect(parser.parse(['--boolean', ''])).toMatchObject({ boolean: false });
-        expect(parser.parse(['-b=1', '-b= False '])).toMatchObject({ boolean: false });
+        expect(parser.parse([])).toEqual({ boolean: undefined });
+        expect(parser.parse(['-b', ' +0.0 '])).toEqual({ boolean: false });
+        expect(parser.parse(['-b', ' 1 '])).toEqual({ boolean: true });
+        expect(parser.parse(['--boolean', ''])).toEqual({ boolean: false });
+        expect(parser.parse(['-b=1', '-b= False '])).toEqual({ boolean: false });
       });
 
       it('should handle a boolean option with a default value', () => {
@@ -749,7 +752,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: true });
+        expect(parser.parse([])).toEqual({ boolean: true });
       });
 
       it('should handle a boolean option with a default callback', () => {
@@ -761,7 +764,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: true });
+        expect(parser.parse([])).toEqual({ boolean: true });
       });
 
       it('should handle a boolean option with an async default callback', () => {
@@ -773,7 +776,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ boolean: expect.toResolve(true) });
+        expect(parser.parse([])).toEqual({ boolean: expect.toResolve(true) });
       });
 
       it('should handle a boolean option with positional arguments', () => {
@@ -789,19 +792,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           boolean: true,
         });
-        expect(parser.parse(['-f', '0', '1'])).toMatchObject({
+        expect(parser.parse(['-f', '0', '1'])).toEqual({
           flag: true,
           boolean: true,
         });
-        expect(parser.parse(['0', '-f', '1'])).toMatchObject({
+        expect(parser.parse(['0', '-f', '1'])).toEqual({
           flag: true,
           boolean: true,
         });
-        expect(parser.parse(['0', '1', '-f'])).toMatchObject({
+        expect(parser.parse(['0', '1', '-f'])).toEqual({
           flag: true,
           boolean: true,
         });
@@ -820,19 +823,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           boolean: true,
         });
-        expect(parser.parse(['--', '0', '1'])).toMatchObject({
+        expect(parser.parse(['--', '0', '1'])).toEqual({
           flag: undefined,
           boolean: true,
         });
-        expect(parser.parse(['--', '0', '-f'])).toMatchObject({
+        expect(parser.parse(['--', '0', '-f'])).toEqual({
           flag: undefined,
           boolean: true,
         });
-        expect(parser.parse(['-b', '0', '--', '1'])).toMatchObject({
+        expect(parser.parse(['-b', '0', '--', '1'])).toEqual({
           flag: undefined,
           boolean: true,
         });
@@ -847,7 +850,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-b', '0123'])).toMatchObject({ boolean: true });
+        expect(parser.parse(['-b', '0123'])).toEqual({ boolean: true });
       });
 
       it('should handle a boolean option with async custom parsing', () => {
@@ -859,7 +862,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-b', '0123'])).toMatchObject({ boolean: expect.toResolve(true) });
+        expect(parser.parse(['-b', '0123'])).toEqual({ boolean: expect.toResolve(true) });
       });
     });
 
@@ -1037,10 +1040,10 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ string: undefined });
-        expect(parser.parse(['-s', '123'])).toMatchObject({ string: '123' });
-        expect(parser.parse(['--string', ''])).toMatchObject({ string: '' });
-        expect(parser.parse(['-s=1', '-s=2'])).toMatchObject({ string: '2' });
+        expect(parser.parse([])).toEqual({ string: undefined });
+        expect(parser.parse(['-s', '123'])).toEqual({ string: '123' });
+        expect(parser.parse(['--string', ''])).toEqual({ string: '' });
+        expect(parser.parse(['-s=1', '-s=2'])).toEqual({ string: '2' });
       });
 
       it('should handle a string option with a default value', () => {
@@ -1052,7 +1055,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ string: '123' });
+        expect(parser.parse([])).toEqual({ string: '123' });
       });
 
       it('should handle a string option with a default callback', () => {
@@ -1064,7 +1067,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ string: '123' });
+        expect(parser.parse([])).toEqual({ string: '123' });
       });
 
       it('should handle a string option with an async default callback', () => {
@@ -1076,7 +1079,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ string: expect.toResolve('123') });
+        expect(parser.parse([])).toEqual({ string: expect.toResolve('123') });
       });
 
       it('should handle a string option with a regex constraint', () => {
@@ -1088,8 +1091,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ string: undefined });
-        expect(parser.parse(['-s', '456'])).toMatchObject({ string: '456' });
+        expect(parser.parse([])).toEqual({ string: undefined });
+        expect(parser.parse(['-s', '456'])).toEqual({ string: '456' });
       });
 
       it('should throw an error on string value not matching regex', () => {
@@ -1115,8 +1118,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ string: undefined });
-        expect(parser.parse(['-s', 'one'])).toMatchObject({ string: 'one' });
+        expect(parser.parse([])).toEqual({ string: undefined });
+        expect(parser.parse(['-s', 'one'])).toEqual({ string: 'one' });
       });
 
       it('should handle a string option with trimming normalization', () => {
@@ -1128,7 +1131,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-s', ' one '])).toMatchObject({ string: 'one' });
+        expect(parser.parse(['-s', ' one '])).toEqual({ string: 'one' });
       });
 
       it('should handle a string option with lowercase normalization', () => {
@@ -1140,7 +1143,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-s', 'OnE'])).toMatchObject({ string: 'one' });
+        expect(parser.parse(['-s', 'OnE'])).toEqual({ string: 'one' });
       });
 
       it('should handle a string option with uppercase normalization', () => {
@@ -1152,7 +1155,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-s', 'oNe'])).toMatchObject({ string: 'ONE' });
+        expect(parser.parse(['-s', 'oNe'])).toEqual({ string: 'ONE' });
       });
 
       it('should throw an error on string value not in enumeration', () => {
@@ -1182,19 +1185,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           string: '1',
         });
-        expect(parser.parse(['-f', '0', '1'])).toMatchObject({
+        expect(parser.parse(['-f', '0', '1'])).toEqual({
           flag: true,
           string: '1',
         });
-        expect(parser.parse(['0', '-f', '1'])).toMatchObject({
+        expect(parser.parse(['0', '-f', '1'])).toEqual({
           flag: true,
           string: '1',
         });
-        expect(parser.parse(['0', '1', '-f'])).toMatchObject({
+        expect(parser.parse(['0', '1', '-f'])).toEqual({
           flag: true,
           string: '1',
         });
@@ -1213,19 +1216,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           string: '1',
         });
-        expect(parser.parse(['--', '0', '1'])).toMatchObject({
+        expect(parser.parse(['--', '0', '1'])).toEqual({
           flag: undefined,
           string: '1',
         });
-        expect(parser.parse(['--', '0', '-f'])).toMatchObject({
+        expect(parser.parse(['--', '0', '-f'])).toEqual({
           flag: undefined,
           string: '-f',
         });
-        expect(parser.parse(['-s', '0', '--', '1'])).toMatchObject({
+        expect(parser.parse(['-s', '0', '--', '1'])).toEqual({
           flag: undefined,
           string: '1',
         });
@@ -1241,7 +1244,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-s', 'abcde'])).toMatchObject({ string: 'CDE' });
+        expect(parser.parse(['-s', 'abcde'])).toEqual({ string: 'CDE' });
       });
 
       it('should handle a string option with async custom parsing', () => {
@@ -1254,7 +1257,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-s', 'abcde'])).toMatchObject({ string: expect.toResolve('CDE') });
+        expect(parser.parse(['-s', 'abcde'])).toEqual({ string: expect.toResolve('CDE') });
       });
     });
 
@@ -1432,10 +1435,10 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ number: undefined });
-        expect(parser.parse(['-n', '123'])).toMatchObject({ number: 123 });
-        expect(parser.parse(['--number', '0'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n=1', '-n=2'])).toMatchObject({ number: 2 });
+        expect(parser.parse([])).toEqual({ number: undefined });
+        expect(parser.parse(['-n', '123'])).toEqual({ number: 123 });
+        expect(parser.parse(['--number', '0'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n=1', '-n=2'])).toEqual({ number: 2 });
       });
 
       it('should handle a number option with a default value', () => {
@@ -1447,7 +1450,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ number: 123 });
+        expect(parser.parse([])).toEqual({ number: 123 });
       });
 
       it('should handle a number option with a default callback', () => {
@@ -1459,7 +1462,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ number: 123 });
+        expect(parser.parse([])).toEqual({ number: 123 });
       });
 
       it('should handle a number option with an async default callback', () => {
@@ -1471,7 +1474,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ number: expect.toResolve(123) });
+        expect(parser.parse([])).toEqual({ number: expect.toResolve(123) });
       });
 
       it('should handle a number option with a range constraint', () => {
@@ -1483,8 +1486,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ number: undefined });
-        expect(parser.parse(['-n', '0'])).toMatchObject({ number: 0 });
+        expect(parser.parse([])).toEqual({ number: undefined });
+        expect(parser.parse(['-n', '0'])).toEqual({ number: 0 });
       });
 
       it('should throw an error on number value not in range', () => {
@@ -1513,8 +1516,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ number: undefined });
-        expect(parser.parse(['-n', '1'])).toMatchObject({ number: 1 });
+        expect(parser.parse([])).toEqual({ number: undefined });
+        expect(parser.parse(['-n', '1'])).toEqual({ number: 1 });
       });
 
       it('should throw an error on number value not in enumeration', () => {
@@ -1544,19 +1547,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           number: 1,
         });
-        expect(parser.parse(['-f', '0', '1'])).toMatchObject({
+        expect(parser.parse(['-f', '0', '1'])).toEqual({
           flag: true,
           number: 1,
         });
-        expect(parser.parse(['0', '-f', '1'])).toMatchObject({
+        expect(parser.parse(['0', '-f', '1'])).toEqual({
           flag: true,
           number: 1,
         });
-        expect(parser.parse(['0', '1', '-f'])).toMatchObject({
+        expect(parser.parse(['0', '1', '-f'])).toEqual({
           flag: true,
           number: 1,
         });
@@ -1575,19 +1578,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           number: 1,
         });
-        expect(parser.parse(['--', '0', '1'])).toMatchObject({
+        expect(parser.parse(['--', '0', '1'])).toEqual({
           flag: undefined,
           number: 1,
         });
-        expect(parser.parse(['--', '0', '-f'])).toMatchObject({
+        expect(parser.parse(['--', '0', '-f'])).toEqual({
           flag: undefined,
           number: NaN,
         });
-        expect(parser.parse(['-n', '0', '--', '1'])).toMatchObject({
+        expect(parser.parse(['-n', '0', '--', '1'])).toEqual({
           flag: undefined,
           number: 1,
         });
@@ -1603,7 +1606,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-n', '1.2'])).toMatchObject({ number: 4 });
+        expect(parser.parse(['-n', '1.2'])).toEqual({ number: 4 });
       });
 
       it('should handle a number option with async custom parsing', () => {
@@ -1616,7 +1619,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-n', '1.2'])).toMatchObject({ number: expect.toResolve(4) });
+        expect(parser.parse(['-n', '1.2'])).toEqual({ number: expect.toResolve(4) });
       });
 
       it('should handle a number option with truncation', () => {
@@ -1628,12 +1631,12 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-n', '0.1'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n', '0.5'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n', '0.9'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n', '-.1'])).toMatchObject({ number: -0 });
-        expect(parser.parse(['-n', '-.5'])).toMatchObject({ number: -0 });
-        expect(parser.parse(['-n', '-.9'])).toMatchObject({ number: -0 });
+        expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n', '0.5'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n', '0.9'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n', '-.1'])).toEqual({ number: -0 });
+        expect(parser.parse(['-n', '-.5'])).toEqual({ number: -0 });
+        expect(parser.parse(['-n', '-.9'])).toEqual({ number: -0 });
       });
 
       it('should handle a number option with ceil rounding', () => {
@@ -1645,12 +1648,12 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-n', '0.1'])).toMatchObject({ number: 1 });
-        expect(parser.parse(['-n', '0.5'])).toMatchObject({ number: 1 });
-        expect(parser.parse(['-n', '0.9'])).toMatchObject({ number: 1 });
-        expect(parser.parse(['-n', '-.1'])).toMatchObject({ number: -0 });
-        expect(parser.parse(['-n', '-.5'])).toMatchObject({ number: -0 });
-        expect(parser.parse(['-n', '-.9'])).toMatchObject({ number: -0 });
+        expect(parser.parse(['-n', '0.1'])).toEqual({ number: 1 });
+        expect(parser.parse(['-n', '0.5'])).toEqual({ number: 1 });
+        expect(parser.parse(['-n', '0.9'])).toEqual({ number: 1 });
+        expect(parser.parse(['-n', '-.1'])).toEqual({ number: -0 });
+        expect(parser.parse(['-n', '-.5'])).toEqual({ number: -0 });
+        expect(parser.parse(['-n', '-.9'])).toEqual({ number: -0 });
       });
 
       it('should handle a number option with floor rounding', () => {
@@ -1662,12 +1665,12 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-n', '0.1'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n', '0.5'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n', '0.9'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n', '-.1'])).toMatchObject({ number: -1 });
-        expect(parser.parse(['-n', '-.5'])).toMatchObject({ number: -1 });
-        expect(parser.parse(['-n', '-.9'])).toMatchObject({ number: -1 });
+        expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n', '0.5'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n', '0.9'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n', '-.1'])).toEqual({ number: -1 });
+        expect(parser.parse(['-n', '-.5'])).toEqual({ number: -1 });
+        expect(parser.parse(['-n', '-.9'])).toEqual({ number: -1 });
       });
 
       it('should handle a number option with nearest rounding', () => {
@@ -1679,12 +1682,12 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-n', '0.1'])).toMatchObject({ number: 0 });
-        expect(parser.parse(['-n', '0.5'])).toMatchObject({ number: 1 });
-        expect(parser.parse(['-n', '0.9'])).toMatchObject({ number: 1 });
-        expect(parser.parse(['-n', '-.1'])).toMatchObject({ number: -0 });
-        expect(parser.parse(['-n', '-.5'])).toMatchObject({ number: -0 });
-        expect(parser.parse(['-n', '-.9'])).toMatchObject({ number: -1 });
+        expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
+        expect(parser.parse(['-n', '0.5'])).toEqual({ number: 1 });
+        expect(parser.parse(['-n', '0.9'])).toEqual({ number: 1 });
+        expect(parser.parse(['-n', '-.1'])).toEqual({ number: -0 });
+        expect(parser.parse(['-n', '-.5'])).toEqual({ number: -0 });
+        expect(parser.parse(['-n', '-.9'])).toEqual({ number: -1 });
       });
     });
 
@@ -1891,12 +1894,12 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ strings: undefined });
-        expect(parser.parse(['-ss', '123', '456'])).toMatchObject({ strings: ['123', '456'] });
-        expect(parser.parse(['--strings'])).toMatchObject({ strings: [] });
-        expect(parser.parse(['--strings', '   '])).toMatchObject({ strings: ['   '] });
-        expect(parser.parse(['-ss=123', '-ss=456'])).toMatchObject({ strings: ['123', '456'] });
-        expect(parser.parse(['-ss', 'a', 'b', '-ss', 'c', 'd'])).toMatchObject({
+        expect(parser.parse([])).toEqual({ strings: undefined });
+        expect(parser.parse(['-ss', '123', '456'])).toEqual({ strings: ['123', '456'] });
+        expect(parser.parse(['--strings'])).toEqual({ strings: [] });
+        expect(parser.parse(['--strings', '   '])).toEqual({ strings: ['   '] });
+        expect(parser.parse(['-ss=123', '-ss=456'])).toEqual({ strings: ['123', '456'] });
+        expect(parser.parse(['-ss', 'a', 'b', '-ss', 'c', 'd'])).toEqual({
           strings: ['a', 'b', 'c', 'd'],
         });
       });
@@ -1910,7 +1913,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ strings: ['one', 'two'] });
+        expect(parser.parse([])).toEqual({ strings: ['one', 'two'] });
       });
 
       it('should handle a strings option with a default callback', () => {
@@ -1922,7 +1925,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ strings: ['one', 'two'] });
+        expect(parser.parse([])).toEqual({ strings: ['one', 'two'] });
       });
 
       it('should handle a strings option with an async default callback', () => {
@@ -1934,7 +1937,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ strings: expect.toResolve(['one', 'two']) });
+        expect(parser.parse([])).toEqual({ strings: expect.toResolve(['one', 'two']) });
       });
 
       it('should handle a strings option with enumeration constraint', () => {
@@ -1948,9 +1951,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ strings: undefined });
-        expect(parser.parse(['-ss', ' one , one '])).toMatchObject({ strings: ['one', 'one'] });
-        expect(parser.parse(['-ss', ' two '])).toMatchObject({ strings: ['two'] });
+        expect(parser.parse([])).toEqual({ strings: undefined });
+        expect(parser.parse(['-ss', ' one , one '])).toEqual({ strings: ['one', 'one'] });
+        expect(parser.parse(['-ss', ' two '])).toEqual({ strings: ['two'] });
       });
 
       it('should handle a strings option specified with multiple parameters', () => {
@@ -1999,7 +2002,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ss', ' one, two '])).toMatchObject({ strings: ['one', 'two'] });
+        expect(parser.parse(['-ss', ' one, two '])).toEqual({ strings: ['one', 'two'] });
       });
 
       it('should handle a strings option with lowercase normalization', () => {
@@ -2012,7 +2015,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ss', 'OnE,T O.'])).toMatchObject({ strings: ['one', 't o.'] });
+        expect(parser.parse(['-ss', 'OnE,T O.'])).toEqual({ strings: ['one', 't o.'] });
       });
 
       it('should handle a strings option with uppercase normalization', () => {
@@ -2025,7 +2028,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ss', 'o?Ne,2ki'])).toMatchObject({ strings: ['O?NE', '2KI'] });
+        expect(parser.parse(['-ss', 'o?Ne,2ki'])).toEqual({ strings: ['O?NE', '2KI'] });
       });
 
       it('should throw an error on strings value not in enumeration', () => {
@@ -2056,19 +2059,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           strings: ['0', '1'],
         });
-        expect(parser.parse(['-f', '0', '1'])).toMatchObject({
+        expect(parser.parse(['-f', '0', '1'])).toEqual({
           flag: true,
           strings: ['0', '1'],
         });
-        expect(parser.parse(['0', '-f', '1'])).toMatchObject({
+        expect(parser.parse(['0', '-f', '1'])).toEqual({
           flag: true,
           strings: ['1'],
         });
-        expect(parser.parse(['0', '1', '-f'])).toMatchObject({
+        expect(parser.parse(['0', '1', '-f'])).toEqual({
           flag: true,
           strings: ['0', '1'],
         });
@@ -2087,23 +2090,23 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           strings: ['0', '1'],
         });
-        expect(parser.parse(['--', '0', '1'])).toMatchObject({
+        expect(parser.parse(['--', '0', '1'])).toEqual({
           flag: undefined,
           strings: ['0', '1'],
         });
-        expect(parser.parse(['--', '0', '-f'])).toMatchObject({
+        expect(parser.parse(['--', '0', '-f'])).toEqual({
           flag: undefined,
           strings: ['0', '-f'],
         });
-        expect(parser.parse(['-ss', '0', '--', '1'])).toMatchObject({
+        expect(parser.parse(['-ss', '0', '--', '1'])).toEqual({
           flag: undefined,
           strings: ['1'],
         });
-        expect(parser.parse(['--'])).toMatchObject({
+        expect(parser.parse(['--'])).toEqual({
           flag: undefined,
           strings: [],
         });
@@ -2123,19 +2126,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ss'])).toMatchObject({ strings: [] });
-        expect(parser.parse(['-ss', 'abcd', 'abCD'])).toMatchObject({ strings: ['CD'] });
-        expect(parser.parse(['-ss', 'abcd', '12CD'])).toMatchObject({
+        expect(parser.parse(['-ss'])).toEqual({ strings: [] });
+        expect(parser.parse(['-ss', 'abcd', 'abCD'])).toEqual({ strings: ['CD'] });
+        expect(parser.parse(['-ss', 'abcd', '12CD'])).toEqual({
           strings: expect.toResolve(['CD']),
         });
-        expect(parser.parse(['-ss', '12CD', 'abcd'])).toMatchObject({
+        expect(parser.parse(['-ss', '12CD', 'abcd'])).toEqual({
           strings: expect.toResolve(['CD']),
         });
-        expect(parser.parse(['-ss', '12CD', '34cd'])).toMatchObject({
+        expect(parser.parse(['-ss', '12CD', '34cd'])).toEqual({
           strings: expect.toResolve(['CD']),
         });
-        expect(parser.parse(['-ss', 'abcd', '-ss'])).toMatchObject({ strings: [] });
-        expect(parser.parse(['-ss', '12CD', '-ss'])).toMatchObject({
+        expect(parser.parse(['-ss', 'abcd', '-ss'])).toEqual({ strings: [] });
+        expect(parser.parse(['-ss', '12CD', '-ss'])).toEqual({
           strings: expect.toResolve([]),
         });
       });
@@ -2156,16 +2159,16 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to .+-ss.+\./);
-        expect(parser.parse(['-ss', 'a,b|B', '-ss', 'a,B|b'])).toMatchObject({
+        expect(parser.parse(['-ss', 'a,b|B', '-ss', 'a,B|b'])).toEqual({
           strings: ['A', 'B'],
         });
-        expect(parser.parse(['-ss', 'a,b|B', '-ss', 'c,d|D'])).toMatchObject({
+        expect(parser.parse(['-ss', 'a,b|B', '-ss', 'c,d|D'])).toEqual({
           strings: expect.toResolve(['A', 'B', 'C', 'D']),
         });
-        expect(parser.parse(['-ss', 'c,d|D', '-ss', 'a,b|B'])).toMatchObject({
+        expect(parser.parse(['-ss', 'c,d|D', '-ss', 'a,b|B'])).toEqual({
           strings: expect.toResolve(['C', 'D', 'A', 'B']),
         });
-        expect(parser.parse(['-ss', 'c,d|D', '-ss', 'C|D'])).toMatchObject({
+        expect(parser.parse(['-ss', 'c,d|D', '-ss', 'C|D'])).toEqual({
           strings: expect.toResolve(['C', 'D']),
         });
       });
@@ -2374,12 +2377,12 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ numbers: undefined });
-        expect(parser.parse(['-ns', '456', ' 123 '])).toMatchObject({ numbers: [456, 123] });
-        expect(parser.parse(['--numbers'])).toMatchObject({ numbers: [] });
-        expect(parser.parse(['--numbers', '   '])).toMatchObject({ numbers: [0] });
-        expect(parser.parse(['-ns=456', '-ns=123'])).toMatchObject({ numbers: [456, 123] });
-        expect(parser.parse(['-ns', '5', '-ns', '6', '7'])).toMatchObject({ numbers: [5, 6, 7] });
+        expect(parser.parse([])).toEqual({ numbers: undefined });
+        expect(parser.parse(['-ns', '456', ' 123 '])).toEqual({ numbers: [456, 123] });
+        expect(parser.parse(['--numbers'])).toEqual({ numbers: [] });
+        expect(parser.parse(['--numbers', '   '])).toEqual({ numbers: [0] });
+        expect(parser.parse(['-ns=456', '-ns=123'])).toEqual({ numbers: [456, 123] });
+        expect(parser.parse(['-ns', '5', '-ns', '6', '7'])).toEqual({ numbers: [5, 6, 7] });
       });
 
       it('should handle a numbers option with a default value', () => {
@@ -2391,7 +2394,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ numbers: [1, 2] });
+        expect(parser.parse([])).toEqual({ numbers: [1, 2] });
       });
 
       it('should handle a numbers option with a default callback', () => {
@@ -2403,7 +2406,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ numbers: [1, 2] });
+        expect(parser.parse([])).toEqual({ numbers: [1, 2] });
       });
 
       it('should handle a numbers option with an async default callback', () => {
@@ -2415,7 +2418,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ numbers: expect.toResolve([1, 2]) });
+        expect(parser.parse([])).toEqual({ numbers: expect.toResolve([1, 2]) });
       });
 
       it('should handle a numbers option with enumeration constraint', () => {
@@ -2428,9 +2431,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toMatchObject({ numbers: undefined });
-        expect(parser.parse(['-ns', ' 1 , 1 '])).toMatchObject({ numbers: [1, 1] });
-        expect(parser.parse(['-ns', ' 2 '])).toMatchObject({ numbers: [2] });
+        expect(parser.parse([])).toEqual({ numbers: undefined });
+        expect(parser.parse(['-ns', ' 1 , 1 '])).toEqual({ numbers: [1, 1] });
+        expect(parser.parse(['-ns', ' 2 '])).toEqual({ numbers: [2] });
       });
 
       it('should handle a numbers option specified with multiple parameters', () => {
@@ -2496,19 +2499,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           numbers: [0, 1],
         });
-        expect(parser.parse(['-f', '0', '1'])).toMatchObject({
+        expect(parser.parse(['-f', '0', '1'])).toEqual({
           flag: true,
           numbers: [0, 1],
         });
-        expect(parser.parse(['0', '-f', '1'])).toMatchObject({
+        expect(parser.parse(['0', '-f', '1'])).toEqual({
           flag: true,
           numbers: [1],
         });
-        expect(parser.parse(['0', '1', '-f'])).toMatchObject({
+        expect(parser.parse(['0', '1', '-f'])).toEqual({
           flag: true,
           numbers: [0, 1],
         });
@@ -2527,23 +2530,23 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['0', '1'])).toMatchObject({
+        expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           numbers: [0, 1],
         });
-        expect(parser.parse(['--', '0', '1'])).toMatchObject({
+        expect(parser.parse(['--', '0', '1'])).toEqual({
           flag: undefined,
           numbers: [0, 1],
         });
-        expect(parser.parse(['--', '0', '-f'])).toMatchObject({
+        expect(parser.parse(['--', '0', '-f'])).toEqual({
           flag: undefined,
           numbers: [0, NaN],
         });
-        expect(parser.parse(['-ns', '0', '--', '1'])).toMatchObject({
+        expect(parser.parse(['-ns', '0', '--', '1'])).toEqual({
           flag: undefined,
           numbers: [1],
         });
-        expect(parser.parse(['--'])).toMatchObject({
+        expect(parser.parse(['--'])).toEqual({
           flag: undefined,
           numbers: [],
         });
@@ -2563,19 +2566,19 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ns'])).toMatchObject({ numbers: [] });
-        expect(parser.parse(['-ns', '1.2', '1.7'])).toMatchObject({ numbers: [4] });
-        expect(parser.parse(['-ns', '1.2', '2.2'])).toMatchObject({
+        expect(parser.parse(['-ns'])).toEqual({ numbers: [] });
+        expect(parser.parse(['-ns', '1.2', '1.7'])).toEqual({ numbers: [4] });
+        expect(parser.parse(['-ns', '1.2', '2.2'])).toEqual({
           numbers: expect.toResolve([4, 5]),
         });
-        expect(parser.parse(['-ns', '2.2', '1.2'])).toMatchObject({
+        expect(parser.parse(['-ns', '2.2', '1.2'])).toEqual({
           numbers: expect.toResolve([5, 4]),
         });
-        expect(parser.parse(['-ns', '2.2', '2.7'])).toMatchObject({
+        expect(parser.parse(['-ns', '2.2', '2.7'])).toEqual({
           numbers: expect.toResolve([5]),
         });
-        expect(parser.parse(['-ns', '1.2', '-ns'])).toMatchObject({ numbers: [] });
-        expect(parser.parse(['-ns', '2.2', '-ns'])).toMatchObject({
+        expect(parser.parse(['-ns', '1.2', '-ns'])).toEqual({ numbers: [] });
+        expect(parser.parse(['-ns', '2.2', '-ns'])).toEqual({
           numbers: expect.toResolve([]),
         });
       });
@@ -2598,17 +2601,17 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to .+-ns.+\./);
-        expect(parser.parse(['-ns', '1.1,2.2|2.3'])).toMatchObject({ numbers: [2, 3] });
-        expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '11|12'])).toMatchObject({
+        expect(parser.parse(['-ns', '1.1,2.2|2.3'])).toEqual({ numbers: [2, 3] });
+        expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '11|12'])).toEqual({
           numbers: [2, 3, 11, 12],
         });
-        expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '21|22'])).toMatchObject({
+        expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '21|22'])).toEqual({
           numbers: expect.toResolve([2, 3, 21, 22]),
         });
-        expect(parser.parse(['-ns', '21|22', '-ns', '1.1,2.2|2.3'])).toMatchObject({
+        expect(parser.parse(['-ns', '21|22', '-ns', '1.1,2.2|2.3'])).toEqual({
           numbers: expect.toResolve([21, 22, 2, 3]),
         });
-        expect(parser.parse(['-ns', '21|22', '-ns', '20.2|21.2'])).toMatchObject({
+        expect(parser.parse(['-ns', '21|22', '-ns', '20.2|21.2'])).toEqual({
           numbers: expect.toResolve([21, 22]),
         });
       });
@@ -2622,9 +2625,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ns', '0.1', '-.1'])).toMatchObject({ numbers: [0, -0] });
-        expect(parser.parse(['-ns', '0.5', '-.5'])).toMatchObject({ numbers: [0, -0] });
-        expect(parser.parse(['-ns', '0.9', '-.9'])).toMatchObject({ numbers: [0, -0] });
+        expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -0] });
+        expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [0, -0] });
+        expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [0, -0] });
       });
 
       it('should handle a numbers option with ceil rounding', () => {
@@ -2636,9 +2639,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ns', '0.1', '-.1'])).toMatchObject({ numbers: [1, -0] });
-        expect(parser.parse(['-ns', '0.5', '-.5'])).toMatchObject({ numbers: [1, -0] });
-        expect(parser.parse(['-ns', '0.9', '-.9'])).toMatchObject({ numbers: [1, -0] });
+        expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [1, -0] });
+        expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [1, -0] });
+        expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [1, -0] });
       });
 
       it('should handle a numbers option with floor rounding', () => {
@@ -2650,9 +2653,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ns', '0.1', '-.1'])).toMatchObject({ numbers: [0, -1] });
-        expect(parser.parse(['-ns', '0.5', '-.5'])).toMatchObject({ numbers: [0, -1] });
-        expect(parser.parse(['-ns', '0.9', '-.9'])).toMatchObject({ numbers: [0, -1] });
+        expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -1] });
+        expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [0, -1] });
+        expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [0, -1] });
       });
 
       it('should handle a numbers option with nearest rounding', () => {
@@ -2664,9 +2667,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-ns', '0.1', '-.1'])).toMatchObject({ numbers: [0, -0] });
-        expect(parser.parse(['-ns', '0.5', '-.5'])).toMatchObject({ numbers: [1, -0] });
-        expect(parser.parse(['-ns', '0.9', '-.9'])).toMatchObject({ numbers: [1, -1] });
+        expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -0] });
+        expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [1, -0] });
+        expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [1, -1] });
       });
     });
   });
@@ -2683,7 +2686,7 @@ describe('ArgumentParser', () => {
         flag = false;
       })();
       new ArgumentParser(options).parseInto(values, []);
-      expect(values).toMatchObject({ flag: false });
+      expect(values).toEqual({ flag: false });
     });
 
     it('should handle a class instance with previous values and a default', () => {
@@ -2698,7 +2701,7 @@ describe('ArgumentParser', () => {
         flag = false;
       })();
       new ArgumentParser(options).parseInto(values, []);
-      expect(values).toMatchObject({ flag: true });
+      expect(values).toEqual({ flag: true });
     });
   });
 

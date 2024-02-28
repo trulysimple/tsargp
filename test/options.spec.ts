@@ -107,15 +107,14 @@ describe('OptionRegistry', () => {
   });
 
   describe('validate', () => {
-    it('should throw an error on option with no name', () => {
+    it('should accept on option with no name', () => {
       const options = {
         string: {
           type: 'string',
-          names: [],
         },
       } as const satisfies Options;
       const registry = new OptionRegistry(options, styles);
-      expect(() => registry.validate()).toThrow(/Option .+string.+ has no name\./);
+      expect(() => registry.validate()).not.toThrow();
     });
 
     it('should throw an error on option with invalid name', () => {

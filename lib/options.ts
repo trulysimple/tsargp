@@ -13,6 +13,7 @@ export type {
   Options,
   OptionDataType,
   OptionValues,
+  CastToOptionValues,
   OptionStyles,
   OtherStyles,
   StringOption,
@@ -47,7 +48,6 @@ export {
   OptionRegistry,
   isNiladic,
   isArray,
-  isValued,
   isVariadic,
 };
 
@@ -202,44 +202,42 @@ type ResolveCallback = (specifier: string) => string;
 /**
  * A callback for default values.
  * @template T The return data type
- * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
- * or to the type of your values class)
+ * @param values The values parsed so far
  * @returns The default value
  */
-type DefaultCallback<T> = (values: OptionValues) => T | Promise<T>;
+type DefaultCallback<T> = (values: CastToOptionValues) => T | Promise<T>;
 
 /**
  * A callback for function options.
- * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
- * or to the type of your values class)
+ * @param values The values parsed so far
  * @param comp True if performing completion (but not in the current iteration)
  * @param rest The remaining command-line arguments
  */
 type ExecuteCallback = (
-  values: OptionValues,
+  values: CastToOptionValues,
   comp: boolean,
   rest: Array<string>,
 ) => void | Promise<void>;
 
 /**
  * A callback for command options.
- * @param values The values parsed before the command (should be cast to
- * `OptionValues<typeof _your_options_>` or to the type of your values class)
- * @param cmdValues The values parsed after the command (should be cast to
- * `OptionValues<typeof _your_command_options_>` or to the type of your command values class)
+ * @param values The values parsed before the command
+ * @param cmdValues The values parsed after the command
  */
-type CommandCallback = (values: OptionValues, cmdValues: OptionValues) => void | Promise<void>;
+type CommandCallback = (
+  values: CastToOptionValues,
+  cmdValues: CastToOptionValues,
+) => void | Promise<void>;
 
 /**
  * A callback for option completion.
- * @param values The values parsed so far (should be cast to `OptionValues<typeof _your_options_>`
- * or to the type of your values class)
+ * @param values The values parsed so far
  * @param comp The word being completed (it may be an empty string)
  * @param rest The remaining command-line arguments
  * @returns The list of completion words
  */
 type CompleteCallback = (
-  values: OptionValues,
+  values: CastToOptionValues,
   comp: string,
   rest: Array<string>,
 ) => Array<string> | Promise<Array<string>>;
@@ -258,9 +256,9 @@ type WithType<T extends string> = {
    *
    * Names cannot contain whitespace or the equals sign `=` (since it may act as option-value
    * separator). Empty names or `null`s can be specified in order to skip the respective "slot" in
-   * the help message name column, although there must be at least one non-empty name.
+   * the help message names column.
    */
-  readonly names: Array<string | null>;
+  readonly names?: ReadonlyArray<string | null>;
   /**
    * A name to be displayed in error and help messages in cases where one is not available (e.g.,
    * when evaluating option requirements or processing positional arguments). It is not validated
@@ -463,7 +461,7 @@ type WithEnums<T> = {
   /**
    * The enumerated values.
    */
-  readonly enums?: Array<T>;
+  readonly enums?: ReadonlyArray<T>;
   /**
    * @deprecated mutually exclusive with {@link WithEnums.enums}
    */
@@ -564,7 +562,7 @@ type WithNegation = {
   /**
    * The names used for negation (e.g., '--no-flag').
    */
-  readonly negationNames?: Array<string>;
+  readonly negationNames?: ReadonlyArray<string>;
 };
 
 /**
@@ -601,8 +599,8 @@ type NumberOption = WithType<'number'> &
  */
 type StringsOption = WithType<'strings'> &
   WithParam &
-  (WithDefault<Array<string>> | WithRequired) &
-  (WithExample<Array<string>> | WithParamName) &
+  (WithDefault<ReadonlyArray<string>> | WithRequired) &
+  (WithExample<ReadonlyArray<string>> | WithParamName) &
   WithString &
   WithArray &
   (WithParse<string> | WithParseDelimited<string> | WithDelimited);
@@ -612,8 +610,8 @@ type StringsOption = WithType<'strings'> &
  */
 type NumbersOption = WithType<'numbers'> &
   WithParam &
-  (WithDefault<Array<number>> | WithRequired) &
-  (WithExample<Array<number>> | WithParamName) &
+  (WithDefault<ReadonlyArray<number>> | WithRequired) &
+  (WithExample<ReadonlyArray<number>> | WithParamName) &
   WithNumber &
   WithArray &
   (WithParse<number> | WithParseDelimited<number> | WithDelimited);
@@ -648,7 +646,7 @@ type CommandOption = WithType<'command'> & {
    */
   readonly cmd: CommandCallback;
   /**
-   * Te command options.
+   * The command options.
    */
   readonly options: Options;
 };
@@ -792,27 +790,38 @@ type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDa
  * The data type of an option.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option = Option> = T extends FlagOption
-  ? boolean | DefaultDataType<T>
-  : T extends BooleanOption
-    ? SingleDataType<T, boolean> | DefaultDataType<T>
-    : T extends StringOption
-      ? SingleDataType<T, string> | DefaultDataType<T>
-      : T extends NumberOption
-        ? SingleDataType<T, number> | DefaultDataType<T>
-        : T extends StringsOption
-          ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
-          : T extends NumbersOption
-            ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
-            : never;
+type OptionDataType<T extends Option> = T extends ExecutingOption
+  ? true | undefined
+  : T extends FlagOption
+    ? boolean | DefaultDataType<T>
+    : T extends BooleanOption
+      ? SingleDataType<T, boolean> | DefaultDataType<T>
+      : T extends StringOption
+        ? SingleDataType<T, string> | DefaultDataType<T>
+        : T extends NumberOption
+          ? SingleDataType<T, number> | DefaultDataType<T>
+          : T extends StringsOption
+            ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
+            : T extends NumbersOption
+              ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
+              : never;
 
 /**
- * A collection of option values.
+ * A generic collection of option values.
  * @template T The type of the option definitions
  */
-type OptionValues<T extends Options = Options> = Resolve<{
-  -readonly [key in keyof T as T[key] extends ValuedOption ? key : never]: OptionDataType<T[key]>;
+type OptionValues<T extends Options> = Resolve<{
+  -readonly [key in keyof T as T[key] extends SpecialOption ? never : key]: OptionDataType<T[key]>;
 }>;
+
+/**
+ * A collection of option values that should be cast to {@link OptionValues}`<typeof _your_options_>`
+ * or to the type of your values class.
+ */
+type CastToOptionValues = Record<
+  string,
+  ParamOption['example'] | Promise<Exclude<ParamOption['example'], undefined>>
+>;
 
 /**
  * Information regarding a positional option. Used internally.
@@ -874,7 +883,7 @@ class OptionRegistry {
         if (this.positional) {
           throw this.error(`Duplicate positional option ${this.formatOption(key)}.`);
         }
-        const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+        const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name, option, marker };
       }
@@ -889,15 +898,12 @@ class OptionRegistry {
    * @param key The option key
    * @param option The option definition
    * @param validate True if performing validation
-   * @throws On no name, invalid name, duplicate name or empty positional marker
+   * @throws On invalid name, duplicate name or empty positional marker
    */
   private registerNames(key: string, option: Option, validate = false) {
-    const names = option.names.filter((name): name is string => name !== null && name !== '');
-    if (validate && !names.length) {
-      throw this.error(`Option ${this.formatOption(key)} has no name.`);
-    }
+    const names = option.names ? option.names.slice() : [];
     if (option.type === 'flag' && option.negationNames) {
-      names.push(...option.negationNames.filter((name) => name));
+      names.push(...option.negationNames);
     }
     if ('positional' in option && typeof option.positional === 'string') {
       if (validate && !option.positional) {
@@ -906,6 +912,9 @@ class OptionRegistry {
       names.push(option.positional);
     }
     for (const name of names) {
+      if (!name) {
+        continue;
+      }
       if (!validate) {
         if (this.names.has(name)) {
           throw this.error(`Duplicate option name ${this.formatOption(name)}.`);
@@ -1064,20 +1073,20 @@ class OptionRegistry {
         break;
       case 'strings': {
         this.assertType<object>(value, key, 'object');
-        value = value.map((val) => {
+        const normalized = value.map((val) => {
           this.assertType<string>(val, key, 'string');
           return this.normalizeString(option, key, val);
         });
-        this.normalizeArray(option, key, value);
+        this.normalizeArray(option, key, normalized);
         break;
       }
       case 'numbers': {
         this.assertType<object>(value, key, 'object');
-        value = value.map((val) => {
+        const normalized = value.map((val) => {
           this.assertType<number>(val, key, 'number');
           return this.normalizeNumber(option, key, val);
         });
-        this.normalizeArray(option, key, value);
+        this.normalizeArray(option, key, normalized);
         break;
       }
       default: {
@@ -1244,15 +1253,6 @@ function isNiladic(option: Option): option is NiladicOption {
  */
 function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
-}
-
-/**
- * Tests if an option has a value.
- * @param option The option definition
- * @returns True if the option has a value
- */
-function isValued(option: Option): option is ValuedOption {
-  return option.type === 'flag' || !isNiladic(option);
 }
 
 /**

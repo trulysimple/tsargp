@@ -393,7 +393,7 @@ class HelpFormatter {
       }
       prefix = width - (name?.length ?? 0) + 1;
     }
-    names.forEach((name, i) => formatName(name, this.nameWidths[i]));
+    names?.forEach((name, i) => formatName(name, this.nameWidths[i]));
   }
 
   /**
@@ -739,7 +739,7 @@ class HelpFormatter {
    */
   private formatArray<T extends string | number>(
     option: ArrayOption,
-    value: Array<T>,
+    value: ReadonlyArray<T>,
     result: TerminalString,
     formatFn: (value: T, result: TerminalString) => void,
     style?: Style,
@@ -768,7 +768,7 @@ class HelpFormatter {
    * @param separator An optional separator to delimit the values
    */
   private formatArray2<T extends string | number>(
-    values: Array<T>,
+    values: ReadonlyArray<T>,
     style: Style,
     result: TerminalString,
     formatFn: (value: T, result: TerminalString) => void,
@@ -858,7 +858,7 @@ class HelpFormatter {
   ) {
     if (typeof requires === 'string') {
       const option = this.options[requires];
-      const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+      const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
       if (negate) {
         result.addSequence(style).addText('no');
       }
@@ -944,7 +944,7 @@ class HelpFormatter {
     negate: boolean,
   ) {
     function assert(_condition: unknown): asserts _condition {}
-    const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
+    const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     if ((value === null && !negate) || (value === undefined && negate)) {
       result.addSequence(style).addText('no');
     }
@@ -990,13 +990,13 @@ class HelpFormatter {
       case 'strings': {
         assert(typeof value === 'object');
         const formatFn = this.formatString.bind(this);
-        this.formatArray(option, value as Array<string>, result, formatFn, style);
+        this.formatArray(option, value as ReadonlyArray<string>, result, formatFn, style);
         break;
       }
       case 'numbers': {
         assert(typeof value === 'object');
         const formatFn = this.formatNumber.bind(this);
-        this.formatArray(option, value as Array<number>, result, formatFn, style);
+        this.formatArray(option, value as ReadonlyArray<number>, result, formatFn, style);
         break;
       }
       default: {
@@ -1088,7 +1088,7 @@ function getNameWidths(options: Options): Array<number> {
   for (const key in options) {
     const option = options[key];
     if (!option.hide) {
-      option.names.forEach((name, i) => {
+      option.names?.forEach((name, i) => {
         if (i == result.length) {
           result.push(name?.length ?? 0);
         } else if (name && name.length > result[i]) {

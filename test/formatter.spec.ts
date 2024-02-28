@@ -26,6 +26,14 @@ describe('HelpFormatter', () => {
     });
 
     describe('flag', () => {
+      it('should handle an option with no names or description', () => {
+        const options = {
+          flag: { type: 'flag' },
+        } as const satisfies Options;
+        const message = new HelpFormatter(options).formatHelp(200);
+        expect(message).toEqual('');
+      });
+
       it('should handle an option with a link', () => {
         const options = {
           flag: {
