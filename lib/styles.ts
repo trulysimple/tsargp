@@ -570,6 +570,14 @@ type UlColor = Alias<`58;5;${Decimal}`>;
  */
 type StyleAttr = TypeFace | Foreground | Background | Underline | FgColor | BgColor | UlColor;
 
+/**
+ * A callback that processes a format specifier when splitting text.
+ * @param this The terminal string to append to
+ * @param word The word containing a format specifier
+ * @param spec The format specifier (e.g., '%s')
+ */
+type FormatCallback = (this: TerminalString, word: string, spec: string) => void;
+
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
@@ -577,6 +585,8 @@ type StyleAttr = TypeFace | Foreground | Background | Underline | FgColor | BgCo
  * Implements concatenation of strings that can be printed on a terminal.
  */
 class TerminalString {
+  private lastWord: string | undefined;
+
   /**
    * The list of strings that have been appended.
    */
@@ -592,6 +602,17 @@ class TerminalString {
    */
   get length(): number {
     return this.lengths.reduce((acc, len) => acc + len, 0);
+  }
+
+  /**
+   * Appends a text with surrounding sequences
+   * @param seq The starting sequence
+   * @param text The text to be appended
+   * @param rev The ending sequence
+   */
+  addAndRevert(seq: Sequence, text: string, rev: Sequence): this {
+    this.addText(seq + text + rev, text.length);
+    return this;
   }
 
   /**
@@ -614,19 +635,20 @@ class TerminalString {
   addWords(...words: Array<string>): this {
     this.strings.push(...words);
     this.lengths.push(...words.map((str) => str.length));
+    this.lastWord = words.at(-1);
     return this;
   }
 
   /**
    * Splits a text into words and style sequences, and appends them to the list of strings.
    * @param text The text to be split
-   * @param punct The punctuation to append to paragraphs that do not end with punctuation.
+   * @param format A callback to process format specifiers
    */
-  splitText(text: string, punct?: string) {
+  splitText(text: string, format?: FormatCallback) {
     const regex = /(?:[ \t]*\r?\n){2,}/;
     const paragraphs = text.split(regex);
     paragraphs.forEach((para, i) => {
-      this.splitParagraph(para, punct);
+      this.splitParagraph(para, format);
       if (i < paragraphs.length - 1) {
         this.addText('\n\n');
       }
@@ -636,22 +658,30 @@ class TerminalString {
   /**
    * Splits a paragraph into words and style sequences, and appends them to the list of strings.
    * @param para The paragraph to be split
-   * @param punct The punctuation to append to paragraphs that do not end with punctuation.
+   * @param format A callback to process format specifiers
    */
-  private splitParagraph(para: string, punct?: string) {
+  private splitParagraph(para: string, format?: FormatCallback) {
     const regex = {
-      item: /\r?\n[ \t]*(-|\*|\d+\.) /,
-      itemBegin: /^[ \t]*(-|\*|\d+\.) /,
-      punctEnd: /[.,:;!?][ \t]*$/,
+      item: /^[ \t]*(-|\*|\d+\.) /m,
+      punct: /[.,:;!?]$/,
     };
+    this.lastWord = undefined;
     para.split(regex.item).forEach((item, j) => {
       if (j % 2 == 0) {
-        this.splitItem(item);
-        if (punct && j == 0 && !item.match(regex.itemBegin) && !item.match(regex.punctEnd)) {
-          this.addWords(punct);
+        this.splitItem(item, format);
+        if (
+          j == 0 &&
+          this.lastWord &&
+          !item.match(regex.item) &&
+          !this.lastWord.match(regex.punct)
+        ) {
+          this.addWords('.');
         }
       } else {
-        this.addText('\n').addWords(item);
+        if (this.lastWord) {
+          this.addText('\n');
+        }
+        this.addWords(item);
       }
     });
   }
@@ -659,19 +689,29 @@ class TerminalString {
   /**
    * Splits a list item into words and style sequences, and appends them to the list of strings.
    * @param item The list item to be split
+   * @param format A callback to process format specifiers
    */
-  private splitItem(item: string) {
+  private splitItem(item: string, format?: FormatCallback) {
     const regex = {
       word: /\s+/,
       // eslint-disable-next-line no-control-regex
       style: /((?:\x9b[\d;]+m)+)/,
+      format: /%[a-z]/,
     };
+    const boundFormat = format?.bind(this);
     const words = item.split(regex.word);
     for (const word of words) {
       for (const str of word.split(regex.style)) {
         if (isStyle(str)) {
           this.addText(str);
         } else if (str) {
+          if (boundFormat) {
+            const match = str.match(regex.format);
+            if (match) {
+              boundFormat(str, match[0]);
+              continue;
+            }
+          }
           this.addWords(str);
         }
       }

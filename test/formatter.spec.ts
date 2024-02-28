@@ -849,7 +849,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(
-          `-ss,--strings<strings>A strings option. Accepts multiple parameters. Accepts positional parameters preceded by --.`,
+          `-ss,--strings<strings>A strings option. Accepts multiple parameters. Accepts positional parameters that may be preceded by --.`,
         );
       });
 

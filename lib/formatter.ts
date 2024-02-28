@@ -104,6 +104,11 @@ type FormatConfig = {
 
   /**
    * The phrases to be used for each kind of help item.
+   *
+   * If an item has a value, the `%s` specifier can be used to indicate where in the phrase to place
+   * the value. If an item has multiple alternatives, such as {@link HelpItem.case}, different texts
+   * can separated with `|` and grouped in parentheses, like this:
+   * `'Values will be converted to (lowercase|uppercase)'`.
    */
   readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
 };
@@ -263,25 +268,25 @@ const defaultConfig: ConcreteFormat = {
   ],
   phrases: {
     [HelpItem.synopsis]: '%s',
-    [HelpItem.negation]: 'Can be negated with %s.',
-    [HelpItem.separator]: 'Values are delimited by %s.',
-    [HelpItem.variadic]: 'Accepts multiple parameters.',
-    [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %s).',
-    [HelpItem.append]: 'May be specified multiple times.',
-    [HelpItem.trim]: 'Values will be trimmed.',
-    [HelpItem.case]: 'Values will be converted to (lowercase|uppercase).',
+    [HelpItem.negation]: 'Can be negated with %s',
+    [HelpItem.separator]: 'Values are delimited by %s',
+    [HelpItem.variadic]: 'Accepts multiple parameters',
+    [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %s)',
+    [HelpItem.append]: 'May be specified multiple times',
+    [HelpItem.trim]: 'Values will be trimmed',
+    [HelpItem.case]: 'Values will be converted to (lowercase|uppercase)',
     [HelpItem.round]:
-      'Values will be (truncated|rounded down|rounded up|rounded to the nearest integer).',
-    [HelpItem.enums]: 'Values must be one of {%s}.',
-    [HelpItem.regex]: 'Values must match the regex %s.',
-    [HelpItem.range]: 'Values must be in the range [%s].',
-    [HelpItem.unique]: 'Duplicate values will be removed.',
-    [HelpItem.limit]: 'Value count is limited to %s.',
-    [HelpItem.requires]: 'Requires %s.',
-    [HelpItem.required]: 'Always required.',
-    [HelpItem.default]: 'Defaults to %s.',
+      'Values will be (truncated|rounded down|rounded up|rounded to the nearest integer)',
+    [HelpItem.enums]: 'Values must be one of %s',
+    [HelpItem.regex]: 'Values must match the regex %s',
+    [HelpItem.range]: 'Values must be in the range %s',
+    [HelpItem.unique]: 'Duplicate values will be removed',
+    [HelpItem.limit]: 'Value count is limited to %s',
+    [HelpItem.requires]: 'Requires %s',
+    [HelpItem.required]: 'Always required',
+    [HelpItem.default]: 'Defaults to %s',
     [HelpItem.deprecated]: 'Deprecated for %s',
-    [HelpItem.link]: 'Refer to %s for details.',
+    [HelpItem.link]: 'Refer to %s for details',
   },
 };
 
@@ -475,9 +480,10 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatSynopsis(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatSynopsis(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if (option.desc) {
-      result.splitText(option.desc, '.');
+      const text = option.desc;
+      result.splitText(phrase, () => result.splitText(text));
     }
   }
 
@@ -488,17 +494,17 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatNegation(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatNegation(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('negationNames' in option && option.negationNames) {
-      result.addWords('Can', 'be', 'negated', 'with');
       const names = option.negationNames.filter((name) => name);
-      names.forEach((name, i) => {
-        this.formatName(name, style, result);
-        if (i < names.length - 1) {
-          result.addWords('or');
-        }
+      result.splitText(phrase, () => {
+        names.forEach((name, i) => {
+          this.formatName(name, style, result);
+          if (i < names.length - 1) {
+            result.addWords('or');
+          }
+        });
       });
-      result.addWords('.');
     }
   }
 
@@ -509,15 +515,16 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatSeparator(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatSeparator(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('separator' in option && option.separator) {
-      result.addWords('Values', 'are', 'delimited', 'by');
-      if (typeof option.separator === 'string') {
-        this.formatString(option.separator, style, result);
-      } else {
-        this.formatRegExp(option.separator, style, result);
-      }
-      result.addWords('.');
+      const sep = option.separator;
+      result.splitText(phrase, () => {
+        if (typeof sep === 'string') {
+          this.formatString(sep, style, result);
+        } else {
+          this.formatRegExp(sep, style, result);
+        }
+      });
     }
   }
 
@@ -528,9 +535,9 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatVariadic(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatVariadic(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if (isArray(option) && isVariadic(option)) {
-      result.addWords('Accepts', 'multiple', 'parameters.');
+      result.splitText(phrase);
     }
   }
 
@@ -541,15 +548,16 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatPositional(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatPositional(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('positional' in option && option.positional) {
-      result.addWords('Accepts', 'positional');
-      if (typeof option.positional === 'string') {
-        result.addWords('parameters', 'preceded', 'by');
-        this.formatName(option.positional, style, result);
-        result.addWords('.');
+      const pos = option.positional;
+      const [p, m] = splitPhrase(phrase);
+      if (pos === true || !m) {
+        result.splitText(p);
       } else {
-        result.addWords('parameters.');
+        result.splitText(m, () => {
+          this.formatName(pos, style, result);
+        });
       }
     }
   }
@@ -561,9 +569,9 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatAppend(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatAppend(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if ('append' in option && option.append) {
-      result.addWords('May', 'be', 'specified', 'multiple', 'times.');
+      result.splitText(phrase);
     }
   }
 
@@ -574,9 +582,9 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatTrim(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatTrim(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if ('trim' in option && option.trim) {
-      result.addWords('Values', 'will', 'be', 'trimmed.');
+      result.splitText(phrase);
     }
   }
 
@@ -587,9 +595,10 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatCase(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatCase(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if ('case' in option && option.case) {
-      result.addWords('Values', 'will', 'be', 'converted', 'to', option.case + 'case.');
+      const [l, u] = splitPhrase(phrase);
+      result.splitText(option.case === 'lower' || !u ? l : u);
     }
   }
 
@@ -600,23 +609,13 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatRound(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatRound(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if ('round' in option && option.round) {
-      result.addWords('Values', 'will', 'be');
-      switch (option.round) {
-        case 'trunc':
-          result.addWords('truncated.');
-          break;
-        case 'floor':
-          result.addWords('rounded', 'down.');
-          break;
-        case 'ceil':
-          result.addWords('rounded', 'up.');
-          break;
-        case 'round':
-          result.addWords('rounded', 'to', 'the', 'nearest', 'integer.');
-          break;
-      }
+      const round = option.round;
+      const [t, f, c, r] = splitPhrase(phrase);
+      const text =
+        round === 'trunc' || !f ? t : round === 'floor' || !c ? f : round === 'ceil' || !r ? c : r;
+      result.splitText(text);
     }
   }
 
@@ -627,17 +626,17 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatEnums(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatEnums(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('enums' in option && option.enums) {
-      result.addWords('Values', 'must', 'be', 'one', 'of');
-      if (option.type === 'string' || option.type === 'strings') {
-        const formatFn = this.formatString.bind(this);
-        this.formatArray2(option.enums, style, result, formatFn, ['{', '}']);
-      } else {
-        const formatFn = this.formatNumber.bind(this);
-        this.formatArray2(option.enums, style, result, formatFn, ['{', '}']);
-      }
-      result.addWords('.');
+      type FormatFn = (value: string | number, style: Style, result: TerminalString) => void;
+      const enums = option.enums;
+      const formatFn =
+        option.type === 'string' || option.type === 'strings'
+          ? this.formatString.bind(this)
+          : this.formatNumber.bind(this);
+      result.splitText(phrase, () => {
+        this.formatArray2(enums, style, result, formatFn as FormatFn, ['{', '}'], ',');
+      });
     }
   }
 
@@ -648,11 +647,12 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatRegex(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatRegex(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('regex' in option && option.regex) {
-      result.addWords('Values', 'must', 'match', 'the', 'regex');
-      this.formatRegExp(option.regex, style, result);
-      result.addWords('.');
+      const regex = option.regex;
+      result.splitText(phrase, () => {
+        this.formatRegExp(regex, style, result);
+      });
     }
   }
 
@@ -663,12 +663,13 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatRange(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatRange(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('range' in option && option.range) {
-      result.addWords('Values', 'must', 'be', 'in', 'the', 'range');
+      const range = option.range;
       const formatFn = this.formatNumber.bind(this);
-      this.formatArray2(option.range, style, result, formatFn, ['[', ']']);
-      result.addWords('.');
+      result.splitText(phrase, () => {
+        this.formatArray2(range, style, result, formatFn, ['[', ']'], ',');
+      });
     }
   }
 
@@ -679,9 +680,9 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatUnique(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatUnique(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if ('unique' in option && option.unique) {
-      result.addWords('Duplicate', 'values', 'will', 'be', 'removed.');
+      result.splitText(phrase);
     }
   }
 
@@ -692,11 +693,12 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatLimit(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatLimit(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('limit' in option && option.limit !== undefined) {
-      result.addWords('Value', 'count', 'is', 'limited', 'to');
-      this.formatNumber(option.limit, style, result);
-      result.addWords('.');
+      const limit = option.limit;
+      result.splitText(phrase, () => {
+        this.formatNumber(limit, style, result);
+      });
     }
   }
 
@@ -707,11 +709,12 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatRequires(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatRequires(option: Option, phrase: string, style: Style, result: TerminalString) {
     if (option.requires) {
-      result.addWords('Requires');
-      this.formatRequirements(option.requires, style, result);
-      result.addWords('.');
+      const requires = option.requires;
+      result.splitText(phrase, () => {
+        this.formatRequirements(requires, style, result);
+      });
     }
   }
 
@@ -722,9 +725,9 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatRequired(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatRequired(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if ('required' in option && option.required) {
-      result.addWords('Always required.');
+      result.splitText(phrase);
     }
   }
 
@@ -735,15 +738,16 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatDefault(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatDefault(option: Option, phrase: string, style: Style, result: TerminalString) {
     if (
       'default' in option &&
       option.default !== undefined &&
       typeof option.default !== 'function'
     ) {
-      result.addWords('Defaults', 'to');
-      this.formatValue(option, option.default, result, style, true);
-      result.addWords('.');
+      const def = option.default;
+      result.splitText(phrase, () => {
+        this.formatValue(option, def, result, style, true);
+      });
     }
   }
 
@@ -754,9 +758,10 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatDeprecated(option: Option, _phrase: string, _style: Style, result: TerminalString) {
+  private formatDeprecated(option: Option, phrase: string, _style: Style, result: TerminalString) {
     if (option.deprecated) {
-      result.addWords('Deprecated', 'for').splitText(option.deprecated, '.');
+      const text = option.deprecated;
+      result.splitText(phrase, () => result.splitText(text));
     }
   }
 
@@ -767,11 +772,12 @@ class HelpFormatter {
    * @param style The description style
    * @param result The resulting string
    */
-  private formatLink(option: Option, _phrase: string, style: Style, result: TerminalString) {
+  private formatLink(option: Option, phrase: string, style: Style, result: TerminalString) {
     if (option.link) {
-      result.addWords('Refer', 'to');
-      this.formatURL(option.link, style, result);
-      result.addWords('for', 'details.');
+      const link = option.link;
+      result.splitText(phrase, () => {
+        this.formatURL(link, style, result);
+      });
     }
   }
 
@@ -793,7 +799,7 @@ class HelpFormatter {
     inDesc: boolean,
   ) {
     if (inDesc) {
-      this.formatArray2(value, style, result, formatFn, ['[', ']']);
+      this.formatArray2(value, style, result, formatFn, ['[', ']'], ',');
     } else if ('separator' in option && option.separator) {
       if (typeof option.separator === 'string') {
         this.formatString(value.join(option.separator), style, result);
@@ -801,7 +807,7 @@ class HelpFormatter {
         this.formatString(value.join(option.separator.source), style, result);
       }
     } else {
-      this.formatArray2(value, style, result, formatFn, undefined, ' ');
+      this.formatArray2(value, style, result, formatFn, ['', ''], ' ');
     }
   }
 
@@ -819,10 +825,10 @@ class HelpFormatter {
     style: Style,
     result: TerminalString,
     formatFn: (value: T, style: Style, result: TerminalString) => void,
-    brackets?: [string, string],
-    separator = ',',
+    brackets: [string, string],
+    separator: string,
   ) {
-    if (brackets) {
+    if (brackets[0]) {
       result.addWords(brackets[0]);
     }
     values.forEach((value, i) => {
@@ -831,7 +837,7 @@ class HelpFormatter {
         result.addWords(separator);
       }
     });
-    if (brackets) {
+    if (brackets[1]) {
       result.addWords(brackets[1]);
     }
   }
@@ -843,8 +849,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatBoolean(value: boolean, style: Style, result: TerminalString) {
-    const str = value.toString();
-    result.addText(this.config.styles.boolean + str + style, str.length);
+    result.addAndRevert(this.config.styles.boolean, value.toString(), style);
   }
 
   /**
@@ -854,8 +859,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatString(value: string, style: Style, result: TerminalString) {
-    const str = `'${value}'`;
-    result.addText(this.config.styles.string + str + style, str.length);
+    result.addAndRevert(this.config.styles.string, `'${value}'`, style);
   }
 
   /**
@@ -865,8 +869,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatNumber(value: number, style: Style, result: TerminalString) {
-    const str = value.toString();
-    result.addText(this.config.styles.number + str + style, str.length);
+    result.addAndRevert(this.config.styles.number, value.toString(), style);
   }
 
   /**
@@ -876,8 +879,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatRegExp(value: RegExp, style: Style, result: TerminalString) {
-    const str = value.toString();
-    result.addText(this.config.styles.regex + str + style, str.length);
+    result.addAndRevert(this.config.styles.regex, value.toString(), style);
   }
 
   /**
@@ -887,8 +889,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatURL(value: URL, style: Style, result: TerminalString) {
-    const str = value.href;
-    result.addText(this.config.styles.url + str + style, str.length);
+    result.addAndRevert(this.config.styles.url, value.href, style);
   }
 
   /**
@@ -898,7 +899,7 @@ class HelpFormatter {
    * @param result The resulting string
    */
   private formatName(name: string, style: Style, result: TerminalString) {
-    result.addText(this.config.styles.option + name + style, name.length);
+    result.addAndRevert(this.config.styles.option, name, style);
   }
 
   /**
@@ -1200,7 +1201,6 @@ function wrapText(result: Array<string>, text: TerminalString, width: number, st
   }
   for (let i = 0; i < text.strings.length; ++i) {
     const word = text.strings[i];
-    const len = text.lengths[i];
     if (word.startsWith('\n')) {
       addWord();
       result.push(word, moveToStart);
@@ -1209,6 +1209,7 @@ function wrapText(result: Array<string>, text: TerminalString, width: number, st
       currentLen = 0;
       continue;
     }
+    const len = text.lengths[i];
     if (!len) {
       currentStyle = word;
       continue;
@@ -1226,4 +1227,14 @@ function wrapText(result: Array<string>, text: TerminalString, width: number, st
     currentStyle = '';
   }
   addWord();
+}
+
+/**
+ * Split a phrase into multiple alternatives
+ * @param phrase The help item phrase
+ * @returns The phrase alternatives
+ */
+function splitPhrase(phrase: string): Array<string> {
+  const [l, c, r] = phrase.split(/\((.*|.*)\)/, 3);
+  return c ? c.split('|').map((alt) => l + alt + r) : [l];
 }
