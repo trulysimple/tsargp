@@ -172,7 +172,7 @@ parameters:
 - `rest` - the remaining command-line arguments
 
 It should return the list of completion words and should not throw any errors. If asynchronous, you
-should call [`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
+should call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 
 #### Parse callback
 
@@ -242,7 +242,7 @@ Array-valued option types share a set of attributes, as described below.
 
 The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
 specified, the option will accept a single parameter and not multiple parameters (we say that it is
-_delimited_, rather than being _variadic_). Can be a string or a regular expression. Mutually
+_delimited_, rather than being _variadic_). It can be a string or a regular expression. Mutually
 exclusive with [parse callback](#parse-callback) and [parse delimited](#parse-delimited).
 
 #### Parse delimited
@@ -284,7 +284,7 @@ Niladic options do not expect any parameter on the command-line. With the notabl
 value.
 
 <Callout type="info">
-  When bash completion is in effect, help and version options will not be processed.
+  When bash completion is in effect, help and version options will _not_ be processed.
 </Callout>
 
 ### Help option
@@ -334,7 +334,7 @@ The `version` attribute is a semantic version or version information. Mutually e
 The `resolve` attribute is a resolution function scoped to the module where a `package.json` file
 will be searched and read to extract its `version` field. For use in non-browser environments only.
 You should use [`import.meta.resolve`] as value. This results in an asynchronous operation, so you
-should call [`parseAsync`](parser.mdx#asynchronous-parsing) and await its result. Mutually exclusive
+should call [`parseAsync`](parser.mdx#executing-callbacks) and await its result. Mutually exclusive
 with [semantic version](#semantic-version).
 
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
@@ -342,7 +342,7 @@ with [semantic version](#semantic-version).
 ### Function option
 
 The **function** option executes a generic callback function and records the number of times that
-the callback is executed in the option value. The following attributes can be specified.
+the callback was executed in the option value. The following attributes can be specified.
 
 #### Execute callback
 
@@ -354,7 +354,7 @@ three parameters:
 - `rest` - the remaining command-line arguments
 
 It should return nothing. It can be asynchronous, in which case you should call
-[`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
+[`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 
 <Callout type="default">
   Inside this callback, you may check whether an option has been specified before it by comparing
@@ -394,7 +394,7 @@ two parameters:
 - `cmdValues` - the values parsed after the command
 
 It should return nothing. It can be asynchronous, in which case you should call
-[`parseAsync`](parser.mdx#asynchronous-parsing) and await its result.
+[`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 
 <Callout type="info">
   When bash completion is in effect, the command callback will _not_ be called. Otherwise, the

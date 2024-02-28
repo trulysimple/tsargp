@@ -6,7 +6,7 @@ import { Callout } from 'nextra/components';
 
 # Parser
 
-The `ArgumentParser` class is the centerpiece of the library. It can be instantiated with a set of
+The `ArgumentParser` class is the main library component. It can be instantiated with a set of
 option _definitions_ and provides methods to parse command-line arguments into option values.
 
 ## Option values
@@ -60,13 +60,13 @@ penalty on your application. The validations behave like assertions: they assert
 will work as expected when delivered to end users.
 
 To validate a set of option definitions, you must call the `validate` method on the parser instance.
-The following sections describe the various kinds of validation performed by this method. In most of
-them, the option key specified in the option definitions object is included in the error message.
+The following sections describe the various kinds of validation performed by this method. Any option
+definition that does not satisfy one of these restrictions will trigger an error with an explanatory
+message that may include the option's key.
 
 ### Names validation
 
-Option names are subject to some restrictions, and any option definition that does not satisfy one
-of them will trigger an error. They are listed below.
+Option names are subject to the restrictions listed below.
 
 #### Invalid option name
 
@@ -84,8 +84,7 @@ and the [positional marker](options.mdx#positional--marker) are included in the 
 
 ### Enums validation
 
-Enumerated values are subject to some restrictions, and any option definition that does not satisfy
-one of them will trigger an error. They are listed below.
+Enumerated values are subject to the restrictions listed below.
 
 #### Zero enum values
 
@@ -100,8 +99,8 @@ contain duplicate elements.
 ### Value validation
 
 Non-niladic options may define a default value and an example value. If present, these attributes
-are subject to the same set of constraints as that of the command-line arguments, and any option
-definition whose values do not satisfy one of them will trigger an error. They are listed below.
+are subject to the same set of constraints as that of the command-line arguments, which are listed
+below.
 
 <Callout type="info">
   This does not apply to [default callbacks](options.mdx#default-value--callback) (they are ignored
@@ -132,45 +131,43 @@ normalized.
 
 ### Requirements validation
 
-When an option declares that it requires other options, these requirements are subject to some
-restrictions, and any option definition that does not satisfy one of them will trigger an error.
-They are listed below.
+When an option declares that it requires other options, these requirements are subject to the
+restrictions listed below.
 
 #### Option requiring itself
 
-An option must _not_ declare a requirement/expression that includes its own option key.
+An option must _not_ declare a requirement that includes its _own_ option key.
 
 #### Unknown required option
 
-An option must _not_ declare a requirement/expression that includes an unknown option key.
+An option must _not_ declare a requirement that includes an _unknown_ option key.
 
 #### Niladic option required with a value
 
-An option must _not_ declare a requirement/expression that includes an option key referencing a
-niladic option, _if_ it includes a required value that is neither `undefined{:ts}` nor `null{:ts}`.
+An option must _not_ declare a requirement that includes an option key referencing a niladic option,
+_if_ it includes a required value that is neither `undefined{:ts}` nor `null{:ts}`.
 
 #### Incompatible required value data type
 
 Since a requirement may be an object with values of any kind, the data type of these values must be
-validated at run-time. An option must _not_ declare a requirement/expression that includes an option
-key referencing a non-niladic option, _if_ it includes a required value that does not conform to the
+validated at run-time. An option must _not_ declare a requirement that includes an option key
+referencing a non-niladic option, _if_ it includes a required value that does _not_ conform to the
 data type expected by that option.
 
 #### Constraint violation
 
-If an option declares a requirement/expression that includes a required value, then that value is
-subject to the same set of constraints as that of the command-line arguments, so it must satisfy the
+If an option declares a requirement that includes a required value, then that value is subject to
+the same set of constraints as that of the command-line arguments, so it must satisfy the
 restrictions listed in [value validation](#value-validation).
 
 ### Positional validation
 
-Options declared with the [positional](options.mdx#positional--marker) attribute are subject to some
-restrictions, and any option definition that does not satisfy one of them will trigger an error.
-They are listed below.
+Options declared with the [positional](options.mdx#positional--marker) attribute are subject to the
+restrictions listed below.
 
 #### Duplicate positional option
 
-Since positional arguments are unnamed, they must pertain to exactly one option. Hence, there
+Since positional arguments have no name, they must pertain to exactly one option. Hence, there
 _cannot_ be two options with the positional attribute in the same set of option definitions.
 
 #### Empty positional marker
@@ -222,8 +219,8 @@ data types from one invocation to the next (e.g., a promise and a non-promise). 
 cases, the library checks the return type of each invocation to know if it is a promise or not, and
 act accordingly.
 
-In the case of the default callback, since there is no previous value to worry about, its handling
-of promises is very simple: if the returned value is a promise, then it is chained with a callback
+In the case of the default callback, since there is no previous value to worry about, handling
+promises is very simple: if the returned value is a promise, then it is chained with a callback
 that normalizes the value, and the new promise becomes the option value; otherwise, the returned
 value is normalized and set as the option value. This will also be the case of single-valued option
 types, since these options do not need the previous value: it simply gets replaced.
@@ -284,9 +281,9 @@ Quoting the [Bash docs]:
 > specification (a compspec) has been defined using the `complete` builtin (see Programmable
 > Completion Builtins), the programmable completion facilities are invoked.
 
-The parser does not use the completion facilities, because it relies simply on the command line
-string and the completion index into that string, which can be retrieved from the following
-environment variables (available when performing completion):
+The parser does not use the completion facilities, because it relies on the command line string and
+the completion index into that string, which can be retrieved from the following environment
+variables (available when performing completion):
 
 - `COMP_LINE` - the current command line
 - `COMP_POINT` - the index of the current cursor position relative to the beginning of the current
