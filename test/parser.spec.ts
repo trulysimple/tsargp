@@ -20,7 +20,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['boo'])).toThrow(/Unknown option .+boo.+\.$/);
+      expect(() => parser.parse(['boo'])).toThrow(/Unknown option .+boo.+\..+$/);
       expect(() => parser.parse(['bool'])).toThrow(
         /Unknown option .+bool.+.\nSimilar names are: .+--boolean1.+, .+--boolean2.+\./,
       );
@@ -1967,7 +1967,7 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic strings option', () => {
         const regex = new RegExp(
-          `Option .+-ss.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
+          `Option .+-ss.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\..+` +
             `\nDid you mean to specify an option name instead of .+ss.+\\?` +
             `\nSimilar names are: .+-ss.+\\.`,
         );
@@ -2449,7 +2449,7 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic numbers option', () => {
         const regex = new RegExp(
-          `Option .+-ns.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
+          `Option .+-ns.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\..+` +
             `\nDid you mean to specify an option name instead of .+ns.+\\?` +
             `\nSimilar names are: .+-ns.+\\.`,
         );
@@ -2826,7 +2826,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parseAsync(['-v'])).rejects.toThrow(
-        /^Could not find a 'package.json' file\.$/,
+        /Could not find a 'package.json' file\./,
       );
     });
 

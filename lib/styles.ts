@@ -578,35 +578,32 @@ type StyleAttr = TypeFace | Foreground | Background | Underline | FgColor | BgCo
  * Implements concatenation of strings that can be printed on a terminal.
  */
 class TerminalString {
-  private lastSequence: Sequence | undefined;
-
   /**
-   * The list of strings that have been appended (sequences and text).
+   * The list of strings that have been appended.
    */
   readonly strings = new Array<string>();
 
   /**
-   * The length of the largest (non-sequence) text.
+   * The lengths of the strings, ignoring sequences.
    */
-  maxTextLen = 0;
+  readonly lengths = new Array<number>();
 
   /**
-   * The sum of the (non-sequence) text lengths.
+   * @returns The length of all strings, ignoring sequences
    */
-  length = 0;
+  get length(): number {
+    return this.lengths.reduce((acc, len) => acc + len, 0);
+  }
 
   /**
-   * Appends sequences to the list of strings.
-   * @param sequences The sequences to be appended
+   * Appends a text with sequences to the list of strings.
+   * @param text The text to be appended
+   * @param length The length of the text without sequences
    * @returns This
    */
-  addSequence(...sequences: Array<Sequence>): this {
-    for (const sequence of sequences) {
-      if (sequence != this.lastSequence) {
-        this.strings.push(sequence);
-        this.lastSequence = sequence;
-      }
-    }
+  addText(text: string, length: number = 0): this {
+    this.strings.push(text);
+    this.lengths.push(length);
     return this;
   }
 
@@ -615,14 +612,9 @@ class TerminalString {
    * @param texts The texts to be appended. Should not contain any sequence.
    * @returns This
    */
-  addText(...texts: Array<string>): this {
+  addTexts(...texts: Array<string>): this {
     this.strings.push(...texts);
-    for (const str of texts) {
-      if (str.length > this.maxTextLen) {
-        this.maxTextLen = str.length;
-      }
-      this.length += str.length;
-    }
+    this.lengths.push(...texts.map((str) => str.length));
     return this;
   }
 }

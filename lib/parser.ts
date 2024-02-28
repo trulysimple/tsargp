@@ -249,9 +249,8 @@ class ParserLoop {
             // do not propagate errors during completion
             if (!this.completing) {
               if (!inline && !marker && isArray(option) && isVariadic(option)) {
-                const error = err as Error;
-                error.message += `\nDid you mean to specify an option name instead of ${this.formatOption(value)}?`;
-                this.handleUnknown(value, error);
+                const msg = `\nDid you mean to specify an option name instead of ${this.formatOption(value)}?`;
+                this.handleUnknown(value, (err as Error).message + msg);
               }
               throw err;
             }
@@ -415,9 +414,32 @@ class ParserLoop {
     } else if (option.version) {
       throw option.version;
     } else if (option.resolve) {
-      this.promises.push(resolveVersion(option.resolve));
+      this.promises.push(this.resolveVersion(option.resolve));
     }
     return true;
+  }
+
+  /**
+   * Resolve a package version using a module-resolve function.
+   * @param resolve The resolve callback
+   */
+  private async resolveVersion(resolve: ResolveCallback): Promise<never> {
+    const { promises } = await import('fs');
+    for (
+      let path = './package.json', lastResolved = '', resolved = resolve(path);
+      resolved != lastResolved;
+      path = '../' + path, lastResolved = resolved, resolved = resolve(path)
+    ) {
+      try {
+        const jsonData = await promises.readFile(new URL(resolved));
+        throw JSON.parse(jsonData.toString()).version;
+      } catch (err) {
+        if ((err as ErrnoException).code != 'ENOENT') {
+          throw err;
+        }
+      }
+    }
+    throw this.registry.error(`Could not find a 'package.json' file.`);
   }
 
   /**
@@ -481,18 +503,18 @@ class ParserLoop {
   /**
    * Handles an unknown option.
    * @param name The unknown option name
-   * @param error The previous error, if any
+   * @param msg The previous error message, if any
    */
-  private handleUnknown(name: string, error?: Error): never {
-    if (!error) {
-      error = this.registry.error(`Unknown option ${this.formatOption(name)}.`);
+  private handleUnknown(name: string, msg: string = ''): never {
+    if (!msg) {
+      msg = `Unknown option ${this.formatOption(name)}.`;
     }
     const similar = this.findSimilarNames(name);
     if (similar.length) {
       const optNames = similar.map((str) => this.formatOption(str));
-      error.message += `\nSimilar names are: ${optNames.join(', ')}.`;
+      msg += `\nSimilar names are: ${optNames.join(', ')}.`;
     }
-    throw error;
+    throw this.registry.error(msg);
   }
 
   /**
@@ -1082,29 +1104,6 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
     result.push(arg);
   }
   return result;
-}
-
-/**
- * Resolve a package version using a module-resolve function.
- * @param resolve The resolve callback
- */
-async function resolveVersion(resolve: ResolveCallback): Promise<never> {
-  const { promises } = await import('fs');
-  for (
-    let path = './package.json', lastResolved = '', resolved = resolve(path);
-    resolved != lastResolved;
-    path = '../' + path, lastResolved = resolved, resolved = resolve(path)
-  ) {
-    try {
-      const jsonData = await promises.readFile(new URL(resolved));
-      throw JSON.parse(jsonData.toString()).version;
-    } catch (err) {
-      if ((err as ErrnoException).code != 'ENOENT') {
-        throw err;
-      }
-    }
-  }
-  throw `Could not find a 'package.json' file.`;
 }
 
 /**
