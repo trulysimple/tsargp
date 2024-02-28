@@ -34,7 +34,6 @@ export {
   scroll,
   style,
   margin,
-  isStyle,
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -584,22 +583,22 @@ class TerminalString {
   readonly strings = new Array<string>();
 
   /**
-   * The lengths of the strings, ignoring sequences.
+   * The lengths of the strings, ignoring control characters and sequences.
    */
   readonly lengths = new Array<number>();
 
   /**
-   * @returns The length of all strings, ignoring sequences
+   * @returns The sum of the lengths of all strings, ignoring control characters and sequences.
    */
   get length(): number {
     return this.lengths.reduce((acc, len) => acc + len, 0);
   }
 
   /**
-   * Appends a text with sequences to the list of strings.
+   * Appends a text that may contain control characters or sequences to the list of strings.
    * @param text The text to be appended
-   * @param length The length of the text without sequences
-   * @returns This
+   * @param length The length of the text without control characters or sequences
+   * @returns The terminal string instance
    */
   addText(text: string, length: number = 0): this {
     this.strings.push(text);
@@ -608,14 +607,75 @@ class TerminalString {
   }
 
   /**
-   * Appends texts to the list of strings.
-   * @param texts The texts to be appended. Should not contain any sequence.
-   * @returns This
+   * Appends words to the list of strings.
+   * @param words The words to be appended. Should not contain control characters or sequences.
+   * @returns The terminal string instance
    */
-  addTexts(...texts: Array<string>): this {
-    this.strings.push(...texts);
-    this.lengths.push(...texts.map((str) => str.length));
+  addWords(...words: Array<string>): this {
+    this.strings.push(...words);
+    this.lengths.push(...words.map((str) => str.length));
     return this;
+  }
+
+  /**
+   * Splits a text into words and style sequences, and appends them to the list of strings.
+   * @param text The text to be split
+   * @param punct The punctuation to append to paragraphs that do not end with punctuation.
+   */
+  splitText(text: string, punct?: string) {
+    const regex = /(?:[ \t]*\r?\n){2,}/;
+    const paragraphs = text.split(regex);
+    paragraphs.forEach((para, i) => {
+      this.splitParagraph(para, punct);
+      if (i < paragraphs.length - 1) {
+        this.addText('\n\n');
+      }
+    });
+  }
+
+  /**
+   * Splits a paragraph into words and style sequences, and appends them to the list of strings.
+   * @param para The paragraph to be split
+   * @param punct The punctuation to append to paragraphs that do not end with punctuation.
+   */
+  private splitParagraph(para: string, punct?: string) {
+    const regex = {
+      item: /\r?\n[ \t]*(-|\*|\d+\.) /,
+      itemBegin: /^[ \t]*(-|\*|\d+\.) /,
+      punctEnd: /[.,:;!?][ \t]*$/,
+    };
+    para.split(regex.item).forEach((item, j) => {
+      if (j % 2 == 0) {
+        this.splitItem(item);
+        if (punct && j == 0 && !item.match(regex.itemBegin) && !item.match(regex.punctEnd)) {
+          this.addWords(punct);
+        }
+      } else {
+        this.addText('\n').addWords(item);
+      }
+    });
+  }
+
+  /**
+   * Splits a list item into words and style sequences, and appends them to the list of strings.
+   * @param item The list item to be split
+   */
+  private splitItem(item: string) {
+    const regex = {
+      word: /\s+/,
+      // eslint-disable-next-line no-control-regex
+      style: /((?:\x9b[\d;]+m)+)/,
+    };
+    const words = item.split(regex.word);
+    for (const word of words) {
+      for (const str of word.split(regex.style)) {
+        if (isStyle(str)) {
+          this.addText(str);
+        } else if (str) {
+          this.addWords(str);
+        }
+      }
+    }
   }
 }
 

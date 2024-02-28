@@ -16,7 +16,7 @@ import type {
 import type { Style } from './styles';
 
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
-import { fg, isStyle, move, mv, style, TerminalString, tf } from './styles';
+import { fg, move, mv, style, TerminalString, tf } from './styles';
 
 export { HelpFormatter, HelpItem, type FormatConfig };
 
@@ -405,7 +405,7 @@ class HelpFormatter {
     let prefix = 0;
     function formatName(name: string | null, width: number) {
       if (prev && name) {
-        result.addTexts(',');
+        result.addWords(',');
       } else if (prefix) {
         prefix++;
       }
@@ -477,7 +477,7 @@ class HelpFormatter {
    */
   private formatSynopsis(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if (option.desc) {
-      splitWords(option.desc, result);
+      result.splitText(option.desc, '.');
     }
   }
 
@@ -490,15 +490,15 @@ class HelpFormatter {
    */
   private formatNegation(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if ('negationNames' in option && option.negationNames) {
-      result.addTexts('Can', 'be', 'negated', 'with');
+      result.addWords('Can', 'be', 'negated', 'with');
       const names = option.negationNames.filter((name) => name);
       names.forEach((name, i) => {
         this.formatName(name, style, result);
         if (i < names.length - 1) {
-          result.addTexts('or');
+          result.addWords('or');
         }
       });
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -511,13 +511,13 @@ class HelpFormatter {
    */
   private formatSeparator(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if ('separator' in option && option.separator) {
-      result.addTexts('Values', 'are', 'delimited', 'by');
+      result.addWords('Values', 'are', 'delimited', 'by');
       if (typeof option.separator === 'string') {
         this.formatString(option.separator, style, result);
       } else {
         this.formatRegExp(option.separator, style, result);
       }
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -530,7 +530,7 @@ class HelpFormatter {
    */
   private formatVariadic(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if (isArray(option) && isVariadic(option)) {
-      result.addTexts('Accepts', 'multiple', 'parameters.');
+      result.addWords('Accepts', 'multiple', 'parameters.');
     }
   }
 
@@ -543,13 +543,13 @@ class HelpFormatter {
    */
   private formatPositional(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if ('positional' in option && option.positional) {
-      result.addTexts('Accepts', 'positional');
+      result.addWords('Accepts', 'positional');
       if (typeof option.positional === 'string') {
-        result.addTexts('parameters', 'preceded', 'by');
+        result.addWords('parameters', 'preceded', 'by');
         this.formatName(option.positional, style, result);
-        result.addTexts('.');
+        result.addWords('.');
       } else {
-        result.addTexts('parameters.');
+        result.addWords('parameters.');
       }
     }
   }
@@ -563,7 +563,7 @@ class HelpFormatter {
    */
   private formatAppend(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if ('append' in option && option.append) {
-      result.addTexts('May', 'be', 'specified', 'multiple', 'times.');
+      result.addWords('May', 'be', 'specified', 'multiple', 'times.');
     }
   }
 
@@ -576,7 +576,7 @@ class HelpFormatter {
    */
   private formatTrim(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if ('trim' in option && option.trim) {
-      result.addTexts('Values', 'will', 'be', 'trimmed.');
+      result.addWords('Values', 'will', 'be', 'trimmed.');
     }
   }
 
@@ -589,7 +589,7 @@ class HelpFormatter {
    */
   private formatCase(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if ('case' in option && option.case) {
-      result.addTexts('Values', 'will', 'be', 'converted', 'to', option.case + 'case.');
+      result.addWords('Values', 'will', 'be', 'converted', 'to', option.case + 'case.');
     }
   }
 
@@ -602,19 +602,19 @@ class HelpFormatter {
    */
   private formatRound(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if ('round' in option && option.round) {
-      result.addTexts('Values', 'will', 'be');
+      result.addWords('Values', 'will', 'be');
       switch (option.round) {
         case 'trunc':
-          result.addTexts('truncated.');
+          result.addWords('truncated.');
           break;
         case 'floor':
-          result.addTexts('rounded', 'down.');
+          result.addWords('rounded', 'down.');
           break;
         case 'ceil':
-          result.addTexts('rounded', 'up.');
+          result.addWords('rounded', 'up.');
           break;
         case 'round':
-          result.addTexts('rounded', 'to', 'the', 'nearest', 'integer.');
+          result.addWords('rounded', 'to', 'the', 'nearest', 'integer.');
           break;
       }
     }
@@ -629,7 +629,7 @@ class HelpFormatter {
    */
   private formatEnums(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if ('enums' in option && option.enums) {
-      result.addTexts('Values', 'must', 'be', 'one', 'of');
+      result.addWords('Values', 'must', 'be', 'one', 'of');
       if (option.type === 'string' || option.type === 'strings') {
         const formatFn = this.formatString.bind(this);
         this.formatArray2(option.enums, style, result, formatFn, ['{', '}']);
@@ -637,7 +637,7 @@ class HelpFormatter {
         const formatFn = this.formatNumber.bind(this);
         this.formatArray2(option.enums, style, result, formatFn, ['{', '}']);
       }
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -650,9 +650,9 @@ class HelpFormatter {
    */
   private formatRegex(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if ('regex' in option && option.regex) {
-      result.addTexts('Values', 'must', 'match', 'the', 'regex');
+      result.addWords('Values', 'must', 'match', 'the', 'regex');
       this.formatRegExp(option.regex, style, result);
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -665,10 +665,10 @@ class HelpFormatter {
    */
   private formatRange(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if ('range' in option && option.range) {
-      result.addTexts('Values', 'must', 'be', 'in', 'the', 'range');
+      result.addWords('Values', 'must', 'be', 'in', 'the', 'range');
       const formatFn = this.formatNumber.bind(this);
       this.formatArray2(option.range, style, result, formatFn, ['[', ']']);
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -681,7 +681,7 @@ class HelpFormatter {
    */
   private formatUnique(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if ('unique' in option && option.unique) {
-      result.addTexts('Duplicate', 'values', 'will', 'be', 'removed.');
+      result.addWords('Duplicate', 'values', 'will', 'be', 'removed.');
     }
   }
 
@@ -694,9 +694,9 @@ class HelpFormatter {
    */
   private formatLimit(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if ('limit' in option && option.limit !== undefined) {
-      result.addTexts('Value', 'count', 'is', 'limited', 'to');
+      result.addWords('Value', 'count', 'is', 'limited', 'to');
       this.formatNumber(option.limit, style, result);
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -709,9 +709,9 @@ class HelpFormatter {
    */
   private formatRequires(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if (option.requires) {
-      result.addTexts('Requires');
+      result.addWords('Requires');
       this.formatRequirements(option.requires, style, result);
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -724,7 +724,7 @@ class HelpFormatter {
    */
   private formatRequired(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if ('required' in option && option.required) {
-      result.addTexts('Always required.');
+      result.addWords('Always required.');
     }
   }
 
@@ -741,9 +741,9 @@ class HelpFormatter {
       option.default !== undefined &&
       typeof option.default !== 'function'
     ) {
-      result.addTexts('Defaults', 'to');
+      result.addWords('Defaults', 'to');
       this.formatValue(option, option.default, result, style, true);
-      result.addTexts('.');
+      result.addWords('.');
     }
   }
 
@@ -756,8 +756,7 @@ class HelpFormatter {
    */
   private formatDeprecated(option: Option, _phrase: string, _style: Style, result: TerminalString) {
     if (option.deprecated) {
-      result.addTexts('Deprecated', 'for');
-      splitWords(option.deprecated, result);
+      result.addWords('Deprecated', 'for').splitText(option.deprecated, '.');
     }
   }
 
@@ -770,9 +769,9 @@ class HelpFormatter {
    */
   private formatLink(option: Option, _phrase: string, style: Style, result: TerminalString) {
     if (option.link) {
-      result.addTexts('Refer', 'to');
+      result.addWords('Refer', 'to');
       this.formatURL(option.link, style, result);
-      result.addTexts('for', 'details.');
+      result.addWords('for', 'details.');
     }
   }
 
@@ -824,16 +823,16 @@ class HelpFormatter {
     separator = ',',
   ) {
     if (brackets) {
-      result.addTexts(brackets[0]);
+      result.addWords(brackets[0]);
     }
     values.forEach((value, i) => {
       formatFn(value, style, result);
       if (i < values.length - 1) {
-        result.addTexts(separator);
+        result.addWords(separator);
       }
     });
     if (brackets) {
-      result.addTexts(brackets[1]);
+      result.addWords(brackets[1]);
     }
   }
 
@@ -919,7 +918,7 @@ class HelpFormatter {
       const option = this.options[requires];
       const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
       if (negate) {
-        result.addTexts('no');
+        result.addWords('no');
       }
       this.formatName(name, style, result);
     } else if (requires instanceof RequiresNot) {
@@ -946,16 +945,16 @@ class HelpFormatter {
   ) {
     const op = requires instanceof RequiresAll ? (negate ? 'or' : 'and') : negate ? 'and' : 'or';
     if (requires.items.length > 1) {
-      result.addTexts('(');
+      result.addWords('(');
     }
     requires.items.forEach((item, i) => {
       this.formatRequirements(item, style, result, negate);
       if (i < requires.items.length - 1) {
-        result.addTexts(op);
+        result.addWords(op);
       }
     });
     if (requires.items.length > 1) {
-      result.addTexts(')');
+      result.addWords(')');
     }
   }
 
@@ -974,16 +973,16 @@ class HelpFormatter {
   ) {
     const entries = Object.entries(requires);
     if (entries.length > 1) {
-      result.addTexts('(');
+      result.addWords('(');
     }
     entries.forEach(([key, value], i) => {
       this.formatRequiredValue(this.options[key], value, style, result, negate);
       if (i < entries.length - 1) {
-        result.addTexts('and');
+        result.addWords('and');
       }
     });
     if (entries.length > 1) {
-      result.addTexts(')');
+      result.addWords(')');
     }
   }
 
@@ -1005,12 +1004,12 @@ class HelpFormatter {
     function assert(_condition: unknown): asserts _condition {}
     const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     if ((value === null && !negate) || (value === undefined && negate)) {
-      result.addTexts('no');
+      result.addWords('no');
     }
     this.formatName(name, style, result);
     if (value !== null && value !== undefined) {
       assert(!isNiladic(option));
-      result.addTexts(negate ? '!=' : '=');
+      result.addWords(negate ? '!=' : '=');
       this.formatValue(option, value, result, style, true);
     }
   }
@@ -1163,55 +1162,6 @@ function getNameWidths(options: Options): Array<number> {
 }
 
 /**
- * Split a text into words and style sequences.
- * @param text The text to be split
- * @param result The resulting string to append to
- */
-function splitWords(text: string, result: TerminalString) {
-  const regex = {
-    para: /(?:[ \t]*\r?\n){2,}/,
-    item: /\r?\n[ \t]*(-|\*|\d+\.) /,
-    word: /\s+/,
-    // eslint-disable-next-line no-control-regex
-    style: /((?:\x9b[\d;]+m)+)/,
-    itemBegin: /^(-|\*|\d+\.) /,
-    punctEnd: /[.,:;!?]$/,
-  };
-  const paragraphs = text.split(regex.para);
-  paragraphs.forEach((para, i) => {
-    para.split(regex.item).forEach((item, j) => {
-      if (j % 2 == 0) {
-        item = item.trim();
-        if (item) {
-          if (j == 0 && !item.match(regex.itemBegin) && !item.match(regex.punctEnd)) {
-            item += '.';
-          }
-          const words = item.split(regex.word);
-          if (item.includes('\x9b')) {
-            for (const word of words) {
-              for (const str of word.split(regex.style)) {
-                if (isStyle(str)) {
-                  result.addText(str);
-                } else if (str) {
-                  result.addTexts(str);
-                }
-              }
-            }
-          } else {
-            result.addTexts(...words);
-          }
-        }
-      } else {
-        result.addTexts('\n', item);
-      }
-    });
-    if (i < paragraphs.length - 1) {
-      result.addTexts('\n\n');
-    }
-  });
-}
-
-/**
  * Wraps an option's description to fit in the terminal width.
  * @param result The resulting strings to append to
  * @param text The terminal string to be wrapped
@@ -1251,16 +1201,16 @@ function wrapText(result: Array<string>, text: TerminalString, width: number, st
   for (let i = 0; i < text.strings.length; ++i) {
     const word = text.strings[i];
     const len = text.lengths[i];
-    if (!len) {
-      currentStyle = word;
-      continue;
-    }
     if (word.startsWith('\n')) {
       addWord();
       result.push(word, moveToStart);
       lineLength = 0;
       currentWord = '';
       currentLen = 0;
+      continue;
+    }
+    if (!len) {
+      currentStyle = word;
       continue;
     }
     if (merge || word.match(punctuation) || word.match(closingBrackets)) {
