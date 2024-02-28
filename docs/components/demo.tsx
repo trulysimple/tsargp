@@ -12,7 +12,7 @@ import 'xterm/css/xterm.css';
 // @ts-expect-error since tsargp demo does not export types
 import options from 'tsargp/demo';
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.78';
+options.version.version = '0.1.79';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -220,7 +220,9 @@ class Demo extends React.Component<Props, State> {
   private run(line: string) {
     try {
       const values = this.parser.parse(line, { termWidth: this.state.width });
-      this.readline.println(JSON.stringify(values, null, 2));
+      if (!values.command) {
+        this.readline.println(JSON.stringify(values, null, 2));
+      }
     } catch (err) {
       this.readline.println(`${err}`);
     }

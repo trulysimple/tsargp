@@ -34,8 +34,8 @@ There is a total of ten option types, as summarized in the table below:
 In the above table, _niladic_ means that the option expects zero parameters on the command-line;
 _monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
 zero). The data type indicates the base type of the option value in the
-[result object](parser.mdx#option-values). The meaning of the other attributes is explained in the
-next sections.
+[resulting object](parser.mdx#option-values). The meaning of the other attributes is explained in
+the next sections.
 
 ## Common attributes
 
@@ -44,9 +44,9 @@ themselves will be explained later in this page.
 
 ### Basic attributes
 
-All options share a set of attributes in addition to their type. They are described below.
+All options share a set of attributes in addition to their type, which are described below.
 
-<Callout type="default">None of these attributes is required, not even the `names`.</Callout>
+<Callout type="default">None of these attributes is required, except for the `type`.</Callout>
 
 #### Names & preferred name
 
@@ -182,7 +182,7 @@ parameter. It accepts two parameters:
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
-It should return a value of the data type expected by the option (this should be a single value, not
+It should return a value of the data type expected by the option (it should be a single value, not
 an array). If asynchronous, then the data type of the option value in the resulting object will be
 enclosed in a promise. Mutually exclusive with [separator](#separator) and
 [parse delimited](#parse-delimited).
@@ -231,7 +231,7 @@ Mutually exclusive with [enumeration](#enumeration).
 
 The `round` attribute, if present, specifies the kind of rounding to apply to number parameters. Can
 be one of `'trunc'{:ts}` (truncate), `'floor'{:ts}` (round down), `'ceil'{:ts}` (round up) or
-`'round'{:ts}` (round to nearest integer). This normalization is applied _before_ checking value
+`'round'{:ts}` (round to the nearest integer). This normalization is applied _before_ checking value
 constraints.
 
 ### Array attributes
@@ -378,8 +378,7 @@ returning from the callback.
 The **command** option is yet another specialization of the [function option](#function-option) that
 handles the execution of "nested" commands. It lets you specify the command's options in one of its
 attributes and parses the remaining arguments for you. It also records `true{:ts}` in the option
-value, so you can check whether it was processed or not by inspecting the
-[result object](parser.mdx#option-values).
+value, so you can check whether it was processed or not by inspecting the resulting object.
 
 <Callout type="default">
   As you might have guessed, this option allows the definition of hierarchical commands (but not
