@@ -103,7 +103,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
     group: 'Number',
     range: [0, Infinity],
     default: [1, 2],
-    round: 'near',
+    round: 'round',
   },
   stringsEnum: {
     type: 'strings',

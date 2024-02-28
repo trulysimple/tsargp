@@ -576,7 +576,7 @@ class HelpFormatter {
         case 'ceil':
           result.addText('rounded', 'up.');
           break;
-        case 'near':
+        case 'round':
           result.addText('rounded', 'to', 'the', 'nearest', 'integer.');
           break;
       }

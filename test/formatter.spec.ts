@@ -679,7 +679,7 @@ describe('HelpFormatter', () => {
             type: 'number',
             names: ['-n', '--number'],
             desc: 'A number option',
-            round: 'near',
+            round: 'round',
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
@@ -1116,7 +1116,7 @@ describe('HelpFormatter', () => {
             type: 'numbers',
             names: ['-ns', '--numbers'],
             desc: 'A numbers option',
-            round: 'near',
+            round: 'round',
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');

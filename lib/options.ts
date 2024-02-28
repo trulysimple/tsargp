@@ -554,7 +554,7 @@ type WithNumber = (WithEnums<number> | WithRange) & {
   /**
    * The kind of rounding to apply.
    */
-  readonly round?: 'trunc' | 'floor' | 'ceil' | 'near';
+  readonly round?: 'trunc' | 'floor' | 'ceil' | 'round';
 };
 
 /**
@@ -1140,19 +1140,8 @@ class OptionRegistry {
    * @throws On value not satisfying the specified enumeration or range constraint
    */
   normalizeNumber(option: NumberOption | NumbersOption, name: string, value: number): number {
-    switch (option.round) {
-      case 'trunc':
-        value = Math.trunc(value);
-        break;
-      case 'ceil':
-        value = Math.ceil(value);
-        break;
-      case 'floor':
-        value = Math.floor(value);
-        break;
-      case 'near':
-        value = Math.round(value);
-        break;
+    if (option.round) {
+      value = Math[option.round](value);
     }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
       const optEnums = option.enums.map((val) => this.formatNumber(val));
