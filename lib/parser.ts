@@ -152,6 +152,11 @@ class ArgumentParser<T extends Options> {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
+  private readonly formatBoolean: OptionRegistry['formatBoolean'];
+  private readonly formatString: OptionRegistry['formatString'];
+  private readonly formatNumber: OptionRegistry['formatNumber'];
+  private readonly normalizeString: OptionRegistry['normalizeString'];
+  private readonly normalizeNumber: OptionRegistry['normalizeNumber'];
 
   /**
    * Creates a parser loop.
@@ -173,6 +178,11 @@ class ParserLoop {
         (values as Record<string, undefined>)[key] = undefined;
       }
     }
+    this.formatBoolean = registry.formatBoolean.bind(registry);
+    this.formatString = registry.formatString.bind(registry);
+    this.formatNumber = registry.formatNumber.bind(registry);
+    this.normalizeString = registry.normalizeString.bind(registry);
+    this.normalizeNumber = registry.normalizeNumber.bind(registry);
   }
 
   /**
@@ -539,29 +549,25 @@ class ParserLoop {
       case 'string': {
         const value =
           typeof option.default === 'function' ? option.default(this.values) : option.default;
-        const normalizeFn = this.registry.normalizeString.bind(this.registry);
-        this.setSingle(key, option, key, value, normalizeFn);
+        this.setSingle(key, option, key, value, this.normalizeString);
         break;
       }
       case 'number': {
         const value =
           typeof option.default === 'function' ? option.default(this.values) : option.default;
-        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
-        this.setSingle(key, option, key, value, normalizeFn);
+        this.setSingle(key, option, key, value, this.normalizeNumber);
         break;
       }
       case 'strings': {
         const value =
           typeof option.default === 'function' ? option.default(this.values) : option.default;
-        const normalizeFn = this.registry.normalizeString.bind(this.registry);
-        this.setArray(key, option, key, value, normalizeFn);
+        this.setArray(key, option, key, value, this.normalizeString);
         break;
       }
       case 'numbers': {
         const value =
           typeof option.default === 'function' ? option.default(this.values) : option.default;
-        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
-        this.setArray(key, option, key, value, normalizeFn);
+        this.setArray(key, option, key, value, this.normalizeNumber);
         break;
       }
       default: {
@@ -625,98 +631,31 @@ class ParserLoop {
    */
   private checkRequires(requires: Requires, negate = false): string | null {
     if (typeof requires === 'string') {
-      return this.checkRequirement(negate, requires);
+      return this.checkRequirement([requires, undefined], negate);
     }
     if (requires instanceof RequiresNot) {
       return this.checkRequires(requires.item, !negate);
     }
-    if (requires instanceof RequiresAll) {
-      return negate
-        ? this.checkRequiresExp(requires.items, negate)
-        : this.checkRequiresExp(requires.items, negate, null);
+    if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
+      const errors = requires instanceof RequiresAll === negate ? undefined : null;
+      return checkRequireItems(requires.items, this.checkRequires.bind(this), negate, errors);
     }
-    if (requires instanceof RequiresOne) {
-      return negate
-        ? this.checkRequiresExp(requires.items, negate, null)
-        : this.checkRequiresExp(requires.items, negate);
-    }
-    return negate
-      ? this.checkRequiresVal(requires, negate)
-      : this.checkRequiresVal(requires, negate, null);
-  }
-
-  /**
-   * Checks the items of a requirement expression.
-   * @param items The list of requirements
-   * @param negate True if the requirement should be negated
-   * @param errors If null, return on the first error; else return on the first success
-   * @returns An error reason or null if no error
-   */
-  private checkRequiresExp(
-    items: Array<Requires>,
-    negate: boolean,
-    errors: null | Set<string> = new Set<string>(),
-  ): string | null {
-    for (const item of items) {
-      const error = this.checkRequires(item, negate);
-      if (error) {
-        if (!errors) {
-          return error;
-        }
-        errors.add(error);
-      } else if (errors) {
-        return null;
-      }
-    }
-    if (!errors) {
-      return null;
-    }
-    const error = [...errors].join(' or ');
-    return errors.size == 1 ? error : `(${error})`;
-  }
-
-  /**
-   * Checks the entries of a map of requirements.
-   * @param requires The map of option keys to required values
-   * @param negate True if the requirement should be negated
-   * @param errors If null, return on the first error; else return on the first success
-   * @returns An error reason or null if no error
-   */
-  private checkRequiresVal(
-    requires: RequiresVal,
-    negate: boolean,
-    errors: null | Set<string> = new Set<string>(),
-  ): string | null {
-    for (const requiredKey in requires) {
-      const error = this.checkRequirement(negate, requiredKey, requires[requiredKey]);
-      if (error) {
-        if (!errors) {
-          return error;
-        }
-        errors.add(error);
-      } else if (errors) {
-        return null;
-      }
-    }
-    if (!errors) {
-      return null;
-    }
-    const error = [...errors].join(' or ');
-    return errors.size == 1 ? error : `(${error})`;
+    const entries = Object.entries(requires);
+    const errors = negate ? undefined : null;
+    return checkRequireItems(entries, this.checkRequirement.bind(this), negate, errors);
   }
 
   /**
    * Checks if a required option was specified with correct values.
+   * @param kvp The required option key and value
    * @param negate True if the requirement should be negated
-   * @param key The required option key
-   * @param value The required value, if any
    * @returns An error reason or null if no error
    */
   private checkRequirement(
+    kvp: [key: string, value: RequiresVal[string]],
     negate: boolean,
-    key: string,
-    value?: RequiresVal[string],
   ): string | null {
+    const [key, value] = kvp;
     const option = this.registry.options[key];
     const name = option.preferredName ?? option.names.find((name) => name) ?? 'unnamed';
     const specified = this.specifiedKeys.has(key);
@@ -754,34 +693,55 @@ class ParserLoop {
     switch (option.type) {
       case 'boolean': {
         assert(typeof value == 'boolean');
-        const formatFn = this.registry.formatBoolean.bind(this.registry);
-        return this.checkRequiredSingle(name, option, negate, key, value, formatFn);
+        return this.checkRequiredSingle(name, option, negate, key, value, this.formatBoolean);
       }
       case 'string': {
         assert(typeof value === 'string');
-        const formatFn = this.registry.formatString.bind(this.registry);
-        const normalizeFn = this.registry.normalizeString.bind(this.registry);
-        return this.checkRequiredSingle(name, option, negate, key, value, formatFn, normalizeFn);
+        return this.checkRequiredSingle(
+          name,
+          option,
+          negate,
+          key,
+          value,
+          this.formatString,
+          this.normalizeString,
+        );
       }
       case 'number': {
         assert(typeof value === 'number');
-        const formatFn = this.registry.formatNumber.bind(this.registry);
-        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
-        return this.checkRequiredSingle(name, option, negate, key, value, formatFn, normalizeFn);
+        return this.checkRequiredSingle(
+          name,
+          option,
+          negate,
+          key,
+          value,
+          this.formatNumber,
+          this.normalizeNumber,
+        );
       }
       case 'strings': {
         assert(typeof value === 'object');
-        value = value as Array<string>;
-        const formatFn = this.registry.formatString.bind(this.registry);
-        const normalizeFn = this.registry.normalizeString.bind(this.registry);
-        return this.checkRequiredArray(name, option, negate, key, value, formatFn, normalizeFn);
+        return this.checkRequiredArray(
+          name,
+          option,
+          negate,
+          key,
+          value as Array<string>,
+          this.formatString,
+          this.normalizeString,
+        );
       }
       case 'numbers': {
         assert(typeof value === 'object');
-        value = value as Array<number>;
-        const formatFn = this.registry.formatNumber.bind(this.registry);
-        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
-        return this.checkRequiredArray(name, option, negate, key, value, formatFn, normalizeFn);
+        return this.checkRequiredArray(
+          name,
+          option,
+          negate,
+          key,
+          value as Array<number>,
+          this.formatNumber,
+          this.normalizeNumber,
+        );
       }
       default: {
         const _exhaustiveCheck: never = option;
@@ -899,23 +859,19 @@ class ParserLoop {
         break;
       }
       case 'string': {
-        const normalizeFn = this.registry.normalizeString.bind(this.registry);
-        this.parseSingle(key, option, name, value, (str) => str, normalizeFn);
+        this.parseSingle(key, option, name, value, (str) => str, this.normalizeString);
         break;
       }
       case 'number': {
-        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
-        this.parseSingle(key, option, name, value, Number, normalizeFn);
+        this.parseSingle(key, option, name, value, Number, this.normalizeNumber);
         break;
       }
       case 'strings': {
-        const normalizeFn = this.registry.normalizeString.bind(this.registry);
-        this.parseArray(key, option, name, value, (str) => str, normalizeFn);
+        this.parseArray(key, option, name, value, (str) => str, this.normalizeString);
         break;
       }
       case 'numbers': {
-        const normalizeFn = this.registry.normalizeNumber.bind(this.registry);
-        this.parseArray(key, option, name, value, Number, normalizeFn);
+        this.parseArray(key, option, name, value, Number, this.normalizeNumber);
         break;
       }
       default: {
@@ -1018,33 +974,29 @@ class ParserLoop {
     convertFn: (value: string) => T,
     normalizeFn: (option: O, name: string, value: T) => T,
   ) {
-    let result: Array<T>;
-    const previous = (this.values as Record<string, Array<T> | Promise<Array<T>>>)[key];
+    let result: Array<T> | Promise<Array<T>>;
+    const previous = (this.values as Record<string, typeof result>)[key];
     if ('parse' in option && option.parse) {
       const res = option.parse(name, value);
       if (res instanceof Promise) {
-        const promise = res.then(async (val) => {
+        result = res.then(async (val) => {
           const prev = await previous;
           prev.push(normalizeFn(option, name, val as T));
           this.registry.normalizeArray(option, name, prev);
           return prev;
         });
-        (this.values as Record<string, typeof promise>)[key] = promise;
-        return;
       } else {
         result = [normalizeFn(option, name, res as T)];
       }
     } else if ('parseDelimited' in option && option.parseDelimited) {
       const res = option.parseDelimited(name, value);
       if (res instanceof Promise) {
-        const promise = res.then(async (vals) => {
+        result = res.then(async (vals) => {
           const prev = await previous;
           prev.push(...vals.map((val) => normalizeFn(option, name, val as T)));
           this.registry.normalizeArray(option, name, prev);
           return prev;
         });
-        (this.values as Record<string, typeof promise>)[key] = promise;
-        return;
       } else {
         result = res.map((val) => normalizeFn(option, name, val as T));
       }
@@ -1055,13 +1007,15 @@ class ParserLoop {
           : [convertFn(value)];
       result = vals.map((val) => normalizeFn(option, name, val as T));
     }
-    if (previous instanceof Promise) {
-      const promise = previous.then((val) => {
-        val.push(...result);
-        this.registry.normalizeArray(option, name, val);
-        return val;
+    if (result instanceof Promise) {
+      (this.values as Record<string, typeof result>)[key] = result;
+    } else if (previous instanceof Promise) {
+      const res = result;
+      (this.values as Record<string, typeof previous>)[key] = previous.then((vals) => {
+        vals.push(...res);
+        this.registry.normalizeArray(option, name, vals);
+        return vals;
       });
-      (this.values as Record<string, typeof promise>)[key] = promise;
     } else {
       previous.push(...result);
       this.registry.normalizeArray(option, name, previous);
@@ -1183,6 +1137,38 @@ function checkRequiredArray(
     }
   }
   return !negate;
+}
+
+/**
+ * Checks the items of a requirement expression or object.
+ * @param items The list of requirement items
+ * @param itemFn The callback to execute on each item
+ * @param negate True if the requirement should be negated
+ * @param errors If null, return on the first error; else return on the first success
+ * @returns An error reason or null if no error
+ */
+function checkRequireItems<T>(
+  items: Iterable<T>,
+  itemFn: (item: T, negate: boolean) => string | null,
+  negate: boolean,
+  errors: null | Set<string> = new Set<string>(),
+): string | null {
+  for (const item of items) {
+    const error = itemFn(item, negate);
+    if (error) {
+      if (!errors) {
+        return error;
+      }
+      errors.add(error);
+    } else if (errors) {
+      return null;
+    }
+  }
+  if (!errors) {
+    return null;
+  }
+  const error = [...errors].join(' or ');
+  return errors.size == 1 ? error : `(${error})`;
 }
 
 /**

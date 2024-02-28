@@ -885,24 +885,35 @@ class OptionRegistry {
   }
 
   /**
-   * Registers an option's names.
+   * Registers or validates an option's names.
    * @param key The option key
    * @param option The option definition
-   * @throws On duplicate option names
+   * @param validate True if performing validation
+   * @throws On no name, invalid name, duplicate name or empty positional marker
    */
-  private registerNames(key: string, option: Option) {
+  private registerNames(key: string, option: Option, validate = false) {
     const names = option.names.filter((name): name is string => name !== null && name !== '');
+    if (validate && !names.length) {
+      throw this.error(`Option ${this.formatOption(key)} has no name.`);
+    }
     if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames.filter((name) => name));
     }
     if ('positional' in option && typeof option.positional === 'string') {
+      if (validate && !option.positional) {
+        throw this.error(`Option ${this.formatOption(key)} contains empty positional marker.`);
+      }
       names.push(option.positional);
     }
     for (const name of names) {
-      if (this.names.has(name)) {
-        throw this.error(`Duplicate option name ${this.formatOption(name)}.`);
+      if (!validate) {
+        if (this.names.has(name)) {
+          throw this.error(`Duplicate option name ${this.formatOption(name)}.`);
+        }
+        this.names.set(name, key);
+      } else if (name.match(/[\s=]+/)) {
+        throw this.error(`Invalid option name ${this.formatOption(name)}.`);
       }
-      this.names.set(name, key);
     }
   }
 
@@ -915,7 +926,7 @@ class OptionRegistry {
   validate() {
     for (const key in this.options) {
       const option = this.options[key];
-      this.validateNames(key, option);
+      this.registerNames(key, option, true);
       if (!isNiladic(option)) {
         this.validateEnums(key, option);
         if (typeof option.default !== 'function') {
@@ -930,32 +941,6 @@ class OptionRegistry {
       if (option.type === 'version' && typeof option.version === 'string' && !option.version) {
         throw this.error(`Option ${this.formatOption(key)} contains contains empty version.`);
       }
-    }
-  }
-
-  /**
-   * Validates an option's names.
-   * @param key The option key
-   * @param option The option definition
-   * @throws On no name, invalid name or empty positional marker
-   */
-  private validateNames(key: string, option: Option) {
-    const names = option.names.filter((name): name is string => name !== null && name !== '');
-    if (!names.length) {
-      throw this.error(`Option ${this.formatOption(key)} has no name.`);
-    }
-    if (option.type === 'flag' && option.negationNames) {
-      names.push(...option.negationNames.filter((name) => name));
-    }
-    if ('positional' in option && typeof option.positional === 'string') {
-      if (!option.positional) {
-        throw this.error(`Option ${this.formatOption(key)} contains empty positional marker.`);
-      }
-      names.push(option.positional);
-    }
-    const invalidName = names.find((name) => name.match(/[\s=]+/));
-    if (invalidName) {
-      throw this.error(`Invalid option name ${this.formatOption(invalidName)}.`);
     }
   }
 
@@ -1171,11 +1156,7 @@ class OptionRegistry {
    * @param value The option value
    * @throws On value not satisfying the specified limit constraint
    */
-  normalizeArray(
-    option: StringsOption | NumbersOption,
-    name: string,
-    value: Array<string | number>,
-  ) {
+  normalizeArray(option: ArrayOption, name: string, value: Array<string | number>) {
     if (option.unique) {
       const unique = [...new Set(value)];
       value.length = 0;

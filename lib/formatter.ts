@@ -901,8 +901,8 @@ class HelpFormatter {
   }
 
   /**
-   * Formats a map of requirements to be included in the description.
-   * @param requires The requirement map
+   * Formats a requirement object to be included in the description.
+   * @param requires The requirement object
    * @param style The description style
    * @param result The resulting string
    * @param negate True if the requirement should be negated
