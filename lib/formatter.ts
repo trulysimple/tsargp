@@ -1239,6 +1239,6 @@ function wrapText(result: Array<string>, text: TerminalString, width: number, st
  * @returns The phrase alternatives
  */
 function splitPhrase(phrase: string): Array<string> {
-  const [l, c, r] = phrase.split(/\((.*|.*)\)/, 3);
+  const [l, c, r] = phrase.split(/\(([^)|]*\|[^)]*)\)/, 3);
   return c ? c.split('|').map((alt) => l + alt + r) : [l];
 }
