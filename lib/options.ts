@@ -3,7 +3,6 @@
 //--------------------------------------------------------------------------------------------------
 import type { FormatConfig } from './formatter';
 import type { Style } from './styles';
-import { fg, style } from './styles';
 
 export type {
   ParseCallback,
@@ -23,6 +22,7 @@ export type {
   StringsOption,
   NumbersOption,
   FunctionOption,
+  CommandOption,
   HelpOption,
   VersionOption,
   SpecialOption,
@@ -36,6 +36,7 @@ export type {
   RequiresVal,
   Positional,
   Concrete,
+  ConcreteStyles,
 };
 
 export {
@@ -84,19 +85,6 @@ const req = {
     return new RequiresNot(item);
   },
 } as const;
-
-/**
- * The default styles of error messages
- */
-const defaultStyles: ConcreteStyles = {
-  regex: style(fg.red),
-  boolean: style(fg.yellow),
-  string: style(fg.green),
-  number: style(fg.yellow),
-  option: style(fg.magenta),
-  url: style(fg.brightBlack),
-  text: style(fg.default),
-};
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -232,6 +220,15 @@ type ExecuteCallback = (
   comp: boolean,
   rest: Array<string>,
 ) => void | Promise<void>;
+
+/**
+ * A callback for command options.
+ * @param values The values parsed before the command (should be cast to
+ * `OptionValues<typeof _your_options_>` or to the type of your values class)
+ * @param cmdValues The values parsed after the command (should be cast to
+ * `OptionValues<typeof _your_command_options_>` or to the type of your command values class)
+ */
+type CommandCallback = (values: OptionValues, cmdValues: OptionValues) => void | Promise<void>;
 
 /**
  * A callback for option completion.
@@ -642,6 +639,21 @@ type FunctionOption = WithType<'function'> & {
 };
 
 /**
+ * An option that executes a command.
+ */
+type CommandOption = WithType<'command'> & {
+  /**
+   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+   * its result.
+   */
+  readonly cmd: CommandCallback;
+  /**
+   * Te command options.
+   */
+  readonly options: Options;
+};
+
+/**
  * An option that throws a help message.
  */
 type HelpOption = WithType<'help'> & {
@@ -674,9 +686,14 @@ type VersionOption = WithType<'version'> & (WithVersion | WithResolve);
 type SpecialOption = HelpOption | VersionOption;
 
 /**
+ * An option that performs a user-defined action.
+ */
+type ExecutingOption = FunctionOption | CommandOption;
+
+/**
  * An option that accepts no parameters.
  */
-type NiladicOption = FlagOption | FunctionOption | SpecialOption;
+type NiladicOption = FlagOption | ExecutingOption | SpecialOption;
 
 /**
  * A single-valued option that accepts a single parameter.
@@ -836,7 +853,6 @@ type ConcreteStyles = Concrete<OtherStyles>;
  * Implements a compilation of option definitions.
  */
 class OptionRegistry {
-  private readonly styles: ConcreteStyles;
   readonly names = new Map<string, string>();
   readonly required = new Array<string>();
   readonly positional: Positional | undefined;
@@ -849,9 +865,8 @@ class OptionRegistry {
    */
   constructor(
     readonly options: Options,
-    styles?: OtherStyles,
+    readonly styles: ConcreteStyles,
   ) {
-    this.styles = Object.assign({}, defaultStyles, styles);
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option);
@@ -1249,7 +1264,7 @@ class OptionRegistry {
  * @returns True if the option is niladic
  */
 function isNiladic(option: Option): option is NiladicOption {
-  return ['flag', 'function', 'help', 'version'].includes(option.type);
+  return ['flag', 'function', 'help', 'version', 'command'].includes(option.type);
 }
 
 /**
@@ -1267,7 +1282,7 @@ function isArray(option: Option): option is ArrayOption {
  * @returns True if the option has a value
  */
 function isValued(option: Option): option is ValuedOption {
-  return !['function', 'help', 'version'].includes(option.type);
+  return option.type === 'flag' || !isNiladic(option);
 }
 
 /**

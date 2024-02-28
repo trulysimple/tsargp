@@ -326,7 +326,7 @@ describe('ArgumentParser', () => {
         const options = {
           function: {
             type: 'function',
-            names: ['-f', '--function'],
+            names: ['-f'],
             exec: vi.fn(),
           },
         } as const satisfies Options;
@@ -363,7 +363,7 @@ describe('ArgumentParser', () => {
           function: {
             type: 'function',
             names: ['-f1'],
-            exec: (values) => {
+            exec(values) {
               expect(values).toHaveProperty('flag');
               expect((values as OptionValues<typeof options>).flag).toBeUndefined();
             },
@@ -383,7 +383,7 @@ describe('ArgumentParser', () => {
           function: {
             type: 'function',
             names: ['-f1'],
-            exec: (values) => {
+            exec(values) {
               expect(values).toHaveProperty('flag');
               expect((values as OptionValues<typeof options>).flag).toBeTruthy();
             },
@@ -395,6 +395,87 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse(['-f2', '-f1'])).toMatchObject({ flag: true });
+      });
+    });
+
+    describe('command', () => {
+      it('should handle the completion of a command option', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: {
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+            },
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-c$/);
+        expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-c$/);
+        expect(() => parser.parse('cmd -c', { compIndex: 6 })).toThrow(/^-c$/);
+        expect(() => parser.parse('cmd -c ', { compIndex: 7 })).toThrow(/^-f$/);
+        expect(() => parser.parse('cmd -c=', { compIndex: 7 })).toThrow(/^$/);
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error on command option specified with value', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-c=a'])).toThrow(
+          /Option .+-c.+ does not accept inline values\./,
+        );
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
+
+      it('should handle a command option', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse([])).not.toHaveProperty('command');
+        expect(options.command.cmd).not.toHaveBeenCalled();
+        parser.parse(['-c']);
+        expect(options.command.cmd).toHaveBeenCalled();
+      });
+
+      it('should handle a command option with options', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: {
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+            },
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        parser.parse(['-c']);
+        const cmdValues1 = expect.objectContaining({ flag: undefined });
+        expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues1);
+        options.command.cmd.mockClear();
+        parser.parse(['-c', '-f']);
+        const cmdValues2 = expect.objectContaining({ flag: true });
+        expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues2);
       });
     });
 

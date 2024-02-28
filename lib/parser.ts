@@ -18,6 +18,8 @@ import type {
   ArrayOption,
   SingleOption,
   ResolveCallback,
+  CommandOption,
+  ConcreteStyles,
 } from './options';
 
 import { HelpFormatter } from './formatter';
@@ -31,7 +33,7 @@ import {
   isNiladic,
   isValued,
 } from './options';
-import { style, tf } from './styles';
+import { style, tf, fg } from './styles';
 
 export { ArgumentParser, type ParseConfig };
 
@@ -53,6 +55,22 @@ type ParseConfig = {
 };
 
 //--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+/**
+ * The default styles of error messages
+ */
+const defaultStyles: ConcreteStyles = {
+  regex: style(fg.red),
+  boolean: style(fg.yellow),
+  string: style(fg.green),
+  number: style(fg.yellow),
+  option: style(fg.magenta),
+  url: style(fg.brightBlack),
+  text: style(fg.default),
+};
+
+//--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
 /**
@@ -68,7 +86,8 @@ class ArgumentParser<T extends Options> {
    * @param styles The error message styles
    */
   constructor(options: T, styles?: OtherStyles) {
-    this.registry = new OptionRegistry(options, styles);
+    const concreteStyles = Object.assign({}, defaultStyles, styles);
+    this.registry = new OptionRegistry(options, concreteStyles);
   }
 
   /**
@@ -88,22 +107,8 @@ class ArgumentParser<T extends Options> {
    * @returns The options' values
    */
   parse(command?: string | Array<string>, config?: ParseConfig): OptionValues<T> {
-    const result = this.createValues();
-    this.parseInto(result, command, config);
-    return result;
-  }
-
-  /**
-   * Create option values initialized with undefined.
-   * @returns The options' values
-   */
-  private createValues(): OptionValues<T> {
     const result = {} as OptionValues<T>;
-    for (const key in this.registry.options) {
-      if (isValued(this.registry.options[key])) {
-        (result as Record<string, undefined>)[key] = undefined;
-      }
-    }
+    this.parseInto(result, command, config);
     return result;
   }
 
@@ -116,7 +121,7 @@ class ArgumentParser<T extends Options> {
     command?: string | Array<string>,
     config?: ParseConfig,
   ): Promise<OptionValues<T>> {
-    const result = this.createValues();
+    const result = {} as OptionValues<T>;
     await this.parseInto(result, command, config);
     return result;
   }
@@ -135,8 +140,9 @@ class ArgumentParser<T extends Options> {
   ): Promise<Array<void>> {
     const args =
       typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
-    const promises = new ParserLoop(this.registry, values, args, config).loop();
-    return Promise.all(promises);
+    const completing = config.compIndex !== undefined && config.compIndex >= 0;
+    const loop = new ParserLoop(this.registry, values, args, completing, config.termWidth);
+    return Promise.all(loop.loop());
   }
 }
 
@@ -146,24 +152,27 @@ class ArgumentParser<T extends Options> {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
-  private readonly completing: boolean;
-  private readonly width?: number;
 
   /**
    * Creates a parser loop.
    * @param registry The option registry
    * @param values The option's values
    * @param args The command-line arguments
-   * @param config The parse configuration
+   * @param completing True if performing completion
+   * @param width The desired terminal width
    */
   constructor(
     private readonly registry: OptionRegistry,
     private readonly values: OptionValues,
     private readonly args: Array<string>,
-    config: ParseConfig,
+    private readonly completing: boolean,
+    private readonly width?: number,
   ) {
-    this.completing = config.compIndex !== undefined && config.compIndex >= 0;
-    this.width = config.termWidth;
+    for (const key in registry.options) {
+      if (isValued(registry.options[key]) && !(key in values)) {
+        (values as Record<string, undefined>)[key] = undefined;
+      }
+    }
   }
 
   /**
@@ -313,18 +322,17 @@ class ParserLoop {
    * @returns True if the parsing loop should be broken
    */
   private handleNiladic(key: string, option: NiladicOption, name: string, index: number): boolean {
-    if (option.type === 'flag') {
-      (this.values as Record<string, boolean>)[key] = !option.negationNames?.includes(name);
-      return false;
+    switch (option.type) {
+      case 'flag':
+        (this.values as Record<string, boolean>)[key] = !option.negationNames?.includes(name);
+        return false;
+      case 'function':
+        return this.handleFunction(option, index);
+      case 'command':
+        return this.handleCommand(option, index);
+      default:
+        return this.handleSpecial(option);
     }
-    if (option.type === 'function') {
-      return this.handleFunction(option, index);
-    }
-    if (this.completing) {
-      return false; // skip special options during completion
-    }
-    this.handleSpecial(option);
-    return true;
   }
 
   /**
@@ -339,7 +347,7 @@ class ParserLoop {
     }
     try {
       const result = option.exec(this.values, this.completing, this.args.slice(index + 1));
-      if (typeof result === 'object') {
+      if (result instanceof Promise) {
         this.promises.push(result);
       }
     } catch (err) {
@@ -352,10 +360,38 @@ class ParserLoop {
   }
 
   /**
+   * Handles a command option.
+   * @param option The option definition
+   * @param index The current argument index
+   * @returns True if the parsing loop should be broken
+   */
+  private handleCommand(option: CommandOption, index: number): boolean {
+    if (!this.completing) {
+      this.checkRequired();
+    }
+    const values: OptionValues = {};
+    const registry = new OptionRegistry(option.options, this.registry.styles);
+    const args = this.args.slice(index + 1);
+    const loop = new ParserLoop(registry, values, args, this.completing, this.width);
+    this.promises.push(...loop.loop());
+    if (!this.completing) {
+      const result = option.cmd(this.values, values);
+      if (result instanceof Promise) {
+        this.promises.push(result);
+      }
+    }
+    return !this.completing;
+  }
+
+  /**
    * Handles a special option.
    * @param option The option definition
+   * @returns True if the parsing loop should be broken
    */
-  private handleSpecial(option: SpecialOption) {
+  private handleSpecial(option: SpecialOption): boolean {
+    if (this.completing) {
+      return false; // skip special options during completion
+    }
     this.checkRequired();
     if (option.type === 'help') {
       this.handleHelp(option);
@@ -364,7 +400,7 @@ class ParserLoop {
     } else if (option.resolve) {
       this.promises.push(resolveVersion(option.resolve));
     }
-    // should not reach this point
+    return true;
   }
 
   /**
