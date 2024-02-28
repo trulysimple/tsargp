@@ -68,10 +68,6 @@ them, the option key specified in the option definitions object is included in t
 Option names are subject to some restrictions, and any option definition that does not satisfy one
 of them will trigger an error. They are listed below.
 
-#### No option name
-
-An option should have at least one _non-empty_ name.
-
 #### Invalid option name
 
 An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character may
@@ -206,16 +202,17 @@ parsing the argument that overlaps this position in the string.
 ## Asynchronous parsing
 
 To understand how the parser supports asynchronous operations, we need to review the kinds of
-callbacks that an option definition may declare. There are six of them:
+callbacks that an option definition may declare. There are seven of them:
 
 - [default callback](options.mdx#default-value--callback)
 - [parse callback](options.mdx#parse-callback)
 - [parse delimited](options.mdx#parse-delimited)
+- [complete callback](options.mdx#complete-callback)
 - [resolve callback](options.mdx#resolve-callback)
 - [execute callback](options.mdx#execute-callback)
-- [complete callback](options.mdx#complete-callback)
+- [command callback](options.mdx#command-callback)
 
-They can be categorized as either "parsing" callbacks or "executing" callbacks, and are further
+They can be categorized as either _parsing_ callbacks or _executing_ callbacks, and are further
 explained below.
 
 ### Parsing callbacks
@@ -268,15 +265,16 @@ object that is a promise, in order to obtain the value.
 
 ### Executing callbacks
 
-The resolve, execute and complete callbacks are the ones that may cause the parser to accumulate
-promises that will be returned by the `parseAsync` or `parseInto` methods, which then need to be
-awaited in order to await their resolution.
+The complete, resolve, execute and command callbacks are the ones that may cause the parser to
+accumulate promises that will be returned by the `parseAsync` or `parseInto` methods, which then
+need to be awaited in order to await their resolution.
 
-In the case of the resolve and complete callbacks, once awaited, the promise throws a string that
+In the case of the complete and resolve callbacks, once awaited, the promise throws a string that
 should be caught and printed on a terminal. They are the version or the completion words,
 respectively.
 
-In the case of the execute callback, once awaited, the result will be the option values.
+In the case of the execute and command callbacks, once awaited, the result will be the option
+values.
 
 ## Bash completion
 
