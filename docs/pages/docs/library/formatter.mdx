@@ -63,10 +63,11 @@ This column contains either:
 
 ### Description column
 
-The last column contains the option description. It is composed of [help items](#help-items) and is
-wrapped to the desired terminal width, respecting the [indentation level](#description-indentation)
-setting. If the width does not accommodate an entry's description column while respecting its
-indentation level, the text is instead wrapped relative to the beginning of each line.
+The last column contains the option description. It is composed of
+[description items](#description-items) and is wrapped to the desired terminal width, respecting the
+[indentation level](#description-indentation) setting. If the width does not accommodate an entry's
+description column while respecting its indentation level, the text is instead wrapped relative to
+the beginning of each line.
 
 ## Help format
 
@@ -180,13 +181,13 @@ The first three of these properties may be overriden by the option's
   yellow foreground color.
 </Callout>
 
-### Help items
+### Description items
 
 The `items` property specifies the kinds of items that should be displayed in the option
-description, and in what order. It is an array whose values can be one of the following (from the
-`HelpItem` enumeration):
+description, and in what order. It is an array whose values can be one of the enumerated values from
+`DescItem`:
 
-- `desc` - the option synopsis
+- `synopsis` - the option synopsis
 - `negation` - the negation names of a flag option, if any
 - `separator` - the element delimiter of an array option, if enabled
 - `variadic` - reports if an array option accepts multiple parameters
@@ -208,11 +209,44 @@ description, and in what order. It is an array whose values can be one of the fo
 
 The default is to print all items in the order listed above.
 
+### Item phrases
+
+The `phrases` property specifies phrases to be used for each kind of description item. If an item
+has a value, the `%s` specifier can be used to indicate where in the phrase to place the value. If
+an item has multiple alternatives, such as `DescItem.case`, different texts can separated with
+`'|'{:ts}` and grouped in parentheses, as can be seen in the default values listed below:
+
+- `synopsis` - `'%s'{:ts}`
+- `negation` - `'Can be negated with %s'{:ts}`
+- `separator` - `'Values are delimited by %s'{:ts}`
+- `variadic` - `'Accepts multiple parameters'{:ts}`
+- `positional` - `'Accepts positional parameters(| that may be preceded by %s)'{:ts}`
+- `append` - `'May be specified multiple times'{:ts}`
+- `trim` - `'Values will be trimmed'{:ts}`
+- `case` - `'Values will be converted to (lowercase|uppercase)'{:ts}`
+- `round` - `'Values will be (truncated|rounded down|rounded up|rounded to the nearest integer)'{:ts}`
+- `enums` - `'Values must be one of %s'{:ts}`
+- `regex` - `'Values must match the regex %s'{:ts}`
+- `range` - `'Values must be in the range %s'{:ts}`
+- `unique` - `'Duplicate values will be removed'{:ts}`
+- `limit` - `'Value count is limited to %s'{:ts}`
+- `requires` - `'Requires %s'{:ts}`
+- `required` - `'Always required'{:ts}`
+- `default` - `'Defaults to %s'{:ts}`
+- `deprecated` - `'Deprecated for %s'{:ts}`
+- `link` - `'Refer to %s for details'{:ts}`
+
+<Callout type="warning">
+  The `%s` specifier should appear separated from other words, otherwise the extra characters will
+  be lost. For example, if the phrase was `'Requires (%s)'{:ts}`, the surrounding parentheses would
+  not be displayed.
+</Callout>
+
 ## Text formatting
 
-Some help items, such as the option synopsis and the deprecation reason, are texts that the
-formatter splits into words and styles before adding them to the help entry's description column.
-The following formatting features are supported for these items.
+Some description items, such as the option synopsis and the deprecation reason, are texts that the
+formatter splits into words and styles before adding to the option description. The following
+formatting features are supported for these items.
 
 ### Inline styles
 
@@ -244,6 +278,9 @@ A paragraph with single line breaks, redundant spacing and:
 Another paragraph.
 ```
 
-Notice how a period is appended to the end of the second paragraph.
+<Callout type="info">
+  A period is appended to paragraphs that do not end with one of the following punctuation
+  characters: `.,:;!?`. This does not apply to lists.
+</Callout>
 
 [bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug

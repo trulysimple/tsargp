@@ -103,7 +103,7 @@ type FormatConfig = {
   readonly items?: ReadonlyArray<DescItem>;
 
   /**
-   * The phrases to be used for each kind of help item.
+   * The phrases to be used for each kind of description item.
    *
    * If an item has a value, the `%s` specifier can be used to indicate where in the phrase to place
    * the value. If an item has multiple alternatives, such as {@link DescItem.case}, different texts
@@ -480,7 +480,7 @@ class HelpFormatter {
   /**
    * Formats an option's synopsis to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -494,7 +494,7 @@ class HelpFormatter {
   /**
    * Formats an option's negation names to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -515,7 +515,7 @@ class HelpFormatter {
   /**
    * Formats an option's separator string to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -535,7 +535,7 @@ class HelpFormatter {
   /**
    * Formats an option's variadic nature to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -548,7 +548,7 @@ class HelpFormatter {
   /**
    * Formats an option's positional attribute to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -569,7 +569,7 @@ class HelpFormatter {
   /**
    * Formats an option's append attribute to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -582,7 +582,7 @@ class HelpFormatter {
   /**
    * Formats an option's trim normalization to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -595,7 +595,7 @@ class HelpFormatter {
   /**
    * Formats an option's case normalization to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -609,7 +609,7 @@ class HelpFormatter {
   /**
    * Formats an option's rounding normalization to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -626,7 +626,7 @@ class HelpFormatter {
   /**
    * Formats an option's enumerated values to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -647,7 +647,7 @@ class HelpFormatter {
   /**
    * Formats an option's regex constraint to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -663,7 +663,7 @@ class HelpFormatter {
   /**
    * Formats an option's range constraint to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -680,7 +680,7 @@ class HelpFormatter {
   /**
    * Formats an option's unique constraint to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -693,7 +693,7 @@ class HelpFormatter {
   /**
    * Formats an option's limit constraint to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -709,7 +709,7 @@ class HelpFormatter {
   /**
    * Formats an option's requirements to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -725,7 +725,7 @@ class HelpFormatter {
   /**
    * Formats an option's required attribute to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -738,7 +738,7 @@ class HelpFormatter {
   /**
    * Formats an option's default value to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -758,7 +758,7 @@ class HelpFormatter {
   /**
    * Formats an option's deprecation reason to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -772,7 +772,7 @@ class HelpFormatter {
   /**
    * Formats an option's external resource reference to be included in the description.
    * @param values The option definition
-   * @param phrase The help item phrase
+   * @param phrase The description item phrase
    * @param style The description style
    * @param result The resulting string
    */
@@ -1235,7 +1235,7 @@ function wrapText(result: Array<string>, text: TerminalString, width: number, st
 
 /**
  * Split a phrase into multiple alternatives
- * @param phrase The help item phrase
+ * @param phrase The description item phrase
  * @returns The phrase alternatives
  */
 function splitPhrase(phrase: string): Array<string> {
