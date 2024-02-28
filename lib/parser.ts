@@ -175,7 +175,11 @@ class ParserLoop {
   ) {
     for (const key in registry.options) {
       const option = registry.options[key];
-      if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
+      if (option.type === 'function') {
+        (values as Record<string, 0>)[key] = 0;
+      } else if (option.type === 'command') {
+        (values as Record<string, false>)[key] = false;
+      } else if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
         (values as Record<string, undefined>)[key] = undefined;
       }
     }
@@ -363,13 +367,19 @@ class ParserLoop {
         this.promises.push(result);
       }
     } catch (err) {
-      // do not propagate errors during completion
-      if (!this.completing) {
-        throw err;
+      if (this.completing) {
+        // do not propagate errors during completion
+        console.error(err);
+        throw '';
       }
+      throw err;
     }
-    (this.values as Record<string, true>)[key] = true;
-    return option.break === true;
+    (this.values as Record<string, number>)[key]++;
+    if (option.break && !this.completing) {
+      this.setDefaultValues();
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -377,11 +387,12 @@ class ParserLoop {
    * @param key The option key
    * @param option The option definition
    * @param index The current argument index
-   * @returns True if the parsing loop should be broken
+   * @returns True to break parsing loop (always)
    */
-  private handleCommand(key: string, option: CommandOption, index: number): boolean {
+  private handleCommand(key: string, option: CommandOption, index: number): true {
     if (!this.completing) {
       this.checkRequired();
+      this.setDefaultValues();
     }
     const values: CastToOptionValues = {};
     const registry = new OptionRegistry(option.options, this.registry.styles);
@@ -395,7 +406,7 @@ class ParserLoop {
       }
     }
     (this.values as Record<string, true>)[key] = true;
-    return !this.completing;
+    return true;
   }
 
   /**

@@ -787,24 +787,26 @@ type SingleDataType<T extends SingleOption, D> = ParamDataType<T, D, EnumsDataTy
 type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDataType<T, D>>>;
 
 /**
- * The data type of an option.
+ * The data type of an option value.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option> = T extends ExecutingOption
-  ? true | undefined
-  : T extends FlagOption
-    ? boolean | DefaultDataType<T>
-    : T extends BooleanOption
-      ? SingleDataType<T, boolean> | DefaultDataType<T>
-      : T extends StringOption
-        ? SingleDataType<T, string> | DefaultDataType<T>
-        : T extends NumberOption
-          ? SingleDataType<T, number> | DefaultDataType<T>
-          : T extends StringsOption
-            ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
-            : T extends NumbersOption
-              ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
-              : never;
+type OptionDataType<T extends Option> = T extends FunctionOption
+  ? number
+  : T extends CommandOption
+    ? boolean
+    : T extends FlagOption
+      ? boolean | DefaultDataType<T>
+      : T extends BooleanOption
+        ? SingleDataType<T, boolean> | DefaultDataType<T>
+        : T extends StringOption
+          ? SingleDataType<T, string> | DefaultDataType<T>
+          : T extends NumberOption
+            ? SingleDataType<T, number> | DefaultDataType<T>
+            : T extends StringsOption
+              ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
+              : T extends NumbersOption
+                ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
+                : never;
 
 /**
  * A generic collection of option values.

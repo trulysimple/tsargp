@@ -254,6 +254,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(parser.parse([])).not.toHaveProperty('help');
         expect(() => parser.parse(['-h'])).toThrow(/^usage\n.+Options:\n.+-h.+footer$/s);
       });
     });
@@ -277,13 +278,14 @@ describe('ArgumentParser', () => {
 
       it('should throw a version message on a version option with fixed version', () => {
         const options = {
-          function: {
+          version: {
             type: 'version',
             names: ['-v'],
             version: '0.1.0',
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(parser.parse([])).not.toHaveProperty('version');
         expect(() => parser.parse(['-v'])).toThrow(/^0.1.0$/);
       });
     });
@@ -303,6 +305,37 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -f', { compIndex: 6 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -f=', { compIndex: 7 })).toThrow(/^$/);
+        const anything = expect.anything();
+        expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
+      });
+
+      it('should handle the completion of a function option that breaks the parsing loop', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            exec: vi.fn(),
+            break: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
+        const anything = expect.anything();
+        expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
+      });
+
+      it('should handle the completion of a function option that throws', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            exec: vi.fn().mockImplementation(() => {
+              throw 'abc';
+            }),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^$/);
         const anything = expect.anything();
         expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
       });
@@ -331,11 +364,14 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toEqual({ function: undefined });
+        expect(parser.parse([])).toEqual({ function: 0 });
         expect(options.function.exec).not.toHaveBeenCalled();
-        expect(parser.parse(['-f'])).toEqual({ function: true });
+        expect(parser.parse(['-f'])).toEqual({ function: 1 });
         const anything = expect.anything();
         expect(options.function.exec).toHaveBeenCalledWith(anything, false, anything);
+        options.function.exec.mockClear();
+        expect(parser.parse(['-f', '-f'])).toEqual({ function: 2 });
+        expect(options.function.exec).toHaveBeenCalledTimes(2);
       });
 
       it('should break the parsing loop when a function option explicitly asks so', () => {
@@ -353,15 +389,30 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f1', '-f2'])).toEqual({
-          function1: true,
-          function2: undefined,
-        });
+        expect(parser.parse(['-f1', '-f2'])).toEqual({ function1: 1, function2: 0 });
         expect(options.function1.exec).toHaveBeenCalled();
         expect(options.function2.exec).not.toHaveBeenCalled();
       });
 
-      it('should not fill default values during parsing', () => {
+      it('should set default values when breaking the parsing loop', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f1'],
+            exec() {},
+            break: true,
+          },
+          flag: {
+            type: 'flag',
+            names: ['-f2'],
+            default: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse(['-f1'])).toEqual({ function: 1, flag: true });
+      });
+
+      it('should not set default values during parsing', () => {
         const options = {
           function: {
             type: 'function',
@@ -378,10 +429,10 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f1'])).toEqual({ function: true, flag: true });
+        expect(parser.parse(['-f1'])).toEqual({ function: 1, flag: true });
       });
 
-      it('should fill specified values during parsing', () => {
+      it('should set specified values during parsing', () => {
         const options = {
           function: {
             type: 'function',
@@ -397,7 +448,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f2', '-f1'])).toEqual({ function: true, flag: true });
+        expect(parser.parse(['-f2', '-f1'])).toEqual({ function: 1, flag: true });
       });
     });
 
@@ -451,10 +502,31 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toEqual({ command: undefined });
+        expect(parser.parse([])).toEqual({ command: false });
         expect(options.command.cmd).not.toHaveBeenCalled();
         expect(parser.parse(['-c'])).toEqual({ command: true });
         expect(options.command.cmd).toHaveBeenCalled();
+      });
+
+      it('should set default values before calling a command callback', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: {},
+            cmd(values) {
+              expect(values).toHaveProperty('flag');
+              expect((values as OptionValues<typeof options>).flag).toBeTruthy();
+            },
+          },
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+            default: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse(['-c'])).toEqual({ command: true, flag: true });
       });
 
       it('should handle a command option with options', () => {
