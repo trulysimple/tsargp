@@ -730,9 +730,9 @@ type Options = Readonly<Record<string, Option>>;
 type DefaultDataType<T extends ValuedOption> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   T extends { default: (...args: any) => infer R }
-    ? R
+    ? Writable<R>
     : T extends { default: infer D }
-      ? D
+      ? Writable<D>
       : undefined;
 
 /**
@@ -790,23 +790,21 @@ type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDa
  * The data type of an option value.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option> = T extends FunctionOption
+type OptionDataType<T extends Option> = T extends ExecutingOption
   ? number
-  : T extends CommandOption
-    ? boolean
-    : T extends FlagOption
-      ? boolean | DefaultDataType<T>
-      : T extends BooleanOption
-        ? SingleDataType<T, boolean> | DefaultDataType<T>
-        : T extends StringOption
-          ? SingleDataType<T, string> | DefaultDataType<T>
-          : T extends NumberOption
-            ? SingleDataType<T, number> | DefaultDataType<T>
-            : T extends StringsOption
-              ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
-              : T extends NumbersOption
-                ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
-                : never;
+  : T extends FlagOption
+    ? boolean | DefaultDataType<T>
+    : T extends BooleanOption
+      ? SingleDataType<T, boolean> | DefaultDataType<T>
+      : T extends StringOption
+        ? SingleDataType<T, string> | DefaultDataType<T>
+        : T extends NumberOption
+          ? SingleDataType<T, number> | DefaultDataType<T>
+          : T extends StringsOption
+            ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
+            : T extends NumbersOption
+              ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
+              : never;
 
 /**
  * A generic collection of option values.
@@ -840,6 +838,12 @@ type Positional = {
  * @template T The type to be resolved
  */
 type Resolve<T> = T & unknown;
+
+/**
+ * A helper type to remove the readonly attribute from a type.
+ * @template T The source type
+ */
+type Writable<T> = { -readonly [P in keyof T]: T[P] };
 
 /**
  * A helper type to remove optionality from types and properties.

@@ -21,13 +21,21 @@ const helloOpts = {
     default: ['world'],
     positional: true,
   },
-  // command: {
-  //   type: 'command',
-  //   names: ['hello'],
-  //   desc: 'A command option. Logs the arguments passed after it',
-  //   options: helloOpts,
-  //   cmd(){}
-  // },
+  /**
+   * A recursive command option that logs the arguments passed after it.
+   */
+  command: {
+    type: 'command',
+    names: ['hello'],
+    desc: 'A command option. Logs the arguments passed after it',
+    options: (): Options => helloOpts,
+    cmd(values, cmdValues) {
+      const v1 = values as OptionValues<typeof helloOpts>;
+      const v2 = cmdValues as OptionValues<typeof helloOpts>;
+      console.log(`[recursive call #${v2.command}]`, ...v2.strings);
+      v1.command = v2.command + 1;
+    },
+  },
 } as const satisfies Options;
 
 /**

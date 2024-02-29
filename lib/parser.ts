@@ -186,10 +186,8 @@ class ParserLoop {
   ) {
     for (const key in registry.options) {
       const option = registry.options[key];
-      if (option.type === 'function') {
+      if (option.type === 'function' || option.type === 'command') {
         (values as Record<string, 0>)[key] = 0;
-      } else if (option.type === 'command') {
-        (values as Record<string, false>)[key] = false;
       } else if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
         (values as Record<string, undefined>)[key] = undefined;
       }
@@ -405,12 +403,14 @@ class ParserLoop {
     const loop = new ParserLoop(registry, values, args, this.completing, this.width);
     this.promises.push(...loop.loop());
     if (!this.completing) {
+      // the callback might be counting recursive calls and might be asynchronous, so change the
+      // option value before calling it, to avoid race conditions
+      (this.values as Record<string, number>)[key] = 1;
       const result = option.cmd(this.values, values);
       if (result instanceof Promise) {
         this.promises.push(result);
       }
     }
-    (this.values as Record<string, true>)[key] = true;
     return true;
   }
 
@@ -977,17 +977,18 @@ class ParserLoop {
     value: ReadonlyArray<T> | Promise<ReadonlyArray<T>>,
     normalizeFn: (option: O, name: string, value: T) => T,
   ) {
+    let result: Array<T> | Promise<Array<T>>;
     if (value instanceof Promise) {
-      value = value.then((vals) => {
+      result = value.then((vals) => {
         const normalized = vals.map((val) => normalizeFn(option, name, val));
         this.registry.normalizeArray(option, name, normalized);
-        return vals;
+        return normalized;
       });
     } else {
-      const normalized = value.map((val) => normalizeFn(option, name, val));
-      this.registry.normalizeArray(option, name, normalized);
+      result = value.map((val) => normalizeFn(option, name, val));
+      this.registry.normalizeArray(option, name, result);
     }
-    (this.values as Record<string, typeof value>)[key] = value;
+    (this.values as Record<string, typeof result>)[key] = result;
   }
 
   /**
