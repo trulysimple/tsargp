@@ -24,15 +24,15 @@ title: Introduction - Docs
 
 Why use this library when there are already dozens of argument parsers on npm?
 
-The single most distinctive feature is its _declarative_ API. Very few libraries on npm that we know
-of at the time of writing have this feature (and none of those support requirements between options).
-Most others have either imperative or fluent interface, whereas **tsargp** offers a way to declare
-all of your command-line options in a single `object`.
+The most distinctive feature is its _declarative_ API. Very few libraries on npm that we know of at
+the time of writing have this feature (and none of those support requirements between options). Most
+others have either imperative or fluent interface, whereas **tsargp** offers a way to declare all of
+your command-line options in a single `object`.
 
-Another feature that stands out is its capability (with the help of TypeScript) of ensuring that the
-object resulting from argument parsing has _accurate_ data types, i.e., they reflect the attributes
-specified in the options' definitions. In particular, an option's value will be a union literal if
-you declare enumeration constraints in its definition.
+Furthermore, with the help of TypeScript, it ensures that the object resulting from argument parsing
+has _accurate_ data types, i.e., they reflect the attributes specified in the options' definitions.
+In particular, an option's value will be a union literal if you declare enumeration constraints in
+its definition. Even JSDoc comments are preserved in IntelliSense!
 
 ## Installation
 

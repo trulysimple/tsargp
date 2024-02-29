@@ -15,20 +15,20 @@ available types and describe them in detail.
 
 There is a total of ten option types, as summarized in the table below:
 
-| Option type                  | Parameters                              | Data type         | Normalization      | Constraints         |
-| ---------------------------- | --------------------------------------- | ----------------- | ------------------ | ------------------- |
-| [help](#help-option)         | niladic                                 |                   |                    |                     |
-| [version](#version-option)   | niladic                                 |                   |                    |                     |
-| [function](#function-option) | niladic                                 | `number{:ts}`[^1] |                    |                     |
-| [command](#command-option)   | niladic                                 | `number{:ts}`[^1] |                    |                     |
-| [flag](#flag-option)         | niladic                                 | `boolean{:ts}`    |                    |                     |
-| [boolean](#boolean-option)   | positional, monadic                     | `boolean{:ts}`    |                    |                     |
-| [string](#string-option)     | positional, monadic                     | `string{:ts}`     | trim, case         | enums, regex        |
-| [number](#number-option)     | positional, monadic                     | `number{:ts}`     | round              | enums, range        |
-| [strings](#strings-option)   | positional, variadic, delimited, append | `string[]{:ts}`   | unique, trim, case | enums, regex, limit |
-| [numbers](#numbers-option)   | positional, variadic, delimited, append | `number[]{:ts}`   | unique, round      | enums, range, limit |
+| Option type                  | Parameters                              | Data type          | Normalization      | Constraints         |
+| ---------------------------- | --------------------------------------- | ------------------ | ------------------ | ------------------- |
+| [help](#help-option)         | niladic                                 |                    |                    |                     |
+| [version](#version-option)   | niladic                                 |                    |                    |                     |
+| [function](#function-option) | niladic                                 | `unknown{:ts}`[^1] |                    |                     |
+| [command](#command-option)   | niladic                                 | `unknown{:ts}`[^1] |                    |                     |
+| [flag](#flag-option)         | niladic                                 | `boolean{:ts}`     |                    |                     |
+| [boolean](#boolean-option)   | positional, monadic                     | `boolean{:ts}`     |                    |                     |
+| [string](#string-option)     | positional, monadic                     | `string{:ts}`      | trim, case         | enums, regex        |
+| [number](#number-option)     | positional, monadic                     | `number{:ts}`      | round              | enums, range        |
+| [strings](#strings-option)   | positional, variadic, delimited, append | `string[]{:ts}`    | unique, trim, case | enums, regex, limit |
+| [numbers](#numbers-option)   | positional, variadic, delimited, append | `number[]{:ts}`    | unique, round      | enums, range, limit |
 
-[^1]: the number of times the function or command was called.
+[^1]: the return type of the function or command callback.
 
 In the above table, _niladic_ means that the option expects zero parameters on the command-line;
 _monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
@@ -340,8 +340,8 @@ with [semantic version](#semantic-version).
 
 ### Function option
 
-The **function** option executes a generic callback function and records the number of times that
-the callback was called in the option value. The following attributes can be specified.
+The **function** option executes a generic callback function and saves the returned value as the
+option value. The following attributes can be specified.
 
 #### Execute callback
 
@@ -352,12 +352,8 @@ three parameters:
 - `comp` - `true{:ts}` if performing completion (but not in the current iteration)
 - `rest` - the remaining command-line arguments
 
-It should return nothing. It can be asynchronous, in which case you should call
-[`parseAsync`](parser.mdx#executing-callbacks) and await its result.
-
-<Callout type="info">
-  The parser increments the option value by `1{:ts}` _after_ executing the callback.
-</Callout>
+It should return the option value or `void{:ts}`. It can be asynchronous, in which case you should
+call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 
 <Callout type="default">
   Inside this callback, you may check whether an option has been specified before it by comparing
@@ -379,7 +375,7 @@ returning from the callback.
 ### Command option
 
 The **command** option is yet another specialization of the [function option](#function-option) that
-handles the execution of "nested" commands. It lets you specify the command's options in one of its
+handles the execution of a "nested" command. It lets you specify the command's options in one of its
 attributes and parses the remaining arguments for you.
 
 <Callout type="default">
@@ -395,25 +391,19 @@ two parameters:
 - `values` - the values parsed before the command
 - `cmdValues` - the values parsed after the command
 
-It should return nothing. It can be asynchronous, in which case you should call
-[`parseAsync`](parser.mdx#executing-callbacks) and await its result.
+It should return the option value or `void{:ts}`. It can be asynchronous, in which case you should
+call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 
 <Callout type="info">
-  The parser records the value `1{:ts}` in the option value _before_ executing the callback. This is
-  to support counting of recursive calls, although the common case is to allow the application to
-  check whether or not the the command was processed, by inspecting the resulting object.
-</Callout>
-
-<Callout type="info">
-  When bash completion is in effect, the command callback will _not_ be called. Otherwise, the
-  parser will exit the parsing loop immediately after returning from the callback.
+  When bash completion is in effect, this callback will _not_ be called. Otherwise, the parser will
+  exit the parsing loop immediately after returning from the callback.
 </Callout>
 
 #### Command options | callback
 
 The `options` attribute is the set of option definitions for the command, and is also required. You
-may specify a non-asynchronous callback that returns the option definitions, and this allows the
-implementation of [recursive commands](../guides/commands.mdx).
+may instead specify a (non-asynchronous) callback that returns the option definitions. This allows
+the implementation of [recursive commands](../guides/commands.mdx).
 
 <Callout type="warning">
   All arguments specified after the affected option on the command-line will be parsed using the

@@ -704,7 +704,7 @@ type ArrayOption = StringsOption | NumbersOption;
 type ParamOption = SingleOption | ArrayOption;
 
 /**
- * An option that has a value.
+ * An option that has a default value.
  */
 type ValuedOption = FlagOption | ParamOption;
 
