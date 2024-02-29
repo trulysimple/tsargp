@@ -59,6 +59,18 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^$/);
     });
 
+    it('should ignore parsing errors during completion', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          enums: ['abc'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse('cmd -s a -s ', { compIndex: 12 })).toThrow(/^abc$/);
+    });
+
     describe('requires', () => {
       it('should throw an error on option absent despite being required to be present (1)', () => {
         const options = {
@@ -255,7 +267,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
-        expect(() => parser.parse(['-h'])).toThrow(/^usage\n.+Options:\n.+-h.+footer$/s);
+        expect(() => parser.parse(['-h'])).toThrow(/^usage\n\n.+Options:\n\n.+-h.+\n\nfooter.+$/s);
       });
     });
 
@@ -349,6 +361,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f='])).toThrow(
+          /Option .+-f.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['-f=a'])).toThrow(
           /Option .+-f.+ does not accept inline values\./,
         );
@@ -501,6 +516,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-c='])).toThrow(
+          /Option .+-c.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['-c=a'])).toThrow(
           /Option .+-c.+ does not accept inline values\./,
         );
@@ -609,6 +627,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f='])).toThrow(
+          /Option .+-f.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['-f=a'])).toThrow(
           /Option .+-f.+ does not accept inline values\./,
         );
@@ -825,6 +846,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--='])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['--=a'])).toThrow(
           /Positional marker .+--.+ does not accept inline values\./,
         );
@@ -969,6 +993,24 @@ describe('ArgumentParser', () => {
     });
 
     describe('string', () => {
+      it('should throw a name suggestion on parse failure from positional string option', () => {
+        const regex = new RegExp(
+          `Invalid parameter to .+-s.+: .+'s'.+\\. Possible values are \\[.+'abc'.+\\]\\.` +
+            `\nDid you mean to specify an option name instead of .+s.+\\?` +
+            `\nSimilar names are: .+-s.+\\.`,
+        );
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            enums: ['abc'],
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['s'])).toThrow(regex);
+      });
+
       it('should handle the completion of a string option with custom completion', () => {
         const options = {
           string: {
@@ -1128,6 +1170,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--='])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['--=a'])).toThrow(
           /Positional marker .+--.+ does not accept inline values\./,
         );
@@ -1363,6 +1408,23 @@ describe('ArgumentParser', () => {
     });
 
     describe('number', () => {
+      it('should throw a name suggestion on parse failure from positional number option', () => {
+        const regex = new RegExp(
+          `Invalid parameter to .+-n.+: .+1.+\\. Possible values are \\[.+123.+\\]\\.` +
+            `\nDid you mean to specify an option name instead of .+1.+\\?`,
+        );
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            enums: [123],
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['1'])).toThrow(regex);
+      });
+
       it('should handle the completion of a number option with custom completion', () => {
         const options = {
           number: {
@@ -1522,6 +1584,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--='])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['--=a'])).toThrow(
           /Positional marker .+--.+ does not accept inline values\./,
         );
@@ -1931,6 +1996,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--='])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['--=a'])).toThrow(
           /Positional marker .+--.+ does not accept inline values\./,
         );
@@ -1967,7 +2035,7 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic strings option', () => {
         const regex = new RegExp(
-          `Option .+-ss.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\..+` +
+          `Option .+-ss.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
             `\nDid you mean to specify an option name instead of .+ss.+\\?` +
             `\nSimilar names are: .+-ss.+\\.`,
         );
@@ -2413,6 +2481,9 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['--='])).toThrow(
+          /Positional marker .+--.+ does not accept inline values\./,
+        );
         expect(() => parser.parse(['--=a'])).toThrow(
           /Positional marker .+--.+ does not accept inline values\./,
         );
@@ -2449,7 +2520,7 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic numbers option', () => {
         const regex = new RegExp(
-          `Option .+-ns.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\..+` +
+          `Option .+-ns.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
             `\nDid you mean to specify an option name instead of .+ns.+\\?` +
             `\nSimilar names are: .+-ns.+\\.`,
         );

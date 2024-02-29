@@ -208,6 +208,12 @@ class ParserLoop {
    */
   loop(): Array<Promise<void>> {
     function assert(_condition: unknown): asserts _condition {}
+    function suggestName(option: ParamOption): boolean {
+      return (
+        argKind === ArgKind.positional ||
+        (argKind === ArgKind.param && isArray(option) && isVariadic(option))
+      );
+    }
 
     let argKind: ArgKind | undefined;
     let singleParam = false;
@@ -219,9 +225,12 @@ class ParserLoop {
       if (argKind === ArgKind.marker || singleParam) {
         value = arg;
       } else {
-        [argKind, current, value] = this.parseOption(arg, comp, current);
+        [argKind, current, value] = this.parseOption(arg, comp !== undefined, current);
         if (argKind !== ArgKind.param) {
           this.specifiedKeys.add(current.key);
+          if (isArray(current.option)) {
+            this.resetValue(current.key, current.option);
+          }
         }
       }
       assert(current);
@@ -238,52 +247,40 @@ class ParserLoop {
         }
         current = undefined;
       } else if (comp !== undefined) {
-        if (this.handleCompletion(option, i, value)) {
+        if (option.complete) {
+          this.handleComplete(option.complete, i, value);
           return this.promises;
         }
-        if (
-          argKind === ArgKind.positional ||
-          (argKind === ArgKind.param && isArray(option) && isVariadic(option))
-        ) {
+        this.handleCompletion(option, value);
+        if (suggestName(option)) {
           this.handleNameCompletion(value);
         }
         throw ''; // use default completion
-      } else {
-        if (
-          (argKind !== ArgKind.marker || value === undefined) &&
-          argKind !== ArgKind.param &&
-          isArray(option)
-        ) {
-          this.resetValue(key, option);
-        }
-        if (value !== undefined) {
-          try {
-            this.parseValue(key, option, name, value);
-          } catch (err) {
-            // do not propagate errors during completion
-            if (!this.completing) {
-              if (
-                (argKind === ArgKind.positional || argKind === ArgKind.param) &&
-                isArray(option) &&
-                isVariadic(option)
-              ) {
-                const msg = `\nDid you mean to specify an option name instead of ${this.formatOption(value)}?`;
-                this.handleUnknown(value, (err as Error).message + msg);
-              }
-              throw err;
+      } else if (value !== undefined) {
+        try {
+          this.parseValue(key, option, name, value);
+        } catch (err) {
+          // do not propagate errors during completion
+          if (!this.completing) {
+            if (suggestName(option)) {
+              const msg =
+                (err as Error).message.replace(/^(?:\x9b[\d;]+m)+|\x9b0m$/g, '') +
+                `\nDid you mean to specify an option name instead of ${this.formatOption(value)}?`;
+              this.handleUnknown(value, msg);
             }
+            throw err;
           }
-          if (singleParam) {
-            singleParam = false;
-            current = undefined;
-          }
-        } else if (isArray(option) && isVariadic(option)) {
-          continue;
-        } else if (i + 1 == this.args.length) {
-          throw this.registry.error(`Missing parameter to ${this.formatOption(name)}.`);
-        } else if (argKind !== ArgKind.marker) {
-          singleParam = true;
         }
+        if (singleParam) {
+          singleParam = false;
+          current = undefined;
+        }
+      } else if (isArray(option) && isVariadic(option)) {
+        continue;
+      } else if (i + 1 == this.args.length) {
+        throw this.registry.error(`Missing parameter to ${this.formatOption(name)}.`);
+      } else if (argKind !== ArgKind.marker) {
+        singleParam = true;
       }
     }
     this.checkRequired();
@@ -294,24 +291,23 @@ class ParserLoop {
   /**
    * Parses an option from a command-line argument.
    * @param arg The current argument
-   * @param index The argument index
-   * @param comp Undefined if not completing at the current iteration
-   * @param current The current option information
+   * @param comp True if completing at the current iteration
+   * @param current The current option information, if any
    * @returns A tuple of [ArgKind, current, value]
    */
   private parseOption(
     arg: string,
-    comp?: string,
+    comp: boolean,
     current?: Positional,
   ): [ArgKind, Positional, string | undefined] {
     const [name, value] = arg.split(/=(.*)/, 2);
     const key = this.registry.names.get(name);
     if (key) {
-      if (comp !== undefined && value === undefined) {
+      if (comp && value === undefined) {
         throw name;
       }
       if (this.registry.positional && name === this.registry.positional.marker) {
-        if (comp !== undefined) {
+        if (comp) {
           throw ''; // use default completion
         }
         if (value !== undefined) {
@@ -326,7 +322,7 @@ class ParserLoop {
     }
     if (!current) {
       if (!this.registry.positional) {
-        if (comp !== undefined) {
+        if (comp) {
           this.handleNameCompletion(arg);
         }
         this.handleUnknown(name);
@@ -463,15 +459,9 @@ class ParserLoop {
   /**
    * Handles the completion of an option with a parameter.
    * @param option The option definition
-   * @param index The current argument index
    * @param param The option parameter
-   * @returns True if the parsing loop should be broken
    */
-  private handleCompletion(option: ParamOption, index: number, param?: string): boolean {
-    if (option.complete) {
-      this.handleComplete(option.complete, index, param);
-      return true;
-    }
+  private handleCompletion(option: ParamOption, param?: string) {
     let words =
       option.type === 'boolean'
         ? ['true', 'false']
@@ -484,7 +474,6 @@ class ParserLoop {
     if (words.length) {
       throw words.join('\n');
     }
-    return false;
   }
 
   /**
@@ -521,9 +510,9 @@ class ParserLoop {
   /**
    * Handles an unknown option.
    * @param name The unknown option name
-   * @param msg The previous error message, if any
+   * @param msg The error message, if any
    */
-  private handleUnknown(name: string, msg: string = ''): never {
+  private handleUnknown(name: string, msg?: string): never {
     if (!msg) {
       msg = `Unknown option ${this.formatOption(name)}.`;
     }
@@ -558,7 +547,7 @@ class ParserLoop {
       help.push(`${headingStyle}${heading}:`, message);
     }
     if (option.footer) {
-      help.push(option.footer);
+      help.push(option.footer + style(tf.clear));
     }
     throw help.join('\n\n');
   }

@@ -31,7 +31,7 @@ describe('HelpFormatter', () => {
           flag: { type: 'flag' },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200);
-        expect(message).toEqual('');
+        expect(message).toEqual(style(tf.clear));
       });
 
       it('should handle an option with a link', () => {

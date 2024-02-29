@@ -1119,7 +1119,8 @@ class HelpFormatter {
       formatCol(descr, this.descrStart, this.config.breaks.descr, true);
       result.push('\n');
     }
-    result.length--; // pop the last line break
+    // result is non-empty, since there must be at least one help entry in every group
+    result[result.length - 1] = style(tf.clear); // replace the last line break with a clear style
     return result.join('');
   }
 }

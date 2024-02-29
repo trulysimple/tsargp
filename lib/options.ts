@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type { FormatConfig } from './formatter';
-import { tf, type Style } from './styles';
+import { tf, type Style, style } from './styles';
 
 export type {
   ParseCallback,
@@ -1232,7 +1232,7 @@ class OptionRegistry {
    * @returns The formatted error
    */
   error(msg: string): Error {
-    return Error(`${this.styles.text}${msg}${tf.clear}`);
+    return Error(`${this.styles.text}${msg}${style(tf.clear)}`);
   }
 }
 
