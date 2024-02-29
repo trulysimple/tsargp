@@ -2,7 +2,7 @@
   "name": "tsargp",
   "version": "0.1.88",
   "description": "Argument parser for TypeScript",
-  "homepage": "https://github.com/trulysimple/tsargp#readme",
+  "homepage": "https://trulysimple.dev/tsargp",
   "license": "MIT",
   "keywords": [
     "argument-parser",

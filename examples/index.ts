@@ -1,2 +1,2 @@
-export * as calc from './calc.options';
-export * as demo from './demo.options';
+export { default as calc } from './calc.options';
+export { default as demo } from './demo.options';
