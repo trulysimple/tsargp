@@ -815,13 +815,15 @@ type OptionValues<T extends Options> = Resolve<{
 }>;
 
 /**
+ * The concrete data types that an option value may have.
+ */
+type DataTypes = Resolve<boolean | string | number | Array<string> | Array<number>>;
+
+/**
  * A collection of option values that should be cast to {@link OptionValues}`<typeof _your_options_>`
  * or to the type of your values class.
  */
-type CastToOptionValues = Record<
-  string,
-  ParamOption['example'] | Promise<Exclude<ParamOption['example'], undefined>>
->;
+type CastToOptionValues = Record<string, DataTypes | Promise<DataTypes> | undefined>;
 
 /**
  * Information regarding a positional option. Used internally.

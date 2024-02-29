@@ -35,7 +35,7 @@ import {
 } from './options';
 import { style, tf, fg } from './styles';
 
-export { ArgumentParser, type ParseConfig };
+export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -85,9 +85,8 @@ const defaultStyles: ConcreteStyles = {
 //--------------------------------------------------------------------------------------------------
 /**
  * Implements parsing of command-line arguments into option values.
- * @template T The type of the option definitions
  */
-class ArgumentParser<T extends Options> {
+class OpaqueArgumentParser {
   private readonly registry: OptionRegistry;
 
   /**
@@ -95,7 +94,7 @@ class ArgumentParser<T extends Options> {
    * @param options The option definitions
    * @param styles The error message styles
    */
-  constructor(options: T, styles?: OtherStyles) {
+  constructor(options: Options, styles?: OtherStyles) {
     const concreteStyles = Object.assign({}, defaultStyles, styles);
     this.registry = new OptionRegistry(options, concreteStyles);
   }
@@ -111,6 +110,41 @@ class ArgumentParser<T extends Options> {
   }
 
   /**
+   * Parses command-line arguments into option values.
+   * @param values The options' values to parse into
+   * @param command The raw command line or command-line arguments
+   * @param config The parse configuration
+   * @returns A promise that can be awaited in order to resolve async callbacks.
+   */
+  parseInto(
+    values: CastToOptionValues,
+    command: string | Array<string> = process.env['COMP_LINE'] ?? process.argv.slice(2),
+    config: ParseConfig = { compIndex: Number(process.env['COMP_POINT']) },
+  ): Promise<Array<void>> {
+    const args =
+      typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
+    const completing = config.compIndex !== undefined && config.compIndex >= 0;
+    const loop = new ParserLoop(this.registry, values, args, completing, config.termWidth);
+    return Promise.all(loop.loop());
+  }
+}
+
+/**
+ * Implements parsing of command-line arguments into option values.
+ * @template T The type of the option definitions
+ */
+class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
+  /**
+   * Creates an argument parser based on a set of option definitions.
+   * @param options The option definitions
+   * @param styles The error message styles
+   */
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(options: T, styles?: OtherStyles) {
+    super(options, styles);
+  }
+
+  /**
    * Convenience method to parse command-line arguments into option values.
    * @param command The raw command line or command-line arguments
    * @param config The parse configuration
@@ -118,7 +152,7 @@ class ArgumentParser<T extends Options> {
    */
   parse(command?: string | Array<string>, config?: ParseConfig): OptionValues<T> {
     const result = {} as OptionValues<T>;
-    this.parseInto(result, command, config);
+    super.parseInto(result, command, config);
     return result;
   }
 
@@ -132,7 +166,7 @@ class ArgumentParser<T extends Options> {
     config?: ParseConfig,
   ): Promise<OptionValues<T>> {
     const result = {} as OptionValues<T>;
-    await this.parseInto(result, command, config);
+    await super.parseInto(result, command, config);
     return result;
   }
 
@@ -145,14 +179,10 @@ class ArgumentParser<T extends Options> {
    */
   parseInto(
     values: OptionValues<T>,
-    command: string | Array<string> = process.env['COMP_LINE'] ?? process.argv.slice(2),
-    config: ParseConfig = { compIndex: Number(process.env['COMP_POINT']) },
+    command?: string | Array<string>,
+    config?: ParseConfig,
   ): Promise<Array<void>> {
-    const args =
-      typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
-    const completing = config.compIndex !== undefined && config.compIndex >= 0;
-    const loop = new ParserLoop(this.registry, values, args, completing, config.termWidth);
-    return Promise.all(loop.loop());
+    return super.parseInto(values, command, config);
   }
 }
 
