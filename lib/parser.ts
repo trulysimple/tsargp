@@ -399,7 +399,8 @@ class ParserLoop {
       this.setDefaultValues();
     }
     const values: CastToOptionValues = {};
-    const registry = new OptionRegistry(option.options, this.registry.styles);
+    const options = typeof option.options === 'function' ? option.options() : option.options;
+    const registry = new OptionRegistry(options, this.registry.styles);
     const args = this.args.slice(index + 1);
     const loop = new ParserLoop(registry, values, args, this.completing, this.width);
     this.promises.push(...loop.loop());

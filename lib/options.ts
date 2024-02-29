@@ -646,9 +646,9 @@ type CommandOption = WithType<'command'> & {
    */
   readonly cmd: CommandCallback;
   /**
-   * The command options.
+   * The command options or a callback that returns the options (for use with recursive commands).
    */
-  readonly options: Options;
+  readonly options: Options | (() => Options);
 };
 
 /**

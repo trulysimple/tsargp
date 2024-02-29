@@ -21,6 +21,13 @@ const helloOpts = {
     default: ['world'],
     positional: true,
   },
+  // command: {
+  //   type: 'command',
+  //   names: ['hello'],
+  //   desc: 'A command option. Logs the arguments passed after it',
+  //   options: helloOpts,
+  //   cmd(){}
+  // },
 } as const satisfies Options;
 
 /**

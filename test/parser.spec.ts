@@ -601,6 +601,27 @@ describe('ArgumentParser', () => {
         const cmdValues2 = expect.objectContaining({ flag: true });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues2);
       });
+
+      it('should handle a command option with an options callback', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: vi.fn().mockImplementation(() => ({
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+            })),
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse(['-c', '-f'])).toEqual({ command: true });
+        expect(options.command.options).toHaveBeenCalled();
+        const cmdValues = expect.objectContaining({ flag: true });
+        expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues);
+      });
     });
 
     describe('flag', () => {
