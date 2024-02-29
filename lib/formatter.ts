@@ -275,8 +275,7 @@ const defaultConfig: ConcreteFormat = {
     [DescItem.append]: 'May be specified multiple times',
     [DescItem.trim]: 'Values will be trimmed',
     [DescItem.case]: 'Values will be converted to (lowercase|uppercase)',
-    [DescItem.round]:
-      'Values will be (truncated|rounded down|rounded up|rounded to the nearest integer)',
+    [DescItem.round]: 'Values will be rounded (towards zero|down|up|to the nearest integer)',
     [DescItem.enums]: 'Values must be one of %s',
     [DescItem.regex]: 'Values must match the regex %s',
     [DescItem.range]: 'Values must be in the range %s',

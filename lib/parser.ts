@@ -54,6 +54,16 @@ type ParseConfig = {
   compIndex?: number;
 };
 
+/**
+ * The kind of current argument in the parser loop.
+ */
+const enum ArgKind {
+  marker,
+  positional,
+  inline,
+  param,
+}
+
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
@@ -199,21 +209,18 @@ class ParserLoop {
   loop(): Array<Promise<void>> {
     function assert(_condition: unknown): asserts _condition {}
 
-    let inline = false;
-    let marker = false;
-    let addKey = false;
+    let argKind: ArgKind | undefined;
     let singleParam = false;
     let value: string | undefined;
-    let current: OptionRegistry['positional'];
+    let current: Positional | undefined;
 
     for (let i = 0; i < this.args.length; ++i) {
       const [arg, comp] = this.args[i].split('\0', 2);
-      if (marker || singleParam) {
+      if (argKind === ArgKind.marker || singleParam) {
         value = arg;
-        [addKey, inline] = [false, false];
       } else {
-        [addKey, marker, inline, current, value] = this.parseOption(arg, comp, current);
-        if (addKey) {
+        [argKind, current, value] = this.parseOption(arg, comp, current);
+        if (argKind !== ArgKind.param) {
           this.specifiedKeys.add(current.key);
         }
       }
@@ -234,12 +241,19 @@ class ParserLoop {
         if (this.handleCompletion(option, i, value)) {
           return this.promises;
         }
-        if (!inline && !marker && (addKey || (isArray(option) && isVariadic(option)))) {
+        if (
+          argKind === ArgKind.positional ||
+          (argKind === ArgKind.param && isArray(option) && isVariadic(option))
+        ) {
           this.handleNameCompletion(value);
         }
         throw ''; // use default completion
       } else {
-        if (addKey && isArray(option)) {
+        if (
+          (argKind !== ArgKind.marker || value === undefined) &&
+          argKind !== ArgKind.param &&
+          isArray(option)
+        ) {
           this.resetValue(key, option);
         }
         if (value !== undefined) {
@@ -248,7 +262,11 @@ class ParserLoop {
           } catch (err) {
             // do not propagate errors during completion
             if (!this.completing) {
-              if (!inline && !marker && isArray(option) && isVariadic(option)) {
+              if (
+                (argKind === ArgKind.positional || argKind === ArgKind.param) &&
+                isArray(option) &&
+                isVariadic(option)
+              ) {
                 const msg = `\nDid you mean to specify an option name instead of ${this.formatOption(value)}?`;
                 this.handleUnknown(value, (err as Error).message + msg);
               }
@@ -263,7 +281,7 @@ class ParserLoop {
           continue;
         } else if (i + 1 == this.args.length) {
           throw this.registry.error(`Missing parameter to ${this.formatOption(name)}.`);
-        } else if (!marker) {
+        } else if (argKind !== ArgKind.marker) {
           singleParam = true;
         }
       }
@@ -279,13 +297,13 @@ class ParserLoop {
    * @param index The argument index
    * @param comp Undefined if not completing at the current iteration
    * @param current The current option information
-   * @returns A tuple of [addKey, marker, inline, current, value]
+   * @returns A tuple of [ArgKind, current, value]
    */
   private parseOption(
     arg: string,
     comp?: string,
     current?: Positional,
-  ): [boolean, boolean, boolean, Positional, string | undefined] {
+  ): [ArgKind, Positional, string | undefined] {
     const [name, value] = arg.split(/=(.*)/, 2);
     const key = this.registry.names.get(name);
     if (key) {
@@ -301,10 +319,10 @@ class ParserLoop {
             `Positional marker ${this.formatOption(name)} does not accept inline values.`,
           );
         }
-        return [true, true, false, this.registry.positional, undefined];
+        return [ArgKind.marker, this.registry.positional, undefined];
       }
       current = { key, name, option: this.registry.options[key] };
-      return [true, false, true, current, value];
+      return [ArgKind.inline, current, value];
     }
     if (!current) {
       if (!this.registry.positional) {
@@ -313,9 +331,9 @@ class ParserLoop {
         }
         this.handleUnknown(name);
       }
-      return [true, false, false, this.registry.positional, arg];
+      return [ArgKind.positional, this.registry.positional, arg];
     }
-    return [false, false, false, current, arg];
+    return [ArgKind.param, current, arg];
   }
 
   /**

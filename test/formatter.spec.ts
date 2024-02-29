@@ -652,7 +652,9 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
-        expect(message).toMatch(`-n,--number<number>A number option. Values will be truncated.`);
+        expect(message).toMatch(
+          `-n,--number<number>A number option. Values will be rounded towards zero.`,
+        );
       });
 
       it('should handle a number option with ceil rounding', () => {
@@ -1083,7 +1085,7 @@ describe('HelpFormatter', () => {
         } as const satisfies Options;
         const message = new HelpFormatter(options).formatHelp(200).replace(sequenceRegex, '');
         expect(message).toMatch(
-          `-ns,--numbers<numbers>A numbers option. Values are delimited by ','. Values will be truncated.`,
+          `-ns,--numbers<numbers>A numbers option. Values are delimited by ','. Values will be rounded towards zero.`,
         );
       });
 
