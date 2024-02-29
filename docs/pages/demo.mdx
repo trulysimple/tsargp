@@ -4,49 +4,76 @@ export const Demo = dynamic(() => import('../components/demo'), { ssr: false });
 
 <Demo />
 
-Commands:
+import { Callout } from 'nextra/components';
+
+## Commands
 
 - `tsargp -h` print the help message
 - `tsargp -v` print the package version
-- `tsargp` view options' default values
+- `tsargp` view the options' default values
 - `tsargp ...` play with option values
+- `tsargp hello ...` test the hello command
 - `clear` clear the screen
 
-> **TIPS:**
-> Select text from the terminal and paste it with `Ctrl`+`V`.
-> Use the `Up` and `Down` arrow keys to navigate the history.
-> For a full experience, you may want to try it locally:
-> `npm i -g tsargp && complete -C tsargp tsargp`.
+<Callout type="default">
+  You can select text from the terminal and paste it with `Ctrl`+`V`. Use the `Up` and `Down` arrow
+  keys to navigate the history. For a full experience, you may want to try it locally instead:
+  `npm i -g tsargp && complete -C tsargp tsargp{:sh}`.
+</Callout>
 
-Things to try out:
+## Things to try out
 
-- completion:
-  - check if completion works by pressing `Tab` (it behaves slightly differently than a real bash)
-  - check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`)
-  - check if an option parameter gets completed (e.g., `o<Tab>`, `-se <Tab>`, `--ne <Tab>`)
-- names:
-  - check if similar names are suggested for unkown options (e.g., `-nof`)
-  - check if option names can be used as option parameters (e.g., `-ss -s`)
-- positional:
-  - check if positional arguments can be specified before named ones (e.g., `one -s 0`)
-  - check if all arguments after `--` are recognized as positional (e.g., try `-- -f` and see that it fails)
-- strings:
-  - check if a string parameter matches the required regex (e.g., try `-s A` and see that it fails)
-  - check if a string parameter matches the required enums (e.g., try `-se A` and see that it fails)
-  - check if a string parameter is normalized correctly (e.g., `-ss abc` and see that it outputs `ABC`)
-  - check if values get overridden when an option is specified repeatedly (e.g., `-s 1 -s 2`)
-- number:
-  - check if a number parameter matches the required range (e.g., try `-n 1` and see that it fails)
-  - check if a number parameter matches the required enums (e.g., try `-ne 0` and see that it fails)
-  - check if a number parameter is normalized correctly (e.g., `-ns 1.7` and see that it outputs `2`)
-  - check if values get overridden when an option is specified repeatedly (e.g., `-n -1 -n -2`)
-- arrays:
-  - check if duplicate values get removed (e.g., `--numbersEnum 1,2,1,2`)
-  - check if value count is limited to a certain amount (e.g., `--stringsEnum one two one two`)
-  - check if values get overridden when an option is specified repeatedly (e.g., `one --stringsEnum two`)
-  - check if values get appended when an option is specified repeatedly (e.g., `--numbersEnum 1 --numbersEnum 2`)
-- other:
-  - check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
-  - check if the `-b` option can be specified in combination with other options
-  - check if the `hello` command logs the arguments passed to it on the console
-  - check if a nested command option works (e.g., `hello -h`), and see that an option can have no name
+### Bash completion
+
+- check if completion works by pressing `Tab` (it behaves slightly differently than a real bash)
+- check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`)
+- check if an option parameter gets completed (e.g., `o<Tab>`, `-se <Tab>`, `--ne <Tab>`)
+
+### Option names
+
+- check if similar names are suggested for unkown options (e.g., `-nof`)
+- check if option names can be used as option parameters (e.g., `-ss -s`)
+
+### Positional arguments
+
+- check if positional arguments can be specified before named ones (e.g., `one -s 0`)
+- check if all arguments after `--` are recognized as positional (e.g., try `-- -f` and see that it
+  fails)
+
+### String parameters
+
+- check if a string parameter matches the required regex (e.g., try `-s A` and see that it fails)
+- check if a string parameter matches the required enums (e.g., try `-se A` and see that it fails)
+- check if a string parameter gets normalized (e.g., `-ss abc` and see that it outputs `ABC`)
+- check if values get overridden when an option is specified repeatedly (e.g., `-s 1 -s 2`)
+
+### Number parameters
+
+- check if a number parameter matches the required range (e.g., try `-n 1` and see that it fails)
+- check if a number parameter matches the required enums (e.g., try `-ne 0` and see that it fails)
+- check if a number parameter gets normalized (e.g., `-ns 1.7` and see that it outputs `2`)
+- check if values get overridden when an option is specified repeatedly (e.g., `-n -1 -n -2`)
+
+### Array parameters
+
+- check if duplicate values get removed (e.g., `--numbersEnum 1,2,1,2`)
+- check if values get limited to a certain element count (e.g., `-- one two one two`)
+- check if values get overridden when an option is specified repeatedly (e.g., `one -- two`)
+- check if values get appended when an option is specified repeatedly (e.g.,
+  `--numbersEnum 1 --numbersEnum 2`)
+
+### Miscellaneous
+
+- check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
+- check if the `-b` option can be specified in combination with other options
+
+### Nested commands
+
+<Callout type="default">
+  Press `F12` to open the browser console and see the messages logged by the `hello` command.
+</Callout>
+
+- check if the `hello` command works
+- check if the `hello` command can have its own options (e.g., `hello -h`)
+  - in this help message, see that a positional option can have no name
+- check if the `hello` command can be specified recursively (e.g., `hello a hello b c hello`)

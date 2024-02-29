@@ -15,21 +15,20 @@ available types and describe them in detail.
 
 There is a total of ten option types, as summarized in the table below:
 
-| Option type                  | Parameters                              | Data type          | Normalization      | Constraints         |
-| ---------------------------- | --------------------------------------- | ------------------ | ------------------ | ------------------- |
-| [help](#help-option)         | niladic                                 |                    |                    |                     |
-| [version](#version-option)   | niladic                                 |                    |                    |                     |
-| [function](#function-option) | niladic                                 | `number{:ts}`[^1]  |                    |                     |
-| [command](#command-option)   | niladic                                 | `boolean{:ts}`[^2] |                    |                     |
-| [flag](#flag-option)         | niladic                                 | `boolean{:ts}`     |                    |                     |
-| [boolean](#boolean-option)   | positional, monadic                     | `boolean{:ts}`     |                    |                     |
-| [string](#string-option)     | positional, monadic                     | `string{:ts}`      | trim, case         | enums, regex        |
-| [number](#number-option)     | positional, monadic                     | `number{:ts}`      | round              | enums, range        |
-| [strings](#strings-option)   | positional, variadic, delimited, append | `string[]{:ts}`    | unique, trim, case | enums, regex, limit |
-| [numbers](#numbers-option)   | positional, variadic, delimited, append | `number[]{:ts}`    | unique, round      | enums, range, limit |
+| Option type                  | Parameters                              | Data type         | Normalization      | Constraints         |
+| ---------------------------- | --------------------------------------- | ----------------- | ------------------ | ------------------- |
+| [help](#help-option)         | niladic                                 |                   |                    |                     |
+| [version](#version-option)   | niladic                                 |                   |                    |                     |
+| [function](#function-option) | niladic                                 | `number{:ts}`[^1] |                    |                     |
+| [command](#command-option)   | niladic                                 | `number{:ts}`[^1] |                    |                     |
+| [flag](#flag-option)         | niladic                                 | `boolean{:ts}`    |                    |                     |
+| [boolean](#boolean-option)   | positional, monadic                     | `boolean{:ts}`    |                    |                     |
+| [string](#string-option)     | positional, monadic                     | `string{:ts}`     | trim, case         | enums, regex        |
+| [number](#number-option)     | positional, monadic                     | `number{:ts}`     | round              | enums, range        |
+| [strings](#strings-option)   | positional, variadic, delimited, append | `string[]{:ts}`   | unique, trim, case | enums, regex, limit |
+| [numbers](#numbers-option)   | positional, variadic, delimited, append | `number[]{:ts}`   | unique, round      | enums, range, limit |
 
-[^1]: the number of times the function was called.
-[^2]: `true{:ts}` if command was called; `false{:ts}` otherwise.
+[^1]: the number of times the function or command was called.
 
 In the above table, _niladic_ means that the option expects zero parameters on the command-line;
 _monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
@@ -230,9 +229,9 @@ Mutually exclusive with [enumeration](#enumeration).
 #### Rounding
 
 The `round` attribute, if present, specifies the kind of rounding to apply to number parameters. Can
-be one of `'trunc'{:ts}` (truncate), `'floor'{:ts}` (round down), `'ceil'{:ts}` (round up) or
-`'round'{:ts}` (round to the nearest integer). This normalization is applied _before_ checking value
-constraints.
+be one of `'trunc'{:ts}` (round towards zero), `'floor'{:ts}` (round down), `'ceil'{:ts}` (round up)
+or `'round'{:ts}` (round to the nearest integer). This normalization is applied _before_ checking
+value constraints.
 
 ### Array attributes
 
@@ -342,7 +341,7 @@ with [semantic version](#semantic-version).
 ### Function option
 
 The **function** option executes a generic callback function and records the number of times that
-the callback was executed in the option value. The following attributes can be specified.
+the callback was called in the option value. The following attributes can be specified.
 
 #### Execute callback
 
@@ -355,6 +354,10 @@ three parameters:
 
 It should return nothing. It can be asynchronous, in which case you should call
 [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
+
+<Callout type="info">
+  The parser increments the option value by `1{:ts}` _after_ executing the callback.
+</Callout>
 
 <Callout type="default">
   Inside this callback, you may check whether an option has been specified before it by comparing
@@ -377,12 +380,11 @@ returning from the callback.
 
 The **command** option is yet another specialization of the [function option](#function-option) that
 handles the execution of "nested" commands. It lets you specify the command's options in one of its
-attributes and parses the remaining arguments for you. It also records `true{:ts}` in the option
-value, so you can check whether it was processed or not by inspecting the resulting object.
+attributes and parses the remaining arguments for you.
 
 <Callout type="default">
-  As you might have guessed, this option allows the definition of hierarchical commands (but not
-  recursive ones). This is explained in detail in the [commands guide](/docs/guides/commands).
+  As you might have guessed, this option allows the definition of hierarchical commands, including
+  _recursive_ ones. This is explained in detail in the [commands guide](../guides/commands.mdx).
 </Callout>
 
 #### Command callback
@@ -397,13 +399,21 @@ It should return nothing. It can be asynchronous, in which case you should call
 [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 
 <Callout type="info">
+  The parser records the value `1{:ts}` in the option value _before_ executing the callback. This is
+  to support counting of recursive calls, although the common case is to allow the application to
+  check whether or not the the command was processed, by inspecting the resulting object.
+</Callout>
+
+<Callout type="info">
   When bash completion is in effect, the command callback will _not_ be called. Otherwise, the
   parser will exit the parsing loop immediately after returning from the callback.
 </Callout>
 
-#### Command options
+#### Command options | callback
 
-The `options` attribute is the set of option definitions for the command, and is also required.
+The `options` attribute is the set of option definitions for the command, and is also required. You
+may specify a non-asynchronous callback that returns the option definitions, and this allows the
+implementation of [recursive commands](../guides/commands.mdx).
 
 <Callout type="warning">
   All arguments specified after the affected option on the command-line will be parsed using the

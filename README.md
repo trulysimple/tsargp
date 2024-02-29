@@ -9,12 +9,13 @@ Get started with the [documentation](https://trulysimple.dev/tsargp/docs).
 Test it [online](https://trulysimple.dev/tsargp/demo) or install it locally:
 
 ```sh
-npm install -g tsargp
-complete -C tsargp tsargp # enable bash completion
-tsargp -h  # print the help message
-tsargp -v  # print the package version
-tsargp     # view options' default values
-tsargp ... # play with option values
+npm i -g tsargp && complete -C tsargp tsargp
+
+tsargp -h         # print the help message
+tsargp -v         # print the package version
+tsargp            # view the options' default values
+tsargp ...        # play with option values
+tsargp hello ...  # test the hello command
 ```
 
 See the [source](examples/demo.options.ts).
