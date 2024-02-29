@@ -10,7 +10,7 @@
     "typescript"
   ],
   "bin": {
-    "tsargp": "dist/demo.js"
+    "tsargp": "dist/examples/demo.js"
   },
   "type": "module",
   "exports": {
@@ -22,8 +22,8 @@
       "types": "./dist/types/index.d.ts",
       "default": "./dist/lib/index.js"
     },
-    "./demo": {
-      "default": "./dist/demo.options.js"
+    "./examples": {
+      "default": "./dist/examples/index.js"
     }
   },
   "files": [
