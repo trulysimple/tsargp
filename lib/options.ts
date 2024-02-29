@@ -212,22 +212,17 @@ type DefaultCallback<T> = (values: CastToOptionValues) => T | Promise<T>;
  * @param values The values parsed so far
  * @param comp True if performing completion (but not in the current iteration)
  * @param rest The remaining command-line arguments
+ * @returns The option value
  */
-type ExecuteCallback = (
-  values: CastToOptionValues,
-  comp: boolean,
-  rest: Array<string>,
-) => void | Promise<void>;
+type ExecuteCallback = (values: CastToOptionValues, comp: boolean, rest: Array<string>) => unknown;
 
 /**
  * A callback for command options.
  * @param values The values parsed before the command
  * @param cmdValues The values parsed after the command
+ * @returns The option value
  */
-type CommandCallback = (
-  values: CastToOptionValues,
-  cmdValues: CastToOptionValues,
-) => void | Promise<void>;
+type CommandCallback = (values: CastToOptionValues, cmdValues: CastToOptionValues) => unknown;
 
 /**
  * A callback for option completion.
@@ -790,21 +785,23 @@ type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDa
  * The data type of an option value.
  * @template T The option definition type
  */
-type OptionDataType<T extends Option> = T extends ExecutingOption
-  ? number
-  : T extends FlagOption
-    ? boolean | DefaultDataType<T>
-    : T extends BooleanOption
-      ? SingleDataType<T, boolean> | DefaultDataType<T>
-      : T extends StringOption
-        ? SingleDataType<T, string> | DefaultDataType<T>
-        : T extends NumberOption
-          ? SingleDataType<T, number> | DefaultDataType<T>
-          : T extends StringsOption
-            ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
-            : T extends NumbersOption
-              ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
-              : never;
+type OptionDataType<T extends Option> = T extends FunctionOption
+  ? ReturnType<T['exec']> | undefined
+  : T extends CommandOption
+    ? ReturnType<T['cmd']> | undefined
+    : T extends FlagOption
+      ? boolean | DefaultDataType<T>
+      : T extends BooleanOption
+        ? SingleDataType<T, boolean> | DefaultDataType<T>
+        : T extends StringOption
+          ? SingleDataType<T, string> | DefaultDataType<T>
+          : T extends NumberOption
+            ? SingleDataType<T, number> | DefaultDataType<T>
+            : T extends StringsOption
+              ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
+              : T extends NumbersOption
+                ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
+                : never;
 
 /**
  * A generic collection of option values.
@@ -815,15 +812,10 @@ type OptionValues<T extends Options> = Resolve<{
 }>;
 
 /**
- * The concrete data types that an option value may have.
- */
-type DataTypes = Resolve<boolean | string | number | Array<string> | Array<number>>;
-
-/**
  * A collection of option values that should be cast to {@link OptionValues}`<typeof _your_options_>`
  * or to the type of your values class.
  */
-type CastToOptionValues = Record<string, DataTypes | Promise<DataTypes> | undefined>;
+type CastToOptionValues = Record<string, unknown>;
 
 /**
  * Information regarding a positional option. Used internally.

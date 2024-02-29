@@ -2,7 +2,7 @@ import type { Options, OptionValues } from 'tsargp';
 import { fg, style, req, tf, fg8 } from 'tsargp';
 
 /**
- * The hello option definitions
+ * The hello option definitions.
  */
 const helloOpts = {
   /**
@@ -27,19 +27,19 @@ const helloOpts = {
   command: {
     type: 'command',
     names: ['hello'],
-    desc: 'A command option. Logs the arguments passed after it',
+    desc: 'A recursive command option. Logs the arguments passed after it',
     options: (): Options => helloOpts,
-    cmd(values, cmdValues) {
-      const v1 = values as OptionValues<typeof helloOpts>;
-      const v2 = cmdValues as OptionValues<typeof helloOpts>;
-      console.log(`[recursive call #${v2.command}]`, ...v2.strings);
-      v1.command = v2.command + 1;
+    cmd(_, cmdValues): number {
+      const vals = cmdValues as OptionValues<typeof helloOpts>;
+      const calls = vals.command ?? 0;
+      console.log(`[tail call #${calls}]`, ...vals.strings);
+      return calls + 1;
     },
   },
 } as const satisfies Options;
 
 /**
- * The main option definitions
+ * The main option definitions.
  */
 export default {
   /**
@@ -84,16 +84,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${st
   /**
    * A command option that logs the arguments passed after it.
    */
-  command: {
-    type: 'command',
-    names: ['hello'],
-    desc: 'A command option. Logs the arguments passed after it',
-    options: helloOpts,
-    cmd(_, cmdValues) {
-      const values = cmdValues as OptionValues<typeof helloOpts>;
-      console.log(...values.strings);
-    },
-  },
+  command: helloOpts.command,
   /**
    * A boolean option that has inline styles and requirements.
    */

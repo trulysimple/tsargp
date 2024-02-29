@@ -216,10 +216,8 @@ class ParserLoop {
   ) {
     for (const key in registry.options) {
       const option = registry.options[key];
-      if (option.type === 'function' || option.type === 'command') {
-        (values as Record<string, 0>)[key] = 0;
-      } else if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
-        (values as Record<string, undefined>)[key] = undefined;
+      if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
+        values[key] = undefined;
       }
     }
     this.formatOption = registry.formatOption.bind(registry);
@@ -371,7 +369,7 @@ class ParserLoop {
   private handleNiladic(key: string, option: NiladicOption, name: string, index: number): boolean {
     switch (option.type) {
       case 'flag':
-        (this.values as Record<string, boolean>)[key] = !option.negationNames?.includes(name);
+        this.values[key] = !option.negationNames?.includes(name);
         return false;
       case 'function':
         return this.handleFunction(key, option, index);
@@ -396,7 +394,13 @@ class ParserLoop {
     try {
       const result = option.exec(this.values, this.completing, this.args.slice(index + 1));
       if (result instanceof Promise) {
-        this.promises.push(result);
+        this.promises.push(
+          result.then((val) => {
+            this.values[key] = val;
+          }),
+        );
+      } else {
+        this.values[key] = result;
       }
     } catch (err) {
       if (this.completing) {
@@ -406,7 +410,6 @@ class ParserLoop {
       }
       throw err;
     }
-    (this.values as Record<string, number>)[key]++;
     if (option.break && !this.completing) {
       this.setDefaultValues();
       return true;
@@ -433,12 +436,15 @@ class ParserLoop {
     const loop = new ParserLoop(registry, values, args, this.completing, this.width);
     this.promises.push(...loop.loop());
     if (!this.completing) {
-      // the callback might be counting recursive calls and might be asynchronous, so change the
-      // option value before calling it, to avoid race conditions
-      (this.values as Record<string, number>)[key] = 1;
       const result = option.cmd(this.values, values);
       if (result instanceof Promise) {
-        this.promises.push(result);
+        this.promises.push(
+          result.then((val) => {
+            this.values[key] = val;
+          }),
+        );
+      } else {
+        this.values[key] = result;
       }
     }
     return true;
@@ -602,7 +608,7 @@ class ParserLoop {
    */
   private setDefaultValue(key: string, option: ValuedOption) {
     if (option.default === undefined) {
-      (this.values as Record<string, undefined>)[key] = undefined;
+      this.values[key] = undefined;
       return;
     }
     switch (option.type) {
@@ -610,7 +616,7 @@ class ParserLoop {
       case 'boolean': {
         const value =
           typeof option.default === 'function' ? option.default(this.values) : option.default;
-        (this.values as Record<string, typeof value>)[key] = value;
+        this.values[key] = value;
         break;
       }
       case 'string': {
@@ -835,7 +841,7 @@ class ParserLoop {
     formatFn: (value: T) => string,
     normalizeFn?: (option: O, name: string, value: T) => T,
   ): string | null {
-    const actual = (this.values as Record<string, T | Promise<T>>)[key];
+    const actual = this.values[key] as T | Promise<T>;
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
@@ -867,7 +873,7 @@ class ParserLoop {
     formatFn: (value: T) => string,
     normalizeFn: (option: O, name: string, value: T) => T,
   ): string | null {
-    const actual = (this.values as Record<string, Array<T> | Promise<Array<T>>>)[key];
+    const actual = this.values[key] as Array<T> | Promise<Array<T>>;
     if (actual instanceof Promise) {
       return null; // ignore promises during requirement checking
     }
@@ -892,16 +898,16 @@ class ParserLoop {
       | Promise<Array<string>>
       | Promise<Array<number>>
       | undefined;
-    const previous = (this.values as Record<string, ArrayVal>)[key];
+    const previous = this.values[key] as ArrayVal;
     if (!previous) {
-      (this.values as Record<string, []>)[key] = [];
+      this.values[key] = [];
     } else if (!option.append) {
       if (previous instanceof Promise) {
         const promise = previous.then((val) => {
           val.length = 0;
           return val;
         });
-        (this.values as Record<string, typeof promise>)[key] = promise;
+        this.values[key] = promise;
       } else {
         previous.length = 0;
       }
@@ -989,7 +995,7 @@ class ParserLoop {
         value = normalizeFn(option, name, value);
       }
     }
-    (this.values as Record<string, typeof value>)[key] = value;
+    this.values[key] = value;
   }
 
   /**
@@ -1018,7 +1024,7 @@ class ParserLoop {
       result = value.map((val) => normalizeFn(option, name, val));
       this.registry.normalizeArray(option, name, result);
     }
-    (this.values as Record<string, typeof result>)[key] = result;
+    this.values[key] = result;
   }
 
   /**
@@ -1041,7 +1047,7 @@ class ParserLoop {
     normalizeFn: (option: O, name: string, value: T) => T,
   ) {
     let result: Array<T> | Promise<Array<T>>;
-    const previous = (this.values as Record<string, typeof result>)[key];
+    const previous = this.values[key] as typeof result;
     if ('parse' in option && option.parse) {
       const res = option.parse(name, value);
       if (res instanceof Promise) {
@@ -1074,10 +1080,10 @@ class ParserLoop {
       result = vals.map((val) => normalizeFn(option, name, val as T));
     }
     if (result instanceof Promise) {
-      (this.values as Record<string, typeof result>)[key] = result;
+      this.values[key] = result;
     } else if (previous instanceof Promise) {
       const res = result;
-      (this.values as Record<string, typeof previous>)[key] = previous.then((vals) => {
+      this.values[key] = previous.then((vals) => {
         vals.push(...res);
         this.registry.normalizeArray(option, name, vals);
         return vals;

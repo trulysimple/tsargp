@@ -375,17 +375,17 @@ describe('ArgumentParser', () => {
           function: {
             type: 'function',
             names: ['-f'],
-            exec: vi.fn(),
+            exec: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toEqual({ function: 0 });
+        expect(parser.parse([])).toEqual({ function: undefined });
         expect(options.function.exec).not.toHaveBeenCalled();
-        expect(parser.parse(['-f'])).toEqual({ function: 1 });
+        expect(parser.parse(['-f'])).toEqual({ function: 'abc' });
         const anything = expect.anything();
         expect(options.function.exec).toHaveBeenCalledWith(anything, false, anything);
         options.function.exec.mockClear();
-        expect(parser.parse(['-f', '-f'])).toEqual({ function: 2 });
+        expect(parser.parse(['-f', '-f'])).toEqual({ function: 'abc' });
         expect(options.function.exec).toHaveBeenCalledTimes(2);
       });
 
@@ -409,7 +409,7 @@ describe('ArgumentParser', () => {
           function1: {
             type: 'function',
             names: ['-f1'],
-            exec: vi.fn(),
+            exec: vi.fn().mockImplementation(() => 'abc'),
             break: true,
           },
           function2: {
@@ -419,7 +419,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f1', '-f2'])).toEqual({ function1: 1, function2: 0 });
+        expect(parser.parse(['-f1', '-f2'])).toEqual({ function1: 'abc', function2: undefined });
         expect(options.function1.exec).toHaveBeenCalled();
         expect(options.function2.exec).not.toHaveBeenCalled();
       });
@@ -439,7 +439,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f1'])).toEqual({ function: 1, flag: true });
+        expect(parser.parse(['-f1'])).toEqual({ function: undefined, flag: true });
       });
 
       it('should not set default values during parsing', () => {
@@ -458,7 +458,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f1'])).toEqual({ function: 1, flag: true });
+        expect(parser.parse(['-f1'])).toEqual({ function: undefined, flag: true });
       });
 
       it('should set specified values during parsing', () => {
@@ -476,27 +476,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f2', '-f1'])).toEqual({ function: 1, flag: true });
-      });
-
-      it('should increment call count during parsing', () => {
-        const calls = { count: 0 };
-        const options = {
-          function: {
-            type: 'function',
-            names: ['-f'],
-            exec(values) {
-              const vals = values as OptionValues<typeof options>;
-              expect(vals.function).toBe(calls.count++);
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(parser.parse(['-f'])).toEqual({ function: 1 });
-        calls.count = 0;
-        expect(parser.parse(['-f', '-f'])).toEqual({ function: 2 });
-        calls.count = 0;
-        expect(parser.parse(['-f', '-f', '-f'])).toEqual({ function: 3 });
+        expect(parser.parse(['-f2', '-f1'])).toEqual({ function: undefined, flag: true });
       });
     });
 
@@ -549,13 +529,13 @@ describe('ArgumentParser', () => {
             type: 'command',
             names: ['-c'],
             options: {},
-            cmd: vi.fn(),
+            cmd: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse([])).toEqual({ command: 0 });
+        expect(parser.parse([])).toEqual({ command: undefined });
         expect(options.command.cmd).not.toHaveBeenCalled();
-        expect(parser.parse(['-c'])).toEqual({ command: 1 });
+        expect(parser.parse(['-c'])).toEqual({ command: 'abc' });
         expect(options.command.cmd).toHaveBeenCalled();
       });
 
@@ -592,22 +572,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-c'])).toEqual({ command: 1, flag: true });
-      });
-
-      it('should set call count before calling a command callback', () => {
-        const options = {
-          command: {
-            type: 'command',
-            names: ['-c'],
-            options: {},
-            cmd(values) {
-              expect((values as OptionValues<typeof options>).command).toBe(1);
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(parser.parse(['-c'])).toEqual({ command: 1 });
+        expect(parser.parse(['-c'])).toEqual({ command: undefined, flag: true });
       });
 
       it('should handle a command option with options', () => {
@@ -621,15 +586,15 @@ describe('ArgumentParser', () => {
                 names: ['-f'],
               },
             },
-            cmd: vi.fn(),
+            cmd: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-c'])).toEqual({ command: 1 });
+        expect(parser.parse(['-c'])).toEqual({ command: 'abc' });
         const cmdValues1 = expect.objectContaining({ flag: undefined });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues1);
         options.command.cmd.mockClear();
-        expect(parser.parse(['-c', '-f'])).toEqual({ command: 1 });
+        expect(parser.parse(['-c', '-f'])).toEqual({ command: 'abc' });
         const cmdValues2 = expect.objectContaining({ flag: true });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues2);
       });
@@ -645,11 +610,11 @@ describe('ArgumentParser', () => {
                 names: ['-f'],
               },
             })),
-            cmd: vi.fn(),
+            cmd: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(parser.parse(['-c', '-f'])).toEqual({ command: 1 });
+        expect(parser.parse(['-c', '-f'])).toEqual({ command: 'abc' });
         expect(options.command.options).toHaveBeenCalled();
         const cmdValues = expect.objectContaining({ flag: true });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues);
@@ -2965,13 +2930,53 @@ describe('ArgumentParser', () => {
         function: {
           type: 'function',
           names: ['-f'],
+          exec: async () => 'abc',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync(['-f'])).resolves.toEqual({ function: 'abc' });
+    });
+
+    it('should handle a function option with an asynchronous callback that throws', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
           async exec() {
-            throw 'function';
+            throw 'abc';
           },
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^function$/);
+      await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^abc$/);
+    });
+
+    it('should handle a command option with an asynchronous callback', async () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          cmd: async () => 'abc',
+          options: {},
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync(['-c'])).resolves.toEqual({ command: 'abc' });
+    });
+
+    it('should handle a command option with an asynchronous callback that throws', async () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          async cmd() {
+            throw 'abc';
+          },
+          options: {},
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parseAsync(['-c'])).rejects.toThrow(/^abc$/);
     });
 
     it('should handle the completion of a boolean option with async custom completion', async () => {
