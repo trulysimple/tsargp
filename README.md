@@ -37,7 +37,7 @@ Import them in your main script:
 
 ```ts
 #!/usr/bin/env node
-import { ArgumentParser } from 'tsargp';
+import { ArgumentParser, handleErr } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
 try {
@@ -47,11 +47,12 @@ try {
   // const values = await parser.parseAsync();  // use this if you declare async function options
   // parser.parseInto(myValues);                // use this if your values are enclosed in a class
 } catch (err) {
-  if (typeof err === 'string') {
-    console.log(err); // help message, version or bash completion words
-  } else {
-    console.error(err); // genuine errors
+  if (err instanceof Error) {
+    console.error(err.message);
     process.exitCode = 1;
+  } else {
+    // help message, version or completion words
+    console.log(`${err}`);
   }
 }
 ```

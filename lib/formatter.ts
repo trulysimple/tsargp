@@ -7,7 +7,6 @@ import type {
   Requires,
   ValuedOption,
   RequiresVal,
-  OptionStyles,
   OtherStyles,
   ArrayOption,
   Concrete,
@@ -15,8 +14,16 @@ import type {
 } from './options';
 import type { Style } from './styles';
 
-import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
-import { fg, move, mv, style, TerminalString, tf } from './styles';
+import {
+  RequiresAll,
+  RequiresNot,
+  RequiresOne,
+  defaultStyles,
+  isArray,
+  isVariadic,
+  isNiladic,
+} from './options';
+import { HelpMessage, TerminalString, style, tf } from './styles';
 
 export { HelpFormatter, DescItem, type FormatConfig };
 
@@ -94,7 +101,7 @@ type FormatConfig = {
   /**
    * The default option styles and styles of other text elements.
    */
-  readonly styles?: OptionStyles & OtherStyles;
+  readonly styles?: OtherStyles;
 
   /**
    * The order of items to be shown in the option description.
@@ -122,7 +129,7 @@ type ConcreteFormat = Concrete<FormatConfig>;
  * Precomputed texts used by the formatter.
  */
 type HelpEntry = {
-  readonly names: TerminalString;
+  readonly names: Array<TerminalString>;
   readonly param: TerminalString;
   readonly descr: TerminalString;
 };
@@ -233,18 +240,7 @@ const defaultConfig: ConcreteFormat = {
     param: false,
     descr: false,
   },
-  styles: {
-    names: style(tf.clear),
-    param: style(tf.clear, fg.brightBlack),
-    descr: style(tf.clear),
-    boolean: style(fg.yellow),
-    string: style(fg.green),
-    number: style(fg.yellow),
-    regex: style(fg.red),
-    option: style(fg.magenta),
-    url: style(fg.brightBlack),
-    text: style(tf.clear),
-  },
+  styles: defaultStyles,
   items: [
     DescItem.synopsis,
     DescItem.negation,
@@ -300,8 +296,6 @@ class HelpFormatter {
   private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number>;
   private readonly namesStart: number;
-  private readonly paramStart: number;
-  private readonly descrStart: number;
 
   /**
    * Keep this in-sync with {@link DescItem}.
@@ -338,8 +332,8 @@ class HelpFormatter {
     config: FormatConfig = {},
   ) {
     this.config = mergeConfig(config);
-    this.nameWidths = getNameWidths(options);
-    const namesWidth = this.nameWidths.reduce((acc, len) => acc + len, 2);
+    this.nameWidths = this.config.hidden.names ? [] : getNameWidths(options);
+    this.namesStart = Math.max(0, this.config.indent.names);
     let paramWidth = 0;
     for (const key in options) {
       const option = options[key];
@@ -348,19 +342,34 @@ class HelpFormatter {
         paramWidth = Math.max(paramWidth, entry.param.length);
       }
     }
-    this.namesStart = Math.max(1, this.config.indent.names + 1);
-    this.paramStart = Math.max(
-      1,
+    const namesWidth = this.nameWidths.reduce((acc, len) => acc + len + 2, 0);
+    this.adjustEntries(namesWidth ? namesWidth - 2 : 0, paramWidth);
+  }
+
+  /**
+   * Updates the help entries to start at the appropriate terminal column.
+   * @param namesWidth The width of the names column
+   * @param paramWidth The width of the param column
+   */
+  private adjustEntries(namesWidth: number, paramWidth: number) {
+    const paramStart = Math.max(
+      0,
       this.config.indent.paramAbsolute
-        ? this.config.indent.param + 1
+        ? this.config.indent.param
         : this.namesStart + namesWidth + this.config.indent.param,
     );
-    this.descrStart = Math.max(
-      1,
+    const descrStart = Math.max(
+      0,
       this.config.indent.descrAbsolute
-        ? this.config.indent.descr + 1
-        : this.paramStart + paramWidth + this.config.indent.descr,
+        ? this.config.indent.descr
+        : paramStart + paramWidth + this.config.indent.descr,
     );
+    for (const entries of this.groups.values()) {
+      for (const { param, descr } of entries) {
+        param.start = paramStart;
+        descr.start = descrStart;
+      }
+    }
   }
 
   /**
@@ -387,12 +396,12 @@ class HelpFormatter {
    * @param option The option definition
    * @returns A terminal string with the formatted names
    */
-  private formatNames(option: Option): TerminalString {
-    const result = new TerminalString();
+  private formatNames(option: Option): Array<TerminalString> {
+    const result = new Array<TerminalString>();
     if (this.config.hidden.names || !option.names) {
       return result;
     }
-    const style = option.styles?.names ?? this.config.styles.names;
+    const style = option.styles?.names ?? this.config.styles.option;
     this.formatNameSlots(option.names, style, result);
     return result;
   }
@@ -401,32 +410,30 @@ class HelpFormatter {
    * Formats a list of names to be printed on the terminal.
    * @param names The list of option names
    * @param style The names style
-   * @param result The resulting string
+   * @param result The resulting strings
    */
   private formatNameSlots(
     names: ReadonlyArray<string | null>,
     style: Style,
-    result: TerminalString,
+    result: Array<TerminalString>,
   ) {
     const textStyle = this.config.styles.text;
-    let prev = false;
-    let prefix = 0;
+    let breaks = this.config.breaks.names;
+    let start = this.namesStart;
+    let str: TerminalString | undefined;
     function formatName(name: string | null, width: number) {
-      if (prev && name) {
-        result.addWords(',');
-      } else if (prefix) {
-        prefix++;
-      }
-      if (prefix) {
-        result.addText(move(prefix, mv.cuf));
-      }
       if (name) {
-        result.addText(style + name + textStyle, name.length);
-        prev = true;
+        if (str) {
+          str.addClosing(',');
+        }
+        str = new TerminalString(start).addBreaks(breaks);
+        breaks = 0; // break only on the first name
+        str.addAndRevert(style, name, textStyle);
+        result.push(str);
       } else {
-        prev = false;
+        str = undefined;
       }
-      prefix = width - (name?.length ?? 0) + 1;
+      start += width + 2;
     }
     names.forEach((name, i) => formatName(name, this.nameWidths[i]));
   }
@@ -441,6 +448,7 @@ class HelpFormatter {
     if (this.config.hidden.param || isNiladic(option)) {
       return result;
     }
+    result.addBreaks(this.config.breaks.param);
     const textStyle = this.config.styles.text;
     if ('example' in option && option.example !== undefined) {
       this.formatValue(option, option.example, result, textStyle, false);
@@ -452,7 +460,7 @@ class HelpFormatter {
             ? option.paramName
             : `<${option.paramName}>`
           : `<${option.type}>`;
-      result.addText(style + param + textStyle, param.length);
+      result.addAndRevert(style, param, textStyle);
     }
     return result;
   }
@@ -467,11 +475,18 @@ class HelpFormatter {
     if (this.config.hidden.descr || !this.config.items.length) {
       return result;
     }
-    const style = option.styles?.descr ?? this.config.styles.descr;
-    result.addText(style, 0);
+    const descStyle = option.styles?.descr ?? this.config.styles.text;
+    result.addBreaks(this.config.breaks.descr).addSequence(descStyle);
+    const len = result.strings.length;
     for (const item of this.config.items) {
       const phrase = this.config.phrases[item];
-      this.format[item](option, phrase, style, result);
+      this.format[item](option, phrase, descStyle, result);
+    }
+    if (result.strings.length > len) {
+      result.addBreaks(1).addSequence(style(tf.clear));
+    } else {
+      result.strings.length = 1;
+      result.strings[0] = '\n';
     }
     return result;
   }
@@ -504,7 +519,7 @@ class HelpFormatter {
         names.forEach((name, i) => {
           this.formatName(name, style, result);
           if (i < names.length - 1) {
-            result.addWords('or');
+            result.addWord('or');
           }
         });
       });
@@ -810,7 +825,7 @@ class HelpFormatter {
         this.formatString(value.join(option.separator.source), style, result);
       }
     } else {
-      this.formatArray2(value, style, result, formatFn, ['', ''], ' ');
+      this.formatArray2(value, style, result, formatFn);
     }
   }
 
@@ -828,20 +843,20 @@ class HelpFormatter {
     style: Style,
     result: TerminalString,
     formatFn: (value: T, style: Style, result: TerminalString) => void,
-    brackets: [string, string],
-    separator: string,
+    brackets?: [string, string],
+    separator?: string,
   ) {
-    if (brackets[0]) {
-      result.addWords(brackets[0]);
+    if (brackets) {
+      result.addOpening(brackets[0]);
     }
     values.forEach((value, i) => {
       formatFn(value, style, result);
-      if (i < values.length - 1) {
-        result.addWords(separator);
+      if (separator && i < values.length - 1) {
+        result.addClosing(separator);
       }
     });
-    if (brackets[1]) {
-      result.addWords(brackets[1]);
+    if (brackets) {
+      result.addClosing(brackets[1]);
     }
   }
 
@@ -922,7 +937,7 @@ class HelpFormatter {
       const option = this.options[requires];
       const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
       if (negate) {
-        result.addWords('no');
+        result.addWord('no');
       }
       this.formatName(name, style, result);
     } else if (requires instanceof RequiresNot) {
@@ -949,16 +964,16 @@ class HelpFormatter {
   ) {
     const op = requires instanceof RequiresAll ? (negate ? 'or' : 'and') : negate ? 'and' : 'or';
     if (requires.items.length > 1) {
-      result.addWords('(');
+      result.addOpening('(');
     }
     requires.items.forEach((item, i) => {
       this.formatRequirements(item, style, result, negate);
       if (i < requires.items.length - 1) {
-        result.addWords(op);
+        result.addWord(op);
       }
     });
     if (requires.items.length > 1) {
-      result.addWords(')');
+      result.addClosing(')');
     }
   }
 
@@ -977,16 +992,16 @@ class HelpFormatter {
   ) {
     const entries = Object.entries(requires);
     if (entries.length > 1) {
-      result.addWords('(');
+      result.addOpening('(');
     }
     entries.forEach(([key, value], i) => {
       this.formatRequiredValue(this.options[key], value, style, result, negate);
       if (i < entries.length - 1) {
-        result.addWords('and');
+        result.addWord('and');
       }
     });
     if (entries.length > 1) {
-      result.addWords(')');
+      result.addClosing(')');
     }
   }
 
@@ -1008,12 +1023,12 @@ class HelpFormatter {
     function assert(_condition: unknown): asserts _condition {}
     const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     if ((value === null && !negate) || (value === undefined && negate)) {
-      result.addWords('no');
+      result.addWord('no');
     }
     this.formatName(name, style, result);
     if (value !== null && value !== undefined) {
       assert(!isNiladic(option));
-      result.addWords(negate ? '!=' : '=');
+      result.addWord(negate ? '!=' : '=');
       this.formatValue(option, value, result, style, true);
     }
   }
@@ -1072,56 +1087,36 @@ class HelpFormatter {
 
   /**
    * Formats a help message for the default option group.
-   * @param width The desired terminal width
    * @returns The formatted help message
    */
-  formatHelp(width = process.stdout.columns ?? process.stderr.columns): string {
+  formatHelp(): HelpMessage {
     const entries = this.groups.get('');
-    return entries ? this.formatEntries(width, entries) : '';
+    return entries ? this.formatEntries(entries) : new HelpMessage();
   }
 
   /**
    * Formats help messages for all option groups.
-   * @param width The desired terminal width
    * @returns The formatted help messages
    */
-  formatGroups(width = process.stdout.columns ?? process.stderr.columns): Map<string, string> {
-    const groups = new Map<string, string>();
+  formatGroups(): Map<string, HelpMessage> {
+    const groups = new Map<string, HelpMessage>();
     for (const [group, entries] of this.groups.entries()) {
-      groups.set(group, this.formatEntries(width, entries));
+      groups.set(group, this.formatEntries(entries));
     }
     return groups;
   }
 
   /**
    * Formats a help message from a list of help entries.
-   * @param width The desired terminal width
    * @param entries The help entries
    * @returns The formatted help message
    */
-  private formatEntries(width: number, entries: Array<HelpEntry>): string {
-    function formatCol(text: TerminalString, start: number, breaks: number, wrap = false) {
-      if (text.length) {
-        if (breaks > 0) {
-          result.push('\n'.repeat(breaks)); // some terminals do not support cursor down movement
-        }
-        if (wrap) {
-          wrapText(result, text, width, start);
-        } else {
-          result.push(move(start, mv.cha), ...text.strings);
-        }
-      }
-    }
-    const result = new Array<string>();
+  private formatEntries(entries: Array<HelpEntry>): HelpMessage {
+    const result = new HelpMessage();
     for (const { names, param, descr } of entries) {
-      formatCol(names, this.namesStart, this.config.breaks.names);
-      formatCol(param, this.paramStart, this.config.breaks.param);
-      formatCol(descr, this.descrStart, this.config.breaks.descr, true);
-      result.push('\n');
+      result.push(...names, param, descr);
     }
-    // result is non-empty, since there must be at least one help entry in every group
-    result[result.length - 1] = style(tf.clear); // replace the last line break with a clear style
-    return result.join('');
+    return result;
   }
 }
 
@@ -1164,73 +1159,6 @@ function getNameWidths(options: Options): Array<number> {
     }
   }
   return result;
-}
-
-/**
- * Wraps an option's description to fit in the terminal width.
- * @param result The resulting strings to append to
- * @param text The terminal string to be wrapped
- * @param width The desired terminal width
- * @param start The column number to start each line at
- */
-function wrapText(result: Array<string>, text: TerminalString, width: number, start: number) {
-  let moveToStart = '';
-  if (width >= start + Math.max(...text.lengths)) {
-    width -= start;
-    moveToStart = move(start, mv.cha);
-    result.push(moveToStart);
-  } else {
-    result.push('\n');
-  }
-  const punctuation = /^[.,:;!?](?!=)/;
-  const closingBrackets = /^[)\]}]/;
-  const openingBrackets = /^[{[(]/;
-  let merge = false;
-  let lineLength = 0;
-  let currentLen = 0;
-  let currentWord = '';
-  let currentStyle = '';
-  function addWord() {
-    if (!currentLen) {
-      return;
-    }
-    const space = lineLength ? ' ' : '';
-    if (lineLength + space.length + currentLen <= width) {
-      result.push(space + currentWord);
-      lineLength += space.length + currentLen;
-    } else {
-      result.push('\n', moveToStart, currentWord);
-      lineLength = currentLen;
-    }
-  }
-  for (let i = 0; i < text.strings.length; ++i) {
-    const word = text.strings[i];
-    if (word.startsWith('\n')) {
-      addWord();
-      result.push(word, moveToStart);
-      lineLength = 0;
-      currentWord = '';
-      currentLen = 0;
-      continue;
-    }
-    const len = text.lengths[i];
-    if (!len) {
-      currentStyle = word;
-      continue;
-    }
-    if (merge || word.match(punctuation) || word.match(closingBrackets)) {
-      currentWord += currentStyle + word;
-      currentLen += len;
-      merge = false;
-    } else {
-      addWord();
-      currentWord = currentStyle + word;
-      currentLen = len;
-      merge = word.match(openingBrackets) !== null;
-    }
-    currentStyle = '';
-  }
-  addWord();
 }
 
 /**

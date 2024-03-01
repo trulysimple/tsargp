@@ -8,10 +8,11 @@ try {
     console.log(values);
   }
 } catch (err) {
-  if (typeof err === 'string') {
-    console.log(err);
-  } else {
-    console.error(err);
+  if (err instanceof Error) {
+    console.error(err.message);
     process.exitCode = 1;
+  } else {
+    // help message, version or completion words
+    console.log(`${err}`);
   }
 }

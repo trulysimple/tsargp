@@ -49,14 +49,20 @@ export default {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'A help option. Prints this help message',
-    usage: `${style(tf.clear, tf.bold)}Argument parser for TypeScript.
+    usage: `
+    ${style(tf.clear, tf.bold)}Argument parser for TypeScript.
 
-  ${style(tf.clear, fg.yellow)}tsargp ${style(fg.default)}--help ${style(fg.green)}# print help${style(fg.default)}`,
-    footer: `MIT License
-Copyright (c) 2024 ${style(tf.bold, tf.italic, fg.cyan)}TrulySimple${style(tf.clear)}
+    ${style(tf.clear, fg.yellow)}tsargp
+    ${style(fg.default)}--help
+    ${style(fg.green)}# print help
+    ${style(fg.default)}`,
+    footer: `
+    MIT License.
+    Copyright (c) 2024
+    ${style(tf.bold, tf.italic, fg.cyan)}TrulySimple${style(tf.clear)}
 
-Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${style(tf.clear)}
-`,
+    Report a bug:
+    ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${style(tf.clear)}`,
   },
   /**
    * A version option that throws the package version.

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ArgumentParser, req, type Options, OptionValues } from '../lib';
+import { ArgumentParser, req, type Options, OptionValues, HelpMessage } from '../lib';
 import './utils.spec';
 
 describe('ArgumentParser', () => {
@@ -267,7 +267,13 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
-        expect(() => parser.parse(['-h'])).toThrow(/^usage\n\n.+Options:\n\n.+-h.+\n\nfooter.+$/s);
+        try {
+          parser.parse(['-h']);
+        } catch (err) {
+          expect((err as HelpMessage).wrap(0)).toMatch(
+            /^usage\.\n\nOptions:\n\n {3}-h\n\nfooter\.\n$/,
+          );
+        }
       });
     });
 

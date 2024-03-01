@@ -17,6 +17,8 @@ export type {
 
 export {
   TerminalString,
+  ErrorMessage,
+  HelpMessage,
   MoveCommand as mv,
   EditCommand as ed,
   ScrollCommand as sc,
@@ -465,6 +467,19 @@ const enum Underline {
   default = 59,
 }
 
+/**
+ * A set of regular expressions for terminal strings.
+ */
+const regex = {
+  para: /(?:[ \t]*\r?\n){2,}/,
+  item: /^[ \t]*(-|\*|\d+\.) /m,
+  punct: /[.,:;!?]$/,
+  word: /\s+/,
+  spec: /%[a-z]/,
+  // eslint-disable-next-line no-control-regex
+  styles: /(?:\x9b[\d;]+m)+/g,
+};
+
 //--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
@@ -510,7 +525,7 @@ type Scroll = CSI<number, ScrollCommand>;
 /**
  * A multi-parameter text style sequence.
  */
-type Style = CSI<string, StyleCommand>;
+type Style = CSI<string, StyleCommand> | '';
 
 /**
  * A two-parameter margin sequence.
@@ -585,7 +600,8 @@ type FormatCallback = (this: TerminalString, word: string, spec: string) => void
  * Implements concatenation of strings that can be printed on a terminal.
  */
 class TerminalString {
-  private lastWord: string | undefined;
+  private lastWordIndex: number | undefined;
+  private opening = '';
 
   /**
    * The list of strings that have been appended.
@@ -605,14 +621,73 @@ class TerminalString {
   }
 
   /**
-   * Appends a text with surrounding sequences
-   * @param seq The starting sequence
-   * @param text The text to be appended
-   * @param rev The ending sequence
+   * Creates a terminal string.
+   * @param start The starting column for this string
    */
-  addAndRevert(seq: Sequence, text: string, rev: Sequence): this {
-    this.addText(seq + text + rev, text.length);
+  constructor(public start: number = 0) {}
+
+  /**
+   * Saves an opening word to be the prepended to the next string.
+   * @param word The opening word
+   * @returns The terminal string instance
+   */
+  addOpening(word: string): this {
+    this.opening = word;
     return this;
+  }
+
+  /**
+   * Appends a closing word to the last word.
+   * @param word The closing word
+   * @returns The terminal string instance
+   */
+  addClosing(word: string): this {
+    if (word && this.lastWordIndex !== undefined) {
+      this.strings[this.lastWordIndex] += word;
+      this.lengths[this.lastWordIndex] += word.length;
+    }
+    return this;
+  }
+
+  /**
+   * Appends a word with surrounding sequences.
+   * @param seq The starting sequence
+   * @param word The word to be appended
+   * @param rev The ending sequence
+   * @returns The terminal string instance
+   */
+  addAndRevert(seq: Sequence, word: string, rev: Sequence): this {
+    return this.addText(seq + word + rev, word.length);
+  }
+
+  /**
+   * Appends a word to the list of strings.
+   * @param words The word to be appended. Should not contain control characters or sequences.
+   * @returns The terminal string instance
+   */
+  addWord(word: string): this {
+    return this.addText(word, word.length);
+  }
+
+  /**
+   * Appends line breaks to the list of strings.
+   * @param words The number of line breaks to insert
+   * @returns The terminal string instance
+   */
+  addBreaks(count: number): this {
+    if (count > 0) {
+      return this.addText('\n'.repeat(count), 0);
+    }
+    return this;
+  }
+
+  /**
+   * Appends a sequence to the list of strings.
+   * @param seq The sequence to insert
+   * @returns The terminal string instance
+   */
+  addSequence(seq: Sequence): this {
+    return this.addText(seq, 0);
   }
 
   /**
@@ -621,21 +696,20 @@ class TerminalString {
    * @param length The length of the text without control characters or sequences
    * @returns The terminal string instance
    */
-  addText(text: string, length: number = 0): this {
+  private addText(text: string, length: number): this {
+    if (!text) {
+      return this;
+    }
+    if (this.opening) {
+      text = this.opening + text;
+      length += this.opening.length;
+      this.opening = '';
+    }
+    if (length) {
+      this.lastWordIndex = this.strings.length;
+    }
     this.strings.push(text);
     this.lengths.push(length);
-    return this;
-  }
-
-  /**
-   * Appends words to the list of strings.
-   * @param words The words to be appended. Should not contain control characters or sequences.
-   * @returns The terminal string instance
-   */
-  addWords(...words: Array<string>): this {
-    this.strings.push(...words);
-    this.lengths.push(...words.map((str) => str.length));
-    this.lastWord = words.at(-1);
     return this;
   }
 
@@ -643,16 +717,17 @@ class TerminalString {
    * Splits a text into words and style sequences, and appends them to the list of strings.
    * @param text The text to be split
    * @param format A callback to process format specifiers
+   * @returns The terminal string instance
    */
-  splitText(text: string, format?: FormatCallback) {
-    const regex = /(?:[ \t]*\r?\n){2,}/;
-    const paragraphs = text.split(regex);
+  splitText(text: string, format?: FormatCallback): this {
+    const paragraphs = text.split(regex.para);
     paragraphs.forEach((para, i) => {
       this.splitParagraph(para, format);
       if (i < paragraphs.length - 1) {
-        this.addText('\n\n');
+        this.addBreaks(2);
       }
     });
+    return this;
   }
 
   /**
@@ -661,29 +736,26 @@ class TerminalString {
    * @param format A callback to process format specifiers
    */
   private splitParagraph(para: string, format?: FormatCallback) {
-    const regex = {
-      item: /^[ \t]*(-|\*|\d+\.) /m,
-      punct: /[.,:;!?]$/,
-    };
-    this.lastWord = undefined;
+    this.lastWordIndex = undefined;
     para.split(regex.item).forEach((item, j) => {
       if (j % 2 == 0) {
         this.splitItem(item, format);
         if (
           j == 0 &&
-          this.lastWord &&
+          this.lastWordIndex !== undefined &&
           !item.match(regex.item) &&
-          !this.lastWord.match(regex.punct)
+          !this.strings[this.lastWordIndex].match(regex.punct)
         ) {
-          this.addWords('.');
+          this.addClosing('.');
         }
       } else {
-        if (this.lastWord) {
-          this.addText('\n');
+        if (this.lastWordIndex !== undefined) {
+          this.addBreaks(1);
         }
-        this.addWords(item);
+        this.addWord(item);
       }
     });
+    this.lastWordIndex = undefined;
   }
 
   /**
@@ -692,30 +764,143 @@ class TerminalString {
    * @param format A callback to process format specifiers
    */
   private splitItem(item: string, format?: FormatCallback) {
-    const regex = {
-      word: /\s+/,
-      // eslint-disable-next-line no-control-regex
-      style: /((?:\x9b[\d;]+m)+)/,
-      format: /%[a-z]/,
-    };
     const boundFormat = format?.bind(this);
     const words = item.split(regex.word);
     for (const word of words) {
-      for (const str of word.split(regex.style)) {
-        if (isStyle(str)) {
-          this.addText(str);
-        } else if (str) {
-          if (boundFormat) {
-            const match = str.match(regex.format);
-            if (match) {
-              boundFormat(str, match[0]);
-              continue;
-            }
-          }
-          this.addWords(str);
+      if (!word) {
+        continue;
+      }
+      if (boundFormat) {
+        const match = word.match(regex.spec);
+        if (match) {
+          boundFormat(word, match[0]);
+          continue;
         }
       }
+      const styles = word.match(regex.styles) ?? [];
+      const length = styles.reduce((acc, str) => acc + str.length, 0);
+      this.addText(word, word.length - length);
     }
+  }
+
+  /**
+   * Wraps the strings to fit in a terminal width.
+   * @param result The resulting strings to append to
+   * @param column The current terminal column
+   * @param width The desired terminal width (or zero to avoid wrapping)
+   */
+  wrapToWidth(result: Array<string>, column: number, width?: number): number {
+    function shortenLine() {
+      while (result.length && column > start) {
+        const last = result[result.length - 1];
+        if (last.length > column - start) {
+          result[result.length - 1] = last.slice(0, start - column);
+          break;
+        }
+        column -= last.length;
+        result.length--;
+      }
+    }
+    if (!this.strings.length) {
+      return column;
+    }
+    const firstIsBreak = this.strings[0].startsWith('\n');
+    let indent = '';
+    let start = this.start;
+    if (!width) {
+      indent = ' '.repeat(start);
+      if (!firstIsBreak) {
+        if (column < start) {
+          result.push(' '.repeat(start - column));
+        } else {
+          shortenLine();
+        }
+      }
+    } else if (start) {
+      if (width >= start + Math.max(...this.lengths)) {
+        indent = move(start + 1, MoveCommand.cha);
+        if (!firstIsBreak && column != start) {
+          result.push(indent);
+        }
+      } else {
+        if (!firstIsBreak && column) {
+          result.push('\n');
+        }
+        start = 0;
+      }
+    } else if (!firstIsBreak && column) {
+      result.push(move(1, MoveCommand.cha));
+    }
+    column = start;
+    for (let i = 0; i < this.strings.length; ++i) {
+      let str = this.strings[i];
+      if (str.startsWith('\n')) {
+        result.push(str);
+        column = 0;
+        continue;
+      }
+      const len = this.lengths[i];
+      if (!len) {
+        if (width) {
+          result.push(str);
+        }
+        continue;
+      }
+      if (!width) {
+        str = str.replace(regex.styles, '');
+      }
+      if (!column) {
+        result.push(indent + str);
+        column = start + len;
+      } else if (column === start) {
+        result.push(str);
+        column += len;
+      } else if (!width || column + 1 + len <= width) {
+        result.push(' ' + str);
+        column += 1 + len;
+      } else {
+        result.push('\n' + indent + str);
+        column = start + len;
+      }
+    }
+    return column;
+  }
+}
+
+/**
+ * An error message.
+ */
+class ErrorMessage extends Error {
+  constructor(readonly str: TerminalString) {
+    super();
+  }
+
+  get message(): string {
+    return this.wrap();
+  }
+
+  wrap(width = process.stderr.columns): string {
+    const result = new Array<string>();
+    this.str.wrapToWidth(result, 0, width);
+    return result.join('');
+  }
+}
+
+/**
+ * A help message.
+ */
+class HelpMessage extends Array<TerminalString> {
+  override toString(): string {
+    return this.wrap();
+  }
+
+  wrap(width = process.stdout.columns): string {
+    const result = new Array<string>();
+    let column = 0;
+    for (const str of this) {
+      column = str.wrapToWidth(result, column, width);
+    }
+    return result.join('');
   }
 }
 
@@ -818,13 +1003,4 @@ function background(color: Decimal): BgColor {
  */
 function underline(color: Decimal): UlColor {
   return `58;5;${color}`;
-}
-
-/**
- * Tests if a string is a style sequence.
- * @param str The string to be checked
- * @returns True if the string is a style sequence
- */
-function isStyle(str: string): str is Style {
-  return str.match(/^(?:\x9b[\d;]+m)+$/) !== null;
 }

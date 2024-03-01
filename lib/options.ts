@@ -1,8 +1,8 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { FormatConfig } from './formatter';
-import { tf, type Style, style } from './styles';
+import { type FormatConfig } from './formatter';
+import { type Style, fg, tf, style } from './styles';
 
 export type {
   ParseCallback,
@@ -37,11 +37,12 @@ export type {
   RequiresVal,
   Positional,
   Concrete,
-  ConcreteStyles,
 };
 
 export {
   req,
+  defaultStyles,
+  noErrorStyles,
   RequiresAll,
   RequiresOne,
   RequiresNot,
@@ -85,6 +86,34 @@ const req = {
     return new RequiresNot(item);
   },
 } as const;
+
+/**
+ * The default styles of error messages.
+ */
+const defaultStyles: ConcreteStyles = {
+  regex: style(fg.red),
+  boolean: style(fg.yellow),
+  string: style(fg.green),
+  number: style(fg.yellow),
+  option: style(fg.brightMagenta),
+  param: style(fg.brightBlack),
+  url: style(fg.brightBlack),
+  text: style(tf.clear),
+};
+
+/**
+ * A set of empty styles for error messages.
+ */
+const noErrorStyles: ConcreteStyles = {
+  regex: '',
+  boolean: '',
+  string: '',
+  number: '',
+  option: '',
+  param: '',
+  url: '',
+  text: '',
+};
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -131,6 +160,10 @@ type OtherStyles = {
    * The style of option names.
    */
   readonly option?: Style;
+  /**
+   * The style of option parameters.
+   */
+  readonly param?: Style;
   /**
    * The style of URLs.
    */
@@ -874,7 +907,7 @@ class OptionRegistry {
    */
   constructor(
     readonly options: Options,
-    readonly styles: ConcreteStyles,
+    readonly styles: ConcreteStyles = noErrorStyles,
   ) {
     for (const key in this.options) {
       const option = this.options[key];
@@ -948,7 +981,7 @@ class OptionRegistry {
         this.validateRequirements(key, option.requires);
       }
       if (option.type === 'version' && option.version === '') {
-        throw this.error(`Option ${this.formatOption(key)} contains contains empty version.`);
+        throw this.error(`Option ${this.formatOption(key)} contains empty version.`);
       }
     }
   }
@@ -1040,10 +1073,9 @@ class OptionRegistry {
    */
   private assertType<T>(value: unknown, key: string, type: string): asserts value is T {
     if (typeof value !== type) {
-      const valType = `${this.styles.string}'${type}'${this.styles.text}`;
       throw this.error(
-        `Option ${this.formatOption(key)} has incompatible value <${value}>. ` +
-          `Should be of type ${valType}.`,
+        `Option ${this.formatOption(key)} has incompatible value ${this.formatParam(value)}. ` +
+          `Should be of type ${this.formatString(type)}.`,
       );
     }
   }
@@ -1186,6 +1218,15 @@ class OptionRegistry {
    */
   formatOption(name: string): string {
     return `${this.styles.option}${name}${this.styles.text}`;
+  }
+
+  /**
+   * Formats an option parameter to be printed on the terminal.
+   * @param value The parameter value
+   * @returns The formatted string
+   */
+  formatParam(value: unknown): string {
+    return `${this.styles.param}<${value}>${this.styles.text}`;
   }
 
   /**

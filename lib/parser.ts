@@ -19,41 +19,27 @@ import type {
   SingleOption,
   ResolveCallback,
   CommandOption,
-  ConcreteStyles,
   CastToOptionValues,
 } from './options';
 
-import { HelpFormatter } from './formatter';
 import {
   OptionRegistry,
   RequiresAll,
   RequiresNot,
   RequiresOne,
+  defaultStyles,
   isArray,
   isVariadic,
   isNiladic,
 } from './options';
-import { style, tf, fg } from './styles';
+import { HelpFormatter } from './formatter';
+import { HelpMessage, TerminalString, style, tf } from './styles';
 
 export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
 
 //--------------------------------------------------------------------------------------------------
-// Types
+// Constants
 //--------------------------------------------------------------------------------------------------
-/**
- * The parse configuration.
- */
-type ParseConfig = {
-  /**
-   * The desired terminal width to print the help message (in number of columns).
-   */
-  termWidth?: number;
-  /**
-   * The completion index of a raw command line.
-   */
-  compIndex?: number;
-};
-
 /**
  * The kind of current argument in the parser loop.
  */
@@ -65,19 +51,16 @@ const enum ArgKind {
 }
 
 //--------------------------------------------------------------------------------------------------
-// Constants
+// Types
 //--------------------------------------------------------------------------------------------------
 /**
- * The default styles of error messages
+ * The parse configuration.
  */
-const defaultStyles: ConcreteStyles = {
-  regex: style(fg.red),
-  boolean: style(fg.yellow),
-  string: style(fg.green),
-  number: style(fg.yellow),
-  option: style(fg.magenta),
-  url: style(fg.brightBlack),
-  text: style(fg.default),
+type ParseConfig = {
+  /**
+   * The completion index of a raw command line.
+   */
+  compIndex?: number;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -123,8 +106,8 @@ class OpaqueArgumentParser {
   ): Promise<Array<void>> {
     const args =
       typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
-    const completing = config.compIndex !== undefined && config.compIndex >= 0;
-    const loop = new ParserLoop(this.registry, values, args, completing, config.termWidth);
+    const completing = (config.compIndex ?? -1) >= 0;
+    const loop = new ParserLoop(this.registry, values, args, completing);
     return Promise.all(loop.loop());
   }
 }
@@ -205,14 +188,12 @@ class ParserLoop {
    * @param values The option values
    * @param args The command-line arguments
    * @param completing True if performing completion
-   * @param width The desired terminal width
    */
   constructor(
     private readonly registry: OptionRegistry,
     private readonly values: CastToOptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
-    private readonly width?: number,
   ) {
     for (const key in registry.options) {
       const option = registry.options[key];
@@ -433,7 +414,7 @@ class ParserLoop {
     const options = typeof option.options === 'function' ? option.options() : option.options;
     const registry = new OptionRegistry(options, this.registry.styles);
     const args = this.args.slice(index + 1);
-    const loop = new ParserLoop(registry, values, args, this.completing, this.width);
+    const loop = new ParserLoop(registry, values, args, this.completing);
     this.promises.push(...loop.loop());
     if (!this.completing) {
       const result = option.cmd(this.values, values);
@@ -576,17 +557,28 @@ class ParserLoop {
    * @param option The option definition
    */
   private handleHelp(option: HelpOption): never {
-    const help = option.usage ? [option.usage] : [];
-    const groups = new HelpFormatter(this.registry.options, option.format).formatGroups(this.width);
+    function formatHeading(group: string): TerminalString {
+      const heading = new TerminalString().addBreaks(1).addSequence(headingStyle);
+      if (group) {
+        heading.splitText(group).addWord('options:');
+      } else {
+        heading.addWord('Options:');
+      }
+      return heading.addBreaks(2).addSequence(style(tf.clear));
+    }
+    const help = new HelpMessage();
+    if (option.usage) {
+      help.push(new TerminalString().splitText(option.usage).addBreaks(1));
+    }
+    const groups = new HelpFormatter(this.registry.options, option.format).formatGroups();
     const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
     for (const [group, message] of groups.entries()) {
-      const heading = group ? group + ' options' : 'Options';
-      help.push(`${headingStyle}${heading}:`, message);
+      help.push(formatHeading(group), ...message);
     }
     if (option.footer) {
-      help.push(option.footer + style(tf.clear));
+      help.push(new TerminalString().addBreaks(1).splitText(option.footer).addBreaks(1));
     }
-    throw help.join('\n\n');
+    throw help;
   }
 
   /**

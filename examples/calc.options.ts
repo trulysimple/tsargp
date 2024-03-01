@@ -64,7 +64,7 @@ const options = {
       const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
       const [a, b] = vals.numbers;
-      return a === undefined ? -other : b === undefined ? a - other : a - b;
+      return a === undefined ? NaN : b === undefined ? a - other : a - b;
     },
   },
   /**
@@ -93,7 +93,7 @@ const options = {
       const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
       const [a, b] = vals.numbers;
-      return a === undefined ? 1 / other : b === undefined ? a / other : a / b;
+      return a === undefined ? NaN : b === undefined ? a / other : a / b;
     },
   },
 } as const satisfies Options;
