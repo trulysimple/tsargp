@@ -2,4 +2,139 @@
 title: Commands - Guides - Docs
 ---
 
+import dynamic from 'next/dynamic';
+
+export const Calc = dynamic(() => import('@components/calc'), { ssr: false });
+
 # Commands
+
+In this guide, we will be creating a command-line interface for an example application that performs
+mathematical operations on its arguments.
+
+## Basic features
+
+Our application is named `calc` and performs the following operations:
+
+- `add` - adds multiple numbers (defaults to `0{:ts}` if no number)
+- `sub` - subtracts two numbers (defaults to `NaN{:ts}` if less than two numbers)
+- `mult` - multiplies multiple numbers (defaults to `1{:ts}` if no number)
+- `div` - divides two numbers (defaults to `NaN{:ts}` if less than two numbers)
+
+## Advanced features
+
+In addition to the basic operations, our application is capable of combining operations in a
+tail-recursive manner. For example, the following expression could be invoked:
+
+```sh
+calc add 1 sub 2 mult 3 div 4 2
+```
+
+And would be evaluated as `1 + (2 - (3 * (4 / 2))){:ts}`, which equals -3.
+
+## Option definitions
+
+In this section we are going to define the command-line options for our application. The first thing
+we need is to import the necessary library types:
+
+```ts
+import type { Options, OptionValues } from 'tsargp';
+```
+
+Then let's define a reusable option definition for the parameters of a multi-argument operation. It
+has a single [numbers option](../library/options.mdx#number-option) that receives (unlimited)
+positional arguments.
+
+```ts {4}
+const multiOpts = {
+  numbers: {
+    type: 'numbers',
+    preferredName: 'numbers',
+    desc: 'The numbers to operate on',
+    default: [],
+    positional: true,
+  },
+} as const satisfies Options;
+```
+
+Since this option accepts positional arguments, we do not want to give it a name. However, as is
+highlighted in line 4, it has a preferred name that will be displayed in error messages.
+
+Now let's define a similar option for the parameters of a dual-argument operation. It has the same
+definition as above, with an additional constraint: it accepts at most two values.
+
+```ts
+const binaryOpts = {
+  numbers: { ...multiOpts.numbers, limit: 2 },
+} as const satisfies Options;
+```
+
+With this in place, we can define our main command-line options:
+
+```ts
+const options = {
+  help: {
+    type: 'help',
+    names: ['help'],
+    desc: 'Prints this help message',
+  },
+  add: {
+    type: 'command',
+    names: ['add'],
+    desc: 'A command that sums multiple numbers',
+    options: (): Options => ({ ...options, ...multiOpts }),
+    cmd(_, cmdValues): number {
+      const vals = cmdValues as OptionValues<typeof options & typeof multiOpts>;
+      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 0;
+      return vals.numbers.reduce((acc, val) => acc + val, other);
+    },
+  },
+  sub: {
+    type: 'command',
+    names: ['sub'],
+    desc: 'A command that subtracts two numbers',
+    options: (): Options => ({ ...options, ...binaryOpts }),
+    cmd(_, cmdValues): number {
+      const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
+      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
+      const [a, b] = vals.numbers;
+      return a === undefined ? -other : b === undefined ? a - other : a - b;
+    },
+  },
+  mult: {
+    type: 'command',
+    names: ['mult'],
+    desc: 'A command that multiplies multiple numbers',
+    options: (): Options => ({ ...options, ...multiOpts }),
+    cmd(_, cmdValues): number {
+      const vals = cmdValues as OptionValues<typeof options & typeof multiOpts>;
+      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 1;
+      return vals.numbers.reduce((acc, val) => acc * val, other);
+    },
+  },
+  div: {
+    type: 'command',
+    names: ['div'],
+    desc: 'A command that divides two numbers',
+    options: (): Options => ({ ...options, ...binaryOpts }),
+    cmd(_, cmdValues): number {
+      const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
+      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
+      const [a, b] = vals.numbers;
+      return a === undefined ? 1 / other : b === undefined ? a / other : a / b;
+    },
+  },
+} as const satisfies Options;
+```
+
+## Trying it out
+
+<Calc />
+
+List of commands to try:
+
+- `calc help` - should print the help message
+- `calc add` - should print `0{:ts}`
+- `calc mult` - should print `1{:ts}`
+- `calc`, `calc sub` or `calc div` - should print `NaN{:ts}`
+- `calc sub 1 2 3` or `calc div 1 2 3` - should print an error message
+- `calc add 1 sub 2 mult 3 div 4 2` - this is the aforementioned example that gives -3

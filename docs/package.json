@@ -1,8 +1,8 @@
 {
   "name": "@trulysimple/tsargp-docs",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "description": "Documentation for tsargp",
-  "homepage": "https://github.com/trulysimple/tsargp/tree/main/docs#readme",
+  "homepage": "https://trulysimple.dev/tsargp/docs",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
@@ -15,7 +15,8 @@
     "dist"
   ],
   "repository": {
-    "url": "git+https://github.com/trulysimple/tsargp.git"
+    "url": "git+https://github.com/trulysimple/tsargp.git",
+    "directory": "docs"
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
@@ -27,7 +28,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "serve": "^14.2.1",
-    "tsargp": "^0.1.87",
+    "tsargp": "^0.1.89",
     "xterm": "^5.3.0",
     "xterm-readline": "^1.1.1"
   },

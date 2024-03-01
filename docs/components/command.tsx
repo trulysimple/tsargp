@@ -88,7 +88,7 @@ abstract class Command extends React.Component<Props, State> {
    */
   constructor(props: Props, name: string, options: Options) {
     super(props);
-    this.commands = ['clear', name];
+    this.commands = [name, 'clear'];
     this.parser = new OpaqueArgumentParser(options);
     this.term.loadAddon(new WebLinksAddon());
     this.term.loadAddon(this.fit);
@@ -169,7 +169,7 @@ abstract class Command extends React.Component<Props, State> {
       const command = cmds[0];
       if (pos <= command.length) {
         this.term.paste(`${command} `.slice(pos));
-      } else if (command == 'tsargp') {
+      } else if (command == this.commands[0]) {
         this.complete(buf, pos);
       }
     }
@@ -186,7 +186,7 @@ abstract class Command extends React.Component<Props, State> {
         case 'clear':
           this.term.clear();
           break;
-        case 'tsargp':
+        case this.commands[0]:
           this.run(line);
           break;
       }
