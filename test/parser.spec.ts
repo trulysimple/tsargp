@@ -25,10 +25,10 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options, config);
       expect(() => parser.parse(['boo'])).toThrow(/Unknown option boo\./);
       expect(() => parser.parse(['bool'])).toThrow(
-        /Unknown option bool.\n\nSimilar names are \[--boolean1, --boolean2\]\./,
+        /Unknown option bool. Similar names are \[--boolean1, --boolean2\]\./,
       );
       expect(() => parser.parse(['bool-ean'])).toThrow(
-        /Unknown option bool-ean.\n\nSimilar names are \[--boolean1, --boolean2\]\./,
+        /Unknown option bool-ean. Similar names are \[--boolean1, --boolean2\]\./,
       );
     });
 
@@ -1002,9 +1002,8 @@ describe('ArgumentParser', () => {
     describe('string', () => {
       it('should throw a name suggestion on parse failure from positional string option', () => {
         const regex = new RegExp(
-          `Invalid parameter to -s: 's'\\. Possible values are \\['abc'\\]\\.` +
-            `\n\nDid you mean to specify an option name instead of s\\?` +
-            `\n\nSimilar names are \\[-s\\]\\.`,
+          `Invalid parameter to -s: 's'\\. Possible values are \\['abc'\\]\\.\n\n` +
+            `Did you mean to specify an option name instead of s\\? Similar names are \\[-s\\]\\.`,
         );
         const options = {
           string: {
@@ -1413,8 +1412,8 @@ describe('ArgumentParser', () => {
     describe('number', () => {
       it('should throw a name suggestion on parse failure from positional number option', () => {
         const regex = new RegExp(
-          `Invalid parameter to -n: 1\\. Possible values are \\[123\\]\\.` +
-            `\n\nDid you mean to specify an option name instead of 1\\?`,
+          `Invalid parameter to -n: 1\\. Possible values are \\[123\\]\\.\n\n` +
+            `Did you mean to specify an option name instead of 1\\?`,
         );
         const options = {
           number: {
@@ -2034,9 +2033,8 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic strings option', () => {
         const regex = new RegExp(
-          `Option -ss has too many values \\(1\\)\\. Should have at most 0\\.` +
-            `\n\nDid you mean to specify an option name instead of ss\\?` +
-            `\n\nSimilar names are \\[-ss\\]\\.`,
+          `Option -ss has too many values \\(1\\)\\. Should have at most 0\\.\n\n` +
+            `Did you mean to specify an option name instead of ss\\? Similar names are \\[-ss\\]\\.`,
         );
         const options = {
           strings: {
@@ -2522,9 +2520,8 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic numbers option', () => {
         const regex = new RegExp(
-          `Option -ns has too many values \\(1\\)\\. Should have at most 0\\.` +
-            `\n\nDid you mean to specify an option name instead of ns\\?` +
-            `\n\nSimilar names are \\[-ns\\]\\.`,
+          `Option -ns has too many values \\(1\\)\\. Should have at most 0\\.\n\n` +
+            `Did you mean to specify an option name instead of ns\\? Similar names are \\[-ns\\]\\.`,
         );
         const options = {
           numbers: {

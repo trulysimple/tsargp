@@ -19,6 +19,7 @@ import type {
   CommandOption,
   CastToOptionValues,
 } from './options';
+
 import type { Positional, ConcreteError, ErrorConfig, ConcreteStyles } from './validator';
 
 import { HelpFormatter } from './formatter';
@@ -177,9 +178,9 @@ class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
+  private readonly styles: ConcreteStyles;
   private readonly normalizeString: OptionValidator['normalizeString'];
   private readonly normalizeNumber: OptionValidator['normalizeNumber'];
-  private readonly styles: ConcreteStyles;
 
   /**
    * Creates a parser loop.
@@ -598,38 +599,22 @@ class ParserLoop {
       this.values[key] = undefined;
       return;
     }
+    const value =
+      typeof option.default === 'function' ? option.default(this.values) : option.default;
     switch (option.type) {
       case 'flag':
       case 'boolean': {
-        const value =
-          typeof option.default === 'function' ? option.default(this.values) : option.default;
         this.values[key] = value;
         break;
       }
-      case 'string': {
-        const value =
-          typeof option.default === 'function' ? option.default(this.values) : option.default;
-        this.setSingle(key, option, key, value, this.normalizeString);
-        break;
-      }
-      case 'number': {
-        const value =
-          typeof option.default === 'function' ? option.default(this.values) : option.default;
-        this.setSingle(key, option, key, value, this.normalizeNumber);
-        break;
-      }
-      case 'strings': {
-        const value =
-          typeof option.default === 'function' ? option.default(this.values) : option.default;
-        this.setArray(key, option, key, value, this.normalizeString);
-        break;
-      }
-      case 'numbers': {
-        const value =
-          typeof option.default === 'function' ? option.default(this.values) : option.default;
-        this.setArray(key, option, key, value, this.normalizeNumber);
-        break;
-      }
+      case 'string':
+        return this.setSingle(key, option, key, value as string, this.normalizeString);
+      case 'number':
+        return this.setSingle(key, option, key, value as number, this.normalizeNumber);
+      case 'strings':
+        return this.setArray(key, option, key, value as Array<string>, this.normalizeString);
+      case 'numbers':
+        return this.setArray(key, option, key, value as Array<number>, this.normalizeNumber);
       default: {
         const _exhaustiveCheck: never = option;
         return _exhaustiveCheck;
@@ -697,10 +682,12 @@ class ParserLoop {
     }
     if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
       const and = requires instanceof RequiresAll !== negate;
-      return checkRequireItems(requires.items, this.checkRequires.bind(this), error, negate, and);
+      const itemFn = this.checkRequires.bind(this);
+      return checkRequireItems(requires.items, itemFn, error, negate, and);
     }
     const entries = Object.entries(requires);
-    return checkRequireItems(entries, this.checkRequirement.bind(this), error, negate, !negate);
+    const itemFn = this.checkRequirement.bind(this);
+    return checkRequireItems(entries, itemFn, error, negate, !negate);
   }
 
   /**
@@ -757,40 +744,40 @@ class ParserLoop {
     value: Exclude<RequiresVal[string], undefined | null>,
     error: TerminalString,
   ): boolean {
-    function assert(_condition: unknown): asserts _condition {}
     switch (option.type) {
-      case 'boolean': {
-        assert(typeof value == 'boolean');
-        return this.checkRequiredSingle(name, option, negate, key, value, error, formatBoolean);
-      }
-      case 'string': {
-        assert(typeof value === 'string');
+      case 'boolean':
         return this.checkRequiredSingle(
           name,
           option,
           negate,
           key,
-          value,
+          value as boolean,
+          error,
+          formatBoolean,
+        );
+      case 'string':
+        return this.checkRequiredSingle(
+          name,
+          option,
+          negate,
+          key,
+          value as string,
           error,
           formatString,
           this.normalizeString,
         );
-      }
-      case 'number': {
-        assert(typeof value === 'number');
+      case 'number':
         return this.checkRequiredSingle(
           name,
           option,
           negate,
           key,
-          value,
+          value as number,
           error,
           formatNumber,
           this.normalizeNumber,
         );
-      }
-      case 'strings': {
-        assert(typeof value === 'object');
+      case 'strings':
         return this.checkRequiredArray(
           name,
           option,
@@ -801,9 +788,7 @@ class ParserLoop {
           formatString,
           this.normalizeString,
         );
-      }
-      case 'numbers': {
-        assert(typeof value === 'object');
+      case 'numbers':
         return this.checkRequiredArray(
           name,
           option,
@@ -814,7 +799,6 @@ class ParserLoop {
           formatNumber,
           this.normalizeNumber,
         );
-      }
       default: {
         const _exhaustiveCheck: never = option;
         return _exhaustiveCheck;
@@ -834,7 +818,7 @@ class ParserLoop {
    * @param normalizeFn The function to normalize the required value
    * @returns True if the requirement was satisfied
    */
-  private checkRequiredSingle<O extends SingleOption, T extends boolean | string | number>(
+  private checkRequiredSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
     name: string,
     option: O,
     negate: boolean,
@@ -870,12 +854,15 @@ class ParserLoop {
    * @param normalizeFn The function to normalize the required value
    * @returns True if the requirement was satisfied
    */
-  private checkRequiredArray<O extends ArrayOption, T extends string | number>(
+  private checkRequiredArray<
+    O extends ArrayOption,
+    T extends Exclude<O['example'], undefined>[number],
+  >(
     name: string,
     option: O,
     negate: boolean,
     key: string,
-    value: Array<T>,
+    value: ReadonlyArray<T>,
     error: TerminalString,
     formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
     normalizeFn: (option: O, name: string, value: T) => T,
@@ -940,25 +927,16 @@ class ParserLoop {
       case 'boolean': {
         const convertFn = (str: string) =>
           !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
-        this.parseSingle(key, option, name, value, convertFn);
-        break;
+        return this.parseSingle(key, option, name, value, convertFn);
       }
-      case 'string': {
-        this.parseSingle(key, option, name, value, (str) => str, this.normalizeString);
-        break;
-      }
-      case 'number': {
-        this.parseSingle(key, option, name, value, Number, this.normalizeNumber);
-        break;
-      }
-      case 'strings': {
-        this.parseArray(key, option, name, value, (str) => str, this.normalizeString);
-        break;
-      }
-      case 'numbers': {
-        this.parseArray(key, option, name, value, Number, this.normalizeNumber);
-        break;
-      }
+      case 'string':
+        return this.parseSingle(key, option, name, value, (str) => str, this.normalizeString);
+      case 'number':
+        return this.parseSingle(key, option, name, value, Number, this.normalizeNumber);
+      case 'strings':
+        return this.parseArray(key, option, name, value, (str) => str, this.normalizeString);
+      case 'numbers':
+        return this.parseArray(key, option, name, value, Number, this.normalizeNumber);
       default: {
         const _exhaustiveCheck: never = option;
         return _exhaustiveCheck;
@@ -1173,9 +1151,9 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * @param unique True if array elements should be unique
  * @returns An error reason or null if no error
  */
-function checkRequiredArray(
-  actual: Array<string | number>,
-  expected: Array<string | number>,
+function checkRequiredArray<T extends boolean | string | number>(
+  actual: Array<T>,
+  expected: ReadonlyArray<T>,
   negate: boolean,
   unique: boolean,
 ): boolean {
@@ -1220,12 +1198,12 @@ function checkRequireItems<T>(
   if (!and && items.length > 1) {
     error.addOpening('(');
   }
-  let first = false;
+  let first = true;
   for (const item of items) {
-    if (!and && first) {
-      error.addWord('or');
+    if (and || first) {
+      first = false;
     } else {
-      first = true;
+      error.addWord('or');
     }
     const success = itemFn(item, error, negate);
     if (success !== and) {

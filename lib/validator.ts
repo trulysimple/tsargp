@@ -108,9 +108,9 @@ const defaultConfig: ConcreteError = {
   phrases: {
     [ErrorItem.parseError]: '%t\n\nDid you mean to specify an option name instead of %o?',
     [ErrorItem.parseErrorWithSimilar]:
-      '%t\n\n Did you mean to specify an option name instead of %o1?\n\nSimilar names are %o2.',
+      '%t\n\n Did you mean to specify an option name instead of %o1? Similar names are %o2.',
     [ErrorItem.unknownOption]: 'Unknown option %o.',
-    [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1.\n\nSimilar names are %o2.',
+    [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1. Similar names are %o2.',
     [ErrorItem.optionRequires]: 'Option %o requires %t.',
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
@@ -506,7 +506,7 @@ class OptionValidator {
    * @param args The error arguments
    * @returns The formatted error
    */
-  error(kind: ErrorItem, args?: Record<string, unknown>): Error {
+  error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
     const str = new TerminalString().addSequence(this.config.styles.text);
     const phrase = this.config.phrases[kind];
     if (args) {
