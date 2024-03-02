@@ -1,6 +1,7 @@
 {
   "options": "Options",
   "parser": "Parser",
+  "validator": "Validator",
   "formatter": "Formatter",
   "styles": "Styles"
 }

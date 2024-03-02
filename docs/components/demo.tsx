@@ -7,7 +7,7 @@ import { type Props, Command } from './command';
 // @ts-expect-error since tsargp demo does not export types
 import { demo as options } from 'tsargp/examples';
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.89';
+options.version.version = '0.1.90';
 
 //--------------------------------------------------------------------------------------------------
 // Classes

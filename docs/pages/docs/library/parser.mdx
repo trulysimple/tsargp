@@ -52,143 +52,10 @@ at the resulting type of the `parse` method (or declare a temporary type alias f
 This method returns a promise that can be awaited in order to resolve async
 [executing callbacks](#executing-callbacks).
 
-## Option validation
-
-The term _validation_ here means verifying the sanity of an option's definition. It is intended for
-development and testing, _not_ for use in production where it would impose an unwanted performance
-penalty on your application. The validations behave like assertions: they assert that your options
-will work as expected when delivered to end users.
-
-To validate a set of option definitions, you must call the `validate` method on the parser instance.
-The following sections describe the various kinds of validation performed by this method. Any option
-definition that does not satisfy one of these restrictions will trigger an error with an explanatory
-message that may include the option's key.
-
-### Names validation
-
-Option names are subject to the restrictions listed below.
-
-#### Invalid option name
-
-An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character may
-be used as option-value separator on the command-line. Any other character (including Unicode code
-points) is allowed. Empty strings and `null{:ts}`s are ignored. A flag option's
-[negation names](options.mdx#negation-names) and the
-[positional marker](options.mdx#positional--marker) are included in the validation.
-
-#### Duplicate option name
-
-An option should not have duplicate names, and there cannot be two options with the same name. Empty
-strings and `null{:ts}`s are ignored. A flag option's [negation names](options.mdx#negation-names)
-and the [positional marker](options.mdx#positional--marker) are included in the validation.
-
-### Enums validation
-
-Enumerated values are subject to the restrictions listed below.
-
-#### Zero enum values
-
-There may not be an option with zero enumerated values. The enumeration array should have _non-zero_
-length.
-
-#### Duplicate enum value
-
-There may not be an option with duplicate enumerated values. The enumeration array _should not_
-contain duplicate elements.
-
-### Value validation
-
-Non-niladic options may define a default value and an example value. If present, these attributes
-are subject to the same set of constraints as that of the command-line arguments, which are listed
-below.
-
-<Callout type="info">
-  This does not apply to [default callbacks](options.mdx#default-value--callback) (they are ignored
-  during validation).
-</Callout>
-
-#### Enums constraint violation
-
-If the [enums](options.mdx#enumeration) attribute is present, then default and example values must
-equal one of the enumerated values after being normalized. (The enumerated values themselves are not
-normalized.)
-
-#### Regex constraint violation
-
-In a string-valued option, if the [regex](options.mdx#regular-expression) attribute is present, then
-default and example values must match the regular expression after being normalized.
-
-#### Range constraint violation
-
-In a number-valued option, if the [range](options.mdx#numeric-range) attribute is present, then
-default and example values must be within this range after being normalized.
-
-#### Limit constraint violation
-
-In an array-valued option, if the [limit](options.mdx#count-limit) attribute is present, then
-default and example values must have a length that does not exceed the given limit after being
-normalized.
-
-### Requirements validation
-
-When an option declares that it requires other options, these requirements are subject to the
-restrictions listed below.
-
-#### Option requiring itself
-
-An option must _not_ declare a requirement that includes its _own_ option key.
-
-#### Unknown required option
-
-An option must _not_ declare a requirement that includes an _unknown_ option key.
-
-#### Niladic option required with a value
-
-An option must _not_ declare a requirement that includes an option key referencing a niladic option,
-_if_ it includes a required value that is neither `undefined{:ts}` nor `null{:ts}`.
-
-#### Incompatible required value data type
-
-Since a requirement may be an object with values of any kind, the data type of these values must be
-validated at run-time. An option must _not_ declare a requirement that includes an option key
-referencing a non-niladic option, _if_ it includes a required value that does _not_ conform to the
-data type expected by that option.
-
-#### Constraint violation
-
-If an option declares a requirement that includes a required value, then that value is subject to
-the same set of constraints as that of the command-line arguments, so it must satisfy the
-restrictions listed in [value validation](#value-validation).
-
-### Positional validation
-
-Options declared with the [positional](options.mdx#positional--marker) attribute are subject to the
-restrictions listed below.
-
-#### Duplicate positional option
-
-Since positional arguments have no name, they must pertain to exactly one option. Hence, there
-_cannot_ be two options with the positional attribute in the same set of option definitions.
-
-#### Empty positional marker
-
-If an option is declared with a positional marker, this marker _cannot_ be the empty string.
-
-### Version validation
-
-A version option is very simple and has only one restraint: it must _not_ contain an empty version
-string; otherwise it will trigger an error.
-
 ## Parse configuration
 
-The parsing procedure can be configured with a `ParseConfig` object that has a few optional
-properties, as described below.
-
-### Terminal width
-
-The `termWidth` property is the desired terminal width that is used to print the help message (in
-number of columns). This value is passed directly to the constructor of the
-[formatter](formatter.mdx) class, when processing a help option.
+The parsing procedure can be configured with a `ParseConfig` object that (currently) has only one
+optional property, as described below.
 
 ### Completion index
 
@@ -325,6 +192,12 @@ suggestions based on those values.
 
 ## Miscellaneous
 
+### Error styles
+
+Error messages generated by the parsing procedure can be customized using the validator's
+[error configuration](validator.mdx#error-configuration), which can be provided as an additional
+parameter to the parser constructor.
+
 ### Name suggestions
 
 During parsing, there are two situations in which the parser might suggest option names:
@@ -337,24 +210,6 @@ During parsing, there are two situations in which the parser might suggest optio
 
 In these cases, the parser selects option names that are similar to the current argument using the
 [Gestalt algorithm], and includes them in the error message.
-
-### Error styles
-
-The validation and parsing methods may throw errors, and the error messages can be styled. Styles
-can be configured with an additional parameter to the parser constructor, which contains the
-following optional properties:
-
-- `boolean` - the style of boolean values (defaults to `fg.yellow`)
-- `string` - the style of string values (defaults to `fg.green`)
-- `number` - the style of number values (defaults to `fg.yellow`)
-- `regex` - the style of regular expressions (defaults to `fg.red`)
-- `option` - the style of option names (defaults to `fg.magenta`)
-- `url` - the style of URLs (defaults to `fg.brightBlack`)
-- `text` - The style of general text (defaults to `tf.clear`)
-
-These styles are _not_ used in the help option's [format](options.mdx#format--heading-style)
-attribute. They may have the same values, but you should configure both if you want to customize
-both error messages and help messages.
 
 ### Inline values
 

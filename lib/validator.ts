@@ -43,32 +43,119 @@ export {
  */
 // Internal note: this needs to be defined before `defaultConfig`, otherwise bun chokes.
 const enum ErrorItem {
+  /**
+   * Raised by the parser when an option parameter fails to be parsed.
+   */
   parseError,
+  /**
+   * Raised by the parser when an option parameter fails to be parsed, and there are option name
+   * suggestions.
+   */
   parseErrorWithSimilar,
+  /**
+   * Raised by the parser when an option name is not found.
+   */
   unknownOption,
+  /**
+   * Raised by the parser when an option name is not found, and there are option name suggestions.
+   */
   unknownOptionWithSimilar,
+  /**
+   * Raised by the parser when an option requirement is not satisfied.
+   */
   optionRequires,
+  /**
+   * Raised by the parser when an option that is required was not specified (or vice-versa).
+   */
   missingRequiredOption,
+  /**
+   * Raised by the parser when an option parameter is expected but was not specified.
+   */
   missingParameter,
+  /**
+   * Raised by the parser when it fails to find a "package.json" file when resolving the version.
+   */
   missingPackageJson,
+  /**
+   * Raised by the parser when a positional marker is specified with an inline value.
+   */
   positionalInlineValue,
+  /**
+   * Raised by the parser when a niladic option is specified with an inline value.
+   */
   optionInlineValue,
+  /**
+   * Raised by the validator when a positional option has an empty positional marker string.
+   */
   emptyPositionalMarker,
+  /**
+   * Raised by the validator when an option has an invalid name.
+   */
   invalidOptionName,
+  /**
+   * Raised by the validator when a version option has an empty version string.
+   */
   optionEmptyVersion,
+  /**
+   * Raised by the validator when an option requires itself.
+   */
   optionRequiresItself,
+  /**
+   * Raised by the validator when an option requires an unknown option.
+   */
   unknownRequiredOption,
+  /**
+   * Raised by the validator when an option requires a niladic option with a value.
+   */
   niladicOptionRequiredValue,
+  /**
+   * Raised by the validator when an option has a zero-length enumeration array.
+   */
   optionZeroEnum,
+  /**
+   * Raised by the validator when an option has a duplicate name.
+   */
   duplicateOptionName,
+  /**
+   * Raised by the validator when there are two or more positional options.
+   */
   duplicatePositionalOption,
+  /**
+   * Raised by the validator when a string enumeration constraint has duplicate values.
+   */
   duplicateStringOptionEnum,
+  /**
+   * Raised by the validator when a number enumeration constraint has duplicate values.
+   */
   duplicateNumberOptionEnum,
+  /**
+   * Raised by the validator when an option is required with a value of incompatible data type.
+   */
   optionValueIncompatible,
+  /**
+   * Raised by either the parser or validator when a value fails to satisfy a string option's
+   * enumeration constraint.
+   */
   stringOptionEnums,
+  /**
+   * Raised by either the parser or validator when a value fails to satisfy a string option's
+   * regex constraint.
+   */
   stringOptionRegex,
+  /**
+   * Raised by either the parser or validator when a value fails to satisfy a number option's
+   * enumeration constraint.
+   */
   numberOptionEnums,
+  /**
+   * Raised by either the parser or validator when a value fails to satisfy a number option's
+   * range constraint.
+   */
   numberOptionRange,
+  /**
+   * Raised by either the parser or validator when a value fails to satisfy an array option's
+   * limit constraint.
+   */
   arrayOptionLimit,
 }
 
@@ -108,7 +195,7 @@ const defaultConfig: ConcreteError = {
   phrases: {
     [ErrorItem.parseError]: '%t\n\nDid you mean to specify an option name instead of %o?',
     [ErrorItem.parseErrorWithSimilar]:
-      '%t\n\n Did you mean to specify an option name instead of %o1? Similar names are %o2.',
+      '%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.',
     [ErrorItem.unknownOption]: 'Unknown option %o.',
     [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1. Similar names are %o2.',
     [ErrorItem.optionRequires]: 'Option %o requires %t.',
@@ -134,7 +221,7 @@ const defaultConfig: ConcreteError = {
     [ErrorItem.stringOptionRegex]: 'Invalid parameter to %o: %s. Value must match the regex %r.',
     [ErrorItem.numberOptionEnums]: 'Invalid parameter to %o: %n1. Possible values are %n2.',
     [ErrorItem.numberOptionRange]: 'Invalid parameter to %o: %n1. Value must be in the range %n2.',
-    [ErrorItem.arrayOptionLimit]: `Option %o has too many values (%n1). Should have at most %n2.`,
+    [ErrorItem.arrayOptionLimit]: 'Option %o has too many values (%n1). Should have at most %n2.',
   },
 };
 

@@ -18,7 +18,7 @@ title: Introduction - Docs
 | ESM-native             | Asynchronous callbacks  | Custom phrases               |
 | Online documentation   | Recursive commands      | Option grouping/hiding       |
 
-[^1]: ~30KB minified
+[^1]: ~31KB minified
 
 ## Motivation
 
@@ -67,11 +67,11 @@ try {
   // const values = await parser.parseAsync();  // use this if you declare async function options
   // parser.parseInto(myValues);                // use this if your values are enclosed in a class
 } catch (err) {
-  if (typeof err === 'string') {
-    console.log(err); // help message, version or bash completion words
-  } else {
-    console.error(err); // genuine errors
+  if (err instanceof Error) {
+    console.error(`${err}`);
     process.exitCode = 1;
+  } else {
+    console.log(`${err}`); // help message, version or completion words
   }
 }
 ```

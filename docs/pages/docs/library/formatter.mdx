@@ -151,22 +151,9 @@ It defaults to `false{:ts}`.
 
 ### Display styles
 
-The `styles` property specifies the default option styles and styles of other text elements in the
-help message. It has the following optional properties:
-
-- `names` - the default style of the option names (defaults to `tf.clear`)
-- `param` - the default style of the option paramater (defaults to `tf.clear` and `fg.brightBlack`)
-- `descr` - the default style of the option description (defaults to `tf.clear`)
-- `boolean` - the style of boolean values (defaults to `fg.yellow`)
-- `string` - the style of string values (defaults to `fg.green`)
-- `number` - the style of number values (defaults to `fg.yellow`)
-- `regex` - the style of regular expressions (defaults to `fg.red`)
-- `option` - the style of option names in the description (defaults to `fg.magenta`)
-- `url` - the style of URLs (defaults to `fg.brightBlack`)
-- `text` - The style of general text (defaults to `tf.clear`)
-
-The first three of these properties may be overriden by the option's
-[display styles](options.mdx#display-styles), if present.
+The `styles` property specifies the styles of text elements in the help message. It has the same
+properties as the [error styles](validator.mdx#error-styles) and the same default values. They may
+be overriden by an option's [display styles](options.mdx#display-styles), if present.
 
 <Callout type="default">
   Whitespace around help entries is not styled. For that purpose, you may need to tweak your
@@ -217,36 +204,38 @@ an item has multiple alternatives, such as `DescItem.case`, different texts can 
 `'|'{:ts}` and grouped in parentheses, as can be seen in the default values listed below:
 
 - `synopsis` - `'%s'{:ts}`
-- `negation` - `'Can be negated with %s'{:ts}`
-- `separator` - `'Values are delimited by %s'{:ts}`
-- `variadic` - `'Accepts multiple parameters'{:ts}`
-- `positional` - `'Accepts positional parameters(| that may be preceded by %s)'{:ts}`
-- `append` - `'May be specified multiple times'{:ts}`
-- `trim` - `'Values will be trimmed'{:ts}`
-- `case` - `'Values will be converted to (lowercase|uppercase)'{:ts}`
-- `round` - `'Values will be rounded (towards zero|down|up|to the nearest integer)'{:ts}`
-- `enums` - `'Values must be one of %s'{:ts}`
-- `regex` - `'Values must match the regex %s'{:ts}`
-- `range` - `'Values must be in the range %s'{:ts}`
-- `unique` - `'Duplicate values will be removed'{:ts}`
-- `limit` - `'Value count is limited to %s'{:ts}`
-- `requires` - `'Requires %s'{:ts}`
-- `required` - `'Always required'{:ts}`
-- `default` - `'Defaults to %s'{:ts}`
-- `deprecated` - `'Deprecated for %s'{:ts}`
-- `link` - `'Refer to %s for details'{:ts}`
+- `negation` - `'Can be negated with %s.'{:ts}`
+- `separator` - `'Values are delimited by %s.'{:ts}`
+- `variadic` - `'Accepts multiple parameters.'{:ts}`
+- `positional` - `'Accepts positional parameters(| that may be preceded by %s).'{:ts}`
+- `append` - `'May be specified multiple times.'{:ts}`
+- `trim` - `'Values will be trimmed.'{:ts}`
+- `case` - `'Values will be converted to (lowercase|uppercase).'{:ts}`
+- `round` - `'Values will be rounded (towards zero|down|up|to the nearest integer).'{:ts}`
+- `enums` - `'Values must be one of %s.'{:ts}`
+- `regex` - `'Values must match the regex %s.'{:ts}`
+- `range` - `'Values must be in the range %s.'{:ts}`
+- `unique` - `'Duplicate values will be removed.'{:ts}`
+- `limit` - `'Value count is limited to %s.'{:ts}`
+- `requires` - `'Requires %s.'{:ts}`
+- `required` - `'Always required.'{:ts}`
+- `default` - `'Defaults to %s.'{:ts}`
+- `deprecated` - `'Deprecated for %s.'{:ts}`
+- `link` - `'Refer to %s for details.'{:ts}`
+
+These phrases will be formatted according to the [text formatting](#text-formatting) rules.
 
 <Callout type="warning">
-  The `%s` specifier should appear separated from other words, otherwise the extra characters will
-  be lost. For example, if the phrase was `'Requires (%s)'{:ts}`, the surrounding parentheses would
-  not be displayed.
+  Phrases can contain inline styles, but not in the same word as the `%s` specifier. Otherwise, they
+  will mess up the text wrapping. For example, the following phrase is not valid:
+  ``` `Requires ${style(tf.bold)}%s`{:ts} ```.
 </Callout>
 
 ## Text formatting
 
-Some description items, such as the option synopsis and the deprecation reason, are texts that the
-formatter splits into words and styles before adding to the option description. The following
-formatting features are supported for these items.
+In addition to item phrases, some description items such as the option synopsis or the deprecation
+reason are texts that the formatter splits into words before adding to the option description. The
+following formatting features are supported for these items.
 
 ### Inline styles
 
@@ -262,7 +251,7 @@ formatted similarly to how they would be in markdown. For example, the following
 ```ansi
 A paragraph with
   single line breaks,  redundant  spacing  and:
-  - itemized; or
+    - itemized; or
   1. numbered lists
 
   Another paragraph
@@ -275,12 +264,7 @@ A paragraph with single line breaks, redundant spacing and:
 - itemized; or
 1. numbered lists
 
-Another paragraph.
+Another paragraph
 ```
-
-<Callout type="info">
-  A period is appended to paragraphs that do not end with one of the following punctuation
-  characters: `.,:;!?`. This does not apply to lists.
-</Callout>
 
 [bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug

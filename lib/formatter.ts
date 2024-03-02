@@ -100,7 +100,7 @@ type FormatConfig = {
   };
 
   /**
-   * The default option styles and styles of other text elements.
+   * The styles of text elements.
    */
   readonly styles?: OtherStyles;
 

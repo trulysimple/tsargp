@@ -6,7 +6,8 @@ import { Terminal } from 'xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { FitAddon } from '@xterm/addon-fit';
 import { Readline } from 'xterm-readline';
-import { OpaqueArgumentParser, CastToOptionValues, type Options } from 'tsargp';
+import type { Options } from 'tsargp';
+import { OpaqueArgumentParser, CastToOptionValues, ErrorMessage, HelpMessage } from 'tsargp';
 import 'xterm/css/xterm.css';
 
 export { type Props, type State, Command };
@@ -218,10 +219,14 @@ abstract class Command extends React.Component<Props, State> {
   private run(line: string) {
     try {
       const values = {};
-      this.parser.parseInto(values, line, { termWidth: this.state.width });
+      this.parser.parseInto(values, line);
       this.handleValues(values);
     } catch (err) {
-      this.readline.println(`${err}`);
+      const msg =
+        err instanceof ErrorMessage || err instanceof HelpMessage
+          ? err.wrap(this.state.width)
+          : `${err}`;
+      this.readline.println(msg);
     }
   }
 
