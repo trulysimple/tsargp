@@ -7,27 +7,18 @@ import type {
   Requires,
   ValuedOption,
   RequiresVal,
-  OtherStyles,
   ArrayOption,
   ParamOption,
 } from './options';
 import type { Style } from './styles';
-import type { Concrete, ConcreteStyles } from './validator';
+import type { Concrete, ConcreteStyles, OptionValidator } from './validator';
 
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { HelpMessage, TerminalString, style, tf } from './styles';
-import {
-  defaultStyles,
-  formatOption,
-  formatString,
-  formatRegExp,
-  formatNumber,
-  formatURL,
-  formatBoolean,
-} from './validator';
+import { formatFunctions } from './validator';
 import { assert, splitPhrase } from './utils';
 
-export { HelpFormatter, DescItem, type FormatConfig };
+export { HelpFormatter, DescItem, type HelpConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -35,7 +26,7 @@ export { HelpFormatter, DescItem, type FormatConfig };
 /**
  * The help format configuration.
  */
-type FormatConfig = {
+type HelpConfig = {
   /**
    * The indentation level for each column.
    */
@@ -101,11 +92,6 @@ type FormatConfig = {
   };
 
   /**
-   * The styles of text elements.
-   */
-  readonly styles?: OtherStyles;
-
-  /**
    * The order of items to be shown in the option description.
    * @see DescItem
    */
@@ -125,7 +111,7 @@ type FormatConfig = {
 /**
  * A concrete version of the format configuration.
  */
-type ConcreteFormat = Concrete<FormatConfig>;
+type ConcreteFormat = Concrete<HelpConfig>;
 
 /**
  * Precomputed texts used by the formatter.
@@ -242,7 +228,6 @@ const defaultConfig: ConcreteFormat = {
     param: false,
     descr: false,
   },
-  styles: defaultStyles,
   items: [
     DescItem.synopsis,
     DescItem.negation,
@@ -294,6 +279,8 @@ const defaultConfig: ConcreteFormat = {
  * Implements formatting of help messages for a set of option definitions.
  */
 class HelpFormatter {
+  private readonly options: Options;
+  private readonly styles: ConcreteStyles;
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number>;
@@ -326,26 +313,24 @@ class HelpFormatter {
 
   /**
    * Creates a help message formatter.
-   * @param options The option definitions
+   * @param validator The validator instance
    * @param config The format configuration
    */
-  constructor(
-    private readonly options: Options,
-    config: FormatConfig = {},
-  ) {
+  constructor(validator: OptionValidator, config: HelpConfig = {}) {
+    this.options = validator.options;
+    this.styles = validator.config.styles;
     this.config = {
       indent: Object.assign({}, defaultConfig.indent, config.indent),
       breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
-      styles: Object.assign({}, defaultConfig.styles, config.styles),
       hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
       items: config.items ?? defaultConfig.items,
       phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
     };
-    this.nameWidths = this.config.hidden.names ? [] : getNameWidths(options);
+    this.nameWidths = this.config.hidden.names ? [] : getNameWidths(this.options);
     this.namesStart = Math.max(0, this.config.indent.names);
     let paramWidth = 0;
-    for (const key in options) {
-      const option = options[key];
+    for (const key in this.options) {
+      const option = this.options[key];
       if (!option.hide) {
         const entry = this.formatOption(option);
         paramWidth = Math.max(paramWidth, entry.param.length);
@@ -387,7 +372,7 @@ class HelpFormatter {
    * @returns The computed help entry
    */
   private formatOption(option: Option): HelpEntry {
-    const names = this.formatOptions(option);
+    const names = this.formatNames(option);
     const param = this.formatParam(option);
     const descr = this.formatDescription(option);
     const entry: HelpEntry = { names, param, descr };
@@ -405,13 +390,13 @@ class HelpFormatter {
    * @param option The option definition
    * @returns A terminal string with the formatted names
    */
-  private formatOptions(option: Option): Array<TerminalString> {
+  private formatNames(option: Option): Array<TerminalString> {
     const result = new Array<TerminalString>();
     if (this.config.hidden.names || !option.names) {
       return result;
     }
-    const style = option.styles?.names ?? this.config.styles.option;
-    this.formatOptionSlots(option.names, style, result);
+    const style = option.styles?.names ?? this.styles.option;
+    this.formatNameSlots(option.names, style, result);
     return result;
   }
 
@@ -421,12 +406,12 @@ class HelpFormatter {
    * @param style The names style
    * @param result The resulting strings
    */
-  private formatOptionSlots(
+  private formatNameSlots(
     names: ReadonlyArray<string | null>,
     style: Style,
     result: Array<TerminalString>,
   ) {
-    const textStyle = this.config.styles.text;
+    const textStyle = this.styles.text;
     let breaks = this.config.breaks.names;
     let start = this.namesStart;
     let str: TerminalString | undefined;
@@ -458,11 +443,11 @@ class HelpFormatter {
       return result;
     }
     result.addBreaks(this.config.breaks.param);
-    const textStyle = this.config.styles.text;
+    const textStyle = this.styles.text;
     if ('example' in option && option.example !== undefined) {
       this.formatValue(option, option.example, result, textStyle, false);
     } else {
-      const style = option.styles?.param ?? this.config.styles.param;
+      const style = option.styles?.param ?? this.styles.param;
       const param =
         'paramName' in option && option.paramName
           ? option.paramName.includes('<')
@@ -485,7 +470,7 @@ class HelpFormatter {
       result.addBreaks(1);
       return result;
     }
-    const descStyle = option.styles?.descr ?? this.config.styles.text;
+    const descStyle = option.styles?.descr ?? this.styles.text;
     result.addBreaks(this.config.breaks.descr).addSequence(descStyle);
     const len = result.strings.length;
     for (const item of this.config.items) {
@@ -527,7 +512,7 @@ class HelpFormatter {
       const names = option.negationNames.filter((name) => name);
       result.splitText(phrase, () => {
         names.forEach((name, i) => {
-          formatOption(name, this.config.styles, style, result);
+          formatFunctions.o(name, this.styles, style, result);
           if (i < names.length - 1) {
             result.addWord('or');
           }
@@ -546,12 +531,15 @@ class HelpFormatter {
   private formatSeparator(option: Option, phrase: string, style: Style, result: TerminalString) {
     if ('separator' in option && option.separator) {
       const sep = option.separator;
+      const formatFn = typeof sep === 'string' ? formatFunctions.s : formatFunctions.r;
+      type FormatFn = (
+        value: string | RegExp,
+        styles: ConcreteStyles,
+        style: Style,
+        result: TerminalString,
+      ) => void;
       result.splitText(phrase, () => {
-        if (typeof sep === 'string') {
-          formatString(sep, this.config.styles, style, result);
-        } else {
-          formatRegExp(sep, this.config.styles, style, result);
-        }
+        (formatFn as FormatFn)(sep, this.styles, style, result);
       });
     }
   }
@@ -584,7 +572,7 @@ class HelpFormatter {
         result.splitText(p);
       } else {
         result.splitText(m, () => {
-          formatOption(pos, this.config.styles, style, result);
+          formatFunctions.o(pos, this.styles, style, result);
         });
       }
     }
@@ -658,7 +646,9 @@ class HelpFormatter {
     if ('enums' in option && option.enums) {
       const enums = option.enums;
       const formatFn =
-        option.type === 'string' || option.type === 'strings' ? formatString : formatNumber;
+        option.type === 'string' || option.type === 'strings'
+          ? formatFunctions.s
+          : formatFunctions.n;
       type FormatFn = (
         value: string | number,
         styles: ConcreteStyles,
@@ -682,7 +672,7 @@ class HelpFormatter {
     if ('regex' in option && option.regex) {
       const regex = option.regex;
       result.splitText(phrase, () => {
-        formatRegExp(regex, this.config.styles, style, result);
+        formatFunctions.r(regex, this.styles, style, result);
       });
     }
   }
@@ -698,7 +688,7 @@ class HelpFormatter {
     if ('range' in option && option.range) {
       const range = option.range;
       result.splitText(phrase, () => {
-        this.formatArray2(range, style, result, formatNumber, ['[', ']'], ',');
+        this.formatArray2(range, style, result, formatFunctions.n, ['[', ']'], ',');
       });
     }
   }
@@ -727,7 +717,7 @@ class HelpFormatter {
     if ('limit' in option && option.limit !== undefined) {
       const limit = option.limit;
       result.splitText(phrase, () => {
-        formatNumber(limit, this.config.styles, style, result);
+        formatFunctions.n(limit, this.styles, style, result);
       });
     }
   }
@@ -806,7 +796,7 @@ class HelpFormatter {
     if (option.link) {
       const link = option.link;
       result.splitText(phrase, () => {
-        formatURL(link, this.config.styles, style, result);
+        formatFunctions.u(link, this.styles, style, result);
       });
     }
   }
@@ -831,11 +821,9 @@ class HelpFormatter {
     if (inDesc) {
       this.formatArray2(value, style, result, formatFn, ['[', ']'], ',');
     } else if ('separator' in option && option.separator) {
-      if (typeof option.separator === 'string') {
-        formatString(value.join(option.separator), this.config.styles, style, result);
-      } else {
-        formatString(value.join(option.separator.source), this.config.styles, style, result);
-      }
+      const sep = option.separator;
+      const text = value.join(typeof sep === 'string' ? sep : sep.source);
+      formatFunctions.s(text, this.styles, style, result);
     } else {
       this.formatArray2(value, style, result, formatFn);
     }
@@ -862,7 +850,7 @@ class HelpFormatter {
       result.addOpening(brackets[0]);
     }
     values.forEach((value, i) => {
-      formatFn(value, this.config.styles, style, result);
+      formatFn(value, this.styles, style, result);
       if (separator && i < values.length - 1) {
         result.addClosing(separator);
       }
@@ -886,12 +874,11 @@ class HelpFormatter {
     negate: boolean = false,
   ) {
     if (typeof requires === 'string') {
-      const option = this.options[requires];
-      const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
       if (negate) {
         result.addWord('no');
       }
-      formatOption(name, this.config.styles, style, result);
+      const name = this.options[requires].preferredName ?? '';
+      formatFunctions.o(name, this.styles, style, result);
     } else if (requires instanceof RequiresNot) {
       this.formatRequirements(requires.item, style, result, !negate);
     } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
@@ -972,11 +959,11 @@ class HelpFormatter {
     result: TerminalString,
     negate: boolean,
   ) {
-    const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     if ((value === null && !negate) || (value === undefined && negate)) {
       result.addWord('no');
     }
-    formatOption(name, this.config.styles, style, result);
+    const name = option.preferredName ?? '';
+    formatFunctions.o(name, this.styles, style, result);
     if (value !== null && value !== undefined) {
       assert(!isNiladic(option));
       result.addWord(negate ? '!=' : '=');
@@ -1005,17 +992,17 @@ class HelpFormatter {
     switch (option.type) {
       case 'flag':
       case 'boolean':
-        return formatBoolean(value as boolean, this.config.styles, style, result);
+        return formatFunctions.b(value as boolean, this.styles, style, result);
       case 'string':
-        return formatString(value as string, this.config.styles, style, result);
+        return formatFunctions.s(value as string, this.styles, style, result);
       case 'number':
-        return formatNumber(value as number, this.config.styles, style, result);
+        return formatFunctions.n(value as number, this.styles, style, result);
       case 'strings': {
         return this.formatArray(
           option,
           value as ReadonlyArray<string>,
           result,
-          formatString,
+          formatFunctions.s,
           style,
           inDesc,
         );
@@ -1025,7 +1012,7 @@ class HelpFormatter {
           option,
           value as ReadonlyArray<number>,
           result,
-          formatNumber,
+          formatFunctions.n,
           style,
           inDesc,
         );

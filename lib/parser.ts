@@ -26,15 +26,7 @@ import { HelpFormatter } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { ErrorMessage, HelpMessage, Style, TerminalString, style, tf } from './styles';
 import { assert, checkRequiredArray, gestaltSimilarity, getArgs } from './utils';
-import {
-  OptionValidator,
-  defaultConfig,
-  formatOption,
-  formatBoolean,
-  formatString,
-  formatNumber,
-  ErrorItem,
-} from './validator';
+import { OptionValidator, defaultConfig, formatFunctions, ErrorItem } from './validator';
 
 export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
 
@@ -566,7 +558,7 @@ class ParserLoop {
     if (option.usage) {
       help.push(new TerminalString().splitText(option.usage).addBreaks(1));
     }
-    const groups = new HelpFormatter(this.validator.options, option.format).formatGroups();
+    const groups = new HelpFormatter(this.validator, option.format).formatGroups();
     const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
     for (const [group, message] of groups.entries()) {
       help.push(formatHeading(group), ...message);
@@ -649,7 +641,8 @@ class ParserLoop {
   private checkRequired() {
     for (const key of this.validator.required) {
       if (!this.specifiedKeys.has(key)) {
-        const name = this.validator.preferredNames.get(key) ?? '';
+        const option = this.validator.options[key];
+        const name = option.preferredName ?? '';
         throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
       }
     }
@@ -658,7 +651,7 @@ class ParserLoop {
       if (option.requires) {
         const error = new TerminalString();
         if (!this.checkRequires(option.requires, error)) {
-          const name = this.validator.preferredNames.get(key) ?? '';
+          const name = option.preferredName ?? '';
           throw this.validator.error(ErrorItem.optionRequires, { o: name, t: error });
         }
       }
@@ -713,8 +706,8 @@ class ParserLoop {
       if (specified) {
         error.addWord('no');
       }
-      const name = this.validator.preferredNames.get(key) ?? '';
-      formatOption(name, this.styles, this.styles.text, error);
+      const name = option.preferredName ?? '';
+      formatFunctions.o(name, this.styles, this.styles.text, error);
       return false;
     }
     return this.checkRequiredValue(option, negate, key, value, error);
@@ -736,48 +729,33 @@ class ParserLoop {
     value: Exclude<RequiresVal[string], undefined | null>,
     error: TerminalString,
   ): boolean {
+    const [ns, nn] = [this.normalizeString, this.normalizeNumber];
     switch (option.type) {
       case 'boolean':
-        return this.checkSingle(option, negate, key, value as boolean, error, formatBoolean);
+        return this.checkSingle(option, negate, key, value as boolean, error, formatFunctions.b);
       case 'string':
-        return this.checkSingle(
-          option,
-          negate,
-          key,
-          value as string,
-          error,
-          formatString,
-          this.normalizeString,
-        );
+        return this.checkSingle(option, negate, key, value as string, error, formatFunctions.s, ns);
       case 'number':
-        return this.checkSingle(
-          option,
-          negate,
-          key,
-          value as number,
-          error,
-          formatNumber,
-          this.normalizeNumber,
-        );
+        return this.checkSingle(option, negate, key, value as number, error, formatFunctions.n, nn);
       case 'strings':
         return this.checkArray(
           option,
           negate,
           key,
-          value as Array<string>,
+          value as ReadonlyArray<string>,
           error,
-          formatString,
-          this.normalizeString,
+          formatFunctions.s,
+          ns,
         );
       case 'numbers':
         return this.checkArray(
           option,
           negate,
           key,
-          value as Array<number>,
+          value as ReadonlyArray<number>,
           error,
-          formatNumber,
-          this.normalizeNumber,
+          formatFunctions.n,
+          nn,
         );
       default: {
         const _exhaustiveCheck: never = option;
@@ -810,12 +788,12 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return true; // ignore promises during requirement checking
     }
-    const name = this.validator.preferredNames.get(key) ?? '';
+    const name = option.preferredName ?? '';
     const expected = normalizeFn ? normalizeFn(option, name, value) : value;
     if ((actual === expected) !== negate) {
       return true;
     }
-    formatOption(name, this.styles, this.styles.text, error);
+    formatFunctions.o(name, this.styles, this.styles.text, error);
     error.addWord(negate ? '!=' : '=');
     formatFn(expected, this.styles, this.styles.text, error);
     return false;
@@ -845,12 +823,12 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return true; // ignore promises during requirement checking
     }
-    const name = this.validator.preferredNames.get(key) ?? '';
+    const name = option.preferredName ?? '';
     const expected = value.map((val) => normalizeFn(option, name, val));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return true;
     }
-    formatOption(name, this.styles, this.styles.text, error);
+    formatFunctions.o(name, this.styles, this.styles.text, error);
     error.addWord(negate ? '!=' : '=').addOpening('[');
     expected.forEach((val, i) => {
       formatFn(val, this.styles, this.styles.text, error);

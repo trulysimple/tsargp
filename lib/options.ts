@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { FormatConfig } from './formatter';
+import type { HelpConfig } from './formatter';
 import type { Style } from './styles';
 
 export type {
@@ -253,7 +253,7 @@ type WithType<T extends string> = {
    *
    * If not specified, the first name in the {@link WithType.names} array will be used.
    */
-  readonly preferredName?: string;
+  preferredName?: string;
   /**
    * The option synopsis. It may contain inline styles.
    */
@@ -653,7 +653,7 @@ type HelpOption = WithType<'help'> & {
   /**
    * The help format configuration.
    */
-  readonly format?: FormatConfig;
+  readonly format?: HelpConfig;
   /**
    * The style of option group headings.
    */

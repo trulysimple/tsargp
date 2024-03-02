@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Options, ErrorConfig } from '../lib';
-import { ArgumentParser, req, OptionValues, HelpMessage } from '../lib';
-import { emptyStyles } from './utils.spec';
-
-const config: ErrorConfig = { styles: emptyStyles };
+import { type Options, ArgumentParser, req, OptionValues, HelpMessage } from '../lib';
+import { errorConfig as config } from './utils.spec';
 
 describe('ArgumentParser', () => {
   describe('parse', () => {

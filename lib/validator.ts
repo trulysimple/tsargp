@@ -21,19 +21,7 @@ import { tf, fg, style, TerminalString, ErrorMessage } from './styles';
 
 export type { Positional, Concrete, ConcreteStyles, ConcreteError, ErrorConfig };
 
-export {
-  OptionValidator,
-  ErrorItem,
-  defaultStyles,
-  defaultConfig,
-  formatBoolean,
-  formatString,
-  formatNumber,
-  formatRegExp,
-  formatURL,
-  formatOption,
-  formatParam,
-};
+export { OptionValidator, ErrorItem, defaultStyles, defaultConfig, formatFunctions };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -162,16 +150,40 @@ const enum ErrorItem {
 /**
  * The error formatting functions.
  */
-const formatFunctions: Readonly<Record<string, FormatFunction>> = {
+const formatFunctions = {
+  /**
+   * The boolean formatting function.
+   */
   b: formatBoolean,
+  /**
+   * The string formatting function.
+   */
   s: formatString,
+  /**
+   * The number formatting function.
+   */
   n: formatNumber,
+  /**
+   * The regex formatting function.
+   */
   r: formatRegExp,
+  /**
+   * The option name formatting function.
+   */
   o: formatOption,
+  /**
+   * The option parameter formatting function.
+   */
   p: formatParam,
+  /**
+   * The URL formatting function.
+   */
   u: formatURL,
+  /**
+   * The terminal string formatting function.
+   */
   t: formatTerm,
-};
+} as const satisfies Record<string, FormatFunction>;
 
 /**
  * The default styles of error messages.
@@ -292,7 +304,6 @@ type ConcreteStyles = ConcreteError['styles'];
  */
 class OptionValidator {
   readonly names = new Map<string, string>();
-  readonly preferredNames = new Map<string, string>();
   readonly required = new Array<string>();
   readonly positional: Positional | undefined;
 
@@ -313,9 +324,8 @@ class OptionValidator {
         if (this.positional) {
           throw this.error(ErrorItem.duplicatePositionalOption, { o: key });
         }
-        const name = this.preferredNames.get(key) ?? '';
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
-        this.positional = { key, name, option, marker };
+        this.positional = { key, name: option.preferredName ?? '', option, marker };
       }
       if ('required' in option && option.required) {
         this.required.push(key);
@@ -354,9 +364,8 @@ class OptionValidator {
         throw this.error(ErrorItem.invalidOptionName, { o: name });
       }
     }
-    if (!validate) {
-      const preferredName = option.preferredName ?? names.find((name) => name) ?? 'unnamed';
-      this.preferredNames.set(key, preferredName);
+    if (!option.preferredName) {
+      option.preferredName = names.find((name): name is string => !!name);
     }
   }
 
@@ -607,7 +616,7 @@ class OptionValidator {
         const fmt = arg[0];
         if (fmt in formatFunctions && arg in args) {
           const value = args[arg];
-          const format = formatFunctions[fmt];
+          const format = (formatFunctions as Record<string, FormatFunction>)[fmt];
           if (Array.isArray(value)) {
             str.addOpening('[');
             value.forEach((val, i) => {

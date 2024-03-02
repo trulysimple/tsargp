@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Options, ConcreteError } from '../lib';
-import { OptionValidator, req, defaultConfig } from '../lib';
-import { emptyStyles } from './utils.spec';
-
-const config: ConcreteError = {
-  styles: emptyStyles,
-  phrases: defaultConfig.phrases,
-};
+import { type Options, OptionValidator, req } from '../lib';
+import { errorConfig as config } from './utils.spec';
 
 describe('OptionValidator', () => {
   describe('constructor', () => {

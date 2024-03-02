@@ -1,6 +1,6 @@
 import type { AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { describe, expect, it } from 'vitest';
-import type { ConcreteStyles } from '../lib';
+import { type ConcreteError, defaultConfig } from '../lib';
 import { checkRequiredArray, gestaltSimilarity, getArgs, splitPhrase } from '../lib/utils';
 
 interface CustomMatchers<R = unknown> {
@@ -27,15 +27,18 @@ async function toResolve(
 
 expect.extend({ toResolve });
 
-export const emptyStyles: ConcreteStyles = {
-  boolean: '',
-  string: '',
-  number: '',
-  regex: '',
-  option: '',
-  param: '',
-  url: '',
-  text: '',
+export const errorConfig: ConcreteError = {
+  styles: {
+    boolean: '',
+    string: '',
+    number: '',
+    regex: '',
+    option: '',
+    param: '',
+    url: '',
+    text: '',
+  },
+  phrases: defaultConfig.phrases,
 };
 
 describe('getArgs', () => {
