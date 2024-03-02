@@ -25,7 +25,7 @@ import type { Positional, ConcreteError, ErrorConfig, ConcreteStyles } from './v
 import { HelpFormatter } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { ErrorMessage, HelpMessage, Style, TerminalString, style, tf } from './styles';
-import { assert, checkRequireItems, checkRequiredArray, gestaltSimilarity, getArgs } from './utils';
+import { assert, checkRequiredArray, gestaltSimilarity, getArgs } from './utils';
 import {
   OptionValidator,
   defaultConfig,
@@ -649,8 +649,7 @@ class ParserLoop {
   private checkRequired() {
     for (const key of this.validator.required) {
       if (!this.specifiedKeys.has(key)) {
-        const option = this.validator.options[key];
-        const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
+        const name = this.validator.preferredNames.get(key) ?? '';
         throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
       }
     }
@@ -659,7 +658,7 @@ class ParserLoop {
       if (option.requires) {
         const error = new TerminalString();
         if (!this.checkRequires(option.requires, error)) {
-          const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
+          const name = this.validator.preferredNames.get(key) ?? '';
           throw this.validator.error(ErrorItem.optionRequires, { o: name, t: error });
         }
       }
@@ -704,31 +703,25 @@ class ParserLoop {
   ): boolean {
     const [key, value] = kvp;
     const option = this.validator.options[key];
-    const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     const specified = this.specifiedKeys.has(key);
     const required = value !== null;
     const withValue = required && value !== undefined;
     if (isNiladic(option) || !specified || !required || !withValue) {
-      if (specified) {
-        if (required == negate) {
-          error.addWord('no');
-          formatOption(name, this.styles, this.styles.text, error);
-          return false;
-        }
+      if ((specified && required != negate) || (!specified && required == negate && !withValue)) {
         return true;
       }
-      if (withValue || required != negate) {
-        formatOption(name, this.styles, this.styles.text, error);
-        return false;
+      if (specified) {
+        error.addWord('no');
       }
-      return true;
+      const name = this.validator.preferredNames.get(key) ?? '';
+      formatOption(name, this.styles, this.styles.text, error);
+      return false;
     }
-    return this.checkRequiredValue(name, option, negate, key, value, error);
+    return this.checkRequiredValue(option, negate, key, value, error);
   }
 
   /**
    * Checks an option's required value against a specified value.
-   * @param name The option name
    * @param option The option definition
    * @param negate True if the requirement should be negated
    * @param key The required option key (to get the specified value)
@@ -737,7 +730,6 @@ class ParserLoop {
    * @returns True if the requirement was satisfied
    */
   private checkRequiredValue(
-    name: string,
     option: ParamOption,
     negate: boolean,
     key: string,
@@ -746,18 +738,9 @@ class ParserLoop {
   ): boolean {
     switch (option.type) {
       case 'boolean':
-        return this.checkRequiredSingle(
-          name,
-          option,
-          negate,
-          key,
-          value as boolean,
-          error,
-          formatBoolean,
-        );
+        return this.checkSingle(option, negate, key, value as boolean, error, formatBoolean);
       case 'string':
-        return this.checkRequiredSingle(
-          name,
+        return this.checkSingle(
           option,
           negate,
           key,
@@ -767,8 +750,7 @@ class ParserLoop {
           this.normalizeString,
         );
       case 'number':
-        return this.checkRequiredSingle(
-          name,
+        return this.checkSingle(
           option,
           negate,
           key,
@@ -778,8 +760,7 @@ class ParserLoop {
           this.normalizeNumber,
         );
       case 'strings':
-        return this.checkRequiredArray(
-          name,
+        return this.checkArray(
           option,
           negate,
           key,
@@ -789,8 +770,7 @@ class ParserLoop {
           this.normalizeString,
         );
       case 'numbers':
-        return this.checkRequiredArray(
-          name,
+        return this.checkArray(
           option,
           negate,
           key,
@@ -808,7 +788,6 @@ class ParserLoop {
 
   /**
    * Checks the required value of a single-parameter option against a specified value.
-   * @param name The option name
    * @param option The option definition
    * @param negate True if the requirement should be negated
    * @param key The required option key
@@ -818,8 +797,7 @@ class ParserLoop {
    * @param normalizeFn The function to normalize the required value
    * @returns True if the requirement was satisfied
    */
-  private checkRequiredSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
-    name: string,
+  private checkSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
     option: O,
     negate: boolean,
     key: string,
@@ -832,6 +810,7 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return true; // ignore promises during requirement checking
     }
+    const name = this.validator.preferredNames.get(key) ?? '';
     const expected = normalizeFn ? normalizeFn(option, name, value) : value;
     if ((actual === expected) !== negate) {
       return true;
@@ -844,7 +823,6 @@ class ParserLoop {
 
   /**
    * Checks the required value of an array option against a specified value.
-   * @param name The option name
    * @param option The option definition
    * @param negate True if the requirement should be negated
    * @param key The required option key
@@ -854,11 +832,7 @@ class ParserLoop {
    * @param normalizeFn The function to normalize the required value
    * @returns True if the requirement was satisfied
    */
-  private checkRequiredArray<
-    O extends ArrayOption,
-    T extends Exclude<O['example'], undefined>[number],
-  >(
-    name: string,
+  private checkArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
     option: O,
     negate: boolean,
     key: string,
@@ -871,6 +845,7 @@ class ParserLoop {
     if (actual instanceof Promise) {
       return true; // ignore promises during requirement checking
     }
+    const name = this.validator.preferredNames.get(key) ?? '';
     const expected = value.map((val) => normalizeFn(option, name, val));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
       return true;
@@ -1085,4 +1060,46 @@ class ParserLoop {
       this.validator.normalizeArray(option, name, previous);
     }
   }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Functions
+//--------------------------------------------------------------------------------------------------
+/**
+ * Checks the items of a requirement expression or object.
+ * @param items The list of requirement items
+ * @param itemFn The callback to execute on each item
+ * @param negate True if the requirement should be negated
+ * @param and If true, return on the first error; else return on the first success
+ * @returns True if the requirement was satisfied
+ */
+function checkRequireItems<T>(
+  items: Array<T>,
+  itemFn: (item: T, error: TerminalString, negate: boolean) => boolean,
+  error: TerminalString,
+  negate: boolean,
+  and: boolean,
+): boolean {
+  if (!and && items.length > 1) {
+    error.addOpening('(');
+  }
+  let first = true;
+  for (const item of items) {
+    if (and || first) {
+      first = false;
+    } else {
+      error.addWord('or');
+    }
+    const success = itemFn(item, error, negate);
+    if (success !== and) {
+      return success;
+    }
+  }
+  if (and) {
+    return true;
+  }
+  if (items.length > 1) {
+    error.addClosing(')');
+  }
+  return false;
 }

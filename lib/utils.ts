@@ -1,9 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { TerminalString } from './styles';
-
-export { assert, getArgs, checkRequiredArray, checkRequireItems, gestaltSimilarity, splitPhrase };
+export { assert, getArgs, checkRequiredArray, gestaltSimilarity, splitPhrase };
 
 //--------------------------------------------------------------------------------------------------
 // Functions
@@ -62,14 +60,14 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
 }
 
 /**
- * Checks the required value of an array option against a specified value.
+ * Checks the specified value of an array option against a required value.
  * @param actual The specified value
- * @param expected The expected value
+ * @param expected The required value
  * @param negate True if the requirement should be negated
  * @param unique True if array elements should be unique
- * @returns An error reason or null if no error
+ * @returns True if the requirement was satisfied
  */
-function checkRequiredArray<T extends boolean | string | number>(
+function checkRequiredArray<T extends string | number>(
   actual: Array<T>,
   expected: ReadonlyArray<T>,
   negate: boolean,
@@ -95,45 +93,6 @@ function checkRequiredArray<T extends boolean | string | number>(
     }
   }
   return !negate;
-}
-
-/**
- * Checks the items of a requirement expression or object.
- * @param items The list of requirement items
- * @param itemFn The callback to execute on each item
- * @param negate True if the requirement should be negated
- * @param and If true, return on the first error; else return on the first success
- * @returns True if the requirement was satisfied
- */
-function checkRequireItems<T>(
-  items: Array<T>,
-  itemFn: (item: T, error: TerminalString, negate: boolean) => boolean,
-  error: TerminalString,
-  negate: boolean,
-  and: boolean,
-): boolean {
-  if (!and && items.length > 1) {
-    error.addOpening('(');
-  }
-  let first = true;
-  for (const item of items) {
-    if (and || first) {
-      first = false;
-    } else {
-      error.addWord('or');
-    }
-    const success = itemFn(item, error, negate);
-    if (success !== and) {
-      return success;
-    }
-  }
-  if (and) {
-    return true;
-  }
-  if (items.length > 1) {
-    error.addClosing(')');
-  }
-  return false;
 }
 
 /**

@@ -292,6 +292,7 @@ type ConcreteStyles = ConcreteError['styles'];
  */
 class OptionValidator {
   readonly names = new Map<string, string>();
+  readonly preferredNames = new Map<string, string>();
   readonly required = new Array<string>();
   readonly positional: Positional | undefined;
 
@@ -312,7 +313,7 @@ class OptionValidator {
         if (this.positional) {
           throw this.error(ErrorItem.duplicatePositionalOption, { o: key });
         }
-        const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
+        const name = this.preferredNames.get(key) ?? '';
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name, option, marker };
       }
@@ -352,6 +353,10 @@ class OptionValidator {
       } else if (name.match(/[\s=]+/)) {
         throw this.error(ErrorItem.invalidOptionName, { o: name });
       }
+    }
+    if (!validate) {
+      const preferredName = option.preferredName ?? names.find((name) => name) ?? 'unnamed';
+      this.preferredNames.set(key, preferredName);
     }
   }
 
