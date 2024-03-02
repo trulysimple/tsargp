@@ -18,7 +18,7 @@ import { HelpMessage, TerminalString, style, tf } from './styles';
 import { formatFunctions } from './validator';
 import { assert, splitPhrase } from './utils';
 
-export { HelpFormatter, DescItem, type HelpConfig };
+export { HelpFormatter, HelpItem, type HelpConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -93,19 +93,19 @@ type HelpConfig = {
 
   /**
    * The order of items to be shown in the option description.
-   * @see DescItem
+   * @see HelpItem
    */
-  readonly items?: ReadonlyArray<DescItem>;
+  readonly items?: ReadonlyArray<HelpItem>;
 
   /**
    * The phrases to be used for each kind of description item.
    *
    * If an item has a value, the `%s` specifier can be used to indicate where in the phrase to place
-   * the value. If an item has multiple alternatives, such as {@link DescItem.case}, different texts
+   * the value. If an item has multiple alternatives, such as {@link HelpItem.case}, different texts
    * can separated with `|` and grouped in parentheses, like this:
    * `'Values will be converted to (lowercase|uppercase)'`.
    */
-  readonly phrases?: Readonly<Partial<Record<DescItem, string>>>;
+  readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
 };
 
 /**
@@ -128,7 +128,7 @@ type HelpEntry = {
 /**
  * The kind of items that can be shown in the option description.
  */
-const enum DescItem {
+const enum HelpItem {
   /**
    * The option synopsis.
    */
@@ -229,46 +229,46 @@ const defaultConfig: ConcreteFormat = {
     descr: false,
   },
   items: [
-    DescItem.synopsis,
-    DescItem.negation,
-    DescItem.separator,
-    DescItem.variadic,
-    DescItem.positional,
-    DescItem.append,
-    DescItem.trim,
-    DescItem.case,
-    DescItem.round,
-    DescItem.enums,
-    DescItem.regex,
-    DescItem.range,
-    DescItem.unique,
-    DescItem.limit,
-    DescItem.requires,
-    DescItem.required,
-    DescItem.default,
-    DescItem.deprecated,
-    DescItem.link,
+    HelpItem.synopsis,
+    HelpItem.negation,
+    HelpItem.separator,
+    HelpItem.variadic,
+    HelpItem.positional,
+    HelpItem.append,
+    HelpItem.trim,
+    HelpItem.case,
+    HelpItem.round,
+    HelpItem.enums,
+    HelpItem.regex,
+    HelpItem.range,
+    HelpItem.unique,
+    HelpItem.limit,
+    HelpItem.requires,
+    HelpItem.required,
+    HelpItem.default,
+    HelpItem.deprecated,
+    HelpItem.link,
   ],
   phrases: {
-    [DescItem.synopsis]: '%s',
-    [DescItem.negation]: 'Can be negated with %s.',
-    [DescItem.separator]: 'Values are delimited by %s.',
-    [DescItem.variadic]: 'Accepts multiple parameters.',
-    [DescItem.positional]: 'Accepts positional parameters(| that may be preceded by %s).',
-    [DescItem.append]: 'May be specified multiple times.',
-    [DescItem.trim]: 'Values will be trimmed.',
-    [DescItem.case]: 'Values will be converted to (lowercase|uppercase).',
-    [DescItem.round]: 'Values will be rounded (towards zero|down|up|to the nearest integer).',
-    [DescItem.enums]: 'Values must be one of %s.',
-    [DescItem.regex]: 'Values must match the regex %s.',
-    [DescItem.range]: 'Values must be in the range %s.',
-    [DescItem.unique]: 'Duplicate values will be removed.',
-    [DescItem.limit]: 'Value count is limited to %s.',
-    [DescItem.requires]: 'Requires %s.',
-    [DescItem.required]: 'Always required.',
-    [DescItem.default]: 'Defaults to %s.',
-    [DescItem.deprecated]: 'Deprecated for %s.',
-    [DescItem.link]: 'Refer to %s for details.',
+    [HelpItem.synopsis]: '%s',
+    [HelpItem.negation]: 'Can be negated with %s.',
+    [HelpItem.separator]: 'Values are delimited by %s.',
+    [HelpItem.variadic]: 'Accepts multiple parameters.',
+    [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %s).',
+    [HelpItem.append]: 'May be specified multiple times.',
+    [HelpItem.trim]: 'Values will be trimmed.',
+    [HelpItem.case]: 'Values will be converted to (lowercase|uppercase).',
+    [HelpItem.round]: 'Values will be rounded (towards zero|down|up|to the nearest integer).',
+    [HelpItem.enums]: 'Values must be one of %s.',
+    [HelpItem.regex]: 'Values must match the regex %s.',
+    [HelpItem.range]: 'Values must be in the range %s.',
+    [HelpItem.unique]: 'Duplicate values will be removed.',
+    [HelpItem.limit]: 'Value count is limited to %s.',
+    [HelpItem.requires]: 'Requires %s.',
+    [HelpItem.required]: 'Always required.',
+    [HelpItem.default]: 'Defaults to %s.',
+    [HelpItem.deprecated]: 'Deprecated for %s.',
+    [HelpItem.link]: 'Refer to %s for details.',
   },
 };
 
@@ -287,7 +287,7 @@ class HelpFormatter {
   private readonly namesStart: number;
 
   /**
-   * Keep this in-sync with {@link DescItem}.
+   * Keep this in-sync with {@link HelpItem}.
    */
   private readonly format: Array<typeof this.formatSynopsis> = [
     this.formatSynopsis.bind(this),

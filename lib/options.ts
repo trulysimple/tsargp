@@ -15,7 +15,6 @@ export type {
   OptionValues,
   CastToOptionValues,
   OptionStyles,
-  OtherStyles,
   StringOption,
   NumberOption,
   FlagOption,
@@ -93,44 +92,6 @@ type OptionStyles = {
    * The style of the option description.
    */
   readonly descr?: Style;
-};
-
-/**
- * A set of styles for displaying text on the terminal.
- */
-type OtherStyles = {
-  /**
-   * The style of boolean values.
-   */
-  readonly boolean?: Style;
-  /**
-   * The style of string values.
-   */
-  readonly string?: Style;
-  /**
-   * The style of number values.
-   */
-  readonly number?: Style;
-  /**
-   * The style of regular expressions.
-   */
-  readonly regex?: Style;
-  /**
-   * The style of option names.
-   */
-  readonly option?: Style;
-  /**
-   * The style of option parameters.
-   */
-  readonly param?: Style;
-  /**
-   * The style of URLs.
-   */
-  readonly url?: Style;
-  /**
-   * The style of general text.
-   */
-  readonly text?: Style;
 };
 
 /**

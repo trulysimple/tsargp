@@ -4,7 +4,6 @@
 import type {
   Option,
   Options,
-  OtherStyles,
   Requires,
   RequiresVal,
   ParamOption,
@@ -19,9 +18,8 @@ import type { Style } from './styles';
 import { RequiresAll, RequiresOne, RequiresNot, isNiladic } from './options';
 import { tf, fg, style, TerminalString, ErrorMessage } from './styles';
 
-export type { Positional, Concrete, ConcreteStyles, ConcreteError, ErrorConfig };
-
-export { OptionValidator, ErrorItem, defaultStyles, defaultConfig, formatFunctions };
+export type { Positional, Concrete, ErrorStyles, ErrorConfig, ConcreteStyles, ConcreteError };
+export { OptionValidator, ErrorItem, defaultConfig, formatFunctions };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -186,24 +184,19 @@ const formatFunctions = {
 } as const satisfies Record<string, FormatFunction>;
 
 /**
- * The default styles of error messages.
- */
-const defaultStyles: ConcreteStyles = {
-  boolean: style(fg.yellow),
-  string: style(fg.green),
-  number: style(fg.yellow),
-  regex: style(fg.red),
-  option: style(fg.brightMagenta),
-  param: style(fg.brightBlack),
-  url: style(fg.brightBlack),
-  text: style(tf.clear),
-};
-
-/**
  * The default error messages configuration.
  */
 const defaultConfig: ConcreteError = {
-  styles: defaultStyles,
+  styles: {
+    boolean: style(fg.yellow),
+    string: style(fg.green),
+    number: style(fg.yellow),
+    regex: style(fg.red),
+    option: style(fg.brightMagenta),
+    param: style(fg.brightBlack),
+    url: style(fg.brightBlack),
+    text: style(tf.clear),
+  },
   phrases: {
     [ErrorItem.parseError]: '%t\n\nDid you mean to specify an option name instead of %o?',
     [ErrorItem.parseErrorWithSimilar]:
@@ -262,15 +255,42 @@ type FormatFunction = (
 ) => void;
 
 /**
- * A helper type to remove optionality from types and properties.
- * @template T The source type
+ * A set of styles for displaying text on the terminal.
  */
-type Concrete<T> = Exclude<
-  {
-    [K in keyof T]-?: Concrete<T[K]>;
-  },
-  undefined
->;
+type ErrorStyles = {
+  /**
+   * The style of boolean values.
+   */
+  readonly boolean?: Style;
+  /**
+   * The style of string values.
+   */
+  readonly string?: Style;
+  /**
+   * The style of number values.
+   */
+  readonly number?: Style;
+  /**
+   * The style of regular expressions.
+   */
+  readonly regex?: Style;
+  /**
+   * The style of option names.
+   */
+  readonly option?: Style;
+  /**
+   * The style of option parameters.
+   */
+  readonly param?: Style;
+  /**
+   * The style of URLs.
+   */
+  readonly url?: Style;
+  /**
+   * The style of general text.
+   */
+  readonly text?: Style;
+};
 
 /**
  * The error messages configuration.
@@ -279,7 +299,7 @@ type ErrorConfig = {
   /**
    * The error message styles
    */
-  readonly styles?: OtherStyles;
+  readonly styles?: ErrorStyles;
   /**
    * The error message phrases
    */
@@ -295,6 +315,17 @@ type ConcreteError = Concrete<ErrorConfig>;
  * A concrete version of the error message styles.
  */
 type ConcreteStyles = ConcreteError['styles'];
+
+/**
+ * A helper type to remove optionality from types and properties.
+ * @template T The source type
+ */
+type Concrete<T> = Exclude<
+  {
+    [K in keyof T]-?: Concrete<T[K]>;
+  },
+  undefined
+>;
 
 //--------------------------------------------------------------------------------------------------
 // Classes

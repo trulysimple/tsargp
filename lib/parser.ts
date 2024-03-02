@@ -19,7 +19,6 @@ import type {
   CommandOption,
   CastToOptionValues,
 } from './options';
-
 import type { Positional, ConcreteError, ErrorConfig, ConcreteStyles } from './validator';
 
 import { HelpFormatter } from './formatter';
