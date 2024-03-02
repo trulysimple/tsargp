@@ -9,10 +9,9 @@ try {
   }
 } catch (err) {
   if (err instanceof Error) {
-    console.error(err.message);
+    console.error(`${err}`);
     process.exitCode = 1;
   } else {
-    // help message, version or completion words
-    console.log(`${err}`);
+    console.log(`${err}`); // help message, version or completion words
   }
 }
