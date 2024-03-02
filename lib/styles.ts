@@ -877,14 +877,26 @@ class TerminalString {
  * An error message.
  */
 class ErrorMessage extends Error {
+  /**
+   * Creates an error message
+   * @param str The terminal string
+   */
   constructor(readonly str: TerminalString) {
     super();
   }
 
+  /**
+   * @returns The message to be printed on a terminal
+   */
   get message(): string {
     return this.wrap();
   }
 
+  /**
+   * Wraps the error message to a specified width.
+   * @param width The terminal width (in number of columns)
+   * @returns The message to be printed on a terminal
+   */
   wrap(width = process.stderr.columns): string {
     const result = new Array<string>();
     this.str.wrapToWidth(result, 0, width);
@@ -899,10 +911,18 @@ class ErrorMessage extends Error {
  * A help message.
  */
 class HelpMessage extends Array<TerminalString> {
+  /**
+   * @returns the message to be printed on a terminal
+   */
   override toString(): string {
     return this.wrap();
   }
 
+  /**
+   * Wraps the help message to a specified width.
+   * @param width The terminal width (in number of columns)
+   * @returns The message to be printed on a terminal
+   */
   wrap(width = process.stdout.columns): string {
     const result = new Array<string>();
     let column = 0;

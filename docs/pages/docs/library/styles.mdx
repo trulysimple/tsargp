@@ -108,3 +108,93 @@ In addition to predefined colors, there are three utility functions to get custo
 - `ul8` - creates an underline color from an 8-bit decimal value
 
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
+
+## Terminal strings
+
+The `TerminalString` class is an internal component that handles the construction of strings that
+can be printed in a terminal. It has methods to append strings with or without control sequences,
+and is used both by the [parser](parser.mdx) (to create error messages) and by the
+[formatter](formatter.mdx) (to build help messages).
+
+The main logic implemented in this class is divided into _splitting_ and _wrapping_, as is explained
+below.
+
+### Text splitting
+
+Text is split on paragraph, list item and word boundaries using a combination of simple regular
+expressions. Moreover, format specifiers can be extracted from the text and processed by a
+formatting callback. This is used in two places in the library:
+
+- by the help message formatter to assemble description items from configured
+  [description phrases](formatter.mdx#description-phrases)
+- by the argument parser to create error messages based on configured
+  [error phrases](validator.mdx#error-phrases)
+
+In addition to description and error phrases, some description items such as the option synopsis or
+the deprecation reason are texts that the help formatter splits into words before adding to the
+option description. The formatting features supported for these items are described next.
+
+#### Inline styles
+
+Text can contain inline styles. The terminal string instance will try its best to preserve styles
+while splitting or wrapping text. However, if some corner case that is not currently covered by the
+unit tests happen to you, please submit a [bug report].
+
+#### Paragraphs and lists
+
+Although markdown syntax is not currently supported, paragraphs and itemized/numbered lists are
+formatted similarly to how they would be in markdown. For example, the following text
+
+```ansi
+A paragraph with
+  single line breaks,  redundant  spacing  and:
+    - itemized; or
+  1. numbered lists
+
+  Another paragraph
+```
+
+Would be rendered as:
+
+```ansi
+A paragraph with single line breaks, redundant spacing and:
+- itemized; or
+1. numbered lists
+
+Another paragraph
+```
+
+### Text wrapping
+
+Text is wrapped according to a configured width, which is the number of terminal columns by which to
+limit each line of text. When a zero or undefined width is provided, the terminal string instance
+will suppress inline styles and omit control sequences that it would otherwise use for rendering
+text in a terminal.
+
+#### Error messages
+
+The `ErrorMessage` class is a wrapper of a terminal string. It provides a `wrap` method to get a
+normal string, which accepts an optional parameter:
+
+- `width` - the terminal width (in number of columns)
+
+Its default value is the number of columns of the standard _error_ stream
+(`process.stderr.columns`).
+
+<Callout type="info">
+  When redirecting the output of a command to a file, the associated stream will not have the 
+  `columns` property. Hence, if `stderr` is being redirected, the default value of the above
+  parameter will be `undefined{:ts}`.
+</Callout>
+
+#### Help messages
+
+The `HelpMessage` class is analog to the above one, except that the default value of the `width`
+parameter is the number of columns of the standard _output_ stream (`process.stdout.columns`).
+
+<Callout type="default">
+  Error and help messages are thrown by the library as instances of either one of the above classes.
+  So you can check if a captured error is an instance of either one through `instanceof{:ts}`.
+</Callout>
+
+[bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
