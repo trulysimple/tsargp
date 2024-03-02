@@ -25,6 +25,7 @@ import {
   formatURL,
   formatBoolean,
 } from './validator';
+import { assert, splitPhrase } from './utils';
 
 export { HelpFormatter, DescItem, type FormatConfig };
 
@@ -332,7 +333,14 @@ class HelpFormatter {
     private readonly options: Options,
     config: FormatConfig = {},
   ) {
-    this.config = mergeConfig(config);
+    this.config = {
+      indent: Object.assign({}, defaultConfig.indent, config.indent),
+      breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
+      styles: Object.assign({}, defaultConfig.styles, config.styles),
+      hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
+      items: config.items ?? defaultConfig.items,
+      phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
+    };
     this.nameWidths = this.config.hidden.names ? [] : getNameWidths(options);
     this.namesStart = Math.max(0, this.config.indent.names);
     let paramWidth = 0;
@@ -964,7 +972,6 @@ class HelpFormatter {
     result: TerminalString,
     negate: boolean,
   ) {
-    function assert(_condition: unknown): asserts _condition {}
     const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     if ((value === null && !negate) || (value === undefined && negate)) {
       result.addWord('no');
@@ -995,24 +1002,16 @@ class HelpFormatter {
     if (value === undefined) {
       return;
     }
-    function assert(_condition: unknown): asserts _condition {}
     switch (option.type) {
       case 'flag':
       case 'boolean':
-        assert(typeof value === 'boolean');
-        formatBoolean(value, this.config.styles, style, result);
-        break;
+        return formatBoolean(value as boolean, this.config.styles, style, result);
       case 'string':
-        assert(typeof value === 'string');
-        formatString(value, this.config.styles, style, result);
-        break;
+        return formatString(value as string, this.config.styles, style, result);
       case 'number':
-        assert(typeof value === 'number');
-        formatNumber(value, this.config.styles, style, result);
-        break;
+        return formatNumber(value as number, this.config.styles, style, result);
       case 'strings': {
-        assert(typeof value === 'object');
-        this.formatArray(
+        return this.formatArray(
           option,
           value as ReadonlyArray<string>,
           result,
@@ -1020,11 +1019,9 @@ class HelpFormatter {
           style,
           inDesc,
         );
-        break;
       }
       case 'numbers': {
-        assert(typeof value === 'object');
-        this.formatArray(
+        return this.formatArray(
           option,
           value as ReadonlyArray<number>,
           result,
@@ -1032,7 +1029,6 @@ class HelpFormatter {
           style,
           inDesc,
         );
-        break;
       }
       default: {
         const _exhaustiveCheck: never = option;
@@ -1080,25 +1076,8 @@ class HelpFormatter {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Merges a format configuration with the default configuration.
- * @param config The configuration, which may override default settings
- * @returns The merged configuration
- */
-function mergeConfig(config: FormatConfig): ConcreteFormat {
-  return {
-    indent: Object.assign({}, defaultConfig.indent, config.indent),
-    breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
-    styles: Object.assign({}, defaultConfig.styles, config.styles),
-    hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
-    items: config.items ?? defaultConfig.items,
-    phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
-  };
-}
-
-/**
- * Gets the required width of each name slot for a set of options.
+ * Gets the required width of each name slot in a set of option definitions.
  * @param options The option definitions
- * @returns The required width of each name slot
  */
 function getNameWidths(options: Options): Array<number> {
   const result = new Array<number>();
@@ -1115,14 +1094,4 @@ function getNameWidths(options: Options): Array<number> {
     }
   }
   return result;
-}
-
-/**
- * Split a phrase into multiple alternatives
- * @param phrase The description item phrase
- * @returns The phrase alternatives
- */
-function splitPhrase(phrase: string): Array<string> {
-  const [l, c, r] = phrase.split(/\(([^)|]*\|[^)]*)\)/, 3);
-  return c ? c.split('|').map((alt) => l + alt + r) : [l];
 }
