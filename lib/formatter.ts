@@ -9,28 +9,22 @@ import type {
   RequiresVal,
   OtherStyles,
   ArrayOption,
-  Concrete,
   ParamOption,
-  ConcreteStyles,
 } from './options';
 import type { Style } from './styles';
+import type { Concrete, ConcreteStyles } from './validator';
 
+import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
+import { HelpMessage, TerminalString, style, tf } from './styles';
 import {
-  RequiresAll,
-  RequiresNot,
-  RequiresOne,
   defaultStyles,
-  isArray,
-  isVariadic,
-  isNiladic,
   formatOption,
   formatString,
   formatRegExp,
   formatNumber,
   formatURL,
   formatBoolean,
-} from './options';
-import { HelpMessage, TerminalString, style, tf } from './styles';
+} from './validator';
 
 export { HelpFormatter, DescItem, type FormatConfig };
 

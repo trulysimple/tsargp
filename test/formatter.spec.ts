@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Options, FormatConfig } from '../lib';
-import { HelpFormatter, req, style, tf, fg8, emptyStyles } from '../lib';
+import { HelpFormatter, req, style, tf, fg8 } from '../lib';
+import { emptyStyles } from './utils.spec';
 
 const config: FormatConfig = { styles: emptyStyles };
 
@@ -8,7 +9,7 @@ describe('HelpFormatter', () => {
   describe('formatHelp', () => {
     it('should handle no options', () => {
       const message = new HelpFormatter({}).formatHelp();
-      expect(message.toString()).toEqual('');
+      expect(message.wrap(0)).toEqual('');
     });
 
     describe('fuction', () => {

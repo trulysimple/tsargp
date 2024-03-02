@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Options, ErrorConfig } from '../lib';
-import { ArgumentParser, req, OptionValues, HelpMessage, emptyStyles } from '../lib';
-import './utils.spec';
+import { ArgumentParser, req, OptionValues, HelpMessage } from '../lib';
+import { emptyStyles } from './utils.spec';
 
 const config: ErrorConfig = { styles: emptyStyles };
 
@@ -271,7 +271,7 @@ describe('ArgumentParser', () => {
         try {
           parser.parse(['-h']);
         } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(/^usage\n\nOptions:\n\n {3}-h\n\nfooter\n$/);
+          expect((err as HelpMessage).wrap(0)).toMatch(/usage\n\nOptions:\n\n {3}-h\n\nfooter\n/);
         }
       });
     });

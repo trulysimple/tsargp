@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { Options, ConcreteError } from '../lib';
-import { OptionRegistry, req, emptyStyles, defaultConfig } from '../lib';
+import { OptionValidator, req, defaultConfig } from '../lib';
+import { emptyStyles } from './utils.spec';
 
 const config: ConcreteError = {
   styles: emptyStyles,
   phrases: defaultConfig.phrases,
 };
 
-describe('OptionRegistry', () => {
+describe('OptionValidator', () => {
   describe('constructor', () => {
     it('should handle zero options', () => {
-      expect(() => new OptionRegistry({})).not.toThrow();
+      expect(() => new OptionValidator({})).not.toThrow();
     });
 
     it('should ignore empty option names', () => {
@@ -20,7 +21,7 @@ describe('OptionRegistry', () => {
           names: ['', 'name', ''],
         },
       } as const satisfies Options;
-      expect(() => new OptionRegistry(options)).not.toThrow();
+      expect(() => new OptionValidator(options)).not.toThrow();
     });
 
     describe('duplicates', () => {
@@ -31,7 +32,7 @@ describe('OptionRegistry', () => {
             names: ['dup', 'dup'],
           },
         } as const satisfies Options;
-        expect(() => new OptionRegistry(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on duplicate option name across different options', () => {
@@ -45,7 +46,7 @@ describe('OptionRegistry', () => {
             names: ['dup'],
           },
         } as const satisfies Options;
-        expect(() => new OptionRegistry(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on flag option with duplicate negation name', () => {
@@ -56,7 +57,7 @@ describe('OptionRegistry', () => {
             negationNames: ['dup'],
           },
         } as const satisfies Options;
-        expect(() => new OptionRegistry(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on option with duplicate positional marker name', () => {
@@ -71,7 +72,7 @@ describe('OptionRegistry', () => {
             positional: 'dup',
           },
         } as const satisfies Options;
-        expect(() => new OptionRegistry(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on duplicate positional option', () => {
@@ -87,7 +88,7 @@ describe('OptionRegistry', () => {
             positional: true,
           },
         } as const satisfies Options;
-        expect(() => new OptionRegistry(options, config)).toThrow(
+        expect(() => new OptionValidator(options, config)).toThrow(
           /Duplicate positional option positional2\./,
         );
       });
@@ -101,8 +102,8 @@ describe('OptionRegistry', () => {
           type: 'string',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options, config);
-      expect(() => registry.validate()).not.toThrow();
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).not.toThrow();
     });
 
     it('should throw an error on option with invalid name', () => {
@@ -112,8 +113,8 @@ describe('OptionRegistry', () => {
           names: ['a = b'],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options, config);
-      expect(() => registry.validate()).toThrow(/Invalid option name a = b\./);
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
     });
 
     it('should throw an error on flag option with invalid negation name', () => {
@@ -124,8 +125,8 @@ describe('OptionRegistry', () => {
           negationNames: ['a = b'],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options, config);
-      expect(() => registry.validate()).toThrow(/Invalid option name a = b\./);
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
     });
 
     it('should throw an error on option with invalid positional marker', () => {
@@ -136,8 +137,8 @@ describe('OptionRegistry', () => {
           positional: 'a = b',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options, config);
-      expect(() => registry.validate()).toThrow(/Invalid option name a = b\./);
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
     });
 
     it('should throw an error on option with empty positional marker', () => {
@@ -148,8 +149,10 @@ describe('OptionRegistry', () => {
           positional: '',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options, config);
-      expect(() => registry.validate()).toThrow(/Option string contains empty positional marker\./);
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).toThrow(
+        /Option string contains empty positional marker\./,
+      );
     });
 
     it('should throw an error on version option with empty version', () => {
@@ -160,8 +163,8 @@ describe('OptionRegistry', () => {
           version: '',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options, config);
-      expect(() => registry.validate()).toThrow(/Option version contains empty version\./);
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).toThrow(/Option version contains empty version\./);
     });
 
     describe('requires', () => {
@@ -177,8 +180,8 @@ describe('OptionRegistry', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option requires requires itself\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option requires requires itself\./);
       });
 
       it('should throw an error on unknown required option', () => {
@@ -193,8 +196,8 @@ describe('OptionRegistry', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Unknown required option unknown\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Unknown required option unknown\./);
       });
 
       it('should allow an option required to be present', () => {
@@ -209,8 +212,8 @@ describe('OptionRegistry', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).not.toThrow();
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).not.toThrow();
       });
 
       it('should allow an option required to be absent', () => {
@@ -225,8 +228,8 @@ describe('OptionRegistry', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).not.toThrow();
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).not.toThrow();
       });
 
       it('should throw an error on flag option required with a value', () => {
@@ -241,8 +244,8 @@ describe('OptionRegistry', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Required option required does not accept values\./,
         );
       });
@@ -260,8 +263,8 @@ describe('OptionRegistry', () => {
             exec: () => {},
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Required option required does not accept values\./,
         );
       });
@@ -278,8 +281,8 @@ describe('OptionRegistry', () => {
             names: ['-b'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'boolean'\./,
         );
       });
@@ -296,8 +299,8 @@ describe('OptionRegistry', () => {
             names: ['-s'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'string'\./,
         );
       });
@@ -314,8 +317,8 @@ describe('OptionRegistry', () => {
             names: ['-n'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'number'\./,
         );
       });
@@ -332,8 +335,8 @@ describe('OptionRegistry', () => {
             names: ['-ss'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'object'\./,
         );
       });
@@ -350,8 +353,8 @@ describe('OptionRegistry', () => {
             names: ['-ss'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'string'\./,
         );
       });
@@ -368,8 +371,8 @@ describe('OptionRegistry', () => {
             names: ['-ns'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'object'\./,
         );
       });
@@ -386,8 +389,8 @@ describe('OptionRegistry', () => {
             names: ['-ns'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'number'\./,
         );
       });
@@ -402,8 +405,8 @@ describe('OptionRegistry', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option string has zero enum values\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option string has zero enum values\./);
       });
 
       it('should throw an error on string option with duplicate enumerated values', () => {
@@ -414,8 +417,8 @@ describe('OptionRegistry', () => {
             enums: ['dup', 'dup'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option string has duplicate enum 'dup'\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option string has duplicate enum 'dup'\./);
       });
 
       it('should throw an error on string example value not matching regex', () => {
@@ -427,8 +430,8 @@ describe('OptionRegistry', () => {
             example: 'abc',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
@@ -442,8 +445,8 @@ describe('OptionRegistry', () => {
             default: 'abc',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
@@ -461,8 +464,8 @@ describe('OptionRegistry', () => {
             regex: /\d+/s,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
@@ -476,8 +479,8 @@ describe('OptionRegistry', () => {
             example: 'abc',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
@@ -491,8 +494,8 @@ describe('OptionRegistry', () => {
             default: 'abc',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
@@ -510,8 +513,8 @@ describe('OptionRegistry', () => {
             enums: ['one', 'two'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
@@ -526,8 +529,8 @@ describe('OptionRegistry', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option number has zero enum values\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option number has zero enum values\./);
       });
 
       it('should throw an error on number option with duplicate enumeration values', () => {
@@ -538,8 +541,8 @@ describe('OptionRegistry', () => {
             enums: [1, 1],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option number has duplicate enum 1\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option number has duplicate enum 1\./);
       });
 
       it('should throw an error on number example value not in range', () => {
@@ -551,8 +554,8 @@ describe('OptionRegistry', () => {
             example: -3,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: -3\. Value must be in the range \[0, Infinity\]\./,
         );
       });
@@ -566,8 +569,8 @@ describe('OptionRegistry', () => {
             default: -3,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: -3\. Value must be in the range \[0, Infinity\]\./,
         );
       });
@@ -585,8 +588,8 @@ describe('OptionRegistry', () => {
             range: [0, Infinity],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: -3\. Value must be in the range \[0, Infinity\]\./,
         );
       });
@@ -600,8 +603,8 @@ describe('OptionRegistry', () => {
             example: 3,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: 3\. Possible values are \[1, 2\]\./,
         );
       });
@@ -615,8 +618,8 @@ describe('OptionRegistry', () => {
             default: 3,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: 3\. Possible values are \[1, 2\]\./,
         );
       });
@@ -634,8 +637,8 @@ describe('OptionRegistry', () => {
             enums: [1, 2],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 3\. Possible values are \[1, 2\]\./,
         );
       });
@@ -650,8 +653,8 @@ describe('OptionRegistry', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option strings has zero enum values\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option strings has zero enum values\./);
       });
 
       it('should throw an error on strings option with duplicate enumeration values', () => {
@@ -662,8 +665,8 @@ describe('OptionRegistry', () => {
             enums: ['dup', 'dup'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option strings has duplicate enum 'dup'\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option strings has duplicate enum 'dup'\./);
       });
 
       it('should throw an error on strings example value not matching regex', () => {
@@ -676,8 +679,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
@@ -692,8 +695,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
@@ -712,8 +715,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
@@ -728,8 +731,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
@@ -744,8 +747,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
@@ -764,8 +767,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
@@ -779,8 +782,8 @@ describe('OptionRegistry', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option strings has too many values \(3\)\. Should have at most 2\./,
         );
       });
@@ -794,8 +797,8 @@ describe('OptionRegistry', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option strings has too many values \(3\)\. Should have at most 2\./,
         );
       });
@@ -813,8 +816,8 @@ describe('OptionRegistry', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has too many values \(3\)\. Should have at most 2\./,
         );
       });
@@ -829,8 +832,8 @@ describe('OptionRegistry', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option numbers has zero enum values\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option numbers has zero enum values\./);
       });
 
       it('should throw an error on numbers option with duplicate enumeration values', () => {
@@ -841,8 +844,8 @@ describe('OptionRegistry', () => {
             enums: [1, 1],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(/Option numbers has duplicate enum 1\./);
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(/Option numbers has duplicate enum 1\./);
       });
 
       it('should throw an error on numbers example value not in range', () => {
@@ -855,8 +858,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: -3\. Value must be in the range \[0, Infinity\]\./,
         );
       });
@@ -871,8 +874,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: -3\. Value must be in the range \[0, Infinity\]\./,
         );
       });
@@ -891,8 +894,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: -3\. Value must be in the range \[0, Infinity\]\./,
         );
       });
@@ -907,8 +910,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: 3. Possible values are \[1, 2\]\./,
         );
       });
@@ -923,8 +926,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: 3. Possible values are \[1, 2\]\./,
         );
       });
@@ -943,8 +946,8 @@ describe('OptionRegistry', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 3. Possible values are \[1, 2\]\./,
         );
       });
@@ -958,8 +961,8 @@ describe('OptionRegistry', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option numbers has too many values \(3\)\. Should have at most 2\./,
         );
       });
@@ -973,8 +976,8 @@ describe('OptionRegistry', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option numbers has too many values \(3\)\. Should have at most 2\./,
         );
       });
@@ -992,8 +995,8 @@ describe('OptionRegistry', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options, config);
-        expect(() => registry.validate()).toThrow(
+        const validator = new OptionValidator(options, config);
+        expect(() => validator.validate()).toThrow(
           /Option required has too many values \(3\)\. Should have at most 2\./,
         );
       });

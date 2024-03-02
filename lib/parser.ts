@@ -2,7 +2,6 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type {
-  Positional,
   ParamOption,
   Options,
   OptionValues,
@@ -19,28 +18,21 @@ import type {
   ResolveCallback,
   CommandOption,
   CastToOptionValues,
-  ConcreteError,
-  ErrorConfig,
-  ConcreteStyles,
 } from './options';
+import type { Positional, ConcreteError, ErrorConfig, ConcreteStyles } from './validator';
 
+import { HelpFormatter } from './formatter';
+import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
+import { ErrorMessage, HelpMessage, Style, TerminalString, style, tf } from './styles';
 import {
-  OptionRegistry,
-  RequiresAll,
-  RequiresNot,
-  RequiresOne,
+  OptionValidator,
   defaultConfig,
-  isArray,
-  isVariadic,
-  isNiladic,
   formatOption,
   formatBoolean,
   formatString,
   formatNumber,
   ErrorItem,
-} from './options';
-import { HelpFormatter } from './formatter';
-import { ErrorMessage, HelpMessage, Style, TerminalString, style, tf } from './styles';
+} from './validator';
 
 export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
 
@@ -77,7 +69,7 @@ type ParseConfig = {
  * Implements parsing of command-line arguments into option values.
  */
 class OpaqueArgumentParser {
-  private readonly registry: OptionRegistry;
+  private readonly validator: OptionValidator;
 
   /**
    * Creates an argument parser based on a set of option definitions.
@@ -89,7 +81,7 @@ class OpaqueArgumentParser {
       styles: Object.assign({}, defaultConfig.styles, config.styles),
       phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
     };
-    this.registry = new OptionRegistry(options, concreteConfig);
+    this.validator = new OptionValidator(options, concreteConfig);
   }
 
   /**
@@ -98,7 +90,7 @@ class OpaqueArgumentParser {
    * @returns The parser instance
    */
   validate(): this {
-    this.registry.validate();
+    this.validator.validate();
     return this;
   }
 
@@ -117,7 +109,7 @@ class OpaqueArgumentParser {
     const args =
       typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
     const completing = (config.compIndex ?? -1) >= 0;
-    const loop = new ParserLoop(this.registry, values, args, completing);
+    const loop = new ParserLoop(this.validator, values, args, completing);
     return Promise.all(loop.loop());
   }
 }
@@ -185,32 +177,32 @@ class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
-  private readonly normalizeString: OptionRegistry['normalizeString'];
-  private readonly normalizeNumber: OptionRegistry['normalizeNumber'];
+  private readonly normalizeString: OptionValidator['normalizeString'];
+  private readonly normalizeNumber: OptionValidator['normalizeNumber'];
   private readonly styles: ConcreteStyles;
 
   /**
    * Creates a parser loop.
-   * @param registry The option registry
+   * @param validator The option validator
    * @param values The option values
    * @param args The command-line arguments
    * @param completing True if performing completion
    */
   constructor(
-    private readonly registry: OptionRegistry,
+    private readonly validator: OptionValidator,
     private readonly values: CastToOptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
   ) {
-    this.styles = registry.config.styles;
-    for (const key in registry.options) {
-      const option = registry.options[key];
+    this.styles = validator.config.styles;
+    for (const key in validator.options) {
+      const option = validator.options[key];
       if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
         values[key] = undefined;
       }
     }
-    this.normalizeString = registry.normalizeString.bind(registry);
-    this.normalizeNumber = registry.normalizeNumber.bind(registry);
+    this.normalizeString = validator.normalizeString.bind(validator);
+    this.normalizeNumber = validator.normalizeNumber.bind(validator);
   }
 
   /**
@@ -250,7 +242,7 @@ class ParserLoop {
         if (comp !== undefined) {
           throw ''; // use default completion (value !== undefined)
         } else if (!this.completing && value !== undefined) {
-          throw this.registry.error(ErrorItem.optionInlineValue, { o: name });
+          throw this.validator.error(ErrorItem.optionInlineValue, { o: name });
         } else if (this.handleNiladic(key, option, name, i)) {
           return this.promises;
         }
@@ -284,7 +276,7 @@ class ParserLoop {
       } else if (isArray(option) && isVariadic(option)) {
         continue;
       } else if (i + 1 == this.args.length) {
-        throw this.registry.error(ErrorItem.missingParameter, { o: name });
+        throw this.validator.error(ErrorItem.missingParameter, { o: name });
       } else if (argKind !== ArgKind.marker) {
         singleParam = true;
       }
@@ -307,31 +299,31 @@ class ParserLoop {
     current?: Positional,
   ): [ArgKind, Positional, string | undefined] {
     const [name, value] = arg.split(/=(.*)/, 2);
-    const key = this.registry.names.get(name);
+    const key = this.validator.names.get(name);
     if (key) {
       if (comp && value === undefined) {
         throw name;
       }
-      if (this.registry.positional && name === this.registry.positional.marker) {
+      if (this.validator.positional && name === this.validator.positional.marker) {
         if (comp) {
           throw ''; // use default completion
         }
         if (value !== undefined) {
-          throw this.registry.error(ErrorItem.positionalInlineValue, { o: name });
+          throw this.validator.error(ErrorItem.positionalInlineValue, { o: name });
         }
-        return [ArgKind.marker, this.registry.positional, undefined];
+        return [ArgKind.marker, this.validator.positional, undefined];
       }
-      current = { key, name, option: this.registry.options[key] };
+      current = { key, name, option: this.validator.options[key] };
       return [ArgKind.inline, current, value];
     }
     if (!current) {
-      if (!this.registry.positional) {
+      if (!this.validator.positional) {
         if (comp) {
           this.handleNameCompletion(arg);
         }
         this.handleUnknown(name);
       }
-      return [ArgKind.positional, this.registry.positional, arg];
+      return [ArgKind.positional, this.validator.positional, arg];
     }
     return [ArgKind.param, current, arg];
   }
@@ -409,9 +401,9 @@ class ParserLoop {
     }
     const values: CastToOptionValues = {};
     const options = typeof option.options === 'function' ? option.options() : option.options;
-    const registry = new OptionRegistry(options, this.registry.config);
+    const validator = new OptionValidator(options, this.validator.config);
     const args = this.args.slice(index + 1);
-    const loop = new ParserLoop(registry, values, args, this.completing);
+    const loop = new ParserLoop(validator, values, args, this.completing);
     this.promises.push(...loop.loop());
     if (!this.completing) {
       const result = option.cmd(this.values, values);
@@ -468,7 +460,7 @@ class ParserLoop {
         }
       }
     }
-    throw this.registry.error(ErrorItem.missingPackageJson);
+    throw this.validator.error(ErrorItem.missingPackageJson);
   }
 
   /**
@@ -530,22 +522,19 @@ class ParserLoop {
   private handleUnknown(name: string, err?: ErrorMessage): never {
     const similar = this.findSimilarNames(name);
     if (err) {
-      // remove the clear sequence
-      err.str.strings.length--;
-      err.str.lengths.length--;
       if (similar.length) {
-        throw this.registry.error(ErrorItem.parseErrorWithSimilar, {
+        throw this.validator.error(ErrorItem.parseErrorWithSimilar, {
           o1: name,
           o2: similar,
           t: err.str,
         });
       }
-      throw this.registry.error(ErrorItem.parseError, { o: name, t: err.str });
+      throw this.validator.error(ErrorItem.parseError, { o: name, t: err.str });
     }
     if (similar.length) {
-      throw this.registry.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
+      throw this.validator.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
     }
-    throw this.registry.error(ErrorItem.unknownOption, { o: name });
+    throw this.validator.error(ErrorItem.unknownOption, { o: name });
   }
 
   /**
@@ -553,7 +542,7 @@ class ParserLoop {
    * @param prefix The name prefix, if any
    */
   private handleNameCompletion(prefix?: string): never {
-    const names = [...this.registry.names.keys()];
+    const names = [...this.validator.names.keys()];
     const prefixedNames = prefix ? names.filter((name) => name.startsWith(prefix)) : names;
     throw prefixedNames.join('\n');
   }
@@ -576,7 +565,7 @@ class ParserLoop {
     if (option.usage) {
       help.push(new TerminalString().splitText(option.usage).addBreaks(1));
     }
-    const groups = new HelpFormatter(this.registry.options, option.format).formatGroups();
+    const groups = new HelpFormatter(this.validator.options, option.format).formatGroups();
     const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
     for (const [group, message] of groups.entries()) {
       help.push(formatHeading(group), ...message);
@@ -591,8 +580,8 @@ class ParserLoop {
    * Set options' values to their default value, if not previously set.
    */
   private setDefaultValues() {
-    for (const key in this.registry.options) {
-      const option = this.registry.options[key];
+    for (const key in this.validator.options) {
+      const option = this.validator.options[key];
       if ('default' in option && !this.specifiedKeys.has(key)) {
         this.setDefaultValue(key, option);
       }
@@ -656,7 +645,7 @@ class ParserLoop {
    */
   private findSimilarNames(name: string, threshold = 0.6): Array<string> {
     const searchName = name.replace(/\p{P}/gu, '').toLowerCase();
-    return [...this.registry.names.keys()]
+    return [...this.validator.names.keys()]
       .reduce((acc, name) => {
         const candidateName = name.replace(/\p{P}/gu, '').toLowerCase();
         const sim = gestaltPatternMatching(searchName, candidateName);
@@ -673,20 +662,20 @@ class ParserLoop {
    * Checks if required options were correctly specified.
    */
   private checkRequired() {
-    for (const key of this.registry.required) {
+    for (const key of this.validator.required) {
       if (!this.specifiedKeys.has(key)) {
-        const option = this.registry.options[key];
+        const option = this.validator.options[key];
         const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
-        throw this.registry.error(ErrorItem.missingRequiredOption, { o: name });
+        throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
       }
     }
     for (const key of this.specifiedKeys) {
-      const option = this.registry.options[key];
+      const option = this.validator.options[key];
       if (option.requires) {
         const error = new TerminalString();
         if (!this.checkRequires(option.requires, error)) {
           const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
-          throw this.registry.error(ErrorItem.optionRequires, { o: name, t: error });
+          throw this.validator.error(ErrorItem.optionRequires, { o: name, t: error });
         }
       }
     }
@@ -727,7 +716,7 @@ class ParserLoop {
     negate: boolean,
   ): boolean {
     const [key, value] = kvp;
-    const option = this.registry.options[key];
+    const option = this.validator.options[key];
     const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
     const specified = this.specifiedKeys.has(key);
     const required = value !== null;
@@ -1042,12 +1031,12 @@ class ParserLoop {
     if (value instanceof Promise) {
       result = value.then((vals) => {
         const normalized = vals.map((val) => normalizeFn(option, name, val));
-        this.registry.normalizeArray(option, name, normalized);
+        this.validator.normalizeArray(option, name, normalized);
         return normalized;
       });
     } else {
       result = value.map((val) => normalizeFn(option, name, val));
-      this.registry.normalizeArray(option, name, result);
+      this.validator.normalizeArray(option, name, result);
     }
     this.values[key] = result;
   }
@@ -1079,7 +1068,7 @@ class ParserLoop {
         result = res.then(async (val) => {
           const prev = await previous;
           prev.push(normalizeFn(option, name, val as T));
-          this.registry.normalizeArray(option, name, prev);
+          this.validator.normalizeArray(option, name, prev);
           return prev;
         });
       } else {
@@ -1091,7 +1080,7 @@ class ParserLoop {
         result = res.then(async (vals) => {
           const prev = await previous;
           prev.push(...vals.map((val) => normalizeFn(option, name, val as T)));
-          this.registry.normalizeArray(option, name, prev);
+          this.validator.normalizeArray(option, name, prev);
           return prev;
         });
       } else {
@@ -1110,12 +1099,12 @@ class ParserLoop {
       const res = result;
       this.values[key] = previous.then((vals) => {
         vals.push(...res);
-        this.registry.normalizeArray(option, name, vals);
+        this.validator.normalizeArray(option, name, vals);
         return vals;
       });
     } else {
       previous.push(...result);
-      this.registry.normalizeArray(option, name, previous);
+      this.validator.normalizeArray(option, name, previous);
     }
   }
 }

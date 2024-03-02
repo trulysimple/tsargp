@@ -1,5 +1,6 @@
 import type { AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { expect } from 'vitest';
+import type { ConcreteStyles } from '../lib';
 
 interface CustomMatchers<R = unknown> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,3 +25,14 @@ async function toResolve(
 }
 
 expect.extend({ toResolve });
+
+export const emptyStyles: ConcreteStyles = {
+  boolean: '',
+  string: '',
+  number: '',
+  regex: '',
+  option: '',
+  param: '',
+  url: '',
+  text: '',
+};

@@ -888,6 +888,9 @@ class ErrorMessage extends Error {
   wrap(width = process.stderr.columns): string {
     const result = new Array<string>();
     this.str.wrapToWidth(result, 0, width);
+    if (width) {
+      result.push(style(TypeFace.clear));
+    }
     return result.join('');
   }
 }
@@ -905,6 +908,9 @@ class HelpMessage extends Array<TerminalString> {
     let column = 0;
     for (const str of this) {
       column = str.wrapToWidth(result, column, width);
+    }
+    if (width) {
+      result.push(style(TypeFace.clear));
     }
     return result.join('');
   }

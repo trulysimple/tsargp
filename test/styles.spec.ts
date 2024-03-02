@@ -321,7 +321,9 @@ describe('ErrorMessage', () => {
     const str = new TerminalString(0);
     str.splitText('type script');
     const err = new ErrorMessage(str);
-    expect(err.message).toEqual('type script');
+    expect(err.message).toMatch(/type script/);
+    expect(err.wrap(0)).toEqual('type script');
+    expect(err.wrap(11)).toEqual('type script' + style(tf.clear));
   });
 
   it('should be thrown and caught', () => {
@@ -340,6 +342,8 @@ describe('HelpMessage', () => {
     str.splitText('type script');
     const help = new HelpMessage();
     help.push(str);
-    expect(help.toString()).toEqual('type script');
+    expect(help.toString()).toMatch(/type script/);
+    expect(help.wrap(0)).toEqual('type script');
+    expect(help.wrap(11)).toEqual('type script' + style(tf.clear));
   });
 });
