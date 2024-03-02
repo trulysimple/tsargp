@@ -125,14 +125,14 @@ Text is split on paragraph, list item and word boundaries using a combination of
 expressions. Moreover, format specifiers can be extracted from the text and processed by a
 formatting callback. This is used in two places in the library:
 
-- by the help message formatter to assemble description items from configured
-  [description phrases](formatter.mdx#description-phrases)
 - by the argument parser to create error messages based on configured
   [error phrases](validator.mdx#error-phrases)
+- by the help message formatter to assemble help items from configured
+  [help phrases](formatter.mdx#help-phrases)
 
-In addition to description and error phrases, some description items such as the option synopsis or
-the deprecation reason are texts that the help formatter splits into words before adding to the
-option description. The formatting features supported for these items are described next.
+In addition to error and help phrases, some help items such as the option synopsis or the
+deprecation reason are texts that the help formatter splits into words before adding to the option
+description. The formatting features supported for these items are described next.
 
 #### Inline styles
 

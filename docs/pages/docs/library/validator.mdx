@@ -144,8 +144,8 @@ Both the validation and parsing methods may throw errors which can be customized
 
 ### Error styles
 
-The `styles` property specifies the styles of error messages, and has the following optional
-properties:
+The `styles` property specifies the styles of both error and help messages, and has the following
+optional properties:
 
 - `boolean` - the style of boolean values (defaults to `fg.yellow`)
 - `string` - the style of string values (defaults to `fg.green`)
@@ -155,12 +155,6 @@ properties:
 - `param` - the style of option parameters (defaults to `fg.brightBlack`)
 - `url` - the style of URLs (defaults to `fg.brightBlack`)
 - `text` - The style of general text (defaults to `tf.clear`)
-
-<Callout type="warning">
-  These styles are _not_ used in the help option [format](options.mdx#format--heading-style)
-  attribute. They may have the same values, but you should configure both if you want to customize
-  both error messages and help messages.
-</Callout>
 
 ### Error items
 

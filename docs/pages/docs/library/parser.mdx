@@ -26,7 +26,6 @@ accepts two optional parameters:
 Normally you should _not_ need to pass these parameters, as they have sensible default values:
 
 - `command` - `process.env['COMP_LINE']{:ts}` or `process.argv.slice(2){:ts}`
-- `config.termWidth` - `process.stdout.columns{:ts}` or `process.stderr.columns{:ts}`
 - `config.compIndex` - `Number(process.env['COMP_POINT']){:ts}` or `undefined{:ts}`
 
 If you feel the need to configure the parser, make sure to first understand how

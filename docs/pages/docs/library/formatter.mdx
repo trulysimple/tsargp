@@ -7,12 +7,13 @@ import { Callout } from 'nextra/components';
 # Formatter
 
 The `HelpFormatter` class is the component that handles the formatting of help messages. It can be
-instantiated with a set of option _definitions_ and provides methods to format help message strings.
+instantiated with a [validator](validator.mdx) instance and provides methods to format help messages.
 
 ## Help message
 
-The help message is a string that may contain control sequences and can be printed on a terminal
-that supports sequences. There are two methods to obtain help messages:
+The help message is a list of [terminal strings](styles.mdx#terminal-strings) that may contain
+control sequences and can be printed in a terminal that supports sequences. There are two methods to
+obtain help messages:
 
 - `formatHelp` - returns a message corresponding to the _default_ option group, which is the set of
   options that did not explicitly declare an [option group](options.mdx#group--hide) in their
@@ -52,15 +53,14 @@ This column contains either:
 
 ### Description column
 
-The last column contains the option description. It is composed of
-[description items](#description-items) and is wrapped to the desired terminal width, respecting the
-[indentation level](#description-indentation) setting. If the width does not accommodate an entry's
-description column while respecting its indentation level, the text is instead wrapped relative to
-the beginning of each line.
+The last column contains the option description. It is composed of [help items](#help-items) and is
+wrapped to the desired terminal width, respecting the [indentation level](#description-indentation)
+setting. If the width does not accommodate an entry's description column while respecting its
+indentation level, the text is instead wrapped relative to the beginning of each line.
 
 ## Help format
 
-In addition to option definitions, the formatter constructor accepts a `FormatConfig` object that
+In addition to the validator instance, the formatter constructor accepts a `HelpConfig` object that
 can be used to customize the message format. This configuration will apply to all help entries. It
 contains a set of optional properties, as described below.
 
@@ -138,30 +138,11 @@ It defaults to `false{:ts}`.
 The `descr` property, if `true{:ts}`, indicates that the option description should not be displayed.
 It defaults to `false{:ts}`.
 
-### Display styles
-
-The `styles` property specifies the styles of text elements in the help message. It has the same
-properties as the [error styles](validator.mdx#error-styles) and the same default values. They may
-be overriden by an option's [display styles](options.mdx#display-styles), if present.
-
-<Callout type="default">
-  Whitespace around help entries is not styled. For that purpose, you may need to tweak your
-  terminal settings.
-</Callout>
-
-<Callout type="info">
-  The styles are cumulative, i.e., they can be combined with previous styles depending on the kind
-  of styling attribute. For instance, if the style of option description is `tf.bold` and the style
-  of number values is `fg.yellow`, then any number value that appears in the option description
-  (except those embedded in [text attributes](#text-formatting)) is rendered in bold intensity with
-  yellow foreground color.
-</Callout>
-
-### Description items
+### Help items
 
 The `items` property specifies the kinds of items that should be displayed in the option
 description, and in what order. It is an array whose values can be one of the enumerated values from
-`DescItem`:
+`HelpItem`:
 
 - `synopsis` - the option synopsis
 - `negation` - the negation names of a flag option, if any
@@ -185,12 +166,12 @@ description, and in what order. It is an array whose values can be one of the en
 
 The default is to print all items in the order listed above.
 
-### Description phrases
+### Help phrases
 
-The `phrases` property specifies phrases to be used for each kind of description item. If an item
-has a value, the `%s` specifier can be used to indicate where in the phrase to place the value. If
-an item has multiple alternatives, such as `DescItem.case`, different texts can separated with
-`'|'{:ts}` and grouped in parentheses, as can be seen in the default values listed below:
+The `phrases` property specifies phrases to be used for each kind of help item. If an item has a
+value, the `%s` specifier can be used to indicate where in the phrase to place the value. If an item
+has multiple alternatives, such as `HelpItem.case`, different texts can separated with `'|'{:ts}`
+and grouped in parentheses, as can be seen in the default values listed below:
 
 - `synopsis` - `'%s'{:ts}`
 - `negation` - `'Can be negated with %s.'{:ts}`
@@ -218,4 +199,23 @@ These phrases will be formatted according to the [text formatting](styles.mdx#te
   Phrases can contain inline styles, but not in the same word as the `%s` specifier. Otherwise, they
   will mess up the text wrapping. For example, the following phrase is not valid:
   ``` `Requires ${style(tf.bold)}%s`{:ts} ```.
+</Callout>
+
+### Help styles
+
+Help messages are styled with the same styles as [error messages](validator.mdx#error-styles),
+except that they may get overriden by (or combined with) an option's
+[display styles](options.mdx#display-styles), if present.
+
+<Callout type="default">
+  Whitespace around help entries is not styled. For that purpose, you may need to tweak your
+  terminal settings.
+</Callout>
+
+<Callout type="info">
+  Styles are cumulative, i.e., they can be combined with previous styles depending on the kind of
+  styling attribute. For instance, if the style of option description is `tf.bold` and the style of
+  number values is `fg.yellow`, then any number value that appears in the option description (except
+  those embedded in [text attributes](styles.mdx#text-splitting)) is rendered in bold intensity with
+  yellow foreground color.
 </Callout>
