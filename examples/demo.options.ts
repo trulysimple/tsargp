@@ -11,7 +11,7 @@ const helloOpts = {
   help: {
     type: 'help',
     names: ['-h', '--help'],
-    desc: 'The help option for the hello command. Prints this help message',
+    desc: 'The help option for the hello command. Prints this help message.',
   },
   /**
    * A strings option that receives positional arguments for the hello command.
@@ -27,7 +27,7 @@ const helloOpts = {
   command: {
     type: 'command',
     names: ['hello'],
-    desc: 'A recursive command option. Logs the arguments passed after it',
+    desc: 'A recursive command option. Logs the arguments passed after it.',
     options: (): Options => helloOpts,
     cmd(_, cmdValues): number {
       const vals = cmdValues as OptionValues<typeof helloOpts>;
@@ -48,7 +48,7 @@ export default {
   help: {
     type: 'help',
     names: ['-h', '--help'],
-    desc: 'A help option. Prints this help message',
+    desc: 'A help option. Prints this help message.',
     usage: `
     ${style(tf.clear, tf.bold)}Argument parser for TypeScript.
 
@@ -70,7 +70,7 @@ export default {
   version: {
     type: 'version',
     names: ['-v', '--version'],
-    desc: 'A version option. Prints the package version',
+    desc: 'A version option. Prints the package version.',
     resolve: import.meta.resolve,
   },
   /**
@@ -80,7 +80,7 @@ export default {
     type: 'flag',
     names: ['-f', '--flag'],
     negationNames: ['--no-flag'],
-    desc: 'A flag option',
+    desc: 'A flag option.',
     deprecated: 'some reason',
     styles: {
       names: style(tf.clear, tf.inverse, fg8(138)),
@@ -117,7 +117,7 @@ export default {
   stringRegex: {
     type: 'string',
     names: ['-s', '--stringRegex'],
-    desc: 'A string option',
+    desc: 'A string option.',
     group: 'String',
     regex: /^\d+$/,
     default: '123456789',
@@ -129,7 +129,7 @@ export default {
   numberRange: {
     type: 'number',
     names: ['-n', '--numberRange'],
-    desc: 'A number option',
+    desc: 'A number option.',
     group: 'Number',
     range: [-Infinity, 0],
     default: -1.23,
@@ -141,7 +141,7 @@ export default {
   stringEnum: {
     type: 'string',
     names: ['-se', '--stringEnum'],
-    desc: 'A string option',
+    desc: 'A string option.',
     group: 'String',
     enums: ['one', 'two'],
     example: 'one',
@@ -152,7 +152,7 @@ export default {
   numberEnum: {
     type: 'number',
     names: ['-ne', '--numberEnum'],
-    desc: 'A number option',
+    desc: 'A number option.',
     group: 'Number',
     enums: [1, 2],
     example: 1,
@@ -163,7 +163,7 @@ export default {
   stringsRegex: {
     type: 'strings',
     names: ['-ss', '--strings'],
-    desc: 'A strings option',
+    desc: 'A strings option.',
     group: 'String',
     regex: /^[\w-]+$/,
     default: ['one', 'two'],
@@ -177,7 +177,7 @@ export default {
   numbersRange: {
     type: 'numbers',
     names: ['-ns', '--numbers'],
-    desc: 'A numbers option',
+    desc: 'A numbers option.',
     group: 'Number',
     range: [0, Infinity],
     default: [1, 2],
@@ -189,7 +189,7 @@ export default {
   stringsEnum: {
     type: 'strings',
     names: ['', '--stringsEnum'],
-    desc: 'A strings option',
+    desc: 'A strings option.',
     group: 'String',
     enums: ['one', 'two'],
     example: ['one', 'two'],
@@ -202,7 +202,7 @@ export default {
   numbersEnum: {
     type: 'numbers',
     names: ['', '--numbersEnum'],
-    desc: 'A numbers option',
+    desc: 'A numbers option.',
     group: 'Number',
     enums: [1, 2],
     example: [1, 2],

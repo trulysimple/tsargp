@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import { type FormatConfig } from './formatter';
-import { type Style, fg, tf, style } from './styles';
+import { type Style, fg, tf, style, TerminalString, ErrorMessage } from './styles';
 
 export type {
   ParseCallback,
@@ -37,19 +37,31 @@ export type {
   RequiresVal,
   Positional,
   Concrete,
+  ConcreteStyles,
+  ConcreteError,
+  ErrorConfig,
 };
 
 export {
   req,
   defaultStyles,
-  noErrorStyles,
+  emptyStyles,
+  defaultConfig,
   RequiresAll,
   RequiresOne,
   RequiresNot,
   OptionRegistry,
+  ErrorItem,
   isNiladic,
   isArray,
   isVariadic,
+  formatBoolean,
+  formatString,
+  formatNumber,
+  formatRegExp,
+  formatURL,
+  formatOption,
+  formatParam,
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -88,13 +100,47 @@ const req = {
 } as const;
 
 /**
+ * The kind of items that can be thrown as error messages.
+ */
+// Internal note: this needs to be defined before `defaultConfig`, otherwise bun chokes.
+const enum ErrorItem {
+  parseError,
+  parseErrorWithSimilar,
+  unknownOption,
+  unknownOptionWithSimilar,
+  optionRequires,
+  missingRequiredOption,
+  missingParameter,
+  missingPackageJson,
+  positionalInlineValue,
+  optionInlineValue,
+  emptyPositionalMarker,
+  invalidOptionName,
+  optionEmptyVersion,
+  optionRequiresItself,
+  unknownRequiredOption,
+  niladicOptionRequiredValue,
+  optionZeroEnum,
+  duplicateOptionName,
+  duplicatePositionalOption,
+  duplicateStringOptionEnum,
+  duplicateNumberOptionEnum,
+  optionValueIncompatible,
+  stringOptionEnums,
+  stringOptionRegex,
+  numberOptionEnums,
+  numberOptionRange,
+  arrayOptionLimit,
+}
+
+/**
  * The default styles of error messages.
  */
 const defaultStyles: ConcreteStyles = {
-  regex: style(fg.red),
   boolean: style(fg.yellow),
   string: style(fg.green),
   number: style(fg.yellow),
+  regex: style(fg.red),
   option: style(fg.brightMagenta),
   param: style(fg.brightBlack),
   url: style(fg.brightBlack),
@@ -104,15 +150,67 @@ const defaultStyles: ConcreteStyles = {
 /**
  * A set of empty styles for error messages.
  */
-const noErrorStyles: ConcreteStyles = {
-  regex: '',
+const emptyStyles: ConcreteStyles = {
   boolean: '',
   string: '',
   number: '',
+  regex: '',
   option: '',
   param: '',
   url: '',
   text: '',
+};
+
+/**
+ * The default error messages configuration.
+ */
+const defaultConfig: ConcreteError = {
+  styles: defaultStyles,
+  phrases: {
+    [ErrorItem.parseError]: '%t\n\nDid you mean to specify an option name instead of %o?',
+    [ErrorItem.parseErrorWithSimilar]:
+      '%t\n\n Did you mean to specify an option name instead of %o1?\n\nSimilar names are %o2.',
+    [ErrorItem.unknownOption]: 'Unknown option %o.',
+    [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1.\n\nSimilar names are %o2.',
+    [ErrorItem.optionRequires]: 'Option %o requires %t.',
+    [ErrorItem.missingRequiredOption]: 'Option %o is required.',
+    [ErrorItem.missingParameter]: 'Missing parameter to %o.',
+    [ErrorItem.missingPackageJson]: 'Could not find a "package.json" file.',
+    [ErrorItem.positionalInlineValue]: 'Positional marker %o does not accept inline values.',
+    [ErrorItem.optionInlineValue]: 'Option %o does not accept inline values.',
+    [ErrorItem.emptyPositionalMarker]: 'Option %o contains empty positional marker.',
+    [ErrorItem.invalidOptionName]: 'Invalid option name %o.',
+    [ErrorItem.optionEmptyVersion]: 'Option %o contains empty version.',
+    [ErrorItem.optionRequiresItself]: 'Option %o requires itself.',
+    [ErrorItem.unknownRequiredOption]: 'Unknown required option %o.',
+    [ErrorItem.niladicOptionRequiredValue]: 'Required option %o does not accept values.',
+    [ErrorItem.optionZeroEnum]: 'Option %o has zero enum values.',
+    [ErrorItem.duplicateOptionName]: 'Duplicate option name %o.',
+    [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o.',
+    [ErrorItem.duplicateStringOptionEnum]: 'Option %o has duplicate enum %s.',
+    [ErrorItem.duplicateNumberOptionEnum]: 'Option %o has duplicate enum %n.',
+    [ErrorItem.optionValueIncompatible]:
+      'Option %o has incompatible value %p. Should be of type %s.',
+    [ErrorItem.stringOptionEnums]: 'Invalid parameter to %o: %s1. Possible values are %s2.',
+    [ErrorItem.stringOptionRegex]: 'Invalid parameter to %o: %s. Value must match the regex %r.',
+    [ErrorItem.numberOptionEnums]: 'Invalid parameter to %o: %n1. Possible values are %n2.',
+    [ErrorItem.numberOptionRange]: 'Invalid parameter to %o: %n1. Value must be in the range %n2.',
+    [ErrorItem.arrayOptionLimit]: `Option %o has too many values (%n1). Should have at most %n2.`,
+  },
+};
+
+/**
+ * The error formatting functions.
+ */
+const formatFunctions: Readonly<Record<string, FormatFunction>> = {
+  b: formatBoolean,
+  s: formatString,
+  n: formatNumber,
+  r: formatRegExp,
+  o: formatOption,
+  p: formatParam,
+  u: formatURL,
+  t: formatTerm,
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -884,9 +982,39 @@ type Concrete<T> = Exclude<
 >;
 
 /**
+ * The error messages configuration.
+ */
+type ErrorConfig = {
+  /**
+   * The error message styles
+   */
+  readonly styles?: OtherStyles;
+  /**
+   * The error message phrases
+   */
+  readonly phrases?: Readonly<Partial<Record<ErrorItem, string>>>;
+};
+
+/**
+ * A concrete version of the error messages configuration.
+ */
+type ConcreteError = Concrete<ErrorConfig>;
+
+/**
  * A concrete version of the error message styles.
  */
-type ConcreteStyles = Concrete<OtherStyles>;
+type ConcreteStyles = ConcreteError['styles'];
+
+/**
+ * A set of formatting functions for error messages.
+ */
+type FormatFunction = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  value: any,
+  styles: ConcreteStyles,
+  style: Style,
+  result: TerminalString,
+) => void;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -902,19 +1030,19 @@ class OptionRegistry {
   /**
    * Creates an option registry based on a set of option definitions.
    * @param options The option definitions
-   * @param styles The error message styles
+   * @param config The error messages configuration
    * @throws On duplicate option names and duplicate positional options
    */
   constructor(
     readonly options: Options,
-    readonly styles: ConcreteStyles = noErrorStyles,
+    readonly config: ConcreteError = defaultConfig,
   ) {
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option);
       if ('positional' in option && option.positional) {
         if (this.positional) {
-          throw this.error(`Duplicate positional option ${this.formatOption(key)}.`);
+          throw this.error(ErrorItem.duplicatePositionalOption, { o: key });
         }
         const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
@@ -940,7 +1068,7 @@ class OptionRegistry {
     }
     if ('positional' in option && typeof option.positional === 'string') {
       if (validate && !option.positional) {
-        throw this.error(`Option ${this.formatOption(key)} contains empty positional marker.`);
+        throw this.error(ErrorItem.emptyPositionalMarker, { o: key });
       }
       names.push(option.positional);
     }
@@ -950,11 +1078,11 @@ class OptionRegistry {
       }
       if (!validate) {
         if (this.names.has(name)) {
-          throw this.error(`Duplicate option name ${this.formatOption(name)}.`);
+          throw this.error(ErrorItem.duplicateOptionName, { o: name });
         }
         this.names.set(name, key);
       } else if (name.match(/[\s=]+/)) {
-        throw this.error(`Invalid option name ${this.formatOption(name)}.`);
+        throw this.error(ErrorItem.invalidOptionName, { o: name });
       }
     }
   }
@@ -981,7 +1109,7 @@ class OptionRegistry {
         this.validateRequirements(key, option.requires);
       }
       if (option.type === 'version' && option.version === '') {
-        throw this.error(`Option ${this.formatOption(key)} contains empty version.`);
+        throw this.error(ErrorItem.optionEmptyVersion, { o: key });
       }
     }
   }
@@ -1022,17 +1150,15 @@ class OptionRegistry {
     requiredValue?: RequiresVal[string],
   ) {
     if (requiredKey === key) {
-      throw this.error(`Option ${this.formatOption(key)} requires itself.`);
+      throw this.error(ErrorItem.optionRequiresItself, { o: requiredKey });
     }
     if (!(requiredKey in this.options)) {
-      throw this.error(`Unknown required option ${this.formatOption(requiredKey)}.`);
+      throw this.error(ErrorItem.unknownRequiredOption, { o: requiredKey });
     }
     if (requiredValue !== undefined && requiredValue !== null) {
       const option = this.options[requiredKey];
       if (isNiladic(option)) {
-        throw this.error(
-          `Required option ${this.formatOption(requiredKey)} does not accept values.`,
-        );
+        throw this.error(ErrorItem.niladicOptionRequiredValue, { o: requiredKey });
       }
       this.validateValue(requiredKey, option, requiredValue);
     }
@@ -1047,17 +1173,16 @@ class OptionRegistry {
   private validateEnums(key: string, option: ParamOption) {
     if ('enums' in option && option.enums) {
       if (!option.enums.length) {
-        throw this.error(`Option ${this.formatOption(key)} has zero enum values.`);
+        throw this.error(ErrorItem.optionZeroEnum, { o: key });
       }
       const set = new Set<string | number>(option.enums);
       if (set.size !== option.enums.length) {
         for (const value of option.enums) {
           if (!set.delete(value)) {
-            const optVal =
-              option.type === 'string' || option.type === 'strings'
-                ? this.formatString(value as string)
-                : this.formatNumber(value as number);
-            throw this.error(`Option ${this.formatOption(key)} has duplicate enum ${optVal}.`);
+            if (option.type === 'string' || option.type === 'strings') {
+              throw this.error(ErrorItem.duplicateStringOptionEnum, { o: key, s: value });
+            }
+            throw this.error(ErrorItem.duplicateNumberOptionEnum, { o: key, n: value });
           }
         }
       }
@@ -1073,10 +1198,7 @@ class OptionRegistry {
    */
   private assertType<T>(value: unknown, key: string, type: string): asserts value is T {
     if (typeof value !== type) {
-      throw this.error(
-        `Option ${this.formatOption(key)} has incompatible value ${this.formatParam(value)}. ` +
-          `Should be of type ${this.formatString(type)}.`,
-      );
+      throw this.error(ErrorItem.optionValueIncompatible, { o: key, p: value, s: type });
     }
   }
 
@@ -1143,17 +1265,10 @@ class OptionRegistry {
       value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
     }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      const optEnums = option.enums.map((val) => this.formatString(val));
-      throw this.error(
-        `Invalid parameter to ${this.formatOption(name)}: ${this.formatString(value)}. ` +
-          `Possible values are [${optEnums.join(', ')}].`,
-      );
+      throw this.error(ErrorItem.stringOptionEnums, { o: name, s1: value, s2: option.enums });
     }
     if ('regex' in option && option.regex && !option.regex.test(value)) {
-      throw this.error(
-        `Invalid parameter to ${this.formatOption(name)}: ${this.formatString(value)}. ` +
-          `Value must match the regex ${this.formatRegex(option.regex)}.`,
-      );
+      throw this.error(ErrorItem.stringOptionRegex, { o: name, s: value, r: option.regex });
     }
     return value;
   }
@@ -1170,22 +1285,14 @@ class OptionRegistry {
       value = Math[option.round](value);
     }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      const optEnums = option.enums.map((val) => this.formatNumber(val));
-      throw this.error(
-        `Invalid parameter to ${this.formatOption(name)}: ${this.formatNumber(value)}. ` +
-          `Possible values are [${optEnums.join(', ')}].`,
-      );
+      throw this.error(ErrorItem.numberOptionEnums, { o: name, n1: value, n2: option.enums });
     }
     if (
       'range' in option &&
       option.range &&
       !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
     ) {
-      const optRange = option.range.map((val) => this.formatNumber(val));
-      throw this.error(
-        `Invalid parameter to ${this.formatOption(name)}: ${this.formatNumber(value)}. ` +
-          `Value must be in the range [${optRange.join(', ')}].`,
-      );
+      throw this.error(ErrorItem.numberOptionRange, { o: name, n1: value, n2: option.range });
     }
     return value;
   }
@@ -1204,74 +1311,48 @@ class OptionRegistry {
       value.push(...unique);
     }
     if (option.limit !== undefined && value.length > option.limit) {
-      throw this.error(
-        `Option ${this.formatOption(name)} has too many values (${this.formatNumber(value.length)}). ` +
-          `Should have at most ${this.formatNumber(option.limit)}.`,
-      );
+      throw this.error(ErrorItem.arrayOptionLimit, {
+        o: name,
+        n1: value.length,
+        n2: option.limit,
+      });
     }
   }
 
   /**
-   * Formats an option name to be printed on the terminal.
-   * @param name The option name
-   * @returns The formatted string
-   */
-  formatOption(name: string): string {
-    return `${this.styles.option}${name}${this.styles.text}`;
-  }
-
-  /**
-   * Formats an option parameter to be printed on the terminal.
-   * @param value The parameter value
-   * @returns The formatted string
-   */
-  formatParam(value: unknown): string {
-    return `${this.styles.param}<${value}>${this.styles.text}`;
-  }
-
-  /**
-   * Formats a boolean value to be printed on the terminal.
-   * @param value The boolean value
-   * @returns The formatted string
-   */
-  formatBoolean(value: boolean): string {
-    return `${this.styles.boolean}${value}${this.styles.text}`;
-  }
-
-  /**
-   * Formats a string value to be printed on the terminal.
-   * @param value The string value
-   * @returns The formatted string
-   */
-  formatString(value: string): string {
-    return `${this.styles.string}'${value}'${this.styles.text}`;
-  }
-
-  /**
-   * Formats a number value to be printed on the terminal.
-   * @param value The number value
-   * @returns The formatted string
-   */
-  formatNumber(value: number): string {
-    return `${this.styles.number}${value}${this.styles.text}`;
-  }
-
-  /**
-   * Formats a regex value to be printed on the terminal.
-   * @param value The regex value
-   * @returns The formatted string
-   */
-  formatRegex(value: RegExp): string {
-    return `${this.styles.regex}${String(value)}${this.styles.text}`;
-  }
-
-  /**
    * Creates an error with a formatted message.
-   * @param msg The error message
+   * @param kind The kind of error message
+   * @param args The error arguments
    * @returns The formatted error
    */
-  error(msg: string): Error {
-    return Error(`${this.styles.text}${msg}${style(tf.clear)}`);
+  error(kind: ErrorItem, args?: Record<string, unknown>): Error {
+    const str = new TerminalString().addSequence(this.config.styles.text);
+    const phrase = this.config.phrases[kind];
+    if (args) {
+      str.splitText(phrase, (spec) => {
+        const arg = spec.slice(1);
+        const fmt = arg[0];
+        if (fmt in formatFunctions && arg in args) {
+          const value = args[arg];
+          const format = formatFunctions[fmt];
+          if (Array.isArray(value)) {
+            str.addOpening('[');
+            value.forEach((val, i) => {
+              format(val, this.config.styles, this.config.styles.text, str);
+              if (i < value.length - 1) {
+                str.addClosing(',');
+              }
+            });
+            str.addClosing(']');
+          } else {
+            format(value, this.config.styles, this.config.styles.text, str);
+          }
+        }
+      });
+    } else {
+      str.splitText(phrase);
+    }
+    return new ErrorMessage(str.addSequence(style(tf.clear)));
   }
 }
 
@@ -1306,4 +1387,95 @@ function isVariadic(option: ArrayOption): boolean {
     !('separator' in option && option.separator) &&
     !('parseDelimited' in option && option.parseDelimited)
   );
+}
+
+/**
+ * Formats a boolean value to be printed on the terminal.
+ * @param value The boolean value
+ * @param styles The error message styles
+ * @param style The style to revert to
+ * @param result The resulting string
+ */
+function formatBoolean(
+  value: boolean,
+  styles: ConcreteStyles,
+  style: Style,
+  result: TerminalString,
+) {
+  result.addAndRevert(styles.boolean, value.toString(), style);
+}
+
+/**
+ * Formats a string value to be printed on the terminal.
+ * @param value The string value
+ * @param styles The error message styles
+ * @param style The style to revert to
+ * @param result The resulting string
+ */
+function formatString(value: string, styles: ConcreteStyles, style: Style, result: TerminalString) {
+  result.addAndRevert(styles.string, `'${value}'`, style);
+}
+
+/**
+ * Formats a number value to be printed on the terminal.
+ * @param value The number value
+ * @param styles The error message styles
+ * @param style The style to revert to
+ * @param result The resulting string
+ */
+function formatNumber(value: number, styles: ConcreteStyles, style: Style, result: TerminalString) {
+  result.addAndRevert(styles.number, value.toString(), style);
+}
+
+/**
+ * Formats a regex value to be printed on the terminal.
+ * @param value The regex value
+ * @param styles The error message styles
+ * @param style The style to revert to
+ * @param result The resulting string
+ */
+function formatRegExp(value: RegExp, styles: ConcreteStyles, style: Style, result: TerminalString) {
+  result.addAndRevert(styles.regex, value.toString(), style);
+}
+
+/**
+ * Formats a URL value to be printed on the terminal.
+ * @param value The URL value
+ * @param styles The error message styles
+ * @param style The style to revert to
+ * @param result The resulting string
+ */
+function formatURL(value: URL, styles: ConcreteStyles, style: Style, result: TerminalString) {
+  result.addAndRevert(styles.url, value.href, style);
+}
+
+/**
+ * Formats an option name to be printed on the terminal.
+ * @param name The option name
+ * @param styles The error message styles
+ * @param style The style to revert to
+ * @param result The resulting string
+ */
+function formatOption(name: string, styles: ConcreteStyles, style: Style, result: TerminalString) {
+  result.addAndRevert(styles.option, name, style);
+}
+
+/**
+ * Formats an option parameter to be printed on the terminal.
+ * @param value The parameter value
+ * @param styles The error message styles
+ * @param style The style to revert to
+ * @param result The resulting string
+ */
+function formatParam(value: unknown, styles: ConcreteStyles, style: Style, result: TerminalString) {
+  result.addAndRevert(styles.param, `<${value}>`, style);
+}
+
+/**
+ * Formats a previously formatted terminal string.
+ * @param str The terminal string
+ * @param result The resulting string
+ */
+function formatTerm(str: TerminalString, _1: ConcreteStyles, _2: Style, result: TerminalString) {
+  result.addOther(str);
 }

@@ -14,12 +14,14 @@ import type {
   FunctionOption,
   NiladicOption,
   CompleteCallback,
-  OtherStyles,
   ArrayOption,
   SingleOption,
   ResolveCallback,
   CommandOption,
   CastToOptionValues,
+  ConcreteError,
+  ErrorConfig,
+  ConcreteStyles,
 } from './options';
 
 import {
@@ -27,13 +29,18 @@ import {
   RequiresAll,
   RequiresNot,
   RequiresOne,
-  defaultStyles,
+  defaultConfig,
   isArray,
   isVariadic,
   isNiladic,
+  formatOption,
+  formatBoolean,
+  formatString,
+  formatNumber,
+  ErrorItem,
 } from './options';
 import { HelpFormatter } from './formatter';
-import { HelpMessage, TerminalString, style, tf } from './styles';
+import { ErrorMessage, HelpMessage, Style, TerminalString, style, tf } from './styles';
 
 export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
 
@@ -75,11 +82,14 @@ class OpaqueArgumentParser {
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions
-   * @param styles The error message styles
+   * @param config The error messages configuration
    */
-  constructor(options: Options, styles?: OtherStyles) {
-    const concreteStyles = Object.assign({}, defaultStyles, styles);
-    this.registry = new OptionRegistry(options, concreteStyles);
+  constructor(options: Options, config: ErrorConfig = {}) {
+    const concreteConfig: ConcreteError = {
+      styles: Object.assign({}, defaultConfig.styles, config.styles),
+      phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
+    };
+    this.registry = new OptionRegistry(options, concreteConfig);
   }
 
   /**
@@ -120,11 +130,11 @@ class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions
-   * @param styles The error message styles
+   * @param config The error messages configuration
    */
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-  constructor(options: T, styles?: OtherStyles) {
-    super(options, styles);
+  constructor(options: T, config?: ErrorConfig) {
+    super(options, config);
   }
 
   /**
@@ -175,12 +185,9 @@ class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
-  private readonly formatOption: OptionRegistry['formatOption'];
-  private readonly formatBoolean: OptionRegistry['formatBoolean'];
-  private readonly formatString: OptionRegistry['formatString'];
-  private readonly formatNumber: OptionRegistry['formatNumber'];
   private readonly normalizeString: OptionRegistry['normalizeString'];
   private readonly normalizeNumber: OptionRegistry['normalizeNumber'];
+  private readonly styles: ConcreteStyles;
 
   /**
    * Creates a parser loop.
@@ -195,16 +202,13 @@ class ParserLoop {
     private readonly args: Array<string>,
     private readonly completing: boolean,
   ) {
+    this.styles = registry.config.styles;
     for (const key in registry.options) {
       const option = registry.options[key];
       if (option.type !== 'help' && option.type !== 'version' && !(key in values)) {
         values[key] = undefined;
       }
     }
-    this.formatOption = registry.formatOption.bind(registry);
-    this.formatBoolean = registry.formatBoolean.bind(registry);
-    this.formatString = registry.formatString.bind(registry);
-    this.formatNumber = registry.formatNumber.bind(registry);
     this.normalizeString = registry.normalizeString.bind(registry);
     this.normalizeNumber = registry.normalizeNumber.bind(registry);
   }
@@ -246,9 +250,7 @@ class ParserLoop {
         if (comp !== undefined) {
           throw ''; // use default completion (value !== undefined)
         } else if (!this.completing && value !== undefined) {
-          throw this.registry.error(
-            `Option ${this.formatOption(name)} does not accept inline values.`,
-          );
+          throw this.registry.error(ErrorItem.optionInlineValue, { o: name });
         } else if (this.handleNiladic(key, option, name, i)) {
           return this.promises;
         }
@@ -270,10 +272,7 @@ class ParserLoop {
           // do not propagate errors during completion
           if (!this.completing) {
             if (suggestName(option)) {
-              const msg =
-                (err as Error).message.replace(/^(?:\x9b[\d;]+m)+|\x9b0m$/g, '') +
-                `\nDid you mean to specify an option name instead of ${this.formatOption(value)}?`;
-              this.handleUnknown(value, msg);
+              this.handleUnknown(value, err as ErrorMessage);
             }
             throw err;
           }
@@ -285,7 +284,7 @@ class ParserLoop {
       } else if (isArray(option) && isVariadic(option)) {
         continue;
       } else if (i + 1 == this.args.length) {
-        throw this.registry.error(`Missing parameter to ${this.formatOption(name)}.`);
+        throw this.registry.error(ErrorItem.missingParameter, { o: name });
       } else if (argKind !== ArgKind.marker) {
         singleParam = true;
       }
@@ -318,9 +317,7 @@ class ParserLoop {
           throw ''; // use default completion
         }
         if (value !== undefined) {
-          throw this.registry.error(
-            `Positional marker ${this.formatOption(name)} does not accept inline values.`,
-          );
+          throw this.registry.error(ErrorItem.positionalInlineValue, { o: name });
         }
         return [ArgKind.marker, this.registry.positional, undefined];
       }
@@ -412,7 +409,7 @@ class ParserLoop {
     }
     const values: CastToOptionValues = {};
     const options = typeof option.options === 'function' ? option.options() : option.options;
-    const registry = new OptionRegistry(options, this.registry.styles);
+    const registry = new OptionRegistry(options, this.registry.config);
     const args = this.args.slice(index + 1);
     const loop = new ParserLoop(registry, values, args, this.completing);
     this.promises.push(...loop.loop());
@@ -471,7 +468,7 @@ class ParserLoop {
         }
       }
     }
-    throw this.registry.error(`Could not find a 'package.json' file.`);
+    throw this.registry.error(ErrorItem.missingPackageJson);
   }
 
   /**
@@ -528,18 +525,27 @@ class ParserLoop {
   /**
    * Handles an unknown option.
    * @param name The unknown option name
-   * @param msg The error message, if any
+   * @param msg The previous error message, if any
    */
-  private handleUnknown(name: string, msg?: string): never {
-    if (!msg) {
-      msg = `Unknown option ${this.formatOption(name)}.`;
-    }
+  private handleUnknown(name: string, err?: ErrorMessage): never {
     const similar = this.findSimilarNames(name);
-    if (similar.length) {
-      const optNames = similar.map((str) => this.formatOption(str));
-      msg += `\nSimilar names are: ${optNames.join(', ')}.`;
+    if (err) {
+      // remove the clear sequence
+      err.str.strings.length--;
+      err.str.lengths.length--;
+      if (similar.length) {
+        throw this.registry.error(ErrorItem.parseErrorWithSimilar, {
+          o1: name,
+          o2: similar,
+          t: err.str,
+        });
+      }
+      throw this.registry.error(ErrorItem.parseError, { o: name, t: err.str });
     }
-    throw this.registry.error(msg);
+    if (similar.length) {
+      throw this.registry.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
+    }
+    throw this.registry.error(ErrorItem.unknownOption, { o: name });
   }
 
   /**
@@ -671,16 +677,16 @@ class ParserLoop {
       if (!this.specifiedKeys.has(key)) {
         const option = this.registry.options[key];
         const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
-        throw this.registry.error(`Option ${this.formatOption(name)} is required.`);
+        throw this.registry.error(ErrorItem.missingRequiredOption, { o: name });
       }
     }
     for (const key of this.specifiedKeys) {
       const option = this.registry.options[key];
       if (option.requires) {
-        const error = this.checkRequires(option.requires);
-        if (error) {
+        const error = new TerminalString();
+        if (!this.checkRequires(option.requires, error)) {
           const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
-          throw this.registry.error(`Option ${this.formatOption(name)} requires ${error}.`);
+          throw this.registry.error(ErrorItem.optionRequires, { o: name, t: error });
         }
       }
     }
@@ -689,35 +695,37 @@ class ParserLoop {
   /**
    * Checks the requirements of an option that was specified.
    * @param requires The option requirements
+   * @param error The terminal string error
    * @param negate True if the requirements should be negated
-   * @returns An error reason or null if no error
+   * @returns True if the requirement was satisfied
    */
-  private checkRequires(requires: Requires, negate = false): string | null {
+  private checkRequires(requires: Requires, error: TerminalString, negate = false): boolean {
     if (typeof requires === 'string') {
-      return this.checkRequirement([requires, undefined], negate);
+      return this.checkRequirement([requires, undefined], error, negate);
     }
     if (requires instanceof RequiresNot) {
-      return this.checkRequires(requires.item, !negate);
+      return this.checkRequires(requires.item, error, !negate);
     }
     if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-      const errors = requires instanceof RequiresAll === negate ? undefined : null;
-      return checkRequireItems(requires.items, this.checkRequires.bind(this), negate, errors);
+      const and = requires instanceof RequiresAll !== negate;
+      return checkRequireItems(requires.items, this.checkRequires.bind(this), error, negate, and);
     }
     const entries = Object.entries(requires);
-    const errors = negate ? undefined : null;
-    return checkRequireItems(entries, this.checkRequirement.bind(this), negate, errors);
+    return checkRequireItems(entries, this.checkRequirement.bind(this), error, negate, !negate);
   }
 
   /**
    * Checks if a required option was specified with correct values.
    * @param kvp The required option key and value
+   * @param error The terminal string error
    * @param negate True if the requirement should be negated
-   * @returns An error reason or null if no error
+   * @returns True if the requirement was satisfied
    */
   private checkRequirement(
     kvp: [key: string, value: RequiresVal[string]],
+    error: TerminalString,
     negate: boolean,
-  ): string | null {
+  ): boolean {
     const [key, value] = kvp;
     const option = this.registry.options[key];
     const name = option.preferredName ?? option.names?.find((name) => name) ?? 'unnamed';
@@ -725,15 +733,21 @@ class ParserLoop {
     const required = value !== null;
     const withValue = required && value !== undefined;
     if (isNiladic(option) || !specified || !required || !withValue) {
-      return specified
-        ? required == negate
-          ? `no ${this.formatOption(name)}`
-          : null
-        : withValue || required != negate
-          ? this.formatOption(name)
-          : null;
+      if (specified) {
+        if (required == negate) {
+          error.addWord('no');
+          formatOption(name, this.styles, this.styles.text, error);
+          return false;
+        }
+        return true;
+      }
+      if (withValue || required != negate) {
+        formatOption(name, this.styles, this.styles.text, error);
+        return false;
+      }
+      return true;
     }
-    return this.checkRequiredValue(name, option, negate, key, value);
+    return this.checkRequiredValue(name, option, negate, key, value, error);
   }
 
   /**
@@ -743,7 +757,8 @@ class ParserLoop {
    * @param negate True if the requirement should be negated
    * @param key The required option key (to get the specified value)
    * @param value The required value
-   * @returns An error reason or null if no error
+   * @param error The terminal string error
+   * @returns True if the requirement was satisfied
    */
   private checkRequiredValue(
     name: string,
@@ -751,12 +766,13 @@ class ParserLoop {
     negate: boolean,
     key: string,
     value: Exclude<RequiresVal[string], undefined | null>,
-  ): string | null {
+    error: TerminalString,
+  ): boolean {
     function assert(_condition: unknown): asserts _condition {}
     switch (option.type) {
       case 'boolean': {
         assert(typeof value == 'boolean');
-        return this.checkRequiredSingle(name, option, negate, key, value, this.formatBoolean);
+        return this.checkRequiredSingle(name, option, negate, key, value, error, formatBoolean);
       }
       case 'string': {
         assert(typeof value === 'string');
@@ -766,7 +782,8 @@ class ParserLoop {
           negate,
           key,
           value,
-          this.formatString,
+          error,
+          formatString,
           this.normalizeString,
         );
       }
@@ -778,7 +795,8 @@ class ParserLoop {
           negate,
           key,
           value,
-          this.formatNumber,
+          error,
+          formatNumber,
           this.normalizeNumber,
         );
       }
@@ -790,7 +808,8 @@ class ParserLoop {
           negate,
           key,
           value as Array<string>,
-          this.formatString,
+          error,
+          formatString,
           this.normalizeString,
         );
       }
@@ -802,7 +821,8 @@ class ParserLoop {
           negate,
           key,
           value as Array<number>,
-          this.formatNumber,
+          error,
+          formatNumber,
           this.normalizeNumber,
         );
       }
@@ -820,9 +840,10 @@ class ParserLoop {
    * @param negate True if the requirement should be negated
    * @param key The required option key
    * @param value The required value
+   * @param error The terminal string error
    * @param formatFn The function to convert to string
    * @param normalizeFn The function to normalize the required value
-   * @returns An error reason or null if no error
+   * @returns True if the requirement was satisfied
    */
   private checkRequiredSingle<O extends SingleOption, T extends boolean | string | number>(
     name: string,
@@ -830,19 +851,22 @@ class ParserLoop {
     negate: boolean,
     key: string,
     value: T,
-    formatFn: (value: T) => string,
+    error: TerminalString,
+    formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
     normalizeFn?: (option: O, name: string, value: T) => T,
-  ): string | null {
+  ): boolean {
     const actual = this.values[key] as T | Promise<T>;
     if (actual instanceof Promise) {
-      return null; // ignore promises during requirement checking
+      return true; // ignore promises during requirement checking
     }
     const expected = normalizeFn ? normalizeFn(option, name, value) : value;
     if ((actual === expected) !== negate) {
-      return null;
+      return true;
     }
-    const optName = this.formatOption(name);
-    return negate ? `${optName} != ${formatFn(expected)}` : `${optName} = ${formatFn(expected)}`;
+    formatOption(name, this.styles, this.styles.text, error);
+    error.addWord(negate ? '!=' : '=');
+    formatFn(expected, this.styles, this.styles.text, error);
+    return false;
   }
 
   /**
@@ -852,9 +876,10 @@ class ParserLoop {
    * @param negate True if the requirement should be negated
    * @param key The required option key
    * @param value The required value
+   * @param error The terminal string error
    * @param formatFn The function to convert to string
    * @param normalizeFn The function to normalize the required value
-   * @returns An error reason or null if no error
+   * @returns True if the requirement was satisfied
    */
   private checkRequiredArray<O extends ArrayOption, T extends string | number>(
     name: string,
@@ -862,20 +887,28 @@ class ParserLoop {
     negate: boolean,
     key: string,
     value: Array<T>,
-    formatFn: (value: T) => string,
+    error: TerminalString,
+    formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
     normalizeFn: (option: O, name: string, value: T) => T,
-  ): string | null {
+  ): boolean {
     const actual = this.values[key] as Array<T> | Promise<Array<T>>;
     if (actual instanceof Promise) {
-      return null; // ignore promises during requirement checking
+      return true; // ignore promises during requirement checking
     }
     const expected = value.map((val) => normalizeFn(option, name, val));
     if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
-      return null;
+      return true;
     }
-    const optName = this.formatOption(name);
-    const optVal = expected.map((val) => formatFn(val)).join(', ');
-    return negate ? `${optName} != [${optVal}]` : `${optName} = [${optVal}]`;
+    formatOption(name, this.styles, this.styles.text, error);
+    error.addWord(negate ? '!=' : '=').addOpening('[');
+    expected.forEach((val, i) => {
+      formatFn(val, this.styles, this.styles.text, error);
+      if (i < expected.length - 1) {
+        error.addClosing(',');
+      }
+    });
+    error.addClosing(']');
+    return false;
   }
 
   /**
@@ -1185,31 +1218,38 @@ function checkRequiredArray(
  * @param items The list of requirement items
  * @param itemFn The callback to execute on each item
  * @param negate True if the requirement should be negated
- * @param errors If null, return on the first error; else return on the first success
- * @returns An error reason or null if no error
+ * @param and If true, return on the first error; else return on the first success
+ * @returns True if the requirement was satisfied
  */
 function checkRequireItems<T>(
-  items: Iterable<T>,
-  itemFn: (item: T, negate: boolean) => string | null,
+  items: Array<T>,
+  itemFn: (item: T, error: TerminalString, negate: boolean) => boolean,
+  error: TerminalString,
   negate: boolean,
-  errors: null | Set<string> = new Set<string>(),
-): string | null {
+  and: boolean,
+): boolean {
+  if (!and && items.length > 1) {
+    error.addOpening('(');
+  }
+  let first = false;
   for (const item of items) {
-    const error = itemFn(item, negate);
-    if (error) {
-      if (!errors) {
-        return error;
-      }
-      errors.add(error);
-    } else if (errors) {
-      return null;
+    if (!and && first) {
+      error.addWord('or');
+    } else {
+      first = true;
+    }
+    const success = itemFn(item, error, negate);
+    if (success !== and) {
+      return success;
     }
   }
-  if (!errors) {
-    return null;
+  if (and) {
+    return true;
   }
-  const error = [...errors].join(' or ');
-  return errors.size == 1 ? error : `(${error})`;
+  if (items.length > 1) {
+    error.addClosing(')');
+  }
+  return false;
 }
 
 /**

@@ -475,7 +475,7 @@ const regex = {
   item: /^[ \t]*(-|\*|\d+\.) /m,
   punct: /[.,:;!?]$/,
   word: /\s+/,
-  spec: /%[a-z]/,
+  spec: /(%[a-z][0-9]?)/,
   // eslint-disable-next-line no-control-regex
   styles: /(?:\x9b[\d;]+m)+/g,
 };
@@ -588,10 +588,9 @@ type StyleAttr = TypeFace | Foreground | Background | Underline | FgColor | BgCo
 /**
  * A callback that processes a format specifier when splitting text.
  * @param this The terminal string to append to
- * @param word The word containing a format specifier
  * @param spec The format specifier (e.g., '%s')
  */
-type FormatCallback = (this: TerminalString, word: string, spec: string) => void;
+type FormatCallback = (this: TerminalString, spec: string) => void;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -600,8 +599,7 @@ type FormatCallback = (this: TerminalString, word: string, spec: string) => void
  * Implements concatenation of strings that can be printed on a terminal.
  */
 class TerminalString {
-  private lastWordIndex: number | undefined;
-  private opening = '';
+  private merge = false;
 
   /**
    * The list of strings that have been appended.
@@ -627,26 +625,43 @@ class TerminalString {
   constructor(public start: number = 0) {}
 
   /**
-   * Saves an opening word to be the prepended to the next string.
-   * @param word The opening word
+   * Appends another terminal string to the strings.
+   * @param other The other terminal string
    * @returns The terminal string instance
    */
-  addOpening(word: string): this {
-    this.opening = word;
+  addOther(other: TerminalString): this {
+    this.strings.push(...other.strings);
+    this.lengths.push(...other.lengths);
+    this.merge = other.merge;
     return this;
   }
 
   /**
-   * Appends a closing word to the last word.
+   * Sets a flag to merge the next word to the last word.
+   * @param value The flag value
+   * @returns The terminal string instance
+   */
+  setMerge(value = true): this {
+    this.merge = value;
+    return this;
+  }
+
+  /**
+   * Appends a word that will be merged with the next word.
+   * @param word The opening word
+   * @returns The terminal string instance
+   */
+  addOpening(word: string): this {
+    return this.addWord(word).setMerge();
+  }
+
+  /**
+   * Appends a word that is merged with the last word.
    * @param word The closing word
    * @returns The terminal string instance
    */
   addClosing(word: string): this {
-    if (word && this.lastWordIndex !== undefined) {
-      this.strings[this.lastWordIndex] += word;
-      this.lengths[this.lastWordIndex] += word.length;
-    }
-    return this;
+    return this.setMerge().addWord(word);
   }
 
   /**
@@ -675,10 +690,7 @@ class TerminalString {
    * @returns The terminal string instance
    */
   addBreaks(count: number): this {
-    if (count > 0) {
-      return this.addText('\n'.repeat(count), 0);
-    }
-    return this;
+    return count > 0 ? this.addText('\n'.repeat(count), 0) : this;
   }
 
   /**
@@ -697,19 +709,17 @@ class TerminalString {
    * @returns The terminal string instance
    */
   private addText(text: string, length: number): this {
-    if (!text) {
-      return this;
+    if (text) {
+      const count = this.strings.length;
+      if (count && this.merge) {
+        this.strings[count - 1] += text;
+        this.lengths[count - 1] += length;
+      } else {
+        this.strings.push(text);
+        this.lengths.push(length);
+      }
     }
-    if (this.opening) {
-      text = this.opening + text;
-      length += this.opening.length;
-      this.opening = '';
-    }
-    if (length) {
-      this.lastWordIndex = this.strings.length;
-    }
-    this.strings.push(text);
-    this.lengths.push(length);
+    this.merge = false;
     return this;
   }
 
@@ -736,26 +746,17 @@ class TerminalString {
    * @param format A callback to process format specifiers
    */
   private splitParagraph(para: string, format?: FormatCallback) {
-    this.lastWordIndex = undefined;
-    para.split(regex.item).forEach((item, j) => {
-      if (j % 2 == 0) {
+    const count = this.strings.length;
+    para.split(regex.item).forEach((item, i) => {
+      if (i % 2 == 0) {
         this.splitItem(item, format);
-        if (
-          j == 0 &&
-          this.lastWordIndex !== undefined &&
-          !item.match(regex.item) &&
-          !this.strings[this.lastWordIndex].match(regex.punct)
-        ) {
-          this.addClosing('.');
-        }
       } else {
-        if (this.lastWordIndex !== undefined) {
+        if (this.strings.length > count) {
           this.addBreaks(1);
         }
         this.addWord(item);
       }
     });
-    this.lastWordIndex = undefined;
   }
 
   /**
@@ -771,9 +772,14 @@ class TerminalString {
         continue;
       }
       if (boundFormat) {
-        const match = word.match(regex.spec);
-        if (match) {
-          boundFormat(word, match[0]);
+        const parts = word.split(regex.spec);
+        if (parts.length > 1) {
+          this.addWord(parts[0]);
+          for (let i = 1, merge = parts[0] !== ''; i < parts.length; i += 2, merge = true) {
+            this.setMerge(merge);
+            boundFormat(parts[i]);
+            this.addClosing(parts[i + 1]);
+          }
           continue;
         }
       }

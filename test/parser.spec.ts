@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ArgumentParser, req, type Options, OptionValues, HelpMessage } from '../lib';
+import type { Options, ErrorConfig } from '../lib';
+import { ArgumentParser, req, OptionValues, HelpMessage, emptyStyles } from '../lib';
 import './utils.spec';
+
+const config: ErrorConfig = { styles: emptyStyles };
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
@@ -19,13 +22,13 @@ describe('ArgumentParser', () => {
           names: ['--boolean2'],
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['boo'])).toThrow(/Unknown option .+boo.+\..+$/);
+      const parser = new ArgumentParser(options, config);
+      expect(() => parser.parse(['boo'])).toThrow(/Unknown option boo\./);
       expect(() => parser.parse(['bool'])).toThrow(
-        /Unknown option .+bool.+.\nSimilar names are: .+--boolean1.+, .+--boolean2.+\./,
+        /Unknown option bool.\n\nSimilar names are \[--boolean1, --boolean2\]\./,
       );
       expect(() => parser.parse(['bool-ean'])).toThrow(
-        /Unknown option .+bool-ean.+.\nSimilar names are: .+--boolean1.+, .+--boolean2.+\./,
+        /Unknown option bool-ean.\n\nSimilar names are \[--boolean1, --boolean2\]\./,
       );
     });
 
@@ -38,8 +41,8 @@ describe('ArgumentParser', () => {
           preferredName: 'preferred',
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse([])).toThrow(/Option .+preferred.+ is required\./);
+      const parser = new ArgumentParser(options, config);
+      expect(() => parser.parse([])).toThrow(/Option preferred is required\./);
     });
 
     it('should handle the completion of a positional marker', () => {
@@ -50,7 +53,7 @@ describe('ArgumentParser', () => {
           positional: '--',
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-s\n--$/);
       expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-s\n--$/);
       expect(() => parser.parse('cmd --', { compIndex: 6 })).toThrow(/^--$/);
@@ -67,7 +70,7 @@ describe('ArgumentParser', () => {
           enums: ['abc'],
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       expect(() => parser.parse('cmd -s a -s ', { compIndex: 12 })).toThrow(/^abc$/);
     });
 
@@ -85,8 +88,8 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option -f1 requires -f2\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -103,8 +106,8 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option -f1 requires -f2\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -121,8 +124,8 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1'])).toThrow(/Option .+-f1.+ requires .+-f2.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f1'])).toThrow(/Option -f1 requires -f2\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -140,8 +143,8 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -f1 requires no -f2\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -159,8 +162,8 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -f1 requires no -f2\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -178,8 +181,8 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option .+-f1.+ requires no .+-f2.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -f1 requires no -f2\./);
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
@@ -217,21 +220,19 @@ describe('ArgumentParser', () => {
             exec() {},
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse([])).not.toThrow();
-        expect(() => parser.parse(['req0'])).toThrow(/Option .+req0.+ requires .+req1.+\./);
+        expect(() => parser.parse(['req0'])).toThrow(/Option req0 requires req1\./);
         expect(() => parser.parse(['req0', 'req1'])).toThrow(
-          /Option .+req0.+ requires \(.+req2.+ or .+preferred.+\)\./,
+          /Option req0 requires \(req2 or preferred\)\./,
         );
         expect(() => parser.parse(['req0', 'req1', 'req2=a'])).toThrow(
-          /Option .+req0.+ requires \(.+req2.+ = \[.+'a'.+, .+'b'.+\] or .+preferred.+\)\./,
+          /Option req0 requires \(req2 = \['a', 'b'\] or preferred\)\./,
         );
-        expect(() => parser.parse(['a'])).toThrow(/Option .+preferred.+ requires .+req1.+\./);
-        expect(() => parser.parse(['req1', 'a'])).toThrow(
-          /Option .+preferred.+ requires .+req4.+\./,
-        );
+        expect(() => parser.parse(['a'])).toThrow(/Option preferred requires req1\./);
+        expect(() => parser.parse(['req1', 'a'])).toThrow(/Option preferred requires req4\./);
         expect(() => parser.parse(['req0', 'req1', 'c'])).toThrow(
-          /Option .+req0.+ requires \(.+req2.+ or .+preferred.+ != \[.+'c'.+\]\)\./,
+          /Option req0 requires \(req2 or preferred != \['c'\]\)\./,
         );
         expect(() => parser.parse(['req0', 'req1', 'req2', 'a|a|b'])).not.toThrow();
         expect(() => parser.parse(['req0', 'req1', 'req2', 'b|b|a'])).not.toThrow();
@@ -247,7 +248,7 @@ describe('ArgumentParser', () => {
             names: ['-h'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-h$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-h$/);
         expect(() => parser.parse('cmd -h', { compIndex: 6 })).toThrow(/^-h$/);
@@ -265,14 +266,12 @@ describe('ArgumentParser', () => {
             format: { indent: { names: 3 } },
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).not.toHaveProperty('help');
         try {
           parser.parse(['-h']);
         } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(
-            /^usage\.\n\nOptions:\n\n {3}-h\n\nfooter\.\n$/,
-          );
+          expect((err as HelpMessage).wrap(0)).toMatch(/^usage\n\nOptions:\n\n {3}-h\n\nfooter\n$/);
         }
       });
     });
@@ -286,7 +285,7 @@ describe('ArgumentParser', () => {
             version: '0.1.0',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-v$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-v$/);
         expect(() => parser.parse('cmd -v', { compIndex: 6 })).toThrow(/^-v$/);
@@ -302,7 +301,7 @@ describe('ArgumentParser', () => {
             version: '0.1.0',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).not.toHaveProperty('version');
         expect(() => parser.parse(['-v'])).toThrow(/^0.1.0$/);
       });
@@ -317,7 +316,7 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -f', { compIndex: 6 })).toThrow(/^-f$/);
@@ -336,7 +335,7 @@ describe('ArgumentParser', () => {
             break: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
         const anything = expect.anything();
         expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
@@ -352,7 +351,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^$/);
         const anything = expect.anything();
         expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
@@ -366,13 +365,9 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f='])).toThrow(
-          /Option .+-f.+ does not accept inline values\./,
-        );
-        expect(() => parser.parse(['-f=a'])).toThrow(
-          /Option .+-f.+ does not accept inline values\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f='])).toThrow(/Option -f does not accept inline values\./);
+        expect(() => parser.parse(['-f=a'])).toThrow(/Option -f does not accept inline values\./);
         expect(options.function.exec).not.toHaveBeenCalled();
       });
 
@@ -384,7 +379,7 @@ describe('ArgumentParser', () => {
             exec: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ function: undefined });
         expect(options.function.exec).not.toHaveBeenCalled();
         expect(parser.parse(['-f'])).toEqual({ function: 'abc' });
@@ -405,7 +400,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f'])).toThrow('abc');
         expect(options.function.exec).toHaveBeenCalled();
       });
@@ -424,7 +419,7 @@ describe('ArgumentParser', () => {
             exec: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-f1', '-f2'])).toEqual({ function1: 'abc', function2: undefined });
         expect(options.function1.exec).toHaveBeenCalled();
         expect(options.function2.exec).not.toHaveBeenCalled();
@@ -444,7 +439,7 @@ describe('ArgumentParser', () => {
             default: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-f1'])).toEqual({ function: undefined, flag: true });
       });
 
@@ -463,7 +458,7 @@ describe('ArgumentParser', () => {
             default: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-f1'])).toEqual({ function: undefined, flag: true });
       });
 
@@ -481,7 +476,7 @@ describe('ArgumentParser', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-f2', '-f1'])).toEqual({ function: undefined, flag: true });
       });
     });
@@ -501,7 +496,7 @@ describe('ArgumentParser', () => {
             cmd: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-c$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-c$/);
         expect(() => parser.parse('cmd -c', { compIndex: 6 })).toThrow(/^-c$/);
@@ -519,13 +514,9 @@ describe('ArgumentParser', () => {
             cmd: vi.fn(),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-c='])).toThrow(
-          /Option .+-c.+ does not accept inline values\./,
-        );
-        expect(() => parser.parse(['-c=a'])).toThrow(
-          /Option .+-c.+ does not accept inline values\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-c='])).toThrow(/Option -c does not accept inline values\./);
+        expect(() => parser.parse(['-c=a'])).toThrow(/Option -c does not accept inline values\./);
         expect(options.command.cmd).not.toHaveBeenCalled();
       });
 
@@ -538,7 +529,7 @@ describe('ArgumentParser', () => {
             cmd: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ command: undefined });
         expect(options.command.cmd).not.toHaveBeenCalled();
         expect(parser.parse(['-c'])).toEqual({ command: 'abc' });
@@ -556,7 +547,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-c'])).toThrow('abc');
         expect(options.command.cmd).toHaveBeenCalled();
       });
@@ -577,7 +568,7 @@ describe('ArgumentParser', () => {
             default: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-c'])).toEqual({ command: undefined, flag: true });
       });
 
@@ -595,7 +586,7 @@ describe('ArgumentParser', () => {
             cmd: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-c'])).toEqual({ command: 'abc' });
         const cmdValues1 = expect.objectContaining({ flag: undefined });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues1);
@@ -619,7 +610,7 @@ describe('ArgumentParser', () => {
             cmd: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-c', '-f'])).toEqual({ command: 'abc' });
         expect(options.command.options).toHaveBeenCalled();
         const cmdValues = expect.objectContaining({ flag: true });
@@ -635,7 +626,7 @@ describe('ArgumentParser', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-f$/);
         expect(() => parser.parse('cmd -f', { compIndex: 6 })).toThrow(/^-f$/);
@@ -650,13 +641,9 @@ describe('ArgumentParser', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f='])).toThrow(
-          /Option .+-f.+ does not accept inline values\./,
-        );
-        expect(() => parser.parse(['-f=a'])).toThrow(
-          /Option .+-f.+ does not accept inline values\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f='])).toThrow(/Option -f does not accept inline values\./);
+        expect(() => parser.parse(['-f=a'])).toThrow(/Option -f does not accept inline values\./);
       });
 
       it('should handle a flag option with negation names', () => {
@@ -667,7 +654,7 @@ describe('ArgumentParser', () => {
             negationNames: ['-no-f'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: undefined });
         expect(parser.parse(['-f'])).toEqual({ boolean: true });
         expect(parser.parse(['-no-f'])).toEqual({ boolean: false });
@@ -681,7 +668,7 @@ describe('ArgumentParser', () => {
             default: false,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: false });
       });
 
@@ -694,7 +681,7 @@ describe('ArgumentParser', () => {
             default: () => false,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: false });
       });
 
@@ -707,7 +694,7 @@ describe('ArgumentParser', () => {
             default: async () => false,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: expect.toResolve(false) });
       });
     });
@@ -721,7 +708,7 @@ describe('ArgumentParser', () => {
             complete: vi.fn().mockImplementation(() => ['abc']),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         const anything = expect.anything();
         expect(() => parser.parse('cmd -b ', { compIndex: 7 })).toThrow(/^abc$/);
         expect(options.boolean.complete).toHaveBeenCalledWith(anything, '', anything);
@@ -743,7 +730,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd -b ', { compIndex: 7 })).toThrow(/^$/);
         expect(options.boolean.complete).toHaveBeenCalled();
       });
@@ -756,7 +743,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^true\nfalse$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-b$/);
         expect(() => parser.parse('cmd t', { compIndex: 5 })).toThrow(/^true$/);
@@ -771,7 +758,7 @@ describe('ArgumentParser', () => {
             names: ['-b'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-b$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-b$/);
         expect(() => parser.parse('cmd -b', { compIndex: 6 })).toThrow(/^-b$/);
@@ -796,10 +783,8 @@ describe('ArgumentParser', () => {
             names: ['-b'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(
-          /Option .+-f.+ requires .+-b.+ = .+false.+\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f', '-b', '1'])).toThrow(/Option -f requires -b = false\./);
       });
 
       it('should throw an error on boolean option with a value equal to required when negated', () => {
@@ -814,10 +799,8 @@ describe('ArgumentParser', () => {
             names: ['-b'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-b', '0'])).toThrow(
-          /Option .+-f.+ requires .+-b.+ != .+false.+\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f', '-b', '0'])).toThrow(/Option -f requires -b != false\./);
       });
 
       it('should ignore required value on boolean option when using an async custom parse', () => {
@@ -833,7 +816,7 @@ describe('ArgumentParser', () => {
             parse: async () => true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-b', '1'])).not.toThrow();
       });
 
@@ -844,8 +827,8 @@ describe('ArgumentParser', () => {
             names: ['-b'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-b'])).toThrow(/Missing parameter to .+-b.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-b'])).toThrow(/Missing parameter to -b\./);
       });
 
       it('should throw an error on boolean option with missing parameter after positional marker', () => {
@@ -857,8 +840,8 @@ describe('ArgumentParser', () => {
             preferredName: 'abc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to .+abc.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
       });
 
       it('should throw an error on boolean option with positional marker specified with value', () => {
@@ -869,12 +852,12 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['--='])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
         expect(() => parser.parse(['--=a'])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
       });
 
@@ -885,7 +868,7 @@ describe('ArgumentParser', () => {
             names: ['-b', '--boolean'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: undefined });
         expect(parser.parse(['-b', ' +0.0 '])).toEqual({ boolean: false });
         expect(parser.parse(['-b', ' 1 '])).toEqual({ boolean: true });
@@ -901,7 +884,7 @@ describe('ArgumentParser', () => {
             default: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: true });
       });
 
@@ -913,7 +896,7 @@ describe('ArgumentParser', () => {
             default: () => true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: true });
       });
 
@@ -925,7 +908,7 @@ describe('ArgumentParser', () => {
             default: async () => true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ boolean: expect.toResolve(true) });
       });
 
@@ -941,7 +924,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           boolean: true,
@@ -972,7 +955,7 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           boolean: true,
@@ -999,7 +982,7 @@ describe('ArgumentParser', () => {
             parse: (_, value) => value.includes('123'),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-b', '0123'])).toEqual({ boolean: true });
       });
 
@@ -1011,7 +994,7 @@ describe('ArgumentParser', () => {
             parse: async (_, value) => value.includes('123'),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-b', '0123'])).toEqual({ boolean: expect.toResolve(true) });
       });
     });
@@ -1019,9 +1002,9 @@ describe('ArgumentParser', () => {
     describe('string', () => {
       it('should throw a name suggestion on parse failure from positional string option', () => {
         const regex = new RegExp(
-          `Invalid parameter to .+-s.+: .+'s'.+\\. Possible values are \\[.+'abc'.+\\]\\.` +
-            `\nDid you mean to specify an option name instead of .+s.+\\?` +
-            `\nSimilar names are: .+-s.+\\.`,
+          `Invalid parameter to -s: 's'\\. Possible values are \\['abc'\\]\\.` +
+            `\n\nDid you mean to specify an option name instead of s\\?` +
+            `\n\nSimilar names are \\[-s\\]\\.`,
         );
         const options = {
           string: {
@@ -1031,7 +1014,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['s'])).toThrow(regex);
       });
 
@@ -1043,7 +1026,7 @@ describe('ArgumentParser', () => {
             complete: vi.fn().mockImplementation(() => ['abc']),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         const anything = expect.anything();
         expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^abc$/);
         expect(options.string.complete).toHaveBeenCalledWith(anything, '', anything);
@@ -1065,7 +1048,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^$/);
         expect(options.string.complete).toHaveBeenCalled();
       });
@@ -1079,7 +1062,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^one\ntwo$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-s$/);
         expect(() => parser.parse('cmd o', { compIndex: 5 })).toThrow(/^one$/);
@@ -1095,7 +1078,7 @@ describe('ArgumentParser', () => {
             enums: ['one', 'two'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-s$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-s$/);
         expect(() => parser.parse('cmd -s', { compIndex: 6 })).toThrow(/^-s$/);
@@ -1120,10 +1103,8 @@ describe('ArgumentParser', () => {
             names: ['-s'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(
-          /Option .+-f.+ requires .+-s.+ = .+'0'.+\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f', '-s', '1'])).toThrow(/Option -f requires -s = '0'\./);
       });
 
       it('should throw an error on string option with a value equal to required when negated', () => {
@@ -1138,10 +1119,8 @@ describe('ArgumentParser', () => {
             names: ['-s'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-s', '0'])).toThrow(
-          /Option .+-f.+ requires .+-s.+ != .+'0'.+\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f', '-s', '0'])).toThrow(/Option -f requires -s != '0'\./);
       });
 
       it('should ignore required value on string option when using an async custom parse', () => {
@@ -1157,7 +1136,7 @@ describe('ArgumentParser', () => {
             parse: async () => '1',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-s', '1'])).not.toThrow();
       });
 
@@ -1168,8 +1147,8 @@ describe('ArgumentParser', () => {
             names: ['-s'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-s'])).toThrow(/Missing parameter to .+-s.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-s'])).toThrow(/Missing parameter to -s\./);
       });
 
       it('should throw an error on string option with missing parameter after positional marker', () => {
@@ -1181,8 +1160,8 @@ describe('ArgumentParser', () => {
             preferredName: 'abc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to .+abc.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
       });
 
       it('should throw an error on string option with positional marker specified with value', () => {
@@ -1193,12 +1172,12 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['--='])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
         expect(() => parser.parse(['--=a'])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
       });
 
@@ -1209,7 +1188,7 @@ describe('ArgumentParser', () => {
             names: ['-s', '--string'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ string: undefined });
         expect(parser.parse(['-s', '123'])).toEqual({ string: '123' });
         expect(parser.parse(['--string', ''])).toEqual({ string: '' });
@@ -1224,7 +1203,7 @@ describe('ArgumentParser', () => {
             default: '123',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ string: '123' });
       });
 
@@ -1236,7 +1215,7 @@ describe('ArgumentParser', () => {
             default: () => '123',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ string: '123' });
       });
 
@@ -1248,7 +1227,7 @@ describe('ArgumentParser', () => {
             default: async () => '123',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ string: expect.toResolve('123') });
       });
 
@@ -1260,7 +1239,7 @@ describe('ArgumentParser', () => {
             regex: /\d+/s,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ string: undefined });
         expect(parser.parse(['-s', '456'])).toEqual({ string: '456' });
       });
@@ -1273,9 +1252,9 @@ describe('ArgumentParser', () => {
             regex: /\d+/s,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-s', 'abc'])).toThrow(
-          /Invalid parameter to .+-s.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
+          /Invalid parameter to -s: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
 
@@ -1287,7 +1266,7 @@ describe('ArgumentParser', () => {
             enums: ['one', 'two'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ string: undefined });
         expect(parser.parse(['-s', 'one'])).toEqual({ string: 'one' });
       });
@@ -1300,7 +1279,7 @@ describe('ArgumentParser', () => {
             trim: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-s', ' one '])).toEqual({ string: 'one' });
       });
 
@@ -1312,7 +1291,7 @@ describe('ArgumentParser', () => {
             case: 'lower',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-s', 'OnE'])).toEqual({ string: 'one' });
       });
 
@@ -1324,7 +1303,7 @@ describe('ArgumentParser', () => {
             case: 'upper',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-s', 'oNe'])).toEqual({ string: 'ONE' });
       });
 
@@ -1336,9 +1315,9 @@ describe('ArgumentParser', () => {
             enums: ['one', 'two'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-s', 'abc'])).toThrow(
-          /Invalid parameter to .+-s.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
+          /Invalid parameter to -s: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
 
@@ -1354,7 +1333,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           string: '1',
@@ -1385,7 +1364,7 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           string: '1',
@@ -1413,7 +1392,7 @@ describe('ArgumentParser', () => {
             parse: (_, value) => value.slice(2),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-s', 'abcde'])).toEqual({ string: 'CDE' });
       });
 
@@ -1426,7 +1405,7 @@ describe('ArgumentParser', () => {
             parse: async (_, value) => value.slice(2),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-s', 'abcde'])).toEqual({ string: expect.toResolve('CDE') });
       });
     });
@@ -1434,8 +1413,8 @@ describe('ArgumentParser', () => {
     describe('number', () => {
       it('should throw a name suggestion on parse failure from positional number option', () => {
         const regex = new RegExp(
-          `Invalid parameter to .+-n.+: .+1.+\\. Possible values are \\[.+123.+\\]\\.` +
-            `\nDid you mean to specify an option name instead of .+1.+\\?`,
+          `Invalid parameter to -n: 1\\. Possible values are \\[123\\]\\.` +
+            `\n\nDid you mean to specify an option name instead of 1\\?`,
         );
         const options = {
           number: {
@@ -1445,7 +1424,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['1'])).toThrow(regex);
       });
 
@@ -1457,7 +1436,7 @@ describe('ArgumentParser', () => {
             complete: vi.fn().mockImplementation(() => ['abc']),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         const anything = expect.anything();
         expect(() => parser.parse('cmd -n ', { compIndex: 7 })).toThrow(/^abc$/);
         expect(options.number.complete).toHaveBeenCalledWith(anything, '', anything);
@@ -1479,7 +1458,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd -n ', { compIndex: 7 })).toThrow(/^$/);
         expect(options.number.complete).toHaveBeenCalled();
       });
@@ -1493,7 +1472,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^123\n456$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-n$/);
         expect(() => parser.parse('cmd 1', { compIndex: 5 })).toThrow(/^123$/);
@@ -1509,7 +1488,7 @@ describe('ArgumentParser', () => {
             enums: [123, 456],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-n$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-n$/);
         expect(() => parser.parse('cmd -n', { compIndex: 6 })).toThrow(/^-n$/);
@@ -1534,10 +1513,8 @@ describe('ArgumentParser', () => {
             names: ['-n'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(
-          /Option .+-f.+ requires .+-n.+ = .+0.+\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f', '-n', '1'])).toThrow(/Option -f requires -n = 0\./);
       });
 
       it('should throw an error on number option with a value equal to required when negated', () => {
@@ -1552,10 +1529,8 @@ describe('ArgumentParser', () => {
             names: ['-n'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f', '-n', '0'])).toThrow(
-          /Option .+-f.+ requires .+-n.+ != .+0.+\./,
-        );
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-f', '-n', '0'])).toThrow(/Option -f requires -n != 0\./);
       });
 
       it('should ignore required value on number option when using an async custom parse', () => {
@@ -1571,7 +1546,7 @@ describe('ArgumentParser', () => {
             parse: async () => 1,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-n', '1'])).not.toThrow();
       });
 
@@ -1582,8 +1557,8 @@ describe('ArgumentParser', () => {
             names: ['-n'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-n'])).toThrow(/Missing parameter to .+-n.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-n'])).toThrow(/Missing parameter to -n\./);
       });
 
       it('should throw an error on number option with missing parameter after positional marker', () => {
@@ -1595,8 +1570,8 @@ describe('ArgumentParser', () => {
             preferredName: 'abc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to .+abc.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
       });
 
       it('should throw an error on number option with positional marker specified with value', () => {
@@ -1607,12 +1582,12 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['--='])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
         expect(() => parser.parse(['--=a'])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
       });
 
@@ -1623,7 +1598,7 @@ describe('ArgumentParser', () => {
             names: ['-n', '--number'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ number: undefined });
         expect(parser.parse(['-n', '123'])).toEqual({ number: 123 });
         expect(parser.parse(['--number', '0'])).toEqual({ number: 0 });
@@ -1638,7 +1613,7 @@ describe('ArgumentParser', () => {
             default: 123,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ number: 123 });
       });
 
@@ -1650,7 +1625,7 @@ describe('ArgumentParser', () => {
             default: () => 123,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ number: 123 });
       });
 
@@ -1662,7 +1637,7 @@ describe('ArgumentParser', () => {
             default: async () => 123,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ number: expect.toResolve(123) });
       });
 
@@ -1674,7 +1649,7 @@ describe('ArgumentParser', () => {
             range: [0, Infinity],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ number: undefined });
         expect(parser.parse(['-n', '0'])).toEqual({ number: 0 });
       });
@@ -1687,12 +1662,12 @@ describe('ArgumentParser', () => {
             range: [0, Infinity],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-n', '-3'])).toThrow(
-          /Invalid parameter to .+-n.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
+          /Invalid parameter to -n: -3\. Value must be in the range \[0, Infinity\]\./,
         );
         expect(() => parser.parse(['-n', 'a'])).toThrow(
-          /Invalid parameter to .+-n.+: .+a.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
+          /Invalid parameter to -n: NaN\. Value must be in the range \[0, Infinity\]\./,
         );
       });
 
@@ -1704,7 +1679,7 @@ describe('ArgumentParser', () => {
             enums: [1, 2],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ number: undefined });
         expect(parser.parse(['-n', '1'])).toEqual({ number: 1 });
       });
@@ -1717,9 +1692,9 @@ describe('ArgumentParser', () => {
             enums: [1, 2],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-n', '3'])).toThrow(
-          /Invalid parameter to .+-n.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
+          /Invalid parameter to -n: 3\. Possible values are \[1, 2\]\./,
         );
       });
 
@@ -1735,7 +1710,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           number: 1,
@@ -1766,7 +1741,7 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           number: 1,
@@ -1794,7 +1769,7 @@ describe('ArgumentParser', () => {
             parse: (_, value) => Number(value) + 2,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-n', '1.2'])).toEqual({ number: 4 });
       });
 
@@ -1807,7 +1782,7 @@ describe('ArgumentParser', () => {
             parse: async (_, value) => Number(value) + 2,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-n', '1.2'])).toEqual({ number: expect.toResolve(4) });
       });
 
@@ -1819,7 +1794,7 @@ describe('ArgumentParser', () => {
             round: 'trunc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
         expect(parser.parse(['-n', '0.5'])).toEqual({ number: 0 });
         expect(parser.parse(['-n', '0.9'])).toEqual({ number: 0 });
@@ -1836,7 +1811,7 @@ describe('ArgumentParser', () => {
             round: 'ceil',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-n', '0.1'])).toEqual({ number: 1 });
         expect(parser.parse(['-n', '0.5'])).toEqual({ number: 1 });
         expect(parser.parse(['-n', '0.9'])).toEqual({ number: 1 });
@@ -1853,7 +1828,7 @@ describe('ArgumentParser', () => {
             round: 'floor',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
         expect(parser.parse(['-n', '0.5'])).toEqual({ number: 0 });
         expect(parser.parse(['-n', '0.9'])).toEqual({ number: 0 });
@@ -1870,7 +1845,7 @@ describe('ArgumentParser', () => {
             round: 'round',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
         expect(parser.parse(['-n', '0.5'])).toEqual({ number: 1 });
         expect(parser.parse(['-n', '0.9'])).toEqual({ number: 1 });
@@ -1889,7 +1864,7 @@ describe('ArgumentParser', () => {
             complete: vi.fn().mockImplementation(() => ['abc']),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         const anything = expect.anything();
         expect(() => parser.parse('cmd -ss ', { compIndex: 8 })).toThrow(/^abc$/);
         expect(options.strings.complete).toHaveBeenCalledWith(anything, '', anything);
@@ -1911,7 +1886,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd -ss ', { compIndex: 8 })).toThrow(/^$/);
         expect(options.strings.complete).toHaveBeenCalled();
       });
@@ -1923,7 +1898,7 @@ describe('ArgumentParser', () => {
             names: ['-ss'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-ss$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-ss$/);
         expect(() => parser.parse('cmd -s', { compIndex: 6 })).toThrow(/^-ss$/);
@@ -1944,9 +1919,9 @@ describe('ArgumentParser', () => {
             names: ['-ss'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-ss', '1'])).toThrow(
-          /Option .+-f.+ requires .+-ss.+ = \[.+'0'.+, .+'1'.+\]\./,
+          /Option -f requires -ss = \['0', '1'\]\./,
         );
       });
 
@@ -1962,9 +1937,9 @@ describe('ArgumentParser', () => {
             names: ['-ss'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-ss', '0', '1'])).toThrow(
-          /Option .+-f.+ requires .+-ss.+ != \[.+'0'.+, .+'1'.+\]\./,
+          /Option -f requires -ss != \['0', '1'\]\./,
         );
       });
 
@@ -1981,7 +1956,7 @@ describe('ArgumentParser', () => {
             parse: async () => '1',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-ss', '1'])).not.toThrow();
       });
 
@@ -1993,8 +1968,8 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to .+-ss.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to -ss\./);
       });
 
       it('should throw an error on strings option with missing parameter after positional marker', () => {
@@ -2007,8 +1982,8 @@ describe('ArgumentParser', () => {
             preferredName: 'abc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to .+abc.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
       });
 
       it('should throw an error on strings option with positional marker specified with value', () => {
@@ -2019,12 +1994,12 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['--='])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
         expect(() => parser.parse(['--=a'])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
       });
 
@@ -2037,9 +2012,9 @@ describe('ArgumentParser', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ss', 'a,b,c'])).toThrow(
-          /Option .+-ss.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+          /Option -ss has too many values \(3\)\. Should have at most 2\./,
         );
       });
 
@@ -2051,17 +2026,17 @@ describe('ArgumentParser', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ss', 'a', 'b', 'c'])).toThrow(
-          /Option .+-ss.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+          /Option -ss has too many values \(3\)\. Should have at most 2\./,
         );
       });
 
       it('should throw a name suggestion on parse failure from variadic strings option', () => {
         const regex = new RegExp(
-          `Option .+-ss.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
-            `\nDid you mean to specify an option name instead of .+ss.+\\?` +
-            `\nSimilar names are: .+-ss.+\\.`,
+          `Option -ss has too many values \\(1\\)\\. Should have at most 0\\.` +
+            `\n\nDid you mean to specify an option name instead of ss\\?` +
+            `\n\nSimilar names are \\[-ss\\]\\.`,
         );
         const options = {
           strings: {
@@ -2071,7 +2046,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['ss'])).toThrow(regex);
         expect(() => parser.parse(['-ss', 'ss'])).toThrow(regex);
       });
@@ -2084,7 +2059,7 @@ describe('ArgumentParser', () => {
             append: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ strings: undefined });
         expect(parser.parse(['-ss', '123', '456'])).toEqual({ strings: ['123', '456'] });
         expect(parser.parse(['--strings'])).toEqual({ strings: [] });
@@ -2104,7 +2079,7 @@ describe('ArgumentParser', () => {
             case: 'upper',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ strings: ['ONE', 'TWO'] });
       });
 
@@ -2117,7 +2092,7 @@ describe('ArgumentParser', () => {
             case: 'upper',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ strings: ['ONE', 'TWO'] });
       });
 
@@ -2130,7 +2105,7 @@ describe('ArgumentParser', () => {
             case: 'upper',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ strings: expect.toResolve(['ONE', 'TWO']) });
       });
 
@@ -2144,7 +2119,7 @@ describe('ArgumentParser', () => {
             trim: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ strings: undefined });
         expect(parser.parse(['-ss', ' one , one '])).toEqual({ strings: ['one', 'one'] });
         expect(parser.parse(['-ss', ' two '])).toEqual({ strings: ['two'] });
@@ -2161,7 +2136,7 @@ describe('ArgumentParser', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ss', 'one', 'two'])).toMatchObject({ strings: ['one', 'two'] });
         expect(parser.parse(['-ss', 'one', 'two', '-f'])).toMatchObject({
           strings: ['one', 'two'],
@@ -2180,9 +2155,9 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ss', '123,abc'])).toThrow(
-          /Invalid parameter to .+-ss.+: .+'abc'.+\. Value must match the regex .+\/\\d\+\/s.+\./,
+          /Invalid parameter to -ss: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
       });
 
@@ -2195,7 +2170,7 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ss', ' one, two '])).toEqual({ strings: ['one', 'two'] });
       });
 
@@ -2208,7 +2183,7 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ss', 'OnE,T O.'])).toEqual({ strings: ['one', 't o.'] });
       });
 
@@ -2221,7 +2196,7 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ss', 'o?Ne,2ki'])).toEqual({ strings: ['O?NE', '2KI'] });
       });
 
@@ -2234,9 +2209,9 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ss', 'abc'])).toThrow(
-          /Invalid parameter to .+-ss.+: .+'abc'.+\. Possible values are \[.+'one'.+, .+'two'.+\]\./,
+          /Invalid parameter to -ss: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
       });
 
@@ -2252,7 +2227,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           strings: ['0', '1'],
@@ -2283,7 +2258,7 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           strings: ['0', '1'],
@@ -2319,7 +2294,7 @@ describe('ArgumentParser', () => {
             },
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ss'])).toEqual({ strings: [] });
         expect(parser.parse(['-ss', 'abcd', 'abCD'])).toEqual({ strings: ['CD'] });
         expect(parser.parse(['-ss', 'abcd', '12CD'])).toEqual({
@@ -2351,8 +2326,8 @@ describe('ArgumentParser', () => {
             },
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to .+-ss.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to -ss\./);
         expect(parser.parse(['-ss', 'a,b|B', '-ss', 'a,B|b'])).toEqual({
           strings: ['A', 'B'],
         });
@@ -2377,7 +2352,7 @@ describe('ArgumentParser', () => {
             complete: vi.fn().mockImplementation(() => ['abc']),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         const anything = expect.anything();
         expect(() => parser.parse('cmd -ns ', { compIndex: 8 })).toThrow(/^abc$/);
         expect(options.numbers.complete).toHaveBeenCalledWith(anything, '', anything);
@@ -2399,7 +2374,7 @@ describe('ArgumentParser', () => {
             }),
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd -ns ', { compIndex: 8 })).toThrow(/^$/);
         expect(options.numbers.complete).toHaveBeenCalled();
       });
@@ -2411,7 +2386,7 @@ describe('ArgumentParser', () => {
             names: ['-ns'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^-ns$/);
         expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-ns$/);
         expect(() => parser.parse('cmd -n', { compIndex: 6 })).toThrow(/^-ns$/);
@@ -2432,9 +2407,9 @@ describe('ArgumentParser', () => {
             names: ['-ns'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-ns', '1'])).toThrow(
-          /Option .+-f.+ requires .+-ns.+ = \[.+0.+, .+1.+\]\./,
+          /Option -f requires -ns = \[0, 1\]\./,
         );
       });
 
@@ -2450,9 +2425,9 @@ describe('ArgumentParser', () => {
             names: ['-ns'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-ns', '0', '1'])).toThrow(
-          /Option .+-f.+ requires .+-ns.+ != \[.+0.+, .+1.+\]\./,
+          /Option -f requires -ns != \[0, 1\]\./,
         );
       });
 
@@ -2469,7 +2444,7 @@ describe('ArgumentParser', () => {
             parse: async () => 1,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-f', '-ns', '1'])).not.toThrow();
       });
 
@@ -2481,8 +2456,8 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to .+-ns.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to -ns\./);
       });
 
       it('should throw an error on numbers option with missing parameter after positional marker', () => {
@@ -2495,8 +2470,8 @@ describe('ArgumentParser', () => {
             preferredName: 'abc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to .+abc.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
       });
 
       it('should throw an error on numbers option with positional marker specified with value', () => {
@@ -2507,12 +2482,12 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['--='])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
         expect(() => parser.parse(['--=a'])).toThrow(
-          /Positional marker .+--.+ does not accept inline values\./,
+          /Positional marker -- does not accept inline values\./,
         );
       });
 
@@ -2525,9 +2500,9 @@ describe('ArgumentParser', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ns', '1,2,3'])).toThrow(
-          /Option .+-ns.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+          /Option -ns has too many values \(3\)\. Should have at most 2\./,
         );
       });
 
@@ -2539,17 +2514,17 @@ describe('ArgumentParser', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ns', '1', '2', '3'])).toThrow(
-          /Option .+-ns.+ has too many values \(.+3.+\)\. Should have at most .+2.+\./,
+          /Option -ns has too many values \(3\)\. Should have at most 2\./,
         );
       });
 
       it('should throw a name suggestion on parse failure from variadic numbers option', () => {
         const regex = new RegExp(
-          `Option .+-ns.+ has too many values \\(.+1.+\\)\\. Should have at most .+0.+\\.` +
-            `\nDid you mean to specify an option name instead of .+ns.+\\?` +
-            `\nSimilar names are: .+-ns.+\\.`,
+          `Option -ns has too many values \\(1\\)\\. Should have at most 0\\.` +
+            `\n\nDid you mean to specify an option name instead of ns\\?` +
+            `\n\nSimilar names are \\[-ns\\]\\.`,
         );
         const options = {
           numbers: {
@@ -2559,7 +2534,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['ns'])).toThrow(regex);
         expect(() => parser.parse(['-ns', 'ns'])).toThrow(regex);
       });
@@ -2572,7 +2547,7 @@ describe('ArgumentParser', () => {
             append: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ numbers: undefined });
         expect(parser.parse(['-ns', '456', ' 123 '])).toEqual({ numbers: [456, 123] });
         expect(parser.parse(['--numbers'])).toEqual({ numbers: [] });
@@ -2590,7 +2565,7 @@ describe('ArgumentParser', () => {
             round: 'trunc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ numbers: [1, 2] });
       });
 
@@ -2603,7 +2578,7 @@ describe('ArgumentParser', () => {
             round: 'trunc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ numbers: [1, 2] });
       });
 
@@ -2616,7 +2591,7 @@ describe('ArgumentParser', () => {
             round: 'trunc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ numbers: expect.toResolve([1, 2]) });
       });
 
@@ -2629,7 +2604,7 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse([])).toEqual({ numbers: undefined });
         expect(parser.parse(['-ns', ' 1 , 1 '])).toEqual({ numbers: [1, 1] });
         expect(parser.parse(['-ns', ' 2 '])).toEqual({ numbers: [2] });
@@ -2646,7 +2621,7 @@ describe('ArgumentParser', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ns', '1', '2'])).toMatchObject({ numbers: [1, 2] });
         expect(parser.parse(['-ns', '1', '2', '-f'])).toMatchObject({ numbers: [1, 2] });
         expect(parser.parse(['-ns', '1', '2', '-ns', '2', '1'])).toMatchObject({ numbers: [2, 1] });
@@ -2661,12 +2636,12 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ns', '1,-3'])).toThrow(
-          /Invalid parameter to .+-ns.+: .+-3.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
+          /Invalid parameter to -ns: -3\. Value must be in the range \[0, Infinity\]\./,
         );
         expect(() => parser.parse(['-ns', 'a'])).toThrow(
-          /Invalid parameter to .+-ns.+: .+a.+\. Value must be in the range \[.+0.+, .+Infinity.+\]\./,
+          /Invalid parameter to -ns: NaN\. Value must be in the range \[0, Infinity\]\./,
         );
       });
 
@@ -2679,9 +2654,9 @@ describe('ArgumentParser', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(() => parser.parse(['-ns', '1,3'])).toThrow(
-          /Invalid parameter to .+-ns.+: .+3.+\. Possible values are \[.+1.+, .+2.+\]\./,
+          /Invalid parameter to -ns: 3\. Possible values are \[1, 2\]\./,
         );
       });
 
@@ -2697,7 +2672,7 @@ describe('ArgumentParser', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           numbers: [0, 1],
@@ -2728,7 +2703,7 @@ describe('ArgumentParser', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['0', '1'])).toEqual({
           flag: undefined,
           numbers: [0, 1],
@@ -2764,7 +2739,7 @@ describe('ArgumentParser', () => {
             },
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ns'])).toEqual({ numbers: [] });
         expect(parser.parse(['-ns', '1.2', '1.7'])).toEqual({ numbers: [4] });
         expect(parser.parse(['-ns', '1.2', '2.2'])).toEqual({
@@ -2798,8 +2773,8 @@ describe('ArgumentParser', () => {
             },
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to .+-ns.+\./);
+        const parser = new ArgumentParser(options, config);
+        expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to -ns\./);
         expect(parser.parse(['-ns', '1.1,2.2|2.3'])).toEqual({ numbers: [2, 3] });
         expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '11|12'])).toEqual({
           numbers: [2, 3, 11, 12],
@@ -2823,7 +2798,7 @@ describe('ArgumentParser', () => {
             round: 'trunc',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -0] });
         expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [0, -0] });
         expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [0, -0] });
@@ -2837,7 +2812,7 @@ describe('ArgumentParser', () => {
             round: 'ceil',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [1, -0] });
         expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [1, -0] });
         expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [1, -0] });
@@ -2851,7 +2826,7 @@ describe('ArgumentParser', () => {
             round: 'floor',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -1] });
         expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [0, -1] });
         expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [0, -1] });
@@ -2865,7 +2840,7 @@ describe('ArgumentParser', () => {
             round: 'round',
           },
         } as const satisfies Options;
-        const parser = new ArgumentParser(options);
+        const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -0] });
         expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [1, -0] });
         expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [1, -1] });
@@ -2884,7 +2859,7 @@ describe('ArgumentParser', () => {
       const values = new (class {
         flag = false;
       })();
-      new ArgumentParser(options).parseInto(values, []);
+      new ArgumentParser(options, config).parseInto(values, []);
       expect(values).toEqual({ flag: false });
     });
 
@@ -2899,7 +2874,7 @@ describe('ArgumentParser', () => {
       const values = new (class {
         flag = false;
       })();
-      new ArgumentParser(options).parseInto(values, []);
+      new ArgumentParser(options, config).parseInto(values, []);
       expect(values).toEqual({ flag: true });
     });
   });
@@ -2913,7 +2888,7 @@ describe('ArgumentParser', () => {
           resolve: (str) => `file://${import.meta.dirname}/${str}`,
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync(['-v'])).rejects.toThrow(/^0.1.0$/);
     });
 
@@ -2925,9 +2900,9 @@ describe('ArgumentParser', () => {
           resolve: () => `file:///abc`,
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync(['-v'])).rejects.toThrow(
-        /Could not find a 'package.json' file\./,
+        /Could not find a "package.json" file\./,
       );
     });
 
@@ -2939,7 +2914,7 @@ describe('ArgumentParser', () => {
           exec: async () => 'abc',
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync(['-f'])).resolves.toEqual({ function: 'abc' });
     });
 
@@ -2953,7 +2928,7 @@ describe('ArgumentParser', () => {
           },
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^abc$/);
     });
 
@@ -2966,7 +2941,7 @@ describe('ArgumentParser', () => {
           options: {},
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync(['-c'])).resolves.toEqual({ command: 'abc' });
     });
 
@@ -2981,7 +2956,7 @@ describe('ArgumentParser', () => {
           options: {},
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync(['-c'])).rejects.toThrow(/^abc$/);
     });
 
@@ -2993,7 +2968,7 @@ describe('ArgumentParser', () => {
           complete: async () => ['abc'],
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
     });
 
@@ -3007,7 +2982,7 @@ describe('ArgumentParser', () => {
           },
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^$/);
     });
 
@@ -3019,7 +2994,7 @@ describe('ArgumentParser', () => {
           complete: async () => ['abc'],
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
     });
 
@@ -3033,7 +3008,7 @@ describe('ArgumentParser', () => {
           },
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^$/);
     });
 
@@ -3045,7 +3020,7 @@ describe('ArgumentParser', () => {
           complete: async () => ['abc'],
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
     });
 
@@ -3059,7 +3034,7 @@ describe('ArgumentParser', () => {
           },
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^$/);
     });
 
@@ -3071,7 +3046,7 @@ describe('ArgumentParser', () => {
           complete: async () => ['abc'],
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
     });
 
@@ -3085,7 +3060,7 @@ describe('ArgumentParser', () => {
           },
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
     });
 
@@ -3097,7 +3072,7 @@ describe('ArgumentParser', () => {
           complete: async () => ['abc'],
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
     });
 
@@ -3111,7 +3086,7 @@ describe('ArgumentParser', () => {
           },
         },
       } as const satisfies Options;
-      const parser = new ArgumentParser(options);
+      const parser = new ArgumentParser(options, config);
       await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
     });
   });
