@@ -11,10 +11,11 @@ can be used to customize the display of text in a terminal.
 
 ## Styling attributes
 
-With the `style` function you can create a style from a list of styling attributes. The result can
-be used in any part of the API that expects the `Style` type, or it can be embedded directly in text
-attributes, such as the [synopsis and deprecation reason](options.mdx#synopsis--deprecated) or the
-[usage and footer](options.mdx#usage--footer).
+The `style` function accepts a list of styling attributes and creates a `Style` that can be used in
+any part of the API that expects this type, or it can be embedded directly in text attributes, such
+as the [synopsis and deprecation reason](options.mdx#synopsis--deprecated), the
+[usage and footer](options.mdx#usage--footer), or the [error phrases](validator.mdx#error-phrases)
+and [help phrases](formatter.mdx#help-phrases).
 
 In the next sections we present the various styling attributes available.
 
@@ -122,23 +123,29 @@ below.
 ### Text splitting
 
 Text is split on paragraph, list item and word boundaries using a combination of simple regular
-expressions. Moreover, format specifiers can be extracted from the text and processed by a
-formatting callback. This is used in two places in the library:
+expressions that do _not_ take quotes into account. The following features are supported in text
+splitting.
 
-- by the argument parser to create error messages based on configured
+#### Format specifiers
+
+Format specifiers can be extracted from the text and processed by a formatting callback. This is
+used in two places in the library:
+
+- by the parser to produce error messages based on configured
   [error phrases](validator.mdx#error-phrases)
-- by the help message formatter to assemble help items from configured
-  [help phrases](formatter.mdx#help-phrases)
+- by the formatter to assemble help items from configured [help phrases](formatter.mdx#help-phrases)
 
-In addition to error and help phrases, some help items such as the option synopsis or the
-deprecation reason are texts that the help formatter splits into words before adding to the option
-description. The formatting features supported for these items are described next.
+This particular feature is only available in _phrases_, not in text attributes of option definitions.
 
 #### Inline styles
 
-Text can contain inline styles. The terminal string instance will try its best to preserve styles
-while splitting or wrapping text. However, if some corner case that is not currently covered by the
-unit tests happen to you, please submit a [bug report].
+Text can contain inline styles. This applies to phrases as well as text attributes, such as the
+option synopsis or the deprecation reason, which the formatter splits into words before adding to
+the option description.
+
+The terminal string instance will try its best to preserve styles while splitting text. However,
+if some corner case that is not currently covered by the unit tests happen to you, please submit a
+[bug report].
 
 #### Paragraphs and lists
 
@@ -166,20 +173,26 @@ Another paragraph
 
 ### Text wrapping
 
-Text is wrapped according to a configured width, which is the number of terminal columns by which to
-limit each line of text. When a zero or undefined width is provided, the terminal string instance
-will suppress inline styles and omit control sequences that it would otherwise use for rendering
-text in a terminal.
+Text is wrapped according to a configured _width_: the number of terminal columns by which to limit
+each line of text. When a width of zero (or `undefined{:ts}`) is provided, the terminal string
+instance will suppress inline styles and omit control sequences that it would otherwise use for
+rendering text in a terminal.
+
+#### Indentation level
+
+A terminal string optionally has a starting column: the indentation level respective to the first
+terminal column. When wrapping text to a desired width, it tries to respect this setting, but if
+the desired width does not accommodate the text while respecting its indentation level, the text is
+instead wrapped relative to the beginning of each line.
 
 #### Error messages
 
 The `ErrorMessage` class is a wrapper of a terminal string. It provides a `wrap` method to get a
 normal string, which accepts an optional parameter:
 
-- `width` - the terminal width (in number of columns)
+- `width` - the terminal width (defaults to `process.stderr.columns`)
 
-Its default value is the number of columns of the standard _error_ stream
-(`process.stderr.columns`).
+Its default value is the number of columns of the standard _error_ stream.
 
 <Callout type="info">
   When redirecting the output of a command to a file, the associated stream will not have the 

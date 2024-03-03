@@ -104,8 +104,8 @@ corresponding value. If an expression, then it is evaluated as follows:
 - `req.not` - an expression that is satisfied when the item is _not_ satisfied.
 
 <Callout type="default">
-  When an object is specified, `undefined{:ts}` values can be used to signify required presence,
-  and `null{:ts}` values to signify required absence.
+  When an object is specified, `undefined{:ts}` values can be used to signify required _presence_,
+  and `null{:ts}` values to signify required _absence_.
 </Callout>
 
 #### External reference
@@ -124,9 +124,9 @@ options. Mutually exclusive with [default value](#default-value--callback).
 
 #### Default value | callback
 
-The `default` attribute, if present, specifies the option's default value or a callback that returns
-the default value. This value is set as the option's value at the end of the parsing loop _if_ the
-option was not specified on the command-line. Mutually exclusive with [required](#required).
+The `default` attribute, if present, specifies either the default option value or a callback that
+returns the default value. This value is set as the option's value at the end of the parsing loop
+_if_ the option was not specified on the command-line. Mutually exclusive with [required](#required).
 
 If the value is not known beforehand (e.g., if it depends on the values of other options), you may
 want to use a callback to inspect parsed values and determine the default value based on those
@@ -149,12 +149,12 @@ Mutually exclusive with [example value](#example-value).
 
 #### Positional | marker
 
-The `positional` attribute, if present, indicates that the option accepts positional arguments.
-There may be _at most one_ option with this setting.
+The `positional` attribute, if present, indicates that the option accepts _positional_ arguments.
+There may be at most _one_ option with this setting.
 
 If set to `true{:ts}`, then any argument not recognized as an option name will be considered
-positional. Additionally, this attribute accepts a string which acts as positional marker. In this
-case, all arguments that appear _beyond the marker_ will be considered positional.
+positional. If set to a string, then this string acts as positional marker. In this case, all
+arguments that appear _beyond_ the marker will be considered positional.
 
 When using this attribute, we recommend also setting [preferred name](#names--preferred-name) to
 some explanatory name.
@@ -163,10 +163,10 @@ some explanatory name.
 
 The `complete` attribute, if present, specifies a custom completion callback. This can be used to
 make better suggestions for bash completion than the
-[default algorithm](parser.mdx#completion-algorithm) would do for the option. It accepts two
+[default algorithm](parser.mdx#completion-algorithm) would do for the option. It accepts three
 parameters:
 
-- `values` - the values parsed up until the current iteration
+- `values` - the values parsed up to the current iteration
 - `comp` - the word being completed (it may be an empty string)
 - `rest` - the remaining command-line arguments
 
@@ -200,7 +200,7 @@ String-valued option types share a set of attributes, as described below.
 #### Regular expression
 
 The `regex` attribute, if present, specifies a regular expression that string parameters should
-match. Any parameter that does _not match_ the regular expression (after normalization) will cause
+match. Any parameter that does _not_ match the regular expression (after normalization) will cause
 an error to be thrown. Mutually exclusive with [enumeration](#enumeration).
 
 #### Trim whitespace
@@ -222,7 +222,7 @@ Number-valued option types share a set of attributes, as described below.
 #### Numeric range
 
 The `range` attribute, if present, specifies a (closed) numeric range that number parameters should
-be within. Any parameter that is _not within_ the given range (after normalization) will cause an
+be within. Any parameter that is _not_ within the given range (after normalization) will cause an
 error to be thrown. You may want to use `[-Infinity, Infinity]{:ts}` to disallow `NaN{:ts}`.
 Mutually exclusive with [enumeration](#enumeration).
 
@@ -252,10 +252,10 @@ option parameter. It accepts two parameters:
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
-Unlike the [parse callback](#parse-callback) that returns a single value, this callback should
-return an array. If specified, the option will accept a single parameter and not multiple parameters
-(we say that it is _delimited_, rather than being _variadic_). If asynchronous, then the data type
-of the option value in the resulting object will be enclosed in a promise. Mutually exclusive with
+Unlike [parse callback](#parse-callback) that returns a single value, this callback should return an
+array. If specified, the option will accept a single parameter and not multiple parameters (we say
+that it is _delimited_, rather than being _variadic_). If asynchronous, then the data type of the
+option value in the resulting object will be enclosed in a promise. Mutually exclusive with
 [separator](#separator) and [parse callback](#parse-callback).
 
 #### Remove duplicates
@@ -279,8 +279,7 @@ an error to be thrown.
 ## Niladic options
 
 Niladic options do not expect any parameter on the command-line. With the notable exception of the
-[flag option](#flag-option), these options have _side-effects_, rather than having an intrinsic
-value.
+[flag option](#flag-option), these options have _side-effects_, rather than an intrinsic value.
 
 <Callout type="info">
   When bash completion is in effect, help and version options will _not_ be processed.
@@ -289,34 +288,28 @@ value.
 ### Help option
 
 The **help** option is a convenient specialization of the [function option](#function-option) that
-handles the formatting of a help message. Internally, it performs the following actions:
+handles the formatting of help messages. Internally, it performs the following actions:
 
 1. instantiate a [formatter](formatter.mdx) class with the provided (or default) configuration
 2. get the formatted messages, one for each option group
 3. assemble them into a single message interspersed with group headings
-4. throw the resulting string
+4. throw the resulting message
 
-The application should catch the string and print it on a terminal.
-
-<Callout type="warning">
-  The help message contains control sequences that can only be interpreted by a terminal. It should
-  not, for instance, be written to a file.
-</Callout>
-
-This option has the following optional attributes.
+The application should catch the message and print it in a terminal. This option has the following
+optional attributes.
 
 #### Usage & footer
 
 The `usage` attribute describes your CLI usage instructions. It goes before everything else in the
 help message. The `footer` attribute is an afterword that can be used to insert a copyright notice
-or reference to other media. Both attributes can include inline styles, but they will _not_ be
-formatted according to the [text formatting](styles.mdx#text-splitting) rules.
+or reference to other media. Both attributes can include inline styles and will be formatted
+according to [text formatting](styles.mdx#text-splitting) rules.
 
 #### Format & heading style
 
 The `format` attribute, if present, specifies the [help format](formatter.mdx#help-format)
-configuration. The `headingStyle` attribute, if present, specifies a [style](styles.mdx) to be
-applied to group headings.
+configuration. The `headingStyle` attribute, if present, specifies a
+[style](styles.mdx#styling-attributes) to be applied to group headings.
 
 ### Version option
 
@@ -340,15 +333,15 @@ with [semantic version](#semantic-version).
 
 ### Function option
 
-The **function** option executes a generic callback function and saves the returned value as the
-option value. The following attributes can be specified.
+The **function** option executes a generic callback function and saves its result as the option
+value. The following attributes can be specified.
 
 #### Execute callback
 
 The `exec` attribute is the callback function that should be executed. It is required and accepts
 three parameters:
 
-- `values` - the values parsed up until the current iteration
+- `values` - the values parsed up to the current iteration
 - `comp` - `true{:ts}` if performing completion (but not in the current iteration)
 - `rest` - the remaining command-line arguments
 
@@ -367,8 +360,8 @@ The `break` attribute, if present, tells the parser to exit the parsing loop imm
 returning from the callback.
 
 <Callout type="warning">
-  When setting this attribute, the requirements of all options specified up to the current option on
-  the command-line (including itself) will be verified. Hence, you should make it clear in the help
+  When setting this attribute, the requirements of all options specified up to the current iteration
+  (including the function option) will be verified. Hence, you should make it clear in the help
   message that any option required by the affected one must be specified before it.
 </Callout>
 
@@ -396,20 +389,19 @@ call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 
 <Callout type="info">
   When bash completion is in effect, this callback will _not_ be called. Otherwise, the parser will
-  exit the parsing loop immediately after returning from the callback.
+  exit the parsing loop immediately upon its return.
 </Callout>
 
 #### Command options | callback
 
-The `options` attribute is the set of option definitions for the command, and is also required. You
-may instead specify a (non-asynchronous) callback that returns the option definitions. This allows
-the implementation of [recursive commands](../guides/commands.mdx).
+The `options` attribute is the set of option definitions for the command, and is required. You may
+also specify a (non-asynchronous) callback that returns the option definitions (this allows the
+implementation of [tail-recursive commands](../guides/commands.mdx)).
 
 <Callout type="warning">
-  All arguments specified after the affected option on the command-line will be parsed using the
-  option definitions from this attribute, _not_ those in which the option was declared. Hence, you
-  should make it clear in the help message that all arguments pertaining to the command should be
-  specified after it.
+  All incoming arguments will be parsed using the option definitions from this attribute, _not_
+  those in which the option was declared. Hence, you should make it clear in the help message that
+  all arguments pertaining to the command should be specified after it.
 </Callout>
 
 ### Flag option
@@ -417,14 +409,15 @@ the implementation of [recursive commands](../guides/commands.mdx).
 The **flag** option is unique in the sense that it is both niladic and has an intrinsic value
 (boolean). It differs from the [boolean option](#boolean-option) in that it does _not_ expect a
 parameter, although it may have the [required](#required) or the
-[default value](#default-value--callback) attribute for a `boolean{:ts}` data type. In addition, it
-has the following attribute.
+[default value](#default-value--callback) attribute for a `boolean{:ts}` data type.
 
 <Callout type="info">
   We could have reused the boolean option for this purpose and make the parameter optional, but it
   would complicate the parser implementation unnecessarily. Besides, the flag option has a
   particularly useful feature, which is described below.
 </Callout>
+
+It has the following optional attribute.
 
 #### Negation names
 

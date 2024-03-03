@@ -15,7 +15,7 @@ option definitions. You should _not_ need to instantiate this class directly. In
 The term _validation_ here means verifying the sanity of an option's definition. It is intended for
 development and testing, _not_ for use in production where it would impose an unwanted performance
 penalty on your application. The validations behave like assertions: they assert that your options
-will work as expected when delivered to end users.
+will work as expected when delivered to end-users.
 
 To validate a set of option definitions, you must call the `validate` method on the parser instance.
 The following sections describe the various kinds of validation performed by this method. Any option
@@ -24,21 +24,19 @@ message that may include the option's key.
 
 ### Names validation
 
-Option names are subject to the restrictions listed below.
+Option names are subject to the restrictions listed below. In any of these, empty strings and
+`null{:ts}`s are ignored, and flag options' [negation names](options.mdx#negation-names) and the
+[positional marker](options.mdx#positional--marker) are included in the validation.
 
 #### Invalid option name
 
-An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character may
+An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character can
 be used as option-value separator on the command-line. Any other character (including Unicode code
-points) is allowed. Empty strings and `null{:ts}`s are ignored. A flag option's
-[negation names](options.mdx#negation-names) and the
-[positional marker](options.mdx#positional--marker) are included in the validation.
+points) is allowed.
 
 #### Duplicate option name
 
-An option should not have duplicate names, and there cannot be two options with the same name. Empty
-strings and `null{:ts}`s are ignored. A flag option's [negation names](options.mdx#negation-names)
-and the [positional marker](options.mdx#positional--marker) are included in the validation.
+An option should not have duplicate names, and there cannot be two options with the same name.
 
 ### Enums validation
 
@@ -51,18 +49,18 @@ length.
 
 #### Duplicate enum value
 
-There may not be an option with duplicate enumerated values. The enumeration array _should not_
+There may not be an option with duplicate enumerated values. The enumeration array should _not_
 contain duplicate elements.
 
 ### Value validation
 
 Non-niladic options may define a default value and an example value. If present, these attributes
-are subject to the same set of constraints as that of the command-line arguments, which are listed
+are subject to the same set of constraints as that of the command-line arguments, which is listed
 below.
 
 <Callout type="info">
-  This does not apply to [default callbacks](options.mdx#default-value--callback) (they are ignored
-  during validation).
+  This does not apply to [default callbacks](options.mdx#default-value--callback). They are ignored
+  during validation.
 </Callout>
 
 #### Enums constraint violation
@@ -94,22 +92,22 @@ restrictions listed below.
 
 #### Option requiring itself
 
-An option must _not_ declare a requirement that includes its _own_ option key.
+An option must not declare a requirement that includes its _own_ option key.
 
 #### Unknown required option
 
-An option must _not_ declare a requirement that includes an _unknown_ option key.
+An option must not declare a requirement that includes an _unknown_ option key.
 
 #### Niladic option required with a value
 
-An option must _not_ declare a requirement that includes an option key referencing a niladic option,
-_if_ it includes a required value that is neither `undefined{:ts}` nor `null{:ts}`.
+An option must not declare a requirement that includes an option key referencing a _niladic_ option,
+if it includes a required value that is neither `undefined{:ts}` nor `null{:ts}`.
 
 #### Incompatible required value data type
 
 Since a requirement may be an object with values of any kind, the data type of these values must be
-validated at run-time. An option must _not_ declare a requirement that includes an option key
-referencing a non-niladic option, _if_ it includes a required value that does _not_ conform to the
+validated at run-time. An option must not declare a requirement that includes an option key
+referencing a _non-niladic_ option, if it includes a required value that does _not_ conform to the
 data type expected by that option.
 
 #### Constraint violation
@@ -126,21 +124,21 @@ restrictions listed below.
 #### Duplicate positional option
 
 Since positional arguments have no name, they must pertain to exactly one option. Hence, there
-_cannot_ be two options with the positional attribute in the same set of option definitions.
+cannot be _two_ options with the positional attribute in the same set of option definitions.
 
 #### Empty positional marker
 
-If an option is declared with a positional marker, this marker _cannot_ be the empty string.
+If an option is declared with a positional marker, this marker cannot be the _empty_ string.
 
 ### Version validation
 
-A version option is very simple and has only one restraint: it must _not_ contain an empty version
+A version option is very simple and has only one restraint: it must not contain an _empty_ version
 string; otherwise it will trigger an error.
 
 ## Error configuration
 
 Both the validation and parsing methods may throw errors which can be customized with an
-`ErrorConfig` object. It has some optional properties, as described below.
+`ErrorConfig` object. This object has some optional properties, as described below.
 
 ### Error styles
 
@@ -156,9 +154,15 @@ optional properties:
 - `url` - the style of URLs (defaults to `fg.brightBlack`)
 - `text` - The style of general text (defaults to `tf.clear`)
 
+<Callout type="default">
+  You can also set these styles to the empty string, in case your user&apos;s terminal does not
+  support control sequences.
+</Callout>
+
 ### Error items
 
-The `ErrorItem` enumeration lists the kinds of error messages that may be raised by the library:
+The `ErrorItem` enumeration is a type that is used in the property described next. It lists the
+kinds of error messages that may be raised by the library:
 
 - `parseError` - raised by the parser when an option parameter fails to be parsed
 - `parseErrorWithSimilar` - raised by the parser when an option parameter fails to be parsed, and
@@ -167,8 +171,8 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `unknownOptionWithSimilar` - raised by the parser when an option name is not found, and there are
   option name suggestions
 - `optionRequires` - raised by the parser when an option requirement is not satisfied
-- `missingRequiredOption` - raised by the parser when an option that is required was not specified
-  (or vice-versa)
+- `missingRequiredOption` - raised by the parser when an option that is always required was not
+  specified
 - `missingParameter` - raised by the parser when an option parameter is expected but was not
   specified
 - `missingPackageJson` - raised by the parser when it fails to find a "package.json" file when
@@ -177,7 +181,7 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
   inline value
 - `optionInlineValue` - raised by the parser when a niladic option is specified with an inline value
 - `emptyPositionalMarker` - raised by the validator when a positional option has an empty positional
-  marker string
+  marker
 - `invalidOptionName` - raised by the validator when an option has an invalid name
 - `optionEmptyVersion` - raised by the validator when a version option has an empty version string
 - `optionRequiresItself` - raised by the validator when an option requires itself
@@ -207,7 +211,7 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 
 ### Error phrases
 
-The `phrases` property specifies the phrases to be used for each kind of error message.
+The `phrases` property specifies the phrases to be used for each kind of error message:
 
 - `parseError` - `'%t\n\nDid you mean to specify an option name instead of %o?'{:ts}`
 - `parseErrorWithSimilar` - `'%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.'{:ts}`
@@ -237,11 +241,11 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `numberOptionRange` - `'Invalid parameter to %o: %n1. Value must be in the range %n2.'{:ts}`
 - `arrayOptionLimit` - `'Option %o has too many values (%n1). Should have at most %n2.'{:ts}`
 
-These phrases will be formatted according to the [text formatting](styles.mdx#text-splitting) rules.
+These phrases will be formatted according to [text formatting](styles.mdx#text-splitting) rules.
 
 ### Error specifiers
 
-Error phrases may have specifiers that can be used to substitute for a value.
+Error phrases may have specifiers that are replaced with a value:
 
 - `b` - a boolean value
 - `s` - a string value (or values)
@@ -262,12 +266,12 @@ description of the corresponding value.
 | parseErrorWithSimilar      | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
 | unknownOption              | `%o` = the unknown option name                                                  |
 | unknownOptionWithSimilar   | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
-| optionRequires             | `%o` = the option name; `%t` = the option requirements                          |
-| missingRequiredOption      | `%o` = the option name                                                          |
-| missingParameter           | `%o` = the option name                                                          |
+| optionRequires             | `%o` = the specified option name; `%t` = the option requirements                |
+| missingRequiredOption      | `%o` = the option's preferred name                                              |
+| missingParameter           | `%o` = the specified option name                                                |
 | missingPackageJson         |                                                                                 |
-| positionalInlineValue      | `%o` = positional marker                                                        |
-| optionInlineValue          | `%o` = the option name                                                          |
+| positionalInlineValue      | `%o` = the positional marker                                                    |
+| optionInlineValue          | `%o` = the specified option name                                                |
 | emptyPositionalMarker      | `%o` = the option key                                                           |
 | invalidOptionName          | `%o` = the option name                                                          |
 | optionEmptyVersion         | `%o` = the option key                                                           |

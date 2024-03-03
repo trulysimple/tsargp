@@ -154,7 +154,7 @@ const enum HelpItem {
    */
   append,
   /**
-   * Reports if string parameters will be trimmed (leading and trailing whitespace removed).
+   * Reports if string parameters will be trimmed (have leading and trailing whitespace removed).
    */
   trim,
   /**

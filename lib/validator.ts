@@ -51,7 +51,7 @@ const enum ErrorItem {
    */
   optionRequires,
   /**
-   * Raised by the parser when an option that is required was not specified (or vice-versa).
+   * Raised by the parser when an option that is always required was not specified.
    */
   missingRequiredOption,
   /**
@@ -71,7 +71,7 @@ const enum ErrorItem {
    */
   optionInlineValue,
   /**
-   * Raised by the validator when a positional option has an empty positional marker string.
+   * Raised by the validator when a positional option has an empty positional marker.
    */
   emptyPositionalMarker,
   /**
