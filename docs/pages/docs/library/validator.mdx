@@ -28,6 +28,11 @@ Option names are subject to the restrictions listed below. In any of these, empt
 `null{:ts}`s are ignored, and flag options' [negation names](options.mdx#negation-names) and the
 [positional marker](options.mdx#positional--marker) are included in the validation.
 
+#### Option with no name
+
+If the option is not a positional one (i.e., it does not accept positional arguments), then it must
+contain at least one _non-empty_ name.
+
 #### Invalid option name
 
 An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character can
@@ -182,6 +187,7 @@ kinds of error messages that may be raised by the library:
 - `optionInlineValue` - raised by the parser when a niladic option is specified with an inline value
 - `emptyPositionalMarker` - raised by the validator when a positional option has an empty positional
   marker
+- `optionWithNoName` - raised by the validator when a non-positional option has no name
 - `invalidOptionName` - raised by the validator when an option has an invalid name
 - `optionEmptyVersion` - raised by the validator when a version option has an empty version string
 - `optionRequiresItself` - raised by the validator when an option requires itself
@@ -224,6 +230,7 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `positionalInlineValue` - `'Positional marker %o does not accept inline values.'{:ts}`
 - `optionInlineValue` - `'Option %o does not accept inline values.'{:ts}`
 - `emptyPositionalMarker` - `'Option %o contains empty positional marker.'{:ts}`
+- `optionWithNoName` - `'Non-positional option %o has no name.'{:ts}`
 - `invalidOptionName` - `'Invalid option name %o.'{:ts}`
 - `optionEmptyVersion` - `'Option %o contains empty version.'{:ts}`
 - `optionRequiresItself` - `'Option %o requires itself.'{:ts}`
@@ -273,6 +280,7 @@ description of the corresponding value.
 | positionalInlineValue      | `%o` = the positional marker                                                    |
 | optionInlineValue          | `%o` = the specified option name                                                |
 | emptyPositionalMarker      | `%o` = the option key                                                           |
+| optionWithNoName           | `%o` = the option key                                                           |
 | invalidOptionName          | `%o` = the option name                                                          |
 | optionEmptyVersion         | `%o` = the option key                                                           |
 | optionRequiresItself       | `%o` = the option key                                                           |

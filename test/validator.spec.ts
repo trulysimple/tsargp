@@ -101,6 +101,17 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).not.toThrow();
     });
 
+    it('should accept a flag option with only a negation name', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          negationNames: ['-no-f'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).not.toThrow();
+    });
+
     it('should throw an error on non-positional option with no name', () => {
       const options = {
         flag: {

@@ -50,9 +50,12 @@ All options share a set of attributes in addition to their type, which are descr
 #### Names & preferred name
 
 The `names` attribute lists the option names as they may appear on the command-line (e.g. `-h` or
-`--help`). Names must not contain whitespace or the equals sign `'='{:ts}` (since it may be used as
-option-value separator). Empty strings or `null{:ts}`s can be specified in order to skip the
-respective "slot" in the help message [names column](formatter.mdx#names-column).
+`--help`). Names must not contain whitespace or the equals sign `'='{:ts}`, since this character may
+be used as option-value separator.
+
+Empty strings or `null{:ts}`s can be specified in order to skip the respective "slot" in the help
+message [names column](formatter.mdx#names-column). However, if the option is not positional (i.e.,
+it does not accept positional arguments), then it must contain at least one valid name.
 
 The `preferredName` attribute, if present, is displayed in error and help messages in cases where a
 name is not available (e.g., when evaluating option requirements or processing positional arguments).

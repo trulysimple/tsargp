@@ -43,10 +43,15 @@ parameters as the previous one, except for an additional (first) parameter:
 
 - `values` - the option values to parse into
 
+Existing initial values are preserved until they get overriden by values passed in the command-line.
 When using TypeScript, this parameter will be type-checked at compile-time against the expected type
-of the option values for a given set of option definitions. You may want to use IntelliSense to peak
-at the resulting type of the `parse` method (or declare a temporary type alias for
-`OptionValues<typeof _your_options_>{:ts}`) to see how the object is structured.
+of the option values for a given set of option definitions.
+
+<Callout type="default">
+  You may want to use IntelliSense to peak at the resulting type of the `parse` method (or declare a
+  temporary type alias for `OptionValues<typeof _your_options_>{:ts}`) to see how the object is
+  structured.
+</Callout>
 
 This method returns a promise that can be awaited in order to resolve async
 [executing callbacks](#executing-callbacks).
