@@ -726,7 +726,7 @@ class TerminalString {
   /**
    * Splits a text into words and style sequences, and appends them to the list of strings.
    * @param text The text to be split
-   * @param format A callback to process format specifiers
+   * @param format An optional callback to process format specifiers
    * @returns The terminal string instance
    */
   splitText(text: string, format?: FormatCallback): this {
@@ -743,7 +743,7 @@ class TerminalString {
   /**
    * Splits a paragraph into words and style sequences, and appends them to the list of strings.
    * @param para The paragraph to be split
-   * @param format A callback to process format specifiers
+   * @param format An optional callback to process format specifiers
    */
   private splitParagraph(para: string, format?: FormatCallback) {
     const count = this.strings.length;
@@ -762,7 +762,7 @@ class TerminalString {
   /**
    * Splits a list item into words and style sequences, and appends them to the list of strings.
    * @param item The list item to be split
-   * @param format A callback to process format specifiers
+   * @param format An optional callback to process format specifiers
    */
   private splitItem(item: string, format?: FormatCallback) {
     const boundFormat = format?.bind(this);
@@ -794,6 +794,7 @@ class TerminalString {
    * @param result The resulting strings to append to
    * @param column The current terminal column
    * @param width The desired terminal width (or zero to avoid wrapping)
+   * @returns The updated terminal column
    */
   wrapToWidth(result: Array<string>, column: number, width?: number): number {
     function shortenLine() {

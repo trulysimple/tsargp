@@ -90,20 +90,32 @@ describe('OptionValidator', () => {
   });
 
   describe('validate', () => {
-    it('should accept on option with no name', () => {
+    it('should accept a positional option with no name', () => {
       const options = {
         string: {
           type: 'string',
+          positional: true,
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options, config);
       expect(() => validator.validate()).not.toThrow();
     });
 
+    it('should throw an error on non-positional option with no name', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['', null],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options, config);
+      expect(() => validator.validate()).toThrow(/Non-positional option flag has no name\./);
+    });
+
     it('should throw an error on option with invalid name', () => {
       const options = {
-        string: {
-          type: 'string',
+        flag: {
+          type: 'flag',
           names: ['a = b'],
         },
       } as const satisfies Options;

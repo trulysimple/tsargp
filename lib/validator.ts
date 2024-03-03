@@ -75,6 +75,10 @@ const enum ErrorItem {
    */
   emptyPositionalMarker,
   /**
+   * Raised by the validator when a non-positional option has no name.
+   */
+  optionWithNoName,
+  /**
    * Raised by the validator when an option has an invalid name.
    */
   invalidOptionName,
@@ -210,6 +214,7 @@ const defaultConfig: ConcreteError = {
     [ErrorItem.positionalInlineValue]: 'Positional marker %o does not accept inline values.',
     [ErrorItem.optionInlineValue]: 'Option %o does not accept inline values.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o contains empty positional marker.',
+    [ErrorItem.optionWithNoName]: 'Non-positional option %o has no name.',
     [ErrorItem.invalidOptionName]: 'Invalid option name %o.',
     [ErrorItem.optionEmptyVersion]: 'Option %o contains empty version.',
     [ErrorItem.optionRequiresItself]: 'Option %o requires itself.',
@@ -369,18 +374,22 @@ class OptionValidator {
    * @param key The option key
    * @param option The option definition
    * @param validate True if performing validation
-   * @throws On invalid name, duplicate name or empty positional marker
+   * @throws On no name, invalid name, duplicate name or empty positional marker
    */
   private registerNames(key: string, option: Option, validate = false) {
     const names = option.names ? option.names.slice() : [];
     if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames);
     }
-    if ('positional' in option && typeof option.positional === 'string') {
-      if (validate && !option.positional) {
+    if ('positional' in option) {
+      if (validate && option.positional === '') {
         throw this.error(ErrorItem.emptyPositionalMarker, { o: key });
       }
-      names.push(option.positional);
+      if (typeof option.positional === 'string') {
+        names.push(option.positional);
+      }
+    } else if (validate && !names.find((name) => name)) {
+      throw this.error(ErrorItem.optionWithNoName, { o: key });
     }
     for (const name of names) {
       if (!name) {
