@@ -628,7 +628,7 @@ class OptionValidator {
    */
   normalizeArray(option: ArrayOption, name: string, value: Array<string | number>) {
     if (option.unique) {
-      const unique = [...new Set(value)];
+      const unique = new Set(value);
       value.length = 0;
       value.push(...unique);
     }

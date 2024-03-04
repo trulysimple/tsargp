@@ -24,8 +24,8 @@ import type { Positional, ConcreteError, ErrorConfig, ConcreteStyles } from './v
 import { HelpFormatter } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { ErrorMessage, HelpMessage, Style, TerminalString, style, tf } from './styles';
-import { assert, checkRequiredArray, gestaltSimilarity, getArgs } from './utils';
 import { OptionValidator, defaultConfig, formatFunctions, ErrorItem } from './validator';
+import { assert, checkRequiredArray, gestaltSimilarity, getArgs } from './utils';
 
 export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
 
@@ -173,6 +173,7 @@ class ParserLoop {
   private readonly styles: ConcreteStyles;
   private readonly normalizeString: OptionValidator['normalizeString'];
   private readonly normalizeNumber: OptionValidator['normalizeNumber'];
+  private readonly normalizeArray: OptionValidator['normalizeArray'];
 
   /**
    * Creates a parser loop.
@@ -196,6 +197,7 @@ class ParserLoop {
     }
     this.normalizeString = validator.normalizeString.bind(validator);
     this.normalizeNumber = validator.normalizeNumber.bind(validator);
+    this.normalizeArray = validator.normalizeArray.bind(validator);
   }
 
   /**
@@ -220,11 +222,11 @@ class ParserLoop {
       if (argKind === ArgKind.marker || singleParam) {
         value = arg;
       } else {
-        [argKind, current, value] = this.parseOption(arg, comp !== undefined, current);
+        [argKind, current, value] = parseOption(this.validator, arg, comp !== undefined, current);
         if (argKind !== ArgKind.param) {
           this.specifiedKeys.add(current.key);
           if (isArray(current.option)) {
-            this.resetValue(current.key, current.option);
+            resetValue(this.values, current.key, current.option);
           }
         }
       }
@@ -244,19 +246,28 @@ class ParserLoop {
           this.handleComplete(option.complete, i, value);
           return this.promises;
         }
-        this.handleCompletion(option, value);
+        handleCompletion(option, value);
         if (suggestName(option)) {
-          this.handleNameCompletion(value);
+          handleNameCompletion(this.validator, value);
         }
         throw ''; // use default completion
       } else if (value !== undefined) {
         try {
-          this.parseValue(key, option, name, value);
+          parseValue(
+            this.values,
+            key,
+            option,
+            name,
+            value,
+            this.normalizeString,
+            this.normalizeNumber,
+            this.normalizeArray,
+          );
         } catch (err) {
           // do not propagate errors during completion
           if (!this.completing) {
             if (suggestName(option)) {
-              this.handleUnknown(value, err as ErrorMessage);
+              handleUnknown(this.validator, value, err as ErrorMessage);
             }
             throw err;
           }
@@ -276,48 +287,6 @@ class ParserLoop {
     this.checkRequired();
     this.setDefaultValues();
     return this.promises;
-  }
-
-  /**
-   * Parses an option from a command-line argument.
-   * @param arg The current argument
-   * @param comp True if completing at the current iteration
-   * @param current The current option information, if any
-   * @returns A tuple of [ArgKind, current, value]
-   */
-  private parseOption(
-    arg: string,
-    comp: boolean,
-    current?: Positional,
-  ): [ArgKind, Positional, string | undefined] {
-    const [name, value] = arg.split(/=(.*)/, 2);
-    const key = this.validator.names.get(name);
-    if (key) {
-      if (comp && value === undefined) {
-        throw name;
-      }
-      if (this.validator.positional && name === this.validator.positional.marker) {
-        if (comp) {
-          throw ''; // use default completion
-        }
-        if (value !== undefined) {
-          throw this.validator.error(ErrorItem.positionalInlineValue, { o: name });
-        }
-        return [ArgKind.marker, this.validator.positional, undefined];
-      }
-      current = { key, name, option: this.validator.options[key] };
-      return [ArgKind.inline, current, value];
-    }
-    if (!current) {
-      if (!this.validator.positional) {
-        if (comp) {
-          this.handleNameCompletion(arg);
-        }
-        this.handleUnknown(name);
-      }
-      return [ArgKind.positional, this.validator.positional, arg];
-    }
-    return [ArgKind.param, current, arg];
   }
 
   /**
@@ -423,56 +392,14 @@ class ParserLoop {
     }
     this.checkRequired();
     if (option.type === 'help') {
-      this.handleHelp(option);
+      handleHelp(this.validator, option);
     } else if (option.version) {
       throw option.version;
     } else if (option.resolve) {
-      this.promises.push(this.resolveVersion(option.resolve));
+      const promise = resolveVersion(this.validator, option.resolve);
+      this.promises.push(promise);
     }
     return true;
-  }
-
-  /**
-   * Resolve a package version using a module-resolve function.
-   * @param resolve The resolve callback
-   */
-  private async resolveVersion(resolve: ResolveCallback): Promise<never> {
-    const { promises } = await import('fs');
-    for (
-      let path = './package.json', lastResolved = '', resolved = resolve(path);
-      resolved != lastResolved;
-      path = '../' + path, lastResolved = resolved, resolved = resolve(path)
-    ) {
-      try {
-        const jsonData = await promises.readFile(new URL(resolved));
-        throw JSON.parse(jsonData.toString()).version;
-      } catch (err) {
-        if ((err as ErrnoException).code != 'ENOENT') {
-          throw err;
-        }
-      }
-    }
-    throw this.validator.error(ErrorItem.missingPackageJson);
-  }
-
-  /**
-   * Handles the completion of an option with a parameter.
-   * @param option The option definition
-   * @param param The option parameter
-   */
-  private handleCompletion(option: ParamOption, param?: string) {
-    let words =
-      option.type === 'boolean'
-        ? ['true', 'false']
-        : 'enums' in option && option.enums
-          ? option.enums.map((val) => val.toString())
-          : [];
-    if (words.length && param) {
-      words = words.filter((word) => word.startsWith(param));
-    }
-    if (words.length) {
-      throw words.join('\n');
-    }
   }
 
   /**
@@ -507,131 +434,22 @@ class ParserLoop {
   }
 
   /**
-   * Handles an unknown option.
-   * @param name The unknown option name
-   * @param msg The previous error message, if any
-   */
-  private handleUnknown(name: string, err?: ErrorMessage): never {
-    const similar = this.findSimilarNames(name);
-    if (err) {
-      if (similar.length) {
-        throw this.validator.error(ErrorItem.parseErrorWithSimilar, {
-          o1: name,
-          o2: similar,
-          t: err.str,
-        });
-      }
-      throw this.validator.error(ErrorItem.parseError, { o: name, t: err.str });
-    }
-    if (similar.length) {
-      throw this.validator.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
-    }
-    throw this.validator.error(ErrorItem.unknownOption, { o: name });
-  }
-
-  /**
-   * Handles the completion of an option name.
-   * @param prefix The name prefix, if any
-   */
-  private handleNameCompletion(prefix?: string): never {
-    const names = [...this.validator.names.keys()];
-    const prefixedNames = prefix ? names.filter((name) => name.startsWith(prefix)) : names;
-    throw prefixedNames.join('\n');
-  }
-
-  /**
-   * Handles the special "help" option.
-   * @param option The option definition
-   */
-  private handleHelp(option: HelpOption): never {
-    function formatHeading(group: string): TerminalString {
-      const heading = new TerminalString().addBreaks(1).addSequence(headingStyle);
-      if (group) {
-        heading.splitText(group).addWord('options:');
-      } else {
-        heading.addWord('Options:');
-      }
-      return heading.addBreaks(2).addSequence(style(tf.clear));
-    }
-    const help = new HelpMessage();
-    if (option.usage) {
-      help.push(new TerminalString().splitText(option.usage).addBreaks(1));
-    }
-    const groups = new HelpFormatter(this.validator, option.format).formatGroups();
-    const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
-    for (const [group, message] of groups.entries()) {
-      help.push(formatHeading(group), ...message);
-    }
-    if (option.footer) {
-      help.push(new TerminalString().addBreaks(1).splitText(option.footer).addBreaks(1));
-    }
-    throw help;
-  }
-
-  /**
    * Set options' values to their default value, if not previously set.
    */
   private setDefaultValues() {
     for (const key in this.validator.options) {
       const option = this.validator.options[key];
       if ('default' in option && !this.specifiedKeys.has(key)) {
-        this.setDefaultValue(key, option);
+        setDefaultValue(
+          this.values,
+          key,
+          option,
+          this.normalizeString,
+          this.normalizeNumber,
+          this.normalizeArray,
+        );
       }
     }
-  }
-
-  /**
-   * Sets the normalized default value of an option.
-   * @param name The option key
-   * @param option The option definition
-   */
-  private setDefaultValue(key: string, option: ValuedOption) {
-    if (option.default === undefined) {
-      this.values[key] = undefined;
-      return;
-    }
-    const value =
-      typeof option.default === 'function' ? option.default(this.values) : option.default;
-    switch (option.type) {
-      case 'flag':
-      case 'boolean': {
-        this.values[key] = value;
-        break;
-      }
-      case 'string':
-        return this.setSingle(key, option, key, value as string, this.normalizeString);
-      case 'number':
-        return this.setSingle(key, option, key, value as number, this.normalizeNumber);
-      case 'strings':
-        return this.setArray(key, option, key, value as Array<string>, this.normalizeString);
-      case 'numbers':
-        return this.setArray(key, option, key, value as Array<number>, this.normalizeNumber);
-      default: {
-        const _exhaustiveCheck: never = option;
-        return _exhaustiveCheck;
-      }
-    }
-  }
-
-  /**
-   * Gets a list of option names that are similar to a given name.
-   * @param name The option name
-   * @param threshold The similarity threshold
-   * @returns The list of similar names in decreasing order of similarity
-   */
-  private findSimilarNames(name: string, threshold = 0.6): Array<string> {
-    const searchName = name.replace(/\p{P}/gu, '').toLowerCase();
-    return [...this.validator.names.keys()]
-      .reduce((acc, name) => {
-        const candidateName = name.replace(/\p{P}/gu, '').toLowerCase();
-        const sim = gestaltSimilarity(searchName, candidateName);
-        if (sim >= threshold) {
-          acc.push([name, sim]);
-        }
-        return acc;
-      }, new Array<[string, number]>())
-      .sort(([, as], [, bs]) => bs - as)
-      .map(([str]) => str);
   }
 
   /**
@@ -709,339 +527,206 @@ class ParserLoop {
       formatFunctions.o(name, this.styles, this.styles.text, error);
       return false;
     }
-    return this.checkRequiredValue(option, negate, key, value, error);
-  }
-
-  /**
-   * Checks an option's required value against a specified value.
-   * @param option The option definition
-   * @param negate True if the requirement should be negated
-   * @param key The required option key (to get the specified value)
-   * @param value The required value
-   * @param error The terminal string error
-   * @returns True if the requirement was satisfied
-   */
-  private checkRequiredValue(
-    option: ParamOption,
-    negate: boolean,
-    key: string,
-    value: Exclude<RequiresVal[string], undefined | null>,
-    error: TerminalString,
-  ): boolean {
-    const [ns, nn] = [this.normalizeString, this.normalizeNumber];
-    switch (option.type) {
-      case 'boolean':
-        return this.checkSingle(option, negate, key, value as boolean, error, formatFunctions.b);
-      case 'string':
-        return this.checkSingle(option, negate, key, value as string, error, formatFunctions.s, ns);
-      case 'number':
-        return this.checkSingle(option, negate, key, value as number, error, formatFunctions.n, nn);
-      case 'strings':
-        return this.checkArray(
-          option,
-          negate,
-          key,
-          value as ReadonlyArray<string>,
-          error,
-          formatFunctions.s,
-          ns,
-        );
-      case 'numbers':
-        return this.checkArray(
-          option,
-          negate,
-          key,
-          value as ReadonlyArray<number>,
-          error,
-          formatFunctions.n,
-          nn,
-        );
-      default: {
-        const _exhaustiveCheck: never = option;
-        return _exhaustiveCheck;
-      }
-    }
-  }
-
-  /**
-   * Checks the required value of a single-parameter option against a specified value.
-   * @param option The option definition
-   * @param negate True if the requirement should be negated
-   * @param key The required option key
-   * @param value The required value
-   * @param error The terminal string error
-   * @param formatFn The function to convert to string
-   * @param normalizeFn The function to normalize the required value
-   * @returns True if the requirement was satisfied
-   */
-  private checkSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
-    option: O,
-    negate: boolean,
-    key: string,
-    value: T,
-    error: TerminalString,
-    formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
-    normalizeFn?: (option: O, name: string, value: T) => T,
-  ): boolean {
-    const actual = this.values[key] as T | Promise<T>;
-    if (actual instanceof Promise) {
-      return true; // ignore promises during requirement checking
-    }
-    const name = option.preferredName ?? '';
-    const expected = normalizeFn ? normalizeFn(option, name, value) : value;
-    if ((actual === expected) !== negate) {
-      return true;
-    }
-    formatFunctions.o(name, this.styles, this.styles.text, error);
-    error.addWord(negate ? '!=' : '=');
-    formatFn(expected, this.styles, this.styles.text, error);
-    return false;
-  }
-
-  /**
-   * Checks the required value of an array option against a specified value.
-   * @param option The option definition
-   * @param negate True if the requirement should be negated
-   * @param key The required option key
-   * @param value The required value
-   * @param error The terminal string error
-   * @param formatFn The function to convert to string
-   * @param normalizeFn The function to normalize the required value
-   * @returns True if the requirement was satisfied
-   */
-  private checkArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
-    option: O,
-    negate: boolean,
-    key: string,
-    value: ReadonlyArray<T>,
-    error: TerminalString,
-    formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
-    normalizeFn: (option: O, name: string, value: T) => T,
-  ): boolean {
-    const actual = this.values[key] as Array<T> | Promise<Array<T>>;
-    if (actual instanceof Promise) {
-      return true; // ignore promises during requirement checking
-    }
-    const name = option.preferredName ?? '';
-    const expected = value.map((val) => normalizeFn(option, name, val));
-    if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
-      return true;
-    }
-    formatFunctions.o(name, this.styles, this.styles.text, error);
-    error.addWord(negate ? '!=' : '=').addOpening('[');
-    expected.forEach((val, i) => {
-      formatFn(val, this.styles, this.styles.text, error);
-      if (i < expected.length - 1) {
-        error.addClosing(',');
-      }
-    });
-    error.addClosing(']');
-    return false;
-  }
-
-  /**
-   * Resets the value of an array option.
-   * @param key The option key
-   * @param option The option definition
-   */
-  private resetValue(key: string, option: ArrayOption) {
-    type ArrayVal =
-      | Array<string>
-      | Array<number>
-      | Promise<Array<string>>
-      | Promise<Array<number>>
-      | undefined;
-    const previous = this.values[key] as ArrayVal;
-    if (!previous) {
-      this.values[key] = [];
-    } else if (!option.append) {
-      if (previous instanceof Promise) {
-        const promise = previous.then((val) => {
-          val.length = 0;
-          return val;
-        });
-        this.values[key] = promise;
-      } else {
-        previous.length = 0;
-      }
-    }
-  }
-
-  /**
-   * Parses the value of an option parameter.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The parameter value
-   */
-  private parseValue(key: string, option: ParamOption, name: string, value: string) {
-    switch (option.type) {
-      case 'boolean': {
-        const convertFn = (str: string) =>
-          !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
-        return this.parseSingle(key, option, name, value, convertFn);
-      }
-      case 'string':
-        return this.parseSingle(key, option, name, value, (str) => str, this.normalizeString);
-      case 'number':
-        return this.parseSingle(key, option, name, value, Number, this.normalizeNumber);
-      case 'strings':
-        return this.parseArray(key, option, name, value, (str) => str, this.normalizeString);
-      case 'numbers':
-        return this.parseArray(key, option, name, value, Number, this.normalizeNumber);
-      default: {
-        const _exhaustiveCheck: never = option;
-        return _exhaustiveCheck;
-      }
-    }
-  }
-
-  /**
-   * Parses the value of a single-valued option parameter.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The parameter value
-   * @param convertFn The function to convert from string
-   * @param normalizeFn The function to normalize the value after conversion
-   */
-  private parseSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
-    key: string,
-    option: O,
-    name: string,
-    value: string,
-    convertFn: (value: string) => T,
-    normalizeFn?: (option: O, name: string, value: T) => T,
-  ) {
-    const result = 'parse' in option && option.parse ? option.parse(name, value) : convertFn(value);
-    this.setSingle(key, option, name, result as T | Promise<T>, normalizeFn);
-  }
-
-  /**
-   * Gets the value of a single-valued option parameter.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The parameter value
-   * @param normalizeFn The function to normalize the value after conversion
-   */
-  private setSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
-    key: string,
-    option: O,
-    name: string,
-    value: T | Promise<T>,
-    normalizeFn?: (option: O, name: string, value: T) => T,
-  ) {
-    if (normalizeFn) {
-      if (value instanceof Promise) {
-        value = value.then((val) => normalizeFn(option, name, val));
-      } else {
-        value = normalizeFn(option, name, value);
-      }
-    }
-    this.values[key] = value;
-  }
-
-  /**
-   * Gets the value of an array-valued option parameter.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The parameter value
-   * @param normalizeFn The function to normalize the value after conversion
-   */
-  private setArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
-    key: string,
-    option: O,
-    name: string,
-    value: ReadonlyArray<T> | Promise<ReadonlyArray<T>>,
-    normalizeFn: (option: O, name: string, value: T) => T,
-  ) {
-    let result: Array<T> | Promise<Array<T>>;
-    if (value instanceof Promise) {
-      result = value.then((vals) => {
-        const normalized = vals.map((val) => normalizeFn(option, name, val));
-        this.validator.normalizeArray(option, name, normalized);
-        return normalized;
-      });
-    } else {
-      result = value.map((val) => normalizeFn(option, name, val));
-      this.validator.normalizeArray(option, name, result);
-    }
-    this.values[key] = result;
-  }
-
-  /**
-   * Parses the value of an array option parameter.
-   * @template O The type of the option
-   * @template T The type of the parsed array element
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The parameter value
-   * @param convertFn The function to convert from string
-   * @param normalizeFn The function to normalize the value after conversion
-   */
-  private parseArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
-    key: string,
-    option: O,
-    name: string,
-    value: string,
-    convertFn: (value: string) => T,
-    normalizeFn: (option: O, name: string, value: T) => T,
-  ) {
-    let result: Array<T> | Promise<Array<T>>;
-    const previous = this.values[key] as typeof result;
-    if ('parse' in option && option.parse) {
-      const res = option.parse(name, value);
-      if (res instanceof Promise) {
-        result = res.then(async (val) => {
-          const prev = await previous;
-          prev.push(normalizeFn(option, name, val as T));
-          this.validator.normalizeArray(option, name, prev);
-          return prev;
-        });
-      } else {
-        result = [normalizeFn(option, name, res as T)];
-      }
-    } else if ('parseDelimited' in option && option.parseDelimited) {
-      const res = option.parseDelimited(name, value);
-      if (res instanceof Promise) {
-        result = res.then(async (vals) => {
-          const prev = await previous;
-          prev.push(...vals.map((val) => normalizeFn(option, name, val as T)));
-          this.validator.normalizeArray(option, name, prev);
-          return prev;
-        });
-      } else {
-        result = res.map((val) => normalizeFn(option, name, val as T));
-      }
-    } else {
-      const vals =
-        'separator' in option && option.separator
-          ? value.split(option.separator).map((val) => convertFn(val))
-          : [convertFn(value)];
-      result = vals.map((val) => normalizeFn(option, name, val as T));
-    }
-    if (result instanceof Promise) {
-      this.values[key] = result;
-    } else if (previous instanceof Promise) {
-      const res = result;
-      this.values[key] = previous.then((vals) => {
-        vals.push(...res);
-        this.validator.normalizeArray(option, name, vals);
-        return vals;
-      });
-    } else {
-      previous.push(...result);
-      this.validator.normalizeArray(option, name, previous);
-    }
+    return checkRequiredValue(
+      this.values,
+      option,
+      negate,
+      key,
+      value,
+      error,
+      this.styles,
+      this.normalizeString,
+      this.normalizeNumber,
+    );
   }
 }
 
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Parses an option from a command-line argument.
+ * @param validator The option validator
+ * @param arg The current argument
+ * @param comp True if completing at the current iteration
+ * @param current The current option information, if any
+ * @returns A tuple of [ArgKind, current, value]
+ */
+function parseOption(
+  validator: OptionValidator,
+  arg: string,
+  comp: boolean,
+  current?: Positional,
+): [ArgKind, Positional, string | undefined] {
+  const [name, value] = arg.split(/=(.*)/, 2);
+  const key = validator.names.get(name);
+  if (key) {
+    if (comp && value === undefined) {
+      throw name;
+    }
+    if (validator.positional && name === validator.positional.marker) {
+      if (comp) {
+        throw ''; // use default completion
+      }
+      if (value !== undefined) {
+        throw validator.error(ErrorItem.positionalInlineValue, { o: name });
+      }
+      return [ArgKind.marker, validator.positional, undefined];
+    }
+    current = { key, name, option: validator.options[key] };
+    return [ArgKind.inline, current, value];
+  }
+  if (!current) {
+    if (!validator.positional) {
+      if (comp) {
+        handleNameCompletion(validator, arg);
+      }
+      handleUnknown(validator, name);
+    }
+    return [ArgKind.positional, validator.positional, arg];
+  }
+  return [ArgKind.param, current, arg];
+}
+
+/**
+ * Resolve a package version using a module-resolve function.
+ * @param validator The option validator
+ * @param resolve The resolve callback
+ */
+async function resolveVersion(
+  validator: OptionValidator,
+  resolve: ResolveCallback,
+): Promise<never> {
+  const { promises } = await import('fs');
+  for (
+    let path = './package.json', lastResolved = '', resolved = resolve(path);
+    resolved != lastResolved;
+    path = '../' + path, lastResolved = resolved, resolved = resolve(path)
+  ) {
+    try {
+      const jsonData = await promises.readFile(new URL(resolved));
+      throw JSON.parse(jsonData.toString()).version;
+    } catch (err) {
+      if ((err as ErrnoException).code != 'ENOENT') {
+        throw err;
+      }
+    }
+  }
+  throw validator.error(ErrorItem.missingPackageJson);
+}
+
+/**
+ * Handles the completion of an option with a parameter.
+ * @param option The option definition
+ * @param param The option parameter
+ */
+function handleCompletion(option: ParamOption, param?: string) {
+  let words =
+    option.type === 'boolean'
+      ? ['true', 'false']
+      : 'enums' in option && option.enums
+        ? option.enums.map((val) => val.toString())
+        : [];
+  if (words.length && param) {
+    words = words.filter((word) => word.startsWith(param));
+  }
+  if (words.length) {
+    throw words.join('\n');
+  }
+}
+
+/**
+ * Handles an unknown option.
+ * @param validator The option validator
+ * @param name The unknown option name
+ * @param msg The previous error message, if any
+ */
+function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
+  const similar = findSimilarNames(validator, name);
+  if (err) {
+    if (similar.length) {
+      throw validator.error(ErrorItem.parseErrorWithSimilar, {
+        o1: name,
+        o2: similar,
+        t: err.str,
+      });
+    }
+    throw validator.error(ErrorItem.parseError, { o: name, t: err.str });
+  }
+  if (similar.length) {
+    throw validator.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
+  }
+  throw validator.error(ErrorItem.unknownOption, { o: name });
+}
+
+/**
+ * Handles the special "help" option.
+ * @param validator The option validator
+ * @param option The option definition
+ */
+function handleHelp(validator: OptionValidator, option: HelpOption): never {
+  function formatHeading(group: string): TerminalString {
+    const heading = new TerminalString().addBreaks(1).addSequence(headingStyle);
+    if (group) {
+      heading.splitText(group).addWord('options:');
+    } else {
+      heading.addWord('Options:');
+    }
+    return heading.addBreaks(2).addSequence(style(tf.clear));
+  }
+  const help = new HelpMessage();
+  if (option.usage) {
+    help.push(new TerminalString().splitText(option.usage).addBreaks(1));
+  }
+  const groups = new HelpFormatter(validator, option.format).formatGroups();
+  const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
+  for (const [group, message] of groups.entries()) {
+    help.push(formatHeading(group), ...message);
+  }
+  if (option.footer) {
+    help.push(new TerminalString().addBreaks(1).splitText(option.footer).addBreaks(1));
+  }
+  throw help;
+}
+
+/**
+ * Gets a list of option names that are similar to a given name.
+ * @param validator The option validator
+ * @param name The option name
+ * @param threshold The similarity threshold
+ * @returns The list of similar names in decreasing order of similarity
+ */
+function findSimilarNames(
+  validator: OptionValidator,
+  name: string,
+  threshold = 0.6,
+): Array<string> {
+  const names = [...validator.names.keys()];
+  const searchName = name.replace(/\p{P}/gu, '').toLowerCase();
+  return names
+    .reduce((acc, name) => {
+      const candidateName = name.replace(/\p{P}/gu, '').toLowerCase();
+      const sim = gestaltSimilarity(searchName, candidateName);
+      if (sim >= threshold) {
+        acc.push([name, sim]);
+      }
+      return acc;
+    }, new Array<[string, number]>())
+    .sort(([, as], [, bs]) => bs - as)
+    .map(([str]) => str);
+}
+
+/**
+ * Handles the completion of an option name.
+ * @param validator The option validator
+ * @param prefix The name prefix, if any
+ */
+function handleNameCompletion(validator: OptionValidator, prefix?: string): never {
+  const names = [...validator.names.keys()];
+  const prefixedNames = prefix ? names.filter((name) => name.startsWith(prefix)) : names;
+  throw prefixedNames.join('\n');
+}
+
 /**
  * Checks the items of a requirement expression or object.
  * @param items The list of requirement items
@@ -1079,4 +764,444 @@ function checkRequireItems<T>(
     error.addClosing(')');
   }
   return false;
+}
+
+/**
+ * Parses the value of an array option parameter.
+ * @template O The type of the option
+ * @template T The type of the parsed array element
+ * @param values The option values
+ * @param key The option key
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The parameter value
+ * @param convertFn The function to convert from string
+ * @param normalizeFn The function to normalize the value after conversion
+ */
+function parseArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
+  values: CastToOptionValues,
+  key: string,
+  option: O,
+  name: string,
+  value: string,
+  convertFn: (value: string) => T,
+  normalizeFn: (option: O, name: string, value: T) => T,
+  normalizeArrayFn: (option: O, name: string, value: Array<T>) => void,
+) {
+  let result: Array<T> | Promise<Array<T>>;
+  const previous = values[key] as typeof result;
+  if ('parse' in option && option.parse) {
+    const res = option.parse(name, value);
+    if (res instanceof Promise) {
+      result = res.then(async (val) => {
+        const prev = await previous;
+        prev.push(normalizeFn(option, name, val as T));
+        normalizeArrayFn(option, name, prev);
+        return prev;
+      });
+    } else {
+      result = [normalizeFn(option, name, res as T)];
+    }
+  } else if ('parseDelimited' in option && option.parseDelimited) {
+    const res = option.parseDelimited(name, value);
+    if (res instanceof Promise) {
+      result = res.then(async (vals) => {
+        const prev = await previous;
+        prev.push(...vals.map((val) => normalizeFn(option, name, val as T)));
+        normalizeArrayFn(option, name, prev);
+        return prev;
+      });
+    } else {
+      result = res.map((val) => normalizeFn(option, name, val as T));
+    }
+  } else {
+    const vals =
+      'separator' in option && option.separator
+        ? value.split(option.separator).map((val) => convertFn(val))
+        : [convertFn(value)];
+    result = vals.map((val) => normalizeFn(option, name, val as T));
+  }
+  if (result instanceof Promise) {
+    values[key] = result;
+  } else if (previous instanceof Promise) {
+    const res = result;
+    values[key] = previous.then((vals) => {
+      vals.push(...res);
+      normalizeArrayFn(option, name, vals);
+      return vals;
+    });
+  } else {
+    previous.push(...result);
+    normalizeArrayFn(option, name, previous);
+  }
+}
+
+/**
+ * Parses the value of a single-valued option parameter.
+ * @param values The option values
+ * @param key The option key
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The parameter value
+ * @param convertFn The function to convert from string
+ * @param normalizeFn The function to normalize the value after conversion
+ */
+function parseSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
+  values: CastToOptionValues,
+  key: string,
+  option: O,
+  name: string,
+  value: string,
+  convertFn: (value: string) => T,
+  normalizeFn?: (option: O, name: string, value: T) => T,
+) {
+  const result = 'parse' in option && option.parse ? option.parse(name, value) : convertFn(value);
+  setSingle(values, key, option, name, result as T | Promise<T>, normalizeFn);
+}
+
+/**
+ * Gets the value of a single-valued option parameter.
+ * @param values The option values
+ * @param key The option key
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The parameter value
+ * @param normalizeFn The function to normalize the value after conversion
+ */
+function setSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
+  values: CastToOptionValues,
+  key: string,
+  option: O,
+  name: string,
+  value: T | Promise<T>,
+  normalizeFn?: (option: O, name: string, value: T) => T,
+) {
+  if (normalizeFn) {
+    if (value instanceof Promise) {
+      value = value.then((val) => normalizeFn(option, name, val));
+    } else {
+      value = normalizeFn(option, name, value);
+    }
+  }
+  values[key] = value;
+}
+
+/**
+ * Gets the value of an array-valued option parameter.
+ * @param values The option values
+ * @param key The option key
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The parameter value
+ * @param normalizeFn The function to normalize the value after conversion
+ */
+function setArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
+  values: CastToOptionValues,
+  key: string,
+  option: O,
+  name: string,
+  value: ReadonlyArray<T> | Promise<ReadonlyArray<T>>,
+  normalizeFn: (option: O, name: string, value: T) => T,
+  normalizeArrayFn: (option: O, name: string, value: Array<T>) => void,
+) {
+  let result: Array<T> | Promise<Array<T>>;
+  if (value instanceof Promise) {
+    result = value.then((vals) => {
+      const normalized = vals.map((val) => normalizeFn(option, name, val));
+      normalizeArrayFn(option, name, normalized);
+      return normalized;
+    });
+  } else {
+    result = value.map((val) => normalizeFn(option, name, val));
+    normalizeArrayFn(option, name, result);
+  }
+  values[key] = result;
+}
+
+/**
+ * Parses the value of an option parameter.
+ * @param values The option values
+ * @param key The option key
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The parameter value
+ * @param normalizeStr The normalization function for strings
+ * @param normalizeNum The normalization function for numbers
+ * @param normalizeArr The normalization function for arrays
+ */
+function parseValue(
+  values: CastToOptionValues,
+  key: string,
+  option: ParamOption,
+  name: string,
+  value: string,
+  normalizeStr: OptionValidator['normalizeString'],
+  normalizeNum: OptionValidator['normalizeNumber'],
+  normalizeArr: OptionValidator['normalizeArray'],
+) {
+  switch (option.type) {
+    case 'boolean': {
+      const convertFn = (str: string) => !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
+      return parseSingle(values, key, option, name, value, convertFn);
+    }
+    case 'string':
+      return parseSingle(values, key, option, name, value, (str) => str, normalizeStr);
+    case 'number':
+      return parseSingle(values, key, option, name, value, Number, normalizeNum);
+    case 'strings':
+      return parseArray(values, key, option, name, value, (str) => str, normalizeStr, normalizeArr);
+    case 'numbers':
+      return parseArray(values, key, option, name, value, Number, normalizeNum, normalizeArr);
+    default: {
+      const _exhaustiveCheck: never = option;
+      return _exhaustiveCheck;
+    }
+  }
+}
+
+/**
+ * Resets the value of an array option.
+ * @param values The option values
+ * @param key The option key
+ * @param option The option definition
+ */
+function resetValue(values: CastToOptionValues, key: string, option: ArrayOption) {
+  type ArrayVal =
+    | Array<string>
+    | Array<number>
+    | Promise<Array<string>>
+    | Promise<Array<number>>
+    | undefined;
+  const previous = values[key] as ArrayVal;
+  if (!previous) {
+    values[key] = [];
+  } else if (!option.append) {
+    if (previous instanceof Promise) {
+      const promise = previous.then((val) => {
+        val.length = 0;
+        return val;
+      });
+      values[key] = promise;
+    } else {
+      previous.length = 0;
+    }
+  }
+}
+
+/**
+ * Checks the required value of a single-parameter option against a specified value.
+ * @param values The option values
+ * @param option The option definition
+ * @param negate True if the requirement should be negated
+ * @param key The required option key
+ * @param value The required value
+ * @param error The terminal string error
+ * @param styles The error message styles
+ * @param formatFn The function to convert to string
+ * @param normalizeFn The function to normalize the required value
+ * @returns True if the requirement was satisfied
+ */
+function checkSingle<O extends SingleOption, T extends Exclude<O['example'], undefined>>(
+  values: CastToOptionValues,
+  option: O,
+  negate: boolean,
+  key: string,
+  value: T,
+  error: TerminalString,
+  styles: ConcreteStyles,
+  formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
+  normalizeFn?: (option: O, name: string, value: T) => T,
+): boolean {
+  const actual = values[key] as T | Promise<T>;
+  if (actual instanceof Promise) {
+    return true; // ignore promises during requirement checking
+  }
+  const name = option.preferredName ?? '';
+  const expected = normalizeFn ? normalizeFn(option, name, value) : value;
+  if ((actual === expected) !== negate) {
+    return true;
+  }
+  formatFunctions.o(name, styles, styles.text, error);
+  error.addWord(negate ? '!=' : '=');
+  formatFn(expected, styles, styles.text, error);
+  return false;
+}
+
+/**
+ * Checks the required value of an array option against a specified value.
+ * @param values The option values
+ * @param option The option definition
+ * @param negate True if the requirement should be negated
+ * @param key The required option key
+ * @param value The required value
+ * @param error The terminal string error
+ * @param styles The error message styles
+ * @param formatFn The function to convert to string
+ * @param normalizeFn The function to normalize the required value
+ * @returns True if the requirement was satisfied
+ */
+function checkArray<O extends ArrayOption, T extends Exclude<O['example'], undefined>[number]>(
+  values: CastToOptionValues,
+  option: O,
+  negate: boolean,
+  key: string,
+  value: ReadonlyArray<T>,
+  error: TerminalString,
+  styles: ConcreteStyles,
+  formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
+  normalizeFn: (option: O, name: string, value: T) => T,
+): boolean {
+  const actual = values[key] as Array<T> | Promise<Array<T>>;
+  if (actual instanceof Promise) {
+    return true; // ignore promises during requirement checking
+  }
+  const name = option.preferredName ?? '';
+  const expected = value.map((val) => normalizeFn(option, name, val));
+  if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
+    return true;
+  }
+  formatFunctions.o(name, styles, styles.text, error);
+  error.addWord(negate ? '!=' : '=').addOpening('[');
+  expected.forEach((val, i) => {
+    formatFn(val, styles, styles.text, error);
+    if (i < expected.length - 1) {
+      error.addClosing(',');
+    }
+  });
+  error.addClosing(']');
+  return false;
+}
+
+/**
+ * Checks an option's required value against a specified value.
+ * @param values The option values
+ * @param option The option definition
+ * @param negate True if the requirement should be negated
+ * @param key The required option key (to get the specified value)
+ * @param value The required value
+ * @param error The terminal string error
+ * @param styles The error message styles
+ * @param normalizeStr The normalization function for strings
+ * @param normalizeNum The normalization function for numbers
+ * @returns True if the requirement was satisfied
+ */
+function checkRequiredValue(
+  values: CastToOptionValues,
+  option: ParamOption,
+  negate: boolean,
+  key: string,
+  value: Exclude<RequiresVal[string], undefined | null>,
+  error: TerminalString,
+  styles: ConcreteStyles,
+  normalizeStr: OptionValidator['normalizeString'],
+  normalizeNum: OptionValidator['normalizeNumber'],
+): boolean {
+  switch (option.type) {
+    case 'boolean':
+      return checkSingle(
+        values,
+        option,
+        negate,
+        key,
+        value as boolean,
+        error,
+        styles,
+        formatFunctions.b,
+      );
+    case 'string':
+      return checkSingle(
+        values,
+        option,
+        negate,
+        key,
+        value as string,
+        error,
+        styles,
+        formatFunctions.s,
+        normalizeStr,
+      );
+    case 'number':
+      return checkSingle(
+        values,
+        option,
+        negate,
+        key,
+        value as number,
+        error,
+        styles,
+        formatFunctions.n,
+        normalizeNum,
+      );
+    case 'strings':
+      return checkArray(
+        values,
+        option,
+        negate,
+        key,
+        value as ReadonlyArray<string>,
+        error,
+        styles,
+        formatFunctions.s,
+        normalizeStr,
+      );
+    case 'numbers':
+      return checkArray(
+        values,
+        option,
+        negate,
+        key,
+        value as ReadonlyArray<number>,
+        error,
+        styles,
+        formatFunctions.n,
+        normalizeNum,
+      );
+    default: {
+      const _exhaustiveCheck: never = option;
+      return _exhaustiveCheck;
+    }
+  }
+}
+
+/**
+ * Sets the normalized default value of an option.
+ * @param values The option values
+ * @param name The option key
+ * @param option The option definition
+ * @param normalizeStr The normalization function for strings
+ * @param normalizeNum The normalization function for numbers
+ * @param normalizeArr The normalization function for arrays
+ */
+function setDefaultValue(
+  values: CastToOptionValues,
+  key: string,
+  option: ValuedOption,
+  normalizeStr: OptionValidator['normalizeString'],
+  normalizeNum: OptionValidator['normalizeNumber'],
+  normalizeArr: OptionValidator['normalizeArray'],
+) {
+  if (option.default === undefined) {
+    values[key] = undefined;
+    return;
+  }
+  const value = typeof option.default === 'function' ? option.default(values) : option.default;
+  switch (option.type) {
+    case 'flag':
+    case 'boolean': {
+      values[key] = value;
+      break;
+    }
+    case 'string':
+      return setSingle(values, key, option, key, value as string, normalizeStr);
+    case 'number':
+      return setSingle(values, key, option, key, value as number, normalizeNum);
+    case 'strings':
+      return setArray(values, key, option, key, value as Array<string>, normalizeStr, normalizeArr);
+    case 'numbers':
+      return setArray(values, key, option, key, value as Array<number>, normalizeNum, normalizeArr);
+    default: {
+      const _exhaustiveCheck: never = option;
+      return _exhaustiveCheck;
+    }
+  }
 }
