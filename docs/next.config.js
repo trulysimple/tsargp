@@ -9,6 +9,7 @@ const withNextra = nextra(nextraConfig);
 
 /** @type {import('next').NextConfig} */
 const baseConfig = {
+  swcMinify: false,
   webpack(config) {
     const allowedSvgRegex = /components\/icons\/.+\.svg$/;
 

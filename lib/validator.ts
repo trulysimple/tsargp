@@ -587,6 +587,7 @@ class OptionValidator {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @returns The normalized value
    * @throws On value not satisfying the specified enums, regex or range constraints
    */
   normalize<T extends ParamValue>(option: ParamOption, name: string, value: T): T {
@@ -610,6 +611,7 @@ class OptionValidator {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @returns The normalized string
    * @throws On value not satisfying the specified enumeration or regex constraint
    */
   private normalizeString(
@@ -637,6 +639,7 @@ class OptionValidator {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @returns The normalized number
    * @throws On value not satisfying the specified enumeration or range constraint
    */
   private normalizeNumber(
@@ -665,6 +668,7 @@ class OptionValidator {
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
+   * @returns The normalized array
    * @throws On value not satisfying the specified limit constraint
    */
   private normalizeArray<T extends string | number>(
