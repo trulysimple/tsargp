@@ -34,6 +34,7 @@ export type {
   Requires,
   RequiresExp,
   RequiresVal,
+  ParamValue,
 };
 
 export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isVariadic };
@@ -781,6 +782,11 @@ type Resolve<T> = T & unknown;
  * @template T The source type
  */
 type Writable<T> = { -readonly [P in keyof T]: T[P] };
+
+/**
+ * The concrete data type of the option value of a non-niladic option. Used internally.
+ */
+type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
 
 //--------------------------------------------------------------------------------------------------
 // Functions

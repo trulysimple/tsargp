@@ -68,7 +68,7 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * @returns True if the requirement was satisfied
  */
 function checkRequiredArray<T extends string | number>(
-  actual: Array<T>,
+  actual: ReadonlyArray<T>,
   expected: ReadonlyArray<T>,
   negate: boolean,
   unique: boolean,

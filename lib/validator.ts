@@ -12,13 +12,23 @@ import type {
   NumberOption,
   NumbersOption,
   ArrayOption,
+  ParamValue,
 } from './options';
 import type { Style } from './styles';
 
-import { RequiresAll, RequiresOne, RequiresNot, isNiladic } from './options';
+import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray } from './options';
 import { tf, fg, style, TerminalString, ErrorMessage } from './styles';
+import { assert } from './utils';
 
-export type { Positional, Concrete, ErrorStyles, ErrorConfig, ConcreteStyles, ConcreteError };
+export type {
+  Positional,
+  Concrete,
+  ErrorStyles,
+  ErrorConfig,
+  ConcreteStyles,
+  ConcreteError,
+  FormatFunction,
+};
 export { OptionValidator, ErrorItem, defaultConfig, formatFunctions };
 
 //--------------------------------------------------------------------------------------------------
@@ -573,13 +583,40 @@ class OptionValidator {
   }
 
   /**
+   * Normalizes the value of a non-niladic option and checks its validity against any constraint.
+   * @param option The option definition
+   * @param name The option name (as specified on the command-line)
+   * @param value The option value
+   * @throws On value not satisfying the specified enums, regex or range constraints
+   */
+  normalize<T extends ParamValue>(option: ParamOption, name: string, value: T): T {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      assert(option.type === 'string' || option.type === 'strings');
+      return this.normalizeString(option, name, value) as T;
+    }
+    if (typeof value === 'number') {
+      assert(option.type === 'number' || option.type === 'numbers');
+      return this.normalizeNumber(option, name, value) as T;
+    }
+    assert(isArray(option));
+    return this.normalizeArray(option, name, value as Array<string | number>) as T;
+  }
+
+  /**
    * Normalizes the value of a string option and checks its validity against any constraint.
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    * @throws On value not satisfying the specified enumeration or regex constraint
    */
-  normalizeString(option: StringOption | StringsOption, name: string, value: string): string {
+  private normalizeString(
+    option: StringOption | StringsOption,
+    name: string,
+    value: string,
+  ): string {
     if (option.trim) {
       value = value.trim();
     }
@@ -602,7 +639,11 @@ class OptionValidator {
    * @param value The option value
    * @throws On value not satisfying the specified enumeration or range constraint
    */
-  normalizeNumber(option: NumberOption | NumbersOption, name: string, value: number): number {
+  private normalizeNumber(
+    option: NumberOption | NumbersOption,
+    name: string,
+    value: number,
+  ): number {
     if (option.round) {
       value = Math[option.round](value);
     }
@@ -626,7 +667,11 @@ class OptionValidator {
    * @param value The option value
    * @throws On value not satisfying the specified limit constraint
    */
-  normalizeArray(option: ArrayOption, name: string, value: Array<string | number>) {
+  private normalizeArray<T extends string | number>(
+    option: ArrayOption,
+    name: string,
+    value: Array<T>,
+  ): Array<T> {
     if (option.unique) {
       const unique = new Set(value);
       value.length = 0;
@@ -639,6 +684,7 @@ class OptionValidator {
         n2: option.limit,
       });
     }
+    return value;
   }
 
   /**
