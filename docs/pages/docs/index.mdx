@@ -36,7 +36,7 @@ its definition. Even JSDoc comments are preserved in IntelliSense!
 
 ## Installation
 
-```sh
+```sh copy
 npm install tsargp
 ```
 
@@ -44,7 +44,7 @@ npm install tsargp
 
 Define your command-line options (we recommend placing them in a separate file):
 
-```ts filename="<your_cli_name>.options.ts" /<your_cli_name>/
+```ts copy filename="<your_cli_name>.options.ts" /<your_cli_name>/
 import { Options, ... } from 'tsargp';
 
 export default {
@@ -54,7 +54,7 @@ export default {
 
 Import them in your main script:
 
-```ts filename="<your_cli_name>.ts" {8-10} /<your_cli_name>/
+```ts copy filename="<your_cli_name>.ts" {8-10} /<your_cli_name>/
 #!/usr/bin/env node
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
@@ -77,7 +77,7 @@ try {
 
 Optionally, enable bash completion:
 
-```sh /<your_cli_name>/
+```sh copy /<your_cli_name>/
 complete -o default -C <your_cli_name> <your_cli_name>
 ```
 

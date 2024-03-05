@@ -1,8 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
+import React from 'react';
 import { OpaqueArgumentParser, ErrorMessage, HelpMessage, style } from 'tsargp';
-import { type Props, Command } from './command';
+import { type Props, Command } from './classes/command';
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -25,8 +26,7 @@ type PlayProps = Props & {
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
-export default class extends Command<PlayProps> {
-  readonly displayName = 'Play Command';
+class PlayCommand extends Command<PlayProps> {
   private parser: OpaqueArgumentParser | undefined;
 
   constructor(props: PlayProps) {
@@ -59,3 +59,11 @@ export default class extends Command<PlayProps> {
     }
   }
 }
+
+//--------------------------------------------------------------------------------------------------
+// Functions
+//--------------------------------------------------------------------------------------------------
+export default function Play(props: PlayProps): JSX.Element {
+  return <PlayCommand {...props} />;
+}
+Play.displayName = 'Play Command';

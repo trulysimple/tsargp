@@ -1,19 +1,20 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
+import React from 'react';
 import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
-import { type Props, Command } from './command';
+import { type Props, Command } from './classes/command';
 
 // @ts-expect-error since tsargp demo does not export types
 import { demo as options } from 'tsargp/examples';
+
 // override version because there's no package.json file in the browser
 options.version.version = '0.1.96';
 
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
-export default class extends Command {
-  readonly displayName = 'Demo Command';
+class DemoCommand extends Command {
   private readonly parser = new ArgumentParser(options);
 
   constructor(props: Props) {
@@ -33,3 +34,11 @@ export default class extends Command {
     }
   }
 }
+
+//--------------------------------------------------------------------------------------------------
+// Functions
+//--------------------------------------------------------------------------------------------------
+export default function Demo(props: Props): JSX.Element {
+  return <DemoCommand {...props} />;
+}
+Demo.displayName = 'Demo Command';

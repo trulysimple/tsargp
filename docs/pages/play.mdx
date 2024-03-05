@@ -2,7 +2,8 @@ import dynamic from 'next/dynamic';
 import { Callout } from 'nextra/components';
 
 export const Play = dynamic(() => import('@components/play'), { ssr: false });
-export const Editor = dynamic(() => import('@components/editor'), { ssr: false });
+export const Code = dynamic(() => import('@components/code'), { ssr: false });
+export const callbacks = {};
 export const initialDoc = `// Define your options here. Only plain JavaScript is allowed.
 const options = {
   help: {
@@ -12,13 +13,14 @@ const options = {
   },
 };
 options // evaluate as an expression`;
-export const callbacks = {};
 
-<Editor callbacks={callbacks} style={{ backgroundColor: 'gray' }} initialDoc={initialDoc} />
+<Code callbacks={callbacks} initialDoc={initialDoc} />
 
 <Callout type="default">
   Call `init` once to validate the option definitions. After that, you can `play` with your options.
   (Bash completion will be available as well.)
 </Callout>
+
+---
 
 <Play callbacks={callbacks} />

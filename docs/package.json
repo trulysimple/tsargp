@@ -1,6 +1,6 @@
 {
   "name": "@trulysimple/tsargp-docs",
-  "version": "0.1.37",
+  "version": "0.1.38",
   "description": "Documentation for tsargp",
   "homepage": "https://trulysimple.dev/tsargp/docs",
   "license": "MIT",
@@ -24,6 +24,7 @@
     "@xterm/addon-fit": "^0.9.0-beta.1",
     "@xterm/addon-web-links": "^0.10.0-beta.1",
     "codemirror": "^6.0.1",
+    "lz-string": "^1.5.0",
     "next": "^14.1.0",
     "nextra": "^2.13.3",
     "nextra-theme-docs": "^2.13.3",

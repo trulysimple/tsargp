@@ -1,9 +1,11 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import * as React from 'react';
+import React, { Component, createRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { javascript } from '@codemirror/lang-javascript';
+
+export { type Props, Editor };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -16,10 +18,6 @@ type Props = {
    * The HTML class name.
    */
   readonly className?: string;
-  /**
-   * The CSS styles.
-   */
-  readonly style?: React.CSSProperties;
   /**
    * The initial editor document.
    */
@@ -38,11 +36,24 @@ type Props = {
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
-export default class extends React.Component<Props> {
-  readonly displayName = 'JavaScript Editor';
-  private readonly ref = React.createRef<HTMLDivElement>();
+/**
+ * A React component for editing JavaScript source code.
+ */
+class Editor extends Component<Props> {
+  /**
+   * The ref for the containing element.
+   */
+  private readonly ref = createRef<HTMLDivElement>();
+
+  /**
+   * The editor view.
+   */
   private editorView: EditorView | undefined;
 
+  /**
+   * Creates the editor component.
+   * @param props The component properties
+   */
   constructor(props: Props) {
     super(props);
     props.callbacks.getSource = this.getSource.bind(this);
@@ -58,10 +69,15 @@ export default class extends React.Component<Props> {
     }
   }
 
-  override render(): React.JSX.Element {
-    return <div ref={this.ref} className={this.props.className} style={this.props.style} />;
+  override render(): JSX.Element {
+    return (
+      <div ref={this.ref} className={this.props.className} style={{ backgroundColor: 'gray' }} />
+    );
   }
 
+  /**
+   * @returns The source code in the editor document.
+   */
   private getSource(): string {
     return this.editorView ? this.editorView.state.doc.toString() : '';
   }

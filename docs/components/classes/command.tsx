@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import * as React from 'react';
+import React, { Component, createRef } from 'react';
 import { Terminal } from 'xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { FitAddon } from '@xterm/addon-fit';
@@ -41,16 +41,13 @@ type State = {
 // Classes
 //--------------------------------------------------------------------------------------------------
 /**
- * A React component for a terminal command.
+ * A React component for running Terminal commands.
  */
-abstract class Command<P extends Props = Props, S extends State = State> extends React.Component<
-  P,
-  S
-> {
+abstract class Command<P extends Props = Props, S extends State = State> extends Component<P, S> {
   /**
    * The ref for the containing element.
    */
-  private readonly ref = React.createRef<HTMLDivElement>();
+  private readonly ref = createRef<HTMLDivElement>();
 
   /**
    * The Xterm.js terminal object.
@@ -78,7 +75,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
   private readonly commands: ReadonlyArray<string>;
 
   /**
-   * Creates a the component.
+   * Creates the command component.
    * @param props The component properties
    * @param names The command names
    */

@@ -79,6 +79,16 @@
           "react": {
             "version": "detect"
           }
+        },
+        "rules": {
+          "react/no-unknown-property": [
+            2,
+            {
+              "ignore": [
+                "jsx"
+              ]
+            }
+          ]
         }
       }
     ]
