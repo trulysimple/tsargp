@@ -6,8 +6,6 @@ import { Terminal } from 'xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { FitAddon } from '@xterm/addon-fit';
 import { Readline } from 'xterm-readline';
-import type { Options } from 'tsargp';
-import { OpaqueArgumentParser, CastToOptionValues, ErrorMessage, HelpMessage } from 'tsargp';
 import 'xterm/css/xterm.css';
 
 export { type Props, type State, Command };
@@ -43,9 +41,12 @@ type State = {
 // Classes
 //--------------------------------------------------------------------------------------------------
 /**
- * A React component for the demo.
+ * A React component for a terminal command.
  */
-abstract class Command extends React.Component<Props, State> {
+abstract class Command<P extends Props = Props, S extends State = State> extends React.Component<
+  P,
+  S
+> {
   /**
    * The ref for the containing element.
    */
@@ -69,12 +70,7 @@ abstract class Command extends React.Component<Props, State> {
   /**
    * The readline controller.
    */
-  protected readonly readline = new Readline();
-
-  /**
-   * The argument parser object.
-   */
-  private readonly parser: OpaqueArgumentParser;
+  private readonly readline = new Readline();
 
   /**
    * The list of command names.
@@ -82,15 +78,13 @@ abstract class Command extends React.Component<Props, State> {
   private readonly commands: ReadonlyArray<string>;
 
   /**
-   * Creates a demo component.
+   * Creates a the component.
    * @param props The component properties
-   * @param name The command name
-   * @param options The command options
+   * @param names The command names
    */
-  constructor(props: Props, name: string, options: Options) {
+  constructor(props: P, ...names: Array<string>) {
     super(props);
-    this.commands = [name, 'clear'];
-    this.parser = new OpaqueArgumentParser(options);
+    this.commands = ['clear', ...names];
     this.term.loadAddon(new WebLinksAddon());
     this.term.loadAddon(this.fit);
     this.term.loadAddon(this.readline);
@@ -113,7 +107,7 @@ abstract class Command extends React.Component<Props, State> {
     this.resize.disconnect();
   }
 
-  render(): React.JSX.Element {
+  override render(): React.JSX.Element {
     return <div className={this.props.className} ref={this.ref} />;
   }
 
@@ -136,6 +130,22 @@ abstract class Command extends React.Component<Props, State> {
         this.term.paste(this.state.selection);
         break;
     }
+  }
+
+  /**
+   * Fires when a command throws.
+   * @param err The captured error
+   */
+  private onError(err: unknown) {
+    this.readline.println(`${err}`);
+    this.readInput();
+  }
+
+  /**
+   * Fires when the terminal size changes.
+   */
+  private onResize(size: { cols: number }) {
+    this.setState({ width: size.cols });
   }
 
   /**
@@ -167,17 +177,44 @@ abstract class Command extends React.Component<Props, State> {
     if (cmds.length > 1) {
       this.readline.print(`\n> ${cmds.join(' ')}\n> `);
     } else if (cmds.length) {
-      const command = cmds[0];
-      if (pos <= command.length) {
-        this.term.paste(`${command} `.slice(pos));
-      } else if (command == this.commands[0]) {
-        this.complete(buf, pos);
+      const cmd = cmds[0];
+      if (pos <= cmd.length) {
+        this.term.paste(`${cmd} `.slice(pos));
+      } else if (cmd !== this.commands[0]) {
+        try {
+          this.run(buf, pos);
+        } catch (comp) {
+          if (typeof comp === 'string' && comp) {
+            this.onComplete(comp.split('\n'), buf, pos);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Performs the final completion step.
+   * @param words The completion words
+   * @param line The command line
+   * @param compIndex The completion index
+   */
+  private onComplete(words: Array<string>, line: string, compIndex: number) {
+    if (words.length > 1) {
+      this.readline.print(`\n> ${words.join(' ')}\n> `);
+    } else {
+      const word = words[0];
+      for (let i = compIndex - word.length; i < compIndex; ++i) {
+        if (line.slice(i, compIndex) == word.slice(0, compIndex - i)) {
+          this.term.paste(word.slice(compIndex - i) + ' ');
+          break;
+        }
       }
     }
   }
 
   /**
    * Fires when the user enters a line.
+   * @param line The command-line
    */
   private onInput(line: string) {
     line = line.trimStart();
@@ -187,9 +224,10 @@ abstract class Command extends React.Component<Props, State> {
         case 'clear':
           this.term.clear();
           break;
-        case this.commands[0]:
+        default: {
           this.run(line);
           break;
+        }
       }
     } else {
       this.readline.println(`${command}: command not found`);
@@ -198,67 +236,17 @@ abstract class Command extends React.Component<Props, State> {
   }
 
   /**
-   * Fires when a command throws.
+   * Runs or completes a command.
+   * @param line The command-line
+   * @param compIndex The completion index, if any
    */
-  private onError(err: string | Error) {
-    this.readline.println(`${err}`);
-    this.readInput();
-  }
+  protected abstract run(line: string, compIndex?: number): void;
 
   /**
-   * Fires when the terminal size changes.
+   * Prints a line on the terminal.
+   * @param text The text line
    */
-  private onResize(size: { cols: number }) {
-    this.setState({ width: size.cols });
-  }
-
-  /**
-   * Runs the demo command.
-   * @param line The command line
-   */
-  private run(line: string) {
-    try {
-      const values = {};
-      this.parser.parseInto(values, line);
-      this.handleValues(values);
-    } catch (err) {
-      const msg =
-        err instanceof ErrorMessage || err instanceof HelpMessage
-          ? err.wrap(this.state.width)
-          : `${err}`;
-      this.readline.println(msg);
-    }
-  }
-
-  /**
-   * Handles the result of parsing the command options.
-   * @param values The option values
-   */
-  protected abstract handleValues(values: CastToOptionValues): void;
-
-  /**
-   * Completes the demo command.
-   * @param line The command line
-   * @param compIndex The completion index
-   */
-  private complete(line: string, compIndex: number) {
-    try {
-      this.parser.parseInto({}, line, { compIndex });
-    } catch (comp) {
-      if (comp) {
-        const words = (comp as string).split('\n');
-        if (words.length > 1) {
-          this.readline.print(`\n> ${words.join(' ')}\n> `);
-        } else {
-          const word = words[0];
-          for (let i = compIndex - word.length; i < compIndex; ++i) {
-            if (line.slice(i, compIndex) == word.slice(0, compIndex - i)) {
-              this.term.paste(word.slice(compIndex - i) + ' ');
-              break;
-            }
-          }
-        }
-      }
-    }
+  protected println(text: string) {
+    this.readline.println(text);
   }
 }

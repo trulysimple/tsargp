@@ -69,12 +69,17 @@
     "overrides": [
       {
         "files": [
-          "*.mdx"
+          "*.{mdx,tsx}"
         ],
         "extends": [
           "plugin:mdx/recommended",
           "plugin:react/recommended"
-        ]
+        ],
+        "settings": {
+          "react": {
+            "version": "detect"
+          }
+        }
       }
     ]
   },

@@ -14,7 +14,8 @@
     "niladic",
     "println",
     "compspec",
-    "svgr"
+    "svgr",
+    "codemirror"
   ],
   "ignorePaths": ["*.lockb", "*.dvc"],
   "useGitignore": true

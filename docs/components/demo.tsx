@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { type CastToOptionValues } from 'tsargp';
+import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
 import { type Props, Command } from './command';
 
 // @ts-expect-error since tsargp demo does not export types
@@ -13,13 +13,23 @@ options.version.version = '0.1.96';
 // Classes
 //--------------------------------------------------------------------------------------------------
 export default class extends Command {
+  readonly displayName = 'Demo Command';
+  private readonly parser = new ArgumentParser(options);
+
   constructor(props: Props) {
-    super(props, 'tsargp', options);
+    super(props, 'tsargp');
   }
 
-  protected handleValues(values: CastToOptionValues) {
-    if (!values['command']) {
-      this.readline.println(JSON.stringify(values, null, 2));
+  override run(line: string, compIndex?: number) {
+    try {
+      const values = this.parser.parse(line, { compIndex });
+      if (!values['command']) {
+        this.println(JSON.stringify(values, null, 2));
+      }
+    } catch (err) {
+      throw err instanceof ErrorMessage || err instanceof HelpMessage
+        ? err.wrap(this.state.width)
+        : err;
     }
   }
 }

@@ -1,10 +1,9 @@
 import dynamic from 'next/dynamic';
+import { Callout } from 'nextra/components';
 
 export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 
 <Demo />
-
-import { Callout } from 'nextra/components';
 
 ## Commands
 
