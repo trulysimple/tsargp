@@ -58,7 +58,7 @@
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
     "dist": "tsc -p lib && bun build dist/lib/index.js --outfile dist/index.min.js --minify",
-    "distEnums": "tsc lib/enums.ts -d -m ESNext --skipLibCheck --preserveConstEnums --outDir dist/enums && sed -i 's/const enum/enum/g' dist/enums/*.d.ts && tsc -p examples"
+    "distEnums": "tsc lib/enums.ts -d -m ESNext --skipLibCheck --preserveConstEnums --removeComments --outDir dist/enums && sed -i 's/const enum/enum/g' dist/enums/*.d.ts && tsc -p examples"
   },
   "prettier": {
     "printWidth": 100,
