@@ -255,12 +255,17 @@ describe('ArgumentParser', () => {
 
       it('should throw a help message', () => {
         const options = {
-          function: {
+          help: {
             type: 'help',
             names: ['-h'],
             usage: 'usage',
             footer: 'footer',
             format: { indent: { names: 3 } },
+          },
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+            group: 'Args',
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
@@ -268,7 +273,9 @@ describe('ArgumentParser', () => {
         try {
           parser.parse(['-h']);
         } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(/usage\n\nOptions:\n\n {3}-h\n\nfooter\n/);
+          expect((err as HelpMessage).wrap(0)).toMatch(
+            /usage\n\nOptions:\n\n {3}-h\n\nArgs:\n\n {3}-f\n\nfooter\n/,
+          );
         }
       });
     });
@@ -1188,7 +1195,7 @@ describe('ArgumentParser', () => {
         expect(parser.parse([])).toEqual({ string: undefined });
         expect(parser.parse(['-s', '123'])).toEqual({ string: '123' });
         expect(parser.parse(['--string', ''])).toEqual({ string: '' });
-        expect(parser.parse(['-s=1', '-s=2'])).toEqual({ string: '2' });
+        expect(parser.parse(['-s=1', '-s==2'])).toEqual({ string: '=2' });
       });
 
       it('should handle a string option with a default value', () => {
@@ -2059,7 +2066,7 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-ss', '123', '456'])).toEqual({ strings: ['123', '456'] });
         expect(parser.parse(['--strings'])).toEqual({ strings: [] });
         expect(parser.parse(['--strings', '   '])).toEqual({ strings: ['   '] });
-        expect(parser.parse(['-ss=123', '-ss=456'])).toEqual({ strings: ['123', '456'] });
+        expect(parser.parse(['-ss=123', '-ss==456'])).toEqual({ strings: ['123', '=456'] });
         expect(parser.parse(['-ss', 'a', 'b', '-ss', 'c', 'd'])).toEqual({
           strings: ['a', 'b', 'c', 'd'],
         });

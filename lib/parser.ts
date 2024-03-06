@@ -655,7 +655,7 @@ function handleHelp(validator: OptionValidator, option: HelpOption): never {
   function formatHeading(group: string): TerminalString {
     const heading = new TerminalString().addBreaks(1).addSequence(headingStyle);
     if (group) {
-      heading.splitText(group).addWord('options:');
+      heading.splitText(group).addClosing(':');
     } else {
       heading.addWord('Options:');
     }
