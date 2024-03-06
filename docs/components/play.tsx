@@ -2,8 +2,12 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { OpaqueArgumentParser, ErrorMessage, HelpMessage, style } from 'tsargp';
+import { OpaqueArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
+import { style, req, fg8, bg8, ul8 } from 'tsargp';
+import { HelpItem, ErrorItem, tf, fg, bg, ul } from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
+
+const tsargp = { req, tf, fg, bg, ul, HelpItem, ErrorItem, style, fg8, bg8, ul8 };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -35,7 +39,7 @@ class PlayCommand extends Command<PlayProps> {
 
   private init() {
     const source = this.props.callbacks.getSource();
-    const options = eval(source);
+    const options = Function('tsargp', `'use strict';${source}`)(tsargp);
     this.parser = new OpaqueArgumentParser(options).validate();
   }
 
