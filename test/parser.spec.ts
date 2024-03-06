@@ -983,11 +983,12 @@ describe('ArgumentParser', () => {
           boolean: {
             type: 'boolean',
             names: ['-b'],
-            parse: (_, value) => value.includes('123'),
+            parse: vi.fn().mockImplementation((_0, _1, value) => value.includes('123')),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-b', '0123'])).toEqual({ boolean: true });
+        expect(options.boolean.parse).toHaveBeenCalledWith(expect.anything(), '-b', '0123');
       });
 
       it('should handle a boolean option with async custom parsing', () => {
@@ -995,7 +996,7 @@ describe('ArgumentParser', () => {
           boolean: {
             type: 'boolean',
             names: ['-b'],
-            parse: async (_, value) => value.includes('123'),
+            parse: async (_0, _1, value) => value.includes('123'),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
@@ -1392,11 +1393,12 @@ describe('ArgumentParser', () => {
             type: 'string',
             names: ['-s'],
             case: 'upper',
-            parse: (_, value) => value.slice(2),
+            parse: vi.fn().mockImplementation((_0, _1, value) => value.slice(2)),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-s', 'abcde'])).toEqual({ string: 'CDE' });
+        expect(options.string.parse).toHaveBeenCalledWith(expect.anything(), '-s', 'abcde');
       });
 
       it('should handle a string option with async custom parsing', () => {
@@ -1405,7 +1407,7 @@ describe('ArgumentParser', () => {
             type: 'string',
             names: ['-s'],
             case: 'upper',
-            parse: async (_, value) => value.slice(2),
+            parse: async (_0, _1, value) => value.slice(2),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
@@ -1769,11 +1771,12 @@ describe('ArgumentParser', () => {
             type: 'number',
             names: ['-n'],
             round: 'ceil',
-            parse: (_, value) => Number(value) + 2,
+            parse: vi.fn().mockImplementation((_0, _1, value) => Number(value) + 2),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-n', '1.2'])).toEqual({ number: 4 });
+        expect(options.number.parse).toHaveBeenCalledWith(expect.anything(), '-n', '1.2');
       });
 
       it('should handle a number option with async custom parsing', () => {
@@ -1782,7 +1785,7 @@ describe('ArgumentParser', () => {
             type: 'number',
             names: ['-n'],
             round: 'ceil',
-            parse: async (_, value) => Number(value) + 2,
+            parse: async (_0, _1, value) => Number(value) + 2,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
@@ -2290,15 +2293,21 @@ describe('ArgumentParser', () => {
             names: ['-ss'],
             case: 'upper',
             unique: true,
-            parse: (_, value): string | Promise<string> => {
+            parse: vi.fn().mockImplementation((_0, _1, value): string | Promise<string> => {
               const res = value.slice(2);
               return value.startsWith('a') ? res : Promise.resolve(res);
-            },
+            }),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ss'])).toEqual({ strings: [] });
+        expect(options.strings.parse).not.toHaveBeenCalled();
+
         expect(parser.parse(['-ss', 'abcd', 'abCD'])).toEqual({ strings: ['CD'] });
+        expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'abcd');
+        expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'abCD');
+        expect(options.strings.parse).toHaveBeenCalledTimes(2);
+
         expect(parser.parse(['-ss', 'abcd', '12CD'])).toEqual({
           strings: expect.toResolve(['CD']),
         });
@@ -2322,7 +2331,7 @@ describe('ArgumentParser', () => {
             case: 'upper',
             append: true,
             unique: true,
-            parseDelimited: (_, value): Array<string> | Promise<Array<string>> => {
+            parseDelimited: (_0, _1, value): Array<string> | Promise<Array<string>> => {
               const res = value.split(',').flatMap((val) => val.split('|'));
               return value.startsWith('a') ? res : Promise.resolve(res);
             },
@@ -2734,15 +2743,21 @@ describe('ArgumentParser', () => {
             names: ['-ns'],
             round: 'ceil',
             unique: true,
-            parse: (_, value): number | Promise<number> => {
+            parse: vi.fn().mockImplementation((_0, _1, value): number | Promise<number> => {
               const res = Number(value) + 2;
               return value.startsWith('1') ? res : Promise.resolve(res);
-            },
+            }),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-ns'])).toEqual({ numbers: [] });
+        expect(options.numbers.parse).not.toHaveBeenCalled();
+
         expect(parser.parse(['-ns', '1.2', '1.7'])).toEqual({ numbers: [4] });
+        expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.2');
+        expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.7');
+        expect(options.numbers.parse).toHaveBeenCalledTimes(2);
+
         expect(parser.parse(['-ns', '1.2', '2.2'])).toEqual({
           numbers: expect.toResolve([4, 5]),
         });
@@ -2766,7 +2781,7 @@ describe('ArgumentParser', () => {
             round: 'ceil',
             append: true,
             unique: true,
-            parseDelimited: (_, value): Array<number> | Promise<Array<number>> => {
+            parseDelimited: (_0, _1, value): Array<number> | Promise<Array<number>> => {
               const res = value
                 .split(',')
                 .flatMap((val) => val.split('|').map((val) => Number(val)));

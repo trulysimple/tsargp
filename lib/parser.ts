@@ -776,7 +776,7 @@ function parseArray<T extends string | number>(
   let result: Array<T> | Promise<Array<T>>;
   const previous = values[key] as typeof result;
   if ('parse' in option && option.parse) {
-    const res = option.parse(name, value);
+    const res = option.parse(values, name, value);
     if (res instanceof Promise) {
       result = res.then(async (val) => {
         const prev = await previous;
@@ -788,7 +788,7 @@ function parseArray<T extends string | number>(
       result = [validator.normalize(option, name, res) as T];
     }
   } else if ('parseDelimited' in option && option.parseDelimited) {
-    const res = option.parseDelimited(name, value);
+    const res = option.parseDelimited(values, name, value);
     if (res instanceof Promise) {
       result = res.then(async (vals) => {
         const prev = await previous;
@@ -841,7 +841,8 @@ function parseSingle<T extends boolean | string | number>(
   value: string,
   convertFn: (value: string) => T,
 ) {
-  const result = 'parse' in option && option.parse ? option.parse(name, value) : convertFn(value);
+  const result =
+    'parse' in option && option.parse ? option.parse(values, name, value) : convertFn(value);
   setSingle(validator, values, key, option, name, result);
 }
 

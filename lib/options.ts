@@ -138,14 +138,15 @@ type RequiresVal = { [key: string]: ParamOption['example'] | null };
 type Requires = string | RequiresVal | RequiresExp;
 
 /**
- * A callback to parse the value of option parameters. Any specified normalization or * constraint
+ * A callback to parse the value of option parameters. Any specified normalization or constraint
  * will be applied to the returned value.
  * @template T The return data type
+ * @param values The values parsed so far
  * @param name The option name (as specified on the command-line)
  * @param value The parameter value
  * @returns The parsed value
  */
-type ParseCallback<T> = (name: string, value: string) => T;
+type ParseCallback<T> = (values: CastToOptionValues, name: string, value: string) => T;
 
 /**
  * A module-relative resolution function (i.e., scoped to a module). To be used in non-browser
