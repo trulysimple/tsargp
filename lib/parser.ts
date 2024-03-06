@@ -654,16 +654,24 @@ function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMess
 function handleHelp(validator: OptionValidator, option: HelpOption): never {
   function formatHeading(group: string): TerminalString {
     const heading = new TerminalString().addBreaks(help.length ? 1 : 0).addSequence(headingStyle);
-    if (group) {
-      heading.splitText(group).addClosing(':');
-    } else {
+    if (!group) {
       heading.addWord('Options:');
+    } else if (option.noSplit) {
+      heading.addWord(group); // warning: may be larger than the terminal width
+    } else {
+      heading.splitText(group).addClosing(':');
     }
     return heading.addBreaks(2).addSequence(style(tf.clear));
   }
   const help = new HelpMessage();
   if (option.usage) {
-    help.push(new TerminalString().splitText(option.usage).addBreaks(1));
+    const usage = new TerminalString();
+    if (option.noSplit) {
+      usage.addWord(option.usage); // warning: may be larger than the terminal width
+    } else {
+      usage.splitText(option.usage);
+    }
+    help.push(usage.addBreaks(1));
   }
   const groups = new HelpFormatter(validator, option.format).formatGroups();
   const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
@@ -671,7 +679,13 @@ function handleHelp(validator: OptionValidator, option: HelpOption): never {
     help.push(formatHeading(group), ...message);
   }
   if (option.footer) {
-    help.push(new TerminalString().addBreaks(1).splitText(option.footer).addBreaks(1));
+    const footer = new TerminalString().addBreaks(1);
+    if (option.noSplit) {
+      footer.addWord(option.footer); // warning: may be larger than the terminal width
+    } else {
+      footer.splitText(option.footer);
+    }
+    help.push(footer.addBreaks(1));
   }
   throw help;
 }

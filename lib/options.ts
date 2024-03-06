@@ -621,6 +621,12 @@ type HelpOption = WithType<'help'> & {
    * The style of option group headings.
    */
   readonly headingStyle?: Style;
+  /**
+   * Indicates that the usage, footer and heading texts should not be split into words. This allows
+   * them to have custom indentation and prevents a colon from being appended to group headings, but
+   * at the expense of losing the text wrapping feature.
+   */
+  readonly noSplit?: true;
 };
 
 /**

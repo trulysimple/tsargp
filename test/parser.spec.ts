@@ -253,7 +253,7 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse('cmd -h=', { compIndex: 7 })).toThrow(/^$/);
       });
 
-      it('should throw a help message', () => {
+      it('should throw a help message with no usage or footer', () => {
         const options = {
           flag: {
             type: 'flag',
@@ -263,9 +263,26 @@ describe('ArgumentParser', () => {
           help: {
             type: 'help',
             names: ['-h'],
-            usage: 'usage',
-            footer: 'footer',
-            format: { indent: { names: 3 } },
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).not.toHaveProperty('help');
+        try {
+          parser.parse(['-h']);
+        } catch (err) {
+          expect((err as HelpMessage).wrap(0)).toMatch(/^Args:\n\n {2}-f\n\nOptions:\n\n {2}-h\n/);
+        }
+      });
+
+      it('should throw a help message with usage and footer and custom indentation', () => {
+        const options = {
+          help: {
+            type: 'help',
+            names: ['-h'],
+            usage: 'example  usage',
+            footer: 'example  footer',
+            group: 'example  heading',
+            format: { indent: { names: 0 } },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
@@ -274,24 +291,29 @@ describe('ArgumentParser', () => {
           parser.parse(['-h']);
         } catch (err) {
           expect((err as HelpMessage).wrap(0)).toMatch(
-            /^usage\n\nArgs:\n\n {3}-f\n\nOptions:\n\n {3}-h\n\nfooter\n/,
+            /^example usage\n\nexample heading:\n\n-h\n\nexample footer\n/,
           );
         }
       });
 
-      it('should throw a help message with no usage or footer', () => {
+      it('should throw a help message that does not split texts into words', () => {
         const options = {
           help: {
             type: 'help',
             names: ['-h'],
+            usage: '  example  usage',
+            footer: '  example  footer',
+            group: '  example  heading',
+            noSplit: true,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
-        expect(parser.parse([])).not.toHaveProperty('help');
         try {
           parser.parse(['-h']);
         } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(/^Options:\n\n {2}-h\n/);
+          expect((err as HelpMessage).wrap(0)).toMatch(
+            /^ {2}example {2}usage\n\n {2}example {2}heading\n\n {2}-h\n\n {2}example {2}footer\n/,
+          );
         }
       });
     });
