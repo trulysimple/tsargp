@@ -767,8 +767,8 @@ type OptionValues<T extends Options> = Resolve<{
 }>;
 
 /**
- * A collection of option values that should be cast to {@link OptionValues}`<typeof _your_options_>`
- * or to the type of your values class.
+ * An opaque collection of option values. It should be cast to
+ * {@link OptionValues}`<typeof _your_options_>` or to the type of your values class.
  */
 type CastToOptionValues = Record<string, unknown>;
 

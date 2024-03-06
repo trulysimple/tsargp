@@ -653,7 +653,7 @@ function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMess
  */
 function handleHelp(validator: OptionValidator, option: HelpOption): never {
   function formatHeading(group: string): TerminalString {
-    const heading = new TerminalString().addBreaks(1).addSequence(headingStyle);
+    const heading = new TerminalString().addBreaks(help.length ? 1 : 0).addSequence(headingStyle);
     if (group) {
       heading.splitText(group).addClosing(':');
     } else {

@@ -274,8 +274,24 @@ describe('ArgumentParser', () => {
           parser.parse(['-h']);
         } catch (err) {
           expect((err as HelpMessage).wrap(0)).toMatch(
-            /usage\n\nArgs:\n\n {3}-f\n\nOptions:\n\n {3}-h\n\nfooter\n/,
+            /^usage\n\nArgs:\n\n {3}-f\n\nOptions:\n\n {3}-h\n\nfooter\n/,
           );
+        }
+      });
+
+      it('should throw a help message with no usage or footer', () => {
+        const options = {
+          help: {
+            type: 'help',
+            names: ['-h'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).not.toHaveProperty('help');
+        try {
+          parser.parse(['-h']);
+        } catch (err) {
+          expect((err as HelpMessage).wrap(0)).toMatch(/^Options:\n\n {2}-h\n/);
         }
       });
     });
