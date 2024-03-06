@@ -255,17 +255,17 @@ describe('ArgumentParser', () => {
 
       it('should throw a help message', () => {
         const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+            group: 'Args',
+          },
           help: {
             type: 'help',
             names: ['-h'],
             usage: 'usage',
             footer: 'footer',
             format: { indent: { names: 3 } },
-          },
-          flag: {
-            type: 'flag',
-            names: ['-f'],
-            group: 'Args',
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
@@ -274,7 +274,7 @@ describe('ArgumentParser', () => {
           parser.parse(['-h']);
         } catch (err) {
           expect((err as HelpMessage).wrap(0)).toMatch(
-            /usage\n\nOptions:\n\n {3}-h\n\nArgs:\n\n {3}-f\n\nfooter\n/,
+            /usage\n\nArgs:\n\n {3}-f\n\nOptions:\n\n {3}-h\n\nfooter\n/,
           );
         }
       });

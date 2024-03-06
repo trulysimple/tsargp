@@ -46,7 +46,7 @@ const options = {
     type: 'command',
     names: ['add'],
     desc: 'A command that sums multiple numbers.',
-    options: (): Options => ({ ...options, ...multiOpts }),
+    options: (): Options => ({ ...multiOpts, ...options }),
     cmd(_, cmdValues): number {
       const vals = cmdValues as OptionValues<typeof options & typeof multiOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 0;
@@ -60,7 +60,7 @@ const options = {
     type: 'command',
     names: ['sub'],
     desc: 'A command that subtracts two numbers.',
-    options: (): Options => ({ ...options, ...binaryOpts }),
+    options: (): Options => ({ ...binaryOpts, ...options }),
     cmd(_, cmdValues): number {
       const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
@@ -75,7 +75,7 @@ const options = {
     type: 'command',
     names: ['mult'],
     desc: 'A command that multiplies multiple numbers.',
-    options: (): Options => ({ ...options, ...multiOpts }),
+    options: (): Options => ({ ...multiOpts, ...options }),
     cmd(_, cmdValues): number {
       const vals = cmdValues as OptionValues<typeof options & typeof multiOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 1;
@@ -89,7 +89,7 @@ const options = {
     type: 'command',
     names: ['div'],
     desc: 'A command that divides two numbers.',
-    options: (): Options => ({ ...options, ...binaryOpts }),
+    options: (): Options => ({ ...binaryOpts, ...options }),
     cmd(_, cmdValues): number {
       const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
