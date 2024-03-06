@@ -23,7 +23,7 @@ const baseConfig = {
   },
 };
 
-export default function (phase, { defaultConfig }) {
+export default function (phase) {
   if (phase === PHASE_PRODUCTION_BUILD) {
     /** @type {import('next').NextConfig} */
     const nextConfig = {

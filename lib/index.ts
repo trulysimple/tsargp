@@ -1,3 +1,4 @@
+export * from './enums';
 export * from './formatter';
 export * from './options';
 export * from './parser';

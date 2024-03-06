@@ -13,12 +13,13 @@ import type {
 import type { Style } from './styles';
 import type { Concrete, ConcreteStyles, OptionValidator } from './validator';
 
+import { tf, HelpItem } from './enums';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
-import { HelpMessage, TerminalString, style, tf } from './styles';
+import { HelpMessage, TerminalString, style } from './styles';
 import { formatFunctions } from './validator';
 import { assert, splitPhrase } from './utils';
 
-export { HelpFormatter, HelpItem, type HelpConfig };
+export { HelpFormatter, type HelpConfig };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -125,88 +126,6 @@ type HelpEntry = {
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-/**
- * The kind of items that can be shown in the option description.
- */
-const enum HelpItem {
-  /**
-   * The option synopsis.
-   */
-  synopsis,
-  /**
-   * The negation names of a flag option, if any.
-   */
-  negation,
-  /**
-   * The element delimiter of an array option, if enabled.
-   */
-  separator,
-  /**
-   * Reports if an array option accepts multiple parameters.
-   */
-  variadic,
-  /**
-   * Reports if an option accepts positional arguments.
-   */
-  positional,
-  /**
-   * Reports if an array option can be specified multiple times.
-   */
-  append,
-  /**
-   * Reports if string parameters will be trimmed (have leading and trailing whitespace removed).
-   */
-  trim,
-  /**
-   * The kind of case-conversion applied to string parameters, if enabled.
-   */
-  case,
-  /**
-   * The kind of rounding applied to number parameters, if enabled.
-   */
-  round,
-  /**
-   * The enumerated values that the option accepts as parameters, if any.
-   */
-  enums,
-  /**
-   * The regular expression that string parameters should match, if enabled.
-   */
-  regex,
-  /**
-   * The numeric range that number parameters should be within, if enabled.
-   */
-  range,
-  /**
-   * Reports if duplicate elements will be removed from an array option value.
-   */
-  unique,
-  /**
-   * The element count limit of an array option, if enabled.
-   */
-  limit,
-  /**
-   * The option requirements, if any.
-   */
-  requires,
-  /**
-   * Reports if the option is always required.
-   */
-  required,
-  /**
-   * The option's default value, if not a callback.
-   */
-  default,
-  /**
-   * Reports if the option is deprecated, and why.
-   */
-  deprecated,
-  /**
-   * The external resource reference, if any.
-   */
-  link,
-}
-
 /**
  * The default configuration used by the formatter.
  */

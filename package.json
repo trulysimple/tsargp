@@ -22,6 +22,10 @@
       "types": "./dist/types/index.d.ts",
       "default": "./dist/lib/index.js"
     },
+    "./enums": {
+      "types": "./dist/enums/enums.d.ts",
+      "default": "./dist/enums/enums.js"
+    },
     "./examples": {
       "default": "./dist/examples/index.js"
     }
@@ -33,6 +37,8 @@
     "url": "git+https://github.com/trulysimple/tsargp.git"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^14.1.2",
+    "@tsconfig/bun": "^1.0.4",
     "@types/bun": "^1.0.4",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
@@ -40,6 +46,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-mdx": "^3.1.5",
     "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "husky": "^9.0.6",
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
@@ -50,48 +57,12 @@
   "scripts": {
     "prepare": "husky",
     "prepublishOnly": "npm version patch",
-    "dist": "tsc -p lib && tsc -p examples && bun build dist/lib/index.js --outfile dist/index.min.js --minify"
+    "dist": "tsc -p lib && bun build dist/lib/index.js --outfile dist/index.min.js --minify",
+    "distEnums": "tsc lib/enums.ts -d -m ESNext --skipLibCheck --preserveConstEnums --outDir dist/enums && sed -i 's/const enum/enum/g' dist/enums/*.d.ts && tsc -p examples"
   },
   "prettier": {
     "printWidth": 100,
     "singleQuote": true
-  },
-  "eslintConfig": {
-    "root": true,
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/strict"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "overrides": [
-      {
-        "files": [
-          "*.{mdx,tsx}"
-        ],
-        "extends": [
-          "plugin:mdx/recommended",
-          "plugin:react/recommended"
-        ],
-        "settings": {
-          "react": {
-            "version": "detect"
-          }
-        },
-        "rules": {
-          "react/no-unknown-property": [
-            2,
-            {
-              "ignore": [
-                "jsx"
-              ]
-            }
-          ]
-        }
-      }
-    ]
   },
   "browser": {
     "fs": false

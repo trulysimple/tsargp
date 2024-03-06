@@ -28,10 +28,11 @@ import type {
   FormatFunction,
 } from './validator';
 
+import { tf, ErrorItem } from './enums';
 import { HelpFormatter } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
-import { ErrorMessage, HelpMessage, TerminalString, style, tf } from './styles';
-import { OptionValidator, defaultConfig, formatFunctions, ErrorItem } from './validator';
+import { ErrorMessage, HelpMessage, TerminalString, style } from './styles';
+import { OptionValidator, defaultConfig, formatFunctions } from './validator';
 import { assert, checkRequiredArray, gestaltSimilarity, getArgs } from './utils';
 
 export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };

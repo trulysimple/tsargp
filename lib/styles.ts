@@ -1,6 +1,8 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
+import { mv, mt, ed, sc, st, mg, ms, tf, fg, bg, ul } from './enums';
+
 export type {
   FgColor,
   BgColor,
@@ -19,14 +21,6 @@ export {
   TerminalString,
   ErrorMessage,
   HelpMessage,
-  MoveCommand as mv,
-  EditCommand as ed,
-  ScrollCommand as sc,
-  MarginCommand as mg,
-  TypeFace as tf,
-  Foreground as fg,
-  Background as bg,
-  Underline as ul,
   foreground as fg8,
   background as bg8,
   underline as ul8,
@@ -41,432 +35,6 @@ export {
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
-/**
- * A single-parameter cursor movement command.
- */
-const enum MoveCommand {
-  /**
-   * Cursor Up. Move cursor Ps times up (default=1).
-   */
-  cuu = 'A',
-  /**
-   * Cursor Down. Move cursor Ps times down (default=1).
-   */
-  cud = 'B',
-  /**
-   * Cursor Forward. Move cursor Ps times forward (default=1).
-   */
-  cuf = 'C',
-  /**
-   * Cursor Backward. Move cursor Ps times backward (default=1).
-   */
-  cub = 'D',
-  /**
-   * Cursor Next Line. Move cursor Ps times down (default=1) and to the first column.
-   */
-  cnl = 'E',
-  /**
-   * Cursor Previous Line. Move cursor Ps times up (default=1) and to the first column.
-   */
-  cpl = 'F',
-  /**
-   * Cursor Horizontal Absolute. Move cursor to Ps-th column of the active row (default=1).
-   */
-  cha = 'G',
-  /**
-   * Cursor Horizontal Tabulation. Move cursor Ps times tabs forward (default=1).
-   */
-  cht = 'I',
-  /**
-   * Cursor Backward Tabulation. Move cursor Ps tabs backward (default=1).
-   */
-  cbt = 'Z',
-  /**
-   * Vertical Position Absolute. Move cursor to Ps-th row (default=1).
-   */
-  vpa = 'd',
-  /**
-   * Vertical Position Relative. Move cursor Ps times down (default=1).
-   */
-  vpr = 'e',
-}
-
-/**
- * A two-parameter cursor movement command.
- */
-const enum MoveToCommand {
-  /**
-   * Cursor Position. Set cursor to position [Ps, Ps] (default = [1, 1]).
-   */
-  cup = 'H',
-}
-
-/**
- * A single-parameter edit command.
- */
-const enum EditCommand {
-  /**
-   * Erase In Display. Erase various parts of the viewport.
-   */
-  ed = 'J',
-  /**
-   * Erase In Line. Erase various parts of the active row.
-   */
-  el = 'K',
-  /**
-   * Insert Lines. Insert Ps blank lines at active row (default=1).
-   */
-  il = 'L',
-  /**
-   * Delete Lines. Delete Ps lines at active row (default=1).
-   */
-  dl = 'M',
-  /**
-   * Insert Characters. Insert Ps (blank) characters (default = 1).
-   */
-  ich = '@',
-  /**
-   * Delete Characters. Delete Ps characters (default=1).
-   */
-  dch = 'P',
-  /**
-   * Erase Characters. Erase Ps characters from current cursor position to the right (default=1).
-   */
-  ech = 'X',
-  /**
-   * Repeat Preceding Character. Repeat preceding character Ps times (default=1).
-   */
-  rch = 'b',
-  /**
-   * Tab Clear. Clear tab stops at current position (0) or all (3) (default=0).
-   */
-  tbc = 'g',
-  /**
-   * Insert Columns. Insert Ps columns at cursor position.
-   */
-  icl = "'}",
-  /**
-   * Delete Columns. Delete Ps columns at cursor position.
-   */
-  dcl = "'~",
-}
-
-/**
- * A single-parameter scroll command.
- */
-const enum ScrollCommand {
-  /**
-   * Scroll Left. Scroll viewport Ps times to the left.
-   */
-  sl = 'SP@',
-  /**
-   * Scroll Right. Scroll viewport Ps times to the right.
-   */
-  sr = 'SPA',
-  /**
-   * Scroll Up. Scroll Ps lines up (default=1).
-   */
-  su = 'S',
-  /**
-   * Scroll Down. Scroll Ps lines down (default=1).
-   */
-  sd = 'T',
-}
-
-/**
- * A multi-parameter text style command.
- */
-const enum StyleCommand {
-  /**
-   * Select Graphic Rendition. Set/Reset various text attributes.
-   */
-  sgr = 'm',
-}
-
-/**
- * A two-parameter margin command.
- */
-const enum MarginCommand {
-  /**
-   * Set Top and Bottom Margins. Set top and bottom margins of the viewport [top;bottom] (default =
-   * viewport size).
-   */
-  tbm = 'r',
-}
-
-/**
- * A miscellaneous command.
- */
-const enum MiscCommand {
-  /**
-   * Set Mode. Set various terminal modes.
-   */
-  sm = 'h',
-  /**
-   * Reset Mode. Reset various terminal attributes.
-   */
-  rm = 'l',
-  /**
-   * Device Status Report. Request cursor position (CPR) with Ps = 6.
-   */
-  dsr = 'n',
-  /**
-   * Soft Terminal Reset. Reset several terminal attributes to initial state.
-   */
-  str = '!p',
-  /**
-   * Set Cursor Style.
-   */
-  scs = 'SPq',
-  /**
-   * Save Cursor. Save cursor position, charmap and text attributes.
-   */
-  scp = 's',
-  /**
-   * Restore Cursor. Restore cursor position, charmap and text attributes.
-   */
-  rcp = 'u',
-}
-
-/**
- * A predefined text type face.
- */
-const enum TypeFace {
-  /**
-   * Reset or normal. Resets any other preceding SGR attribute.
-   */
-  clear,
-  /**
-   * Bold or increased intensity.
-   */
-  bold,
-  /**
-   * Faint, decreased intensity, or dim.
-   */
-  faint,
-  /**
-   * Italic.
-   */
-  italic,
-  /**
-   * Underlined.
-   */
-  underlined,
-  /**
-   * Slowly blinking.
-   */
-  slowlyBlinking,
-  /**
-   * Rapidly blinking.
-   */
-  rapidlyBlinking,
-  /**
-   * Reverse video or inverse. Flips foreground and background color.
-   */
-  inverse,
-  /**
-   * Invisible, concealed or hidden.
-   */
-  invisible,
-  /**
-   * Crossed-out or strikethrough.
-   */
-  crossedOut,
-  /**
-   * Primary (default) font.
-   */
-  primary,
-  /**
-   * Alternative font 1.
-   */
-  alternative1,
-  /**
-   * Alternative font 2.
-   */
-  alternative2,
-  /**
-   * Alternative font 3.
-   */
-  alternative3,
-  /**
-   * Alternative font 4.
-   */
-  alternative4,
-  /**
-   * Alternative font 5.
-   */
-  alternative5,
-  /**
-   * Alternative font 6.
-   */
-  alternative6,
-  /**
-   * Alternative font 7.
-   */
-  alternative7,
-  /**
-   * Alternative font 8.
-   */
-  alternative8,
-  /**
-   * Alternative font 9.
-   */
-  alternative9,
-  /**
-   * Black-letter font (Fraktur/Gothic).
-   */
-  gothic,
-  /**
-   * Doubly underlined.
-   */
-  doublyUnderlined,
-  /**
-   * Normal intensity (neither bold nor faint).
-   */
-  notBoldOrFaint,
-  /**
-   * Regular face (neither italic nor black-letter).
-   */
-  notItalic,
-  /**
-   * Not underlined.
-   */
-  notUnderlined,
-  /**
-   * Steady (not blinking).
-   */
-  notBlinking,
-  /**
-   * Proportional spacing.
-   */
-  proportionalSpacing,
-  /**
-   * Positive (not inverse).
-   */
-  notInverse,
-  /**
-   * Visible (reveal, or not hidden).
-   */
-  notInvisible,
-  /**
-   * Not crossed out (no strikethrough).
-   */
-  notCrossedOut,
-  /**
-   * Disable proportional spacing.
-   */
-  notProportionalSpacing = 50,
-  /**
-   * Framed.
-   */
-  framed,
-  /**
-   * Encircled.
-   */
-  encircled,
-  /**
-   * Overlined
-   */
-  overlined,
-  /**
-   * Neither framed nor encircled
-   */
-  notFramedOrEncircled,
-  /**
-   * Not overlined.
-   */
-  notOverlined,
-  /**
-   * Ideogram underline or right side line.
-   */
-  ideogramUnderline = 60,
-  /**
-   * Ideogram double underline, or double line on the right side.
-   */
-  ideogramDoubleUnderline,
-  /**
-   * Ideogram overline or left side line.
-   */
-  ideogramOverline,
-  /**
-   * Ideogram double overline, or double line on the left side.
-   */
-  ideogramDoubleOverline,
-  /**
-   * Ideogram stress marking.
-   */
-  ideogramStressMarking,
-  /**
-   * No ideogram attributes.
-   */
-  noIdeogram,
-  /**
-   * Superscript.
-   */
-  superscript = 73,
-  /**
-   * Subscript.
-   */
-  subscript,
-  /**
-   * Neither superscript nor subscript.
-   */
-  notSuperscriptOrSubscript,
-}
-
-/**
- * A predefined text foreground color.
- */
-const enum Foreground {
-  black = 30,
-  red,
-  green,
-  yellow,
-  blue,
-  magenta,
-  cyan,
-  white,
-  default = 39,
-  brightBlack = 90,
-  brightRed,
-  brightGreen,
-  brightYellow,
-  brightBlue,
-  brightMagenta,
-  brightCyan,
-  brightWhite,
-}
-
-/**
- * A predefined text background color.
- */
-const enum Background {
-  black = 40,
-  red,
-  green,
-  yellow,
-  blue,
-  magenta,
-  cyan,
-  white,
-  default = 49,
-  brightBlack = 100,
-  brightRed,
-  brightGreen,
-  brightYellow,
-  brightBlue,
-  brightMagenta,
-  brightCyan,
-  brightWhite,
-}
-
-/**
- * A predefined text underline color.
- */
-const enum Underline {
-  default = 59,
-}
-
 /**
  * A set of regular expressions for terminal strings.
  */
@@ -486,14 +54,7 @@ const regex = {
 /**
  * A control sequence introducer command. It is divided into subgroups for convenience.
  */
-type Command =
-  | MoveCommand
-  | MoveToCommand
-  | EditCommand
-  | ScrollCommand
-  | StyleCommand
-  | MarginCommand
-  | MiscCommand;
+type Command = mv | mt | ed | sc | st | mg | ms;
 
 /**
  * A generic control sequence introducer string.
@@ -505,40 +66,40 @@ type CSI<P extends string | number, C extends Command> = `\x9b${P}${C}`;
 /**
  * A single-parameter cursor movement sequence.
  */
-type Move = CSI<number, MoveCommand>;
+type Move = CSI<number, mv>;
 
 /**
  * A two-parameter cursor movement sequence.
  */
-type MoveTo = CSI<`${number};${number}`, MoveToCommand>;
+type MoveTo = CSI<`${number};${number}`, mt>;
 
 /**
  * A single-parameter edit sequence.
  */
-type Edit = CSI<number, EditCommand>;
+type Edit = CSI<number, ed>;
 
 /**
  * A single-parameter scroll sequence.
  */
-type Scroll = CSI<number, ScrollCommand>;
+type Scroll = CSI<number, sc>;
 
 /**
  * A multi-parameter text style sequence.
  */
-type Style = CSI<string, StyleCommand> | '';
+type Style = CSI<string, st> | '';
 
 /**
  * A two-parameter margin sequence.
  */
-type Margin = CSI<`${number};${number}`, MarginCommand>;
+type Margin = CSI<`${number};${number}`, mg>;
 
 /**
  * A miscellaneous sequence. For completeness only, but not currently used.
  */
 type Misc =
-  | CSI<string, MiscCommand.sm | MiscCommand.rm>
-  | CSI<number, MiscCommand.dsr | MiscCommand.scs>
-  | CSI<'', MiscCommand.str | MiscCommand.scp | MiscCommand.rcp>;
+  | CSI<string, ms.sm | ms.rm>
+  | CSI<number, ms.dsr | ms.scs>
+  | CSI<'', ms.str | ms.scp | ms.rcp>;
 
 /**
  * A control sequence introducer sequence.
@@ -583,7 +144,7 @@ type UlColor = Alias<`58;5;${Decimal}`>;
 /**
  * A text styling attribute.
  */
-type StyleAttr = TypeFace | Foreground | Background | Underline | FgColor | BgColor | UlColor;
+type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
 
 /**
  * A callback that processes a format specifier when splitting text.
@@ -825,7 +386,7 @@ class TerminalString {
       }
     } else if (start) {
       if (width >= start + Math.max(...this.lengths)) {
-        indent = move(start + 1, MoveCommand.cha);
+        indent = move(start + 1, mv.cha);
         if (!firstIsBreak && column != start) {
           result.push(indent);
         }
@@ -836,7 +397,7 @@ class TerminalString {
         start = 0;
       }
     } else if (!firstIsBreak && column) {
-      result.push(move(1, MoveCommand.cha));
+      result.push(move(1, mv.cha));
     }
     column = start;
     for (let i = 0; i < this.strings.length; ++i) {
@@ -902,7 +463,7 @@ class ErrorMessage extends Error {
     const result = new Array<string>();
     this.str.wrapToWidth(result, 0, width);
     if (width) {
-      result.push(style(TypeFace.clear));
+      result.push(style(tf.clear));
     }
     return result.join('');
   }
@@ -931,7 +492,7 @@ class HelpMessage extends Array<TerminalString> {
       column = str.wrapToWidth(result, column, width);
     }
     if (width) {
-      result.push(style(TypeFace.clear));
+      result.push(style(tf.clear));
     }
     return result.join('');
   }
@@ -958,7 +519,7 @@ function csi<P extends string | number, C extends Command>(param: P, cmd: C): CS
  * @param cmd The move command
  * @returns The move sequence
  */
-function move(times: number, cmd: MoveCommand): Move {
+function move(times: number, cmd: mv): Move {
   return csi(times, cmd);
 }
 
@@ -969,7 +530,7 @@ function move(times: number, cmd: MoveCommand): Move {
  * @returns The move-to sequence
  */
 function moveTo(x: number, y: number): MoveTo {
-  return csi(`${x};${y}`, MoveToCommand.cup);
+  return csi(`${x};${y}`, mt.cup);
 }
 
 /**
@@ -978,7 +539,7 @@ function moveTo(x: number, y: number): MoveTo {
  * @param cmd The edit command
  * @returns The edit sequence
  */
-function edit(times: number, cmd: EditCommand): Edit {
+function edit(times: number, cmd: ed): Edit {
   return csi(times, cmd);
 }
 
@@ -988,7 +549,7 @@ function edit(times: number, cmd: EditCommand): Edit {
  * @param cmd The scroll command
  * @returns The scroll sequence
  */
-function scroll(times: number, cmd: ScrollCommand): Scroll {
+function scroll(times: number, cmd: sc): Scroll {
   return csi(times, cmd);
 }
 
@@ -998,7 +559,7 @@ function scroll(times: number, cmd: ScrollCommand): Scroll {
  * @returns The SGR sequence
  */
 function style(...attrs: Array<StyleAttr>): Style {
-  return csi(attrs.join(';'), StyleCommand.sgr);
+  return csi(attrs.join(';'), st.sgr);
 }
 
 /**
@@ -1008,7 +569,7 @@ function style(...attrs: Array<StyleAttr>): Style {
  * @returns The margin sequence
  */
 function margin(x: number, y: number): Margin {
-  return csi(`${x};${y}`, MarginCommand.tbm);
+  return csi(`${x};${y}`, mg.tbm);
 }
 
 /**
