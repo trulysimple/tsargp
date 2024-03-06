@@ -2,7 +2,6 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React, { createRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import {
   compressToEncodedURIComponent as compress,
   decompressFromEncodedURIComponent as decompress,
@@ -18,14 +17,14 @@ class CodeEditor extends Editor {}
 // Functions
 //--------------------------------------------------------------------------------------------------
 export default function Code(props: Props): JSX.Element {
-  function getSearchParam(): string {
-    return `?body=${compress(props.callbacks.getSource())}`;
+  function getHash(): string {
+    return compress(props.callbacks.getSource());
   }
-  const docParam = useSearchParams().get('body');
-  const initialDoc = docParam ? decompress(docParam) : props.initialDoc;
+  const hash = window.location.hash;
+  const initialDoc = hash ? decompress(hash.slice(1)) : props.initialDoc;
   const spanRef = createRef<HTMLSpanElement>();
   const onClickShare = () => {
-    window.history.replaceState(null, '', getSearchParam());
+    window.location.hash = getHash();
     navigator.clipboard.writeText(window.location.href).then(() => {
       if (spanRef.current) {
         spanRef.current.style.display = 'inline-block';
@@ -35,7 +34,7 @@ export default function Code(props: Props): JSX.Element {
   const anchorRef = createRef<HTMLAnchorElement>();
   const onMouseEnter = () => {
     if (anchorRef.current) {
-      const url = window.location.origin + window.location.pathname + getSearchParam();
+      const url = window.location.origin + window.location.pathname + '#' + getHash();
       const issue = encodeURIComponent(`[Playground link](${url})`);
       const href = `https://github.com/trulysimple/tsargp/issues/new?labels=bug&body=${issue}`;
       anchorRef.current.setAttribute('href', href);
@@ -51,14 +50,11 @@ export default function Code(props: Props): JSX.Element {
       <button type="button" onClick={onClickShare} title="Click to update the URL">
         Share URL
       </button>
-      <span ref={spanRef} className="tooltip">
+      <span ref={spanRef} style={{ display: 'none' }}>
         URL copied to clipboard!
       </span>
       <CodeEditor {...{ ...props, initialDoc }} />
       <style jsx>{`
-        .tooltip {
-          display: none;
-        }
         button {
           background-color: rgba(40, 40, 40);
           border-radius: 8px;
