@@ -184,8 +184,9 @@ should call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
 #### Parse callback
 
 The `parse` attribute, if present, specifies a custom callback to parse the value of the option
-parameter. It accepts two parameters:
+parameter. It accepts three parameters:
 
+- `values` - the values parsed up to the current iteration
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
@@ -255,8 +256,9 @@ exclusive with [parse callback](#parse-callback) and [parse delimited](#parse-de
 #### Parse delimited
 
 The `parseDelimited` attribute, if present, specifies a custom callback to parse the value of the
-option parameter. It accepts two parameters:
+option parameter. It accepts three parameters:
 
+- `values` - the values parsed up to the current iteration
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
@@ -362,7 +364,7 @@ call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
   parsing loop.
 </Callout>
 
-#### Break
+#### Break loop
 
 The `break` attribute, if present, tells the parser to exit the parsing loop immediately after
 returning from the callback.
