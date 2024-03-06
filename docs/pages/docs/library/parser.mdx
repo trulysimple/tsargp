@@ -186,8 +186,8 @@ an empty string):
    - If the option has [enumerated values](options.mdx#enumeration), those values are converted to
      string, filtered by the prefix _comp_, and then returned; else
    - If it is a variadic array option, and the parameter was specified neither with a positional
-     marker nor as an [inline value](#inline-values), the available option names are filtered by the
-     prefix _comp_ and returned; else
+     marker nor as an [inline parameters](#inline-parameters), the available option names are
+     filtered by the prefix _comp_ and returned; else
    - No words are returned, and the default bash completion (if enabled with `-o`) is attempted.
 
 During completion, help and version options are skipped, while others are processed as usual. This
@@ -210,15 +210,17 @@ During parsing, there are two situations in which the parser might suggest optio
   positional option)
 - when it expects an option parameter and the current argument fails to be parsed, and the affected
   option is a variadic array option (but only if the argument was specified neither with a
-  positional marker nor as an [inline value](#inline-values))
+  positional marker nor as an [inline parameter](#inline-parameters))
 
 In these cases, the parser selects option names that are similar to the current argument using the
 [Gestalt algorithm], and includes them in the error message.
 
-### Inline values
+### Inline parameters
 
 Option parameters may be passed on the command-line using the syntax `<name>=<value>`. This syntax
-is only valid for non-niladic options and cannot be used with the positional marker.
+is only valid for non-niladic options and cannot be used with the positional marker. As is the case
+with normal parameters, the value may contain any number of equal signs, and even start with one
+(e.g., `-opt==val` would be parsed as `'=val'{:ts}`).
 
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
 [Gestalt algorithm]: https://www.wikiwand.com/en/Gestalt_pattern_matching

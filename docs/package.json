@@ -1,6 +1,6 @@
 {
   "name": "@trulysimple/tsargp-docs",
-  "version": "0.1.39",
+  "version": "0.1.40",
   "description": "Documentation for tsargp",
   "homepage": "https://trulysimple.dev/tsargp/docs",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "serve": "^14.2.1",
-    "tsargp": "^0.1.97",
+    "tsargp": "^0.2.1",
     "xterm": "^5.3.0",
     "xterm-readline": "^1.1.1"
   },

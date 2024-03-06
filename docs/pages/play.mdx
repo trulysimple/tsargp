@@ -5,14 +5,13 @@ export const Play = dynamic(() => import('@components/play'), { ssr: false });
 export const Code = dynamic(() => import('@components/code'), { ssr: false });
 export const callbacks = {};
 export const initialDoc = `const { req, tf, fg, bg, ul, HelpItem, ErrorItem, style, fg8, bg8, ul8 } = tsargp;
-
 // Define your options here. Only plain JavaScript is allowed.
 return {
-help: {
-type: 'help',
-names: ['-h', '--help'],
-desc: 'The help option. Prints this help message.',
-},
+  help: {
+    type: 'help',
+    names: ['-h', '--help'],
+    desc: \`Prints this \${style(tf.italic)}help\${style(tf.clear)} message.\`,
+  },
 };`;
 
 <Code callbacks={callbacks} initialDoc={initialDoc} />

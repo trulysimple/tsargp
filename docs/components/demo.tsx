@@ -9,7 +9,7 @@ import { type Props, Command } from './classes/command';
 import { demo as options } from 'tsargp/examples';
 
 // override version because there's no package.json file in the browser
-options.version.version = '0.1.97';
+options.version.version = '0.1.99';
 
 //--------------------------------------------------------------------------------------------------
 // Classes

@@ -18,21 +18,37 @@ class CodeEditor extends Editor {}
 // Functions
 //--------------------------------------------------------------------------------------------------
 export default function Code(props: Props): JSX.Element {
-  const docParam = useSearchParams().get('doc');
+  function getSearchParam(): string {
+    return `?body=${compress(props.callbacks.getSource())}`;
+  }
+  const docParam = useSearchParams().get('body');
   const initialDoc = docParam ? decompress(docParam) : props.initialDoc;
   const spanRef = createRef<HTMLSpanElement>();
-  const onClick = () => {
-    const param = compress(props.callbacks.getSource());
-    window.history.replaceState(null, '', `?doc=${param}`);
+  const onClickShare = () => {
+    window.history.replaceState(null, '', getSearchParam());
     navigator.clipboard.writeText(window.location.href).then(() => {
       if (spanRef.current) {
         spanRef.current.style.display = 'inline-block';
       }
     });
   };
+  const anchorRef = createRef<HTMLAnchorElement>();
+  const onMouseEnter = () => {
+    if (anchorRef.current) {
+      const url = window.location.origin + window.location.pathname + getSearchParam();
+      const issue = encodeURIComponent(`[Playground link](${url})`);
+      const href = `https://github.com/trulysimple/tsargp/issues/new?labels=bug&body=${issue}`;
+      anchorRef.current.setAttribute('href', href);
+    }
+  };
   return (
     <div>
-      <button type="button" onClick={onClick} title="Click to update the URL">
+      <a ref={anchorRef} target="_blank">
+        <button type="button" onMouseEnter={onMouseEnter} title="Click to create a GitHub issue">
+          Report Bug
+        </button>
+      </a>
+      <button type="button" onClick={onClickShare} title="Click to update the URL">
         Share URL
       </button>
       <span ref={spanRef} className="tooltip">
@@ -42,7 +58,6 @@ export default function Code(props: Props): JSX.Element {
       <style jsx>{`
         .tooltip {
           display: none;
-          padding: 0px 10px;
         }
         button {
           background-color: rgba(40, 40, 40);
@@ -54,7 +69,7 @@ export default function Code(props: Props): JSX.Element {
           font-weight: 500;
           line-height: 20px;
           list-style: none;
-          margin: 0 0 10px;
+          margin: 0 10px 10px 0;
           padding: 10px 12px;
           text-align: center;
           transition: all 200ms;
