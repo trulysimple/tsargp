@@ -3,6 +3,8 @@ title: Commands - Guides - Docs
 ---
 
 import dynamic from 'next/dynamic';
+import { Tabs } from 'nextra/components';
+import { Callout } from 'nextra/components';
 
 export const Calc = dynamic(() => import('@components/calc'), { ssr: false });
 
@@ -41,26 +43,28 @@ import type { Options, OptionValues } from 'tsargp';
 ```
 
 Then let's define a reusable option definition for the parameters of a multi-argument operation. It
-has a single [numbers option](../library/options.mdx#number-option) that receives (unlimited)
+has a single [numbers option](../library/options.mdx#numbers-option) that receives (unlimited)
 positional arguments.
 
-```ts {4}
+```ts {4,8}
 const multiOpts = {
   numbers: {
     type: 'numbers',
     preferredName: 'numbers',
-    desc: 'The numbers to operate on',
+    desc: 'The numbers to operate on.',
     default: [],
     positional: true,
+    group: 'Arguments',
   },
 } as const satisfies Options;
 ```
 
-Since this option accepts positional arguments, we do not want to give it a name. However, as is
-highlighted in line 4, it has a preferred name that will be displayed in error messages.
+Since this option accepts positional arguments, we do not want to give it a name. However, we gave
+it a preferred name that will be displayed in error messages, as well as a separate group for it to
+be displayed in the help message.
 
 Now let's define a similar option for the parameters of a dual-argument operation. It has the same
-definition as above, with an additional constraint: it accepts at most two values.
+definition as above, with an additional constraint: it accepts at most _two_ values.
 
 ```ts
 const binaryOpts = {
@@ -68,67 +72,120 @@ const binaryOpts = {
 } as const satisfies Options;
 ```
 
-With this in place, we can define our main command-line options:
+With this in place, we can define each one of the basic operations, as follows:
+
+<Tabs items={['add', 'sub', 'mult', 'div']}>
+  <Tabs.Tab>
+    ```ts {6,8} /mainOpts/
+    const addOpts = {
+      add: {
+        type: 'command',
+        names: ['add'],
+        desc: 'A command that sums multiple numbers.',
+        options: (): Options => ({ ...multiOpts, ...mainOpts }),
+        cmd(_, cmdValues): number {
+          const vals = cmdValues as OptionValues<typeof multiOpts & typeof mainOpts>;
+          const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 0;
+          return vals.numbers.reduce((acc, val) => acc + val, other);
+        },
+      },
+    } as const satisfies Options;
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```ts {6,8} /mainOpts/
+    const subOpts = {
+      sub: {
+        type: 'command',
+        names: ['sub'],
+        desc: 'A command that subtracts two numbers.',
+        options: (): Options => ({ ...binaryOpts, ...mainOpts }),
+        cmd(_, cmdValues): number {
+          const vals = cmdValues as OptionValues<typeof binaryOpts & typeof mainOpts>;
+          const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
+          const [a, b] = vals.numbers;
+          return a === undefined ? NaN : b === undefined ? a - other : a - b;
+        },
+      },
+    } as const satisfies Options;
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```ts {6,8} /mainOpts/
+    const multOpts = {
+      mult: {
+        type: 'command',
+        names: ['mult'],
+        desc: 'A command that multiplies multiple numbers.',
+        options: (): Options => ({ ...multiOpts, ...mainOpts }),
+        cmd(_, cmdValues): number {
+          const vals = cmdValues as OptionValues<typeof multiOpts & typeof mainOpts>;
+          const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 1;
+          return vals.numbers.reduce((acc, val) => acc * val, other);
+        },
+      },
+    } as const satisfies Options;
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```ts {6,8} /mainOpts/
+    const divOpts = {
+      div: {
+        type: 'command',
+        names: ['div'],
+        desc: 'A command that divides two numbers.',
+        options: (): Options => ({ ...binaryOpts, ...mainOpts }),
+        cmd(_, cmdValues): number {
+          const vals = cmdValues as OptionValues<typeof binaryOpts & typeof mainOpts>;
+          const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
+          const [a, b] = vals.numbers;
+          return a === undefined ? NaN : b === undefined ? a / other : a / b;
+        },
+      },
+    } as const satisfies Options;
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+Notice how we use a callback to provide the option definitions for each command. This is necessary
+because JavaScript does not allow us to reference the containing object from one of its members,
+before initialization. (The `mainOpts` variable will be defined next, and the above definitions will
+be embedded in it.)
+
+Inside the `cmd` callback, we do a typecast to access the values parsed for the command. This is
+necessary because the library does not know the concrete type of our option values when it calls the
+callback (the callback type cannot be defined in terms of a generic type parameter). So it must pass
+an _opaque_ reference to them.
+
+From those values, we select the result of the operation performed in the inner recursion (if any),
+falling back to a default value if this was the last recursion. We then return the accumulated
+result of the operations performed so far in the stack (except if, in the case of `sub` and `mult`,
+two arguments are provided before a recursive call, the result of that call is ignored).
+
+<Callout type="info">
+  In TypeScript, it's necessary to specify the return type of both `options` and `cmd` callback
+  attributes. Otherwise, the compiler will not be able to resolve the type of the containing object.
+</Callout>
+
+Finally, we can define our main command-line options:
 
 ```ts
-const options = {
+const mainOpts = {
   help: {
     type: 'help',
     names: ['help'],
-    desc: 'Prints this help message',
+    desc: 'Prints this help message.',
   },
-  add: {
-    type: 'command',
-    names: ['add'],
-    desc: 'A command that sums multiple numbers',
-    options: (): Options => ({ ...options, ...multiOpts }),
-    cmd(_, cmdValues): number {
-      const vals = cmdValues as OptionValues<typeof options & typeof multiOpts>;
-      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 0;
-      return vals.numbers.reduce((acc, val) => acc + val, other);
-    },
-  },
-  sub: {
-    type: 'command',
-    names: ['sub'],
-    desc: 'A command that subtracts two numbers',
-    options: (): Options => ({ ...options, ...binaryOpts }),
-    cmd(_, cmdValues): number {
-      const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
-      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
-      const [a, b] = vals.numbers;
-      return a === undefined ? -other : b === undefined ? a - other : a - b;
-    },
-  },
-  mult: {
-    type: 'command',
-    names: ['mult'],
-    desc: 'A command that multiplies multiple numbers',
-    options: (): Options => ({ ...options, ...multiOpts }),
-    cmd(_, cmdValues): number {
-      const vals = cmdValues as OptionValues<typeof options & typeof multiOpts>;
-      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? 1;
-      return vals.numbers.reduce((acc, val) => acc * val, other);
-    },
-  },
-  div: {
-    type: 'command',
-    names: ['div'],
-    desc: 'A command that divides two numbers',
-    options: (): Options => ({ ...options, ...binaryOpts }),
-    cmd(_, cmdValues): number {
-      const vals = cmdValues as OptionValues<typeof options & typeof binaryOpts>;
-      const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
-      const [a, b] = vals.numbers;
-      return a === undefined ? 1 / other : b === undefined ? a / other : a / b;
-    },
-  },
+  ...addOpts,
+  ...subOpts,
+  ...multOpts,
+  ...divOpts,
 } as const satisfies Options;
 ```
 
 ## Trying it out
 
-<Calc />
+<Calc height={15} />
 
 List of commands to try:
 

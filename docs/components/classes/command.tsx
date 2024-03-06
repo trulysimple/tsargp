@@ -21,6 +21,10 @@ type Props = {
    * The HTML class name.
    */
   readonly className?: string;
+  /**
+   * The number of terminal rows.
+   */
+  readonly height?: number;
 };
 
 /**
@@ -52,7 +56,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
   /**
    * The Xterm.js terminal object.
    */
-  private readonly term = new Terminal({ cursorBlink: true, convertEol: true });
+  private readonly term: Terminal;
 
   /**
    * The fit terminal addon.
@@ -82,6 +86,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
   constructor(props: P, ...names: Array<string>) {
     super(props);
     this.commands = ['clear', ...names];
+    this.term = new Terminal({ cursorBlink: true, convertEol: true, rows: props.height });
     this.term.loadAddon(new WebLinksAddon());
     this.term.loadAddon(this.fit);
     this.term.loadAddon(this.readline);
