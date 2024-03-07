@@ -65,6 +65,7 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 
 - check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
 - check if the `-b` option can be specified in combination with other options
+- check if values can be inlined with option names (e.g., `-ss=abc`)
 
 ### Nested commands
 
@@ -76,3 +77,11 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 - check if the `hello` command can have its own options (e.g., `hello -h`)
   - in this help message, see that a positional option can have no name
 - check if the `hello` command can be specified recursively (e.g., `hello a hello b c hello`)
+
+### Text wrapping
+
+With the browser console still open, slide the screen splitter leftwards until the terminal width
+changes, then run the help option and see if:
+
+- words in the option descriptions get wrapped correctly
+- words in the usage and footer get wrapped correctly

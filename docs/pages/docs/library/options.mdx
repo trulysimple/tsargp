@@ -313,13 +313,20 @@ optional attributes.
 The `usage` attribute describes your CLI usage instructions. It goes before everything else in the
 help message. The `footer` attribute is an afterword that can be used to insert a copyright notice
 or reference to other media. Both attributes can include inline styles and will be formatted
-according to [text formatting](styles.mdx#text-splitting) rules.
+according to [text formatting](styles.mdx#text-splitting) rules, unless the `noSplit` attribute is
+set.
 
 #### Format & heading style
 
 The `format` attribute, if present, specifies the [help format](formatter.mdx#help-format)
 configuration. The `headingStyle` attribute, if present, specifies a
 [style](styles.mdx#styling-attributes) to be applied to group headings.
+
+#### No text splitting
+
+The `noSplit` attribute, if present, indicates that the usage, footer and heading texts should _not_
+be split into words. This allows them to have custom indentation and prevents a colon from being
+appended to group headings, but at the expense of losing the text wrapping feature.
 
 ### Version option
 
@@ -395,7 +402,9 @@ two parameters:
 - `cmdValues` - the values parsed after the command
 
 It should return the option value or `void{:ts}`. It can be asynchronous, in which case you should
-call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
+call [`parseAsync`](parser.mdx#executing-callbacks) and await its result. The simplest
+implementation would just return the values parsed for the command. In this way, they get stored in
+the option value and can be worked on after the parser returns from the parsing loop.
 
 <Callout type="info">
   When bash completion is in effect, this callback will _not_ be called. Otherwise, the parser will
