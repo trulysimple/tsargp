@@ -3,8 +3,8 @@ local_branch="$(git rev-parse --abbrev-ref HEAD)"
 if ! echo "$local_branch" | grep -Eq '^(main|issues\/[0-9]+)$'
 then
   echo "Please read our contributing guide before submitting a PR:
-https://github.com/trulysimple/.github/blob/main/CONTRIBUTING.md"
+[90mhttps://github.com/trulysimple/.github/blob/main/CONTRIBUTING.md[0m"
   exit 1
 fi
 
-bun run changeset
+bun changeset status
