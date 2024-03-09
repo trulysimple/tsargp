@@ -38,7 +38,7 @@ body:
       placeholder: This will be automatically formatted, so no need for backticks.
       render: ts
   - type: textarea
-    id: what_happened
+    id: description
     attributes:
       label: Bug description
       description: Tell us, what happened and what is the expected behavior?
