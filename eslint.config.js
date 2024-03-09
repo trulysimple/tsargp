@@ -24,7 +24,7 @@ export default [
     rules: ts.configs.strict.rules,
   },
   {
-    files: ['**/*.tsx'],
+    files: ['**/*.{jsx,tsx}'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -48,7 +48,7 @@ export default [
         version: 'detect',
       },
       next: {
-        rootDir: 'docs',
+        rootDir: 'packages/docs',
       },
     },
     rules: {

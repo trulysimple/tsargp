@@ -1,4 +1,13 @@
-bun test --coverage
-bun run dist
-bun run distEnums
+#!/usr/bin/env sh
+changed_files="$(git diff --cached --name-only)"
+if echo "$changed_files" | grep -Eq '^packages\/.+\.ts$'; then
+  bun test --coverage
+fi
+if echo "$changed_files" | grep -Eq '^packages\/tsargp\/'; then
+  bun run --cwd packages/tsargp dist
+fi
+if echo "$changed_files" | grep -Eq '^packages\/docs\/'; then
+  bun run --cwd packages/docs dist
+fi
+
 bun run lint-staged

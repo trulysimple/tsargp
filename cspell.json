@@ -4,6 +4,7 @@
   "language": "en",
   "dictionaries": ["cpp", "typescript"],
   "ignoreWords": [
+    "Sogari",
     "lockb",
     "tsargp",
     "overlined",
@@ -15,8 +16,9 @@
     "println",
     "compspec",
     "svgr",
-    "codemirror"
+    "codemirror",
+    "CODEOWNERS"
   ],
-  "ignorePaths": ["*.lockb", "*.dvc"],
+  "ignorePaths": ["*.lockb", ".prettierignore", "CODEOWNERS"],
   "useGitignore": true
 }

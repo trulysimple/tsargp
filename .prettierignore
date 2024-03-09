@@ -5,3 +5,5 @@
 *.lockb
 *.svg
 *.toml
+CODEOWNERS
+LICENSE

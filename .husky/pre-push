@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+local_branch="$(git rev-parse --abbrev-ref HEAD)"
+if ! echo "$local_branch" | grep -Eq '^(main|issues\/[0-9]+)$'
+then
+  echo "Please read our contributing guide before submitting a PR:
+https://github.com/trulysimple/.github/blob/main/CONTRIBUTING.md"
+  exit 1
+fi
+
+bun run changeset

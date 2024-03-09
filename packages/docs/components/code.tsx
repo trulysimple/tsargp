@@ -6,7 +6,7 @@ import {
   compressToEncodedURIComponent as compress,
   decompressFromEncodedURIComponent as decompress,
 } from 'lz-string';
-import { Editor, Props } from './classes/editor';
+import { type Props, Editor } from './classes/editor';
 
 //--------------------------------------------------------------------------------------------------
 // Classes
