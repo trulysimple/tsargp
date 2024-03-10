@@ -1,0 +1,9 @@
+{
+  "mode": "pre",
+  "tag": "dev",
+  "initialVersions": {
+    "@trulysimple/tsargp-docs": "0.1.45",
+    "tsargp": "0.2.5"
+  },
+  "changesets": []
+}

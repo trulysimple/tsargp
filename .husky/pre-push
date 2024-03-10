@@ -11,5 +11,5 @@ then
   exit 1
 fi
 
-merge_base="$(git show-branch --merge-base --current origin/main)"
+merge_base="$(git show-branch --merge-base --current origin/dev)"
 bun changeset status --since "$merge_base"
