@@ -2,7 +2,10 @@ name: Create release PR or Publish to npm
 
 on:
   push:
-    branches: main
+    branches:
+      - main
+      - dev
+      - next
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 

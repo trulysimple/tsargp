@@ -20,23 +20,17 @@ async function getIssueNumber() {
   return match[1];
 }
 
-async function getAddMessage(changeset, options) {
+async function getAddMessage(changeset) {
   const issue = await getIssueNumber();
   const lines = [`[changeset] ${changeset.summary}`, '', `closes #${issue}`];
-  if (options?.skipCI === 'add' || options?.skipCI === true) {
-    lines.push('', '[skip ci]');
-  }
   return lines.join('\n');
 }
 
-function getVersionMessage(releasePlan, options) {
+function getVersionMessage(releasePlan) {
   const releases = releasePlan.releases.filter((release) => release.type !== 'none');
   const lines = [`[release] Releasing ${releases.length} package(s)`];
   if (releases.length) {
     lines.push('', ...releases.map((release) => `- ${release.name}@${release.newVersion}`));
-  }
-  if (options?.skipCI === 'version' || options?.skipCI === true) {
-    lines.push('', '[skip ci]');
   }
   return lines.join('\n');
 }
