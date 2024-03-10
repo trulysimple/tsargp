@@ -12,6 +12,9 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions: #           Allow changesets to:
+      contents: write #      - push to the release branch or create a GH release
+      pull-requests: write # - create or update the release PR
     steps:
       - uses: actions/checkout@v4
       - name: Setup Bun
