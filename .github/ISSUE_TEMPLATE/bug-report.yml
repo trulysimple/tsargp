@@ -1,0 +1,54 @@
+name: Bug Report
+description: File a bug report to help us improve tsargp
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this form! We appreciate your contribution. :sparkles:
+  - type: input
+    id: search_terms
+    attributes:
+      label: Search terms
+      description: Which terms did you use when trying to find an existing report?
+      placeholder: e.g., "text wrapped incorrectly", "inline style suppressed in help"
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which library components are related to the problem? (If applicable)
+      multiple: true
+      options:
+        - Options
+        - Parser
+        - Formatter
+        - Validator
+        - Styles
+  - type: input
+    id: playground
+    attributes:
+      label: Playground link
+      description: A link to a playground sample which shows this behavior. (Click "Share URL")
+      placeholder: https://trulysimple.dev/tsargp/play#E4UwLgrsB2AEDeBfA3EA...
+  - type: textarea
+    id: code
+    attributes:
+      label: Sample code
+      description: If you have sample code instead of a playground link, please paste it here.
+      placeholder: This will be automatically formatted, so no need for backticks.
+      render: ts
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: Tell us, what happened and what is the expected behavior?
+      placeholder: You can place code samples here as well (if not already provided).
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: If you got an unexpected error, please paste the relevant log output here.
+      placeholder: This will be automatically formatted, so no need for backticks.
+      render: shell

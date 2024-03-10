@@ -3,8 +3,10 @@
 //--------------------------------------------------------------------------------------------------
 import type { HelpConfig } from './formatter';
 import type { Style } from './styles';
+import type { URL as _URL } from 'url';
 
 export type {
+  URL,
   ParseCallback,
   ResolveCallback,
   ExecuteCallback,
@@ -77,6 +79,11 @@ const req = {
 //--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
+/**
+ * For some reason the global definition of `URL` has issues with static methods.
+ */
+interface URL extends _URL {}
+
 /**
  * A set of styles for displaying an option on the terminal.
  */

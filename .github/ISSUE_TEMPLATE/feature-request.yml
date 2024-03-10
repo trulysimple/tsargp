@@ -1,0 +1,41 @@
+name: Feature Request
+description: Propose an idea or improvement to tsargp
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this form! We appreciate your contribution. :sparkles:
+  - type: input
+    id: search_terms
+    attributes:
+      label: Search terms
+      description: Which terms did you use when trying to find an existing request?
+      placeholder: e.g., "new attribute for function option", "allow custom requirements"
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What would you like to see implemented?
+      placeholder: You can place code samples here as well.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What are the use cases for this feature?
+      placeholder: |
+        1. What is the context in which you want to use it?
+        2. What shortcomings exist with current approaches?
+        3. What workarounds are you using in the meantime?
+  - type: checkboxes
+    id: viability
+    attributes:
+      label: Viability checklist
+      description: Proposals that do not meet these criteria are unlikely to be accepted.
+      options:
+        - label: This feature would _not_ require a new run-time dependency.
+          required: true
+        - label: This feature would agree with the rest of our [Design Goals](https://github.com/trulysimple/tsargp/wiki/Design-Goals).
+          required: true
