@@ -1,4 +1,10 @@
-*             @trulysimple/staff
+# Default owners for everything in the repo
+* @trulysimple/staff
+
+# Owners of the contribution workflow files
 /.changeset/  @disog
 /.github/     @disog
 /.husky/      @disog
+
+# Override owners for added changesets
+/.changeset/*.md  @trulysimple/staff

@@ -1,10 +1,11 @@
 #!/usr/bin/env sh
 local_branch="$(git rev-parse --abbrev-ref HEAD)"
-if ! echo "$local_branch" | grep -Eq '^(main|issues\/[0-9]+)$'
+if ! echo "$local_branch" | grep -Eq '^(main|dev|next|issues\/[0-9]+)$'
 then
   echo "Please read our contributing guide before submitting a PR:
 [90mhttps://github.com/trulysimple/.github/blob/main/CONTRIBUTING.md[0m"
   exit 1
 fi
 
-bun changeset status
+merge_base="$(git show-branch --merge-base --current origin/main origin/dev origin/next)"
+bun changeset status --since $merge_base

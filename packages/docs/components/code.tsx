@@ -35,8 +35,8 @@ export default function Code(props: Props): JSX.Element {
   const onMouseEnter = () => {
     if (anchorRef.current) {
       const url = window.location.origin + window.location.pathname + '#' + getHash();
-      const issue = encodeURIComponent(`[Playground link](${url})`);
-      const href = `https://github.com/trulysimple/tsargp/issues/new?labels=bug&body=${issue}`;
+      const query = `?labels=bug&template=bug-report.yml&playground=${encodeURIComponent(url)}`;
+      const href = `https://github.com/trulysimple/tsargp/issues/new${query}`;
       anchorRef.current.setAttribute('href', href);
     }
   };
