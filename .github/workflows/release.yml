@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: changeset-release
-    permissions: #           Allow changesets to:
-      contents: write #      - push to the release branch or create a GH release
-      pull-requests: write # - create or update the release PR
     steps:
       - uses: actions/checkout@v4
         with:
