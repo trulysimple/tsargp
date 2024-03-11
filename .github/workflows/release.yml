@@ -35,6 +35,8 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - if: steps.changesets.outputs.published == 'true'
         run: |
-          echo '```json' > $GITHUB_STEP_SUMMARY
-          echo "${{ steps.changesets.outputs.publishedPackages }}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat <<'EOF' > $GITHUB_STEP_SUMMARY
+          ```json
+          ${{ steps.changesets.outputs.publishedPackages }}
+          ```
+          EOF
