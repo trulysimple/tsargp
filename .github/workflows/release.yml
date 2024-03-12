@@ -23,13 +23,13 @@ jobs:
       - name: Setup packages
         run: |
           bun install
-          bun eslint .
-          bun cspell .
+          bun run eslint .
+          bun run cspell .
       - name: Release or publish
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: bun changeset publish
+          publish: bun run changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
