@@ -461,7 +461,7 @@ class ErrorMessage extends Error {
    * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process.stderr.columns, emitStyles = !omitStyles(width)): string {
+  wrap(width = process.stderr.columns ?? 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     this.str.wrapToWidth(result, 0, width, emitStyles);
     if (emitStyles) {
@@ -488,7 +488,7 @@ class HelpMessage extends Array<TerminalString> {
    * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process.stdout.columns, emitStyles = !omitStyles(width)): string {
+  wrap(width = process.stdout.columns ?? 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     let column = 0;
     for (const str of this) {

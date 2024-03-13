@@ -164,20 +164,6 @@ describe('TerminalString', () => {
         expect(result).toEqual(['abc', ' def']);
       });
 
-      it('should omit styles', () => {
-        const str = new TerminalString();
-        const result = new Array<string>();
-        str.splitText(`abc${style(tf.clear)}def`).wrapToWidth(result, 0, 0, false);
-        expect(result).toEqual(['abcdef']);
-      });
-
-      it('should emit styles', () => {
-        const str = new TerminalString();
-        const result = new Array<string>();
-        str.splitText(`abc${style(tf.clear)}def`).wrapToWidth(result, 0, 0, true);
-        expect(result).toEqual(['abc' + style(tf.clear) + 'def']);
-      });
-
       it('should preserve indentation', () => {
         const str = new TerminalString(2);
         const result = new Array<string>();
@@ -234,7 +220,7 @@ describe('TerminalString', () => {
         expect(result).toEqual(['abc', '\n\n', 'def']);
       });
 
-      it('should remove styles', () => {
+      it('should omit styles', () => {
         const str = new TerminalString(0);
         const result = new Array<string>();
         str
@@ -242,23 +228,18 @@ describe('TerminalString', () => {
           .wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['abc', ' def']);
       });
-    });
-
-    describe('when a width is provided', () => {
-      it('should omit styles', () => {
-        const str = new TerminalString();
-        const result = new Array<string>();
-        str.splitText(`abc${style(tf.clear)}def`).wrapToWidth(result, 0, 10, false);
-        expect(result).toEqual(['abcdef']);
-      });
 
       it('should emit styles', () => {
         const str = new TerminalString();
         const result = new Array<string>();
-        str.splitText(`abc${style(tf.clear)}def`).wrapToWidth(result, 0, 10, true);
-        expect(result).toEqual(['abc' + style(tf.clear) + 'def']);
+        str
+          .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
+          .wrapToWidth(result, 0, 0, true);
+        expect(result).toEqual(['abc' + style(tf.clear), style(tf.clear), ' def']);
       });
+    });
 
+    describe('when a width is provided', () => {
       it('should wrap relative to the beginning when the largest word does not fit the width (1)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
@@ -342,6 +323,24 @@ describe('TerminalString', () => {
         str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 15, false);
         expect(result).toEqual(['\n', `${move(3, mv.cha)}abc`, ' largest']);
       });
+
+      it('should omit styles', () => {
+        const str = new TerminalString(0);
+        const result = new Array<string>();
+        str
+          .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
+          .wrapToWidth(result, 0, 10, false);
+        expect(result).toEqual(['abc', ' def']);
+      });
+
+      it('should emit styles', () => {
+        const str = new TerminalString();
+        const result = new Array<string>();
+        str
+          .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
+          .wrapToWidth(result, 0, 10, true);
+        expect(result).toEqual(['abc' + style(tf.clear), style(tf.clear), ' def']);
+      });
     });
   });
 });
@@ -355,7 +354,7 @@ describe('ErrorMessage', () => {
     expect(err.wrap(0, false)).toEqual('type script');
     expect(err.wrap(0, true)).toEqual('type script' + style(tf.clear));
     expect(err.wrap(11, false)).toEqual('type script');
-    expect(err.wrap(11)).toEqual('type script' + style(tf.clear));
+    expect(err.wrap(11, true)).toEqual('type script' + style(tf.clear));
   });
 
   it('should be thrown and caught', () => {
@@ -378,6 +377,6 @@ describe('HelpMessage', () => {
     expect(help.wrap(0, false)).toEqual('type script');
     expect(help.wrap(0, true)).toEqual('type script' + style(tf.clear));
     expect(help.wrap(11, false)).toEqual('type script');
-    expect(help.wrap(11)).toEqual('type script' + style(tf.clear));
+    expect(help.wrap(11, true)).toEqual('type script' + style(tf.clear));
   });
 });
