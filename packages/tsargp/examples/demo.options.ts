@@ -59,7 +59,7 @@ export default {
     footer: `
     MIT License.
     Copyright (c) 2024
-    ${style(tf.bold, tf.italic, fg.cyan)}TrulySimple${style(tf.clear)}
+    ${style(tf.bold, tf.italic)}TrulySimple${style(tf.clear)}
 
     Report a bug:
     ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${style(tf.clear)}`,
