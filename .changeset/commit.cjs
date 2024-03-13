@@ -1,7 +1,3 @@
-function getAddMessage(changeset) {
-  return `[changeset] ${changeset.summary}`;
-}
-
 function getVersionMessage(releasePlan) {
   const releases = releasePlan.releases.filter((release) => release.type !== 'none');
   const lines = [`[release] Releasing ${releases.length} package(s)`];
@@ -12,6 +8,5 @@ function getVersionMessage(releasePlan) {
 }
 
 exports['default'] = {
-  getAddMessage,
   getVersionMessage,
 };
