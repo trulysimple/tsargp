@@ -160,71 +160,82 @@ describe('TerminalString', () => {
       it('should not wrap', () => {
         const str = new TerminalString();
         const result = new Array<string>();
-        str.splitText('abc def').wrapToWidth(result, 0);
+        str.splitText('abc def').wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['abc', ' def']);
       });
 
       it('should preserve indentation', () => {
         const str = new TerminalString(2);
         const result = new Array<string>();
-        str.addWord('abc').wrapToWidth(result, 0);
+        str.addWord('abc').wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['  ', 'abc']);
       });
 
       it('should not preserve indentation if the string is empty', () => {
         const str = new TerminalString(2);
         const result = new Array<string>();
-        str.wrapToWidth(result, 0);
+        str.wrapToWidth(result, 0, 0, false);
         expect(result).toEqual([]);
       });
 
       it('should not preserve indentation if the string starts with a line break', () => {
         const str = new TerminalString(2);
         const result = new Array<string>();
-        str.addBreaks(1).wrapToWidth(result, 0);
+        str.addBreaks(1).wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['\n']);
       });
 
       it('should shorten the current line (1)', () => {
         const str = new TerminalString(0);
         const result = ['  '];
-        str.splitText('abc def').wrapToWidth(result, 2);
+        str.splitText('abc def').wrapToWidth(result, 2, 0, false);
         expect(result).toEqual(['abc', ' def']);
       });
 
       it('should shorten the current line (2)', () => {
         const str = new TerminalString(0);
         const result = ['   '];
-        str.splitText('abc def').wrapToWidth(result, 2);
+        str.splitText('abc def').wrapToWidth(result, 2, 0, false);
         expect(result).toEqual([' ', 'abc', ' def']);
       });
 
       it('should not shorten the current line if the string is empty', () => {
         const str = new TerminalString(0);
         const result = ['  '];
-        str.wrapToWidth(result, 2);
+        str.wrapToWidth(result, 2, 0, false);
         expect(result).toEqual(['  ']);
       });
 
       it('should not shorten the current line if the string starts with a line break', () => {
         const str = new TerminalString(0);
         const result = ['  '];
-        str.addBreaks(1).wrapToWidth(result, 2);
+        str.addBreaks(1).wrapToWidth(result, 2, 0, false);
         expect(result).toEqual(['  ', '\n']);
       });
 
       it('should preserve line breaks', () => {
         const str = new TerminalString(0);
         const result = new Array<string>();
-        str.splitText('abc\n\ndef').wrapToWidth(result, 0);
+        str.splitText('abc\n\ndef').wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['abc', '\n\n', 'def']);
       });
 
-      it('should remove styles', () => {
+      it('should omit styles', () => {
         const str = new TerminalString(0);
         const result = new Array<string>();
-        str.splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`).wrapToWidth(result, 0);
+        str
+          .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
+          .wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['abc', ' def']);
+      });
+
+      it('should emit styles', () => {
+        const str = new TerminalString();
+        const result = new Array<string>();
+        str
+          .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
+          .wrapToWidth(result, 0, 0, true);
+        expect(result).toEqual(['abc' + style(tf.clear), style(tf.clear), ' def']);
       });
     });
 
@@ -232,85 +243,103 @@ describe('TerminalString', () => {
       it('should wrap relative to the beginning when the largest word does not fit the width (1)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 0, 5);
+        str.splitText('abc largest').wrapToWidth(result, 0, 5, false);
         expect(result).toEqual(['abc', '\nlargest']);
       });
 
       it('should wrap relative to the beginning when the largest word does not fit the width (2)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 1, 5);
+        str.splitText('abc largest').wrapToWidth(result, 1, 5, false);
         expect(result).toEqual(['\n', 'abc', '\nlargest']);
       });
 
       it('should wrap relative to the beginning when the largest word does not fit the width (3)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
-        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 5);
+        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 5, false);
         expect(result).toEqual(['\n', 'abc', '\nlargest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (1)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 1, 15);
+        str.splitText('abc largest').wrapToWidth(result, 1, 15, false);
         expect(result).toEqual(['abc', ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (2)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 2, 15);
+        str.splitText('abc largest').wrapToWidth(result, 2, 15, false);
         expect(result).toEqual([move(2, mv.cha), 'abc', ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (3)', () => {
         const str = new TerminalString(2);
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 1, 15);
+        str.splitText('abc largest').wrapToWidth(result, 1, 15, false);
         expect(result).toEqual([move(3, mv.cha), 'abc', ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (4)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 1, 10);
+        str.splitText('abc largest').wrapToWidth(result, 1, 10, false);
         expect(result).toEqual(['abc', `\n${move(2, mv.cha)}largest`]);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (5)', () => {
         const str = new TerminalString();
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 0, 15);
+        str.splitText('abc largest').wrapToWidth(result, 0, 15, false);
         expect(result).toEqual(['abc', ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (6)', () => {
         const str = new TerminalString();
         const result = new Array<string>();
-        str.splitText('abc largest').wrapToWidth(result, 1, 15);
+        str.splitText('abc largest').wrapToWidth(result, 1, 15, false);
         expect(result).toEqual([move(1, mv.cha), 'abc', ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (7)', () => {
         const str = new TerminalString();
         const result = new Array<string>();
-        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 15);
+        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 15, false);
         expect(result).toEqual(['\n', 'abc', ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (8)', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
-        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 2, 15);
+        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 2, 15, false);
         expect(result).toEqual(['\n', `${move(2, mv.cha)}abc`, ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (9)', () => {
         const str = new TerminalString(2);
         const result = new Array<string>();
-        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 15);
+        str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 15, false);
         expect(result).toEqual(['\n', `${move(3, mv.cha)}abc`, ' largest']);
+      });
+
+      it('should omit styles', () => {
+        const str = new TerminalString(0);
+        const result = new Array<string>();
+        str
+          .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
+          .wrapToWidth(result, 0, 10, false);
+        expect(result).toEqual(['abc', ' def']);
+      });
+
+      it('should emit styles', () => {
+        const str = new TerminalString();
+        const result = new Array<string>();
+        str
+          .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
+          .wrapToWidth(result, 0, 10, true);
+        expect(result).toEqual(['abc' + style(tf.clear), style(tf.clear), ' def']);
       });
     });
   });
@@ -322,8 +351,10 @@ describe('ErrorMessage', () => {
     str.splitText('type script');
     const err = new ErrorMessage(str);
     expect(err.message).toMatch(/type script/);
-    expect(err.wrap(0)).toEqual('type script');
-    expect(err.wrap(11)).toEqual('type script' + style(tf.clear));
+    expect(err.wrap(0, false)).toEqual('type script');
+    expect(err.wrap(0, true)).toEqual('type script' + style(tf.clear));
+    expect(err.wrap(11, false)).toEqual('type script');
+    expect(err.wrap(11, true)).toEqual('type script' + style(tf.clear));
   });
 
   it('should be thrown and caught', () => {
@@ -343,7 +374,9 @@ describe('HelpMessage', () => {
     const help = new HelpMessage();
     help.push(str);
     expect(help.toString()).toMatch(/type script/);
-    expect(help.wrap(0)).toEqual('type script');
-    expect(help.wrap(11)).toEqual('type script' + style(tf.clear));
+    expect(help.wrap(0, false)).toEqual('type script');
+    expect(help.wrap(0, true)).toEqual('type script' + style(tf.clear));
+    expect(help.wrap(11, false)).toEqual('type script');
+    expect(help.wrap(11, true)).toEqual('type script' + style(tf.clear));
   });
 });

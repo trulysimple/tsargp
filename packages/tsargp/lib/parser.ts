@@ -261,8 +261,8 @@ class ParserLoop {
         } catch (err) {
           // do not propagate errors during completion
           if (!this.completing) {
-            if (suggestName(option)) {
-              handleUnknown(this.validator, value, err as ErrorMessage);
+            if (err instanceof ErrorMessage && suggestName(option)) {
+              handleUnknown(this.validator, value, err);
             }
             throw err;
           }
