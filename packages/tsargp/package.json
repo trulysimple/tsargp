@@ -37,7 +37,8 @@
     }
   },
   "files": [
-    "dist/**/*.{js,ts}"
+    "dist/{enums,examples,lib,types}/*.{js,ts}",
+    "dist/index.min.js"
   ],
   "repository": {
     "url": "git+https://github.com/trulysimple/tsargp.git",
@@ -46,12 +47,13 @@
   "devDependencies": {
     "@tsconfig/bun": "^1.0.4",
     "@types/bun": "^1.0.4",
+    "typedoc": "^0.25.12",
     "typescript": "^5.4.2",
     "vitest": "^1.3.0"
   },
   "scripts": {
     "prepare": "bun run dist",
-    "dist": "tsc -b examples && bun build dist/lib/index.js --outfile dist/index.min.js --minify && tsc lib/enums.ts -d -m ESNext --skipLibCheck --preserveConstEnums --removeComments --outDir dist/enums && sed -i 's/const enum/enum/g' dist/enums/*.d.ts"
+    "dist": "tsc -b examples && typedoc && bun build dist/lib/index.js --outfile dist/index.min.js --minify && tsc lib/enums.ts -d -m ESNext --skipLibCheck --preserveConstEnums --removeComments --outDir dist/enums && sed -i 's/const enum/enum/g' dist/enums/*.d.ts"
   },
   "browser": {
     "fs": false

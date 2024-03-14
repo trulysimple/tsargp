@@ -11,6 +11,7 @@ export type {
   ResolveCallback,
   ExecuteCallback,
   CompleteCallback,
+  CommandCallback,
   Option,
   Options,
   OptionDataType,

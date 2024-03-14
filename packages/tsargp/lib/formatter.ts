@@ -407,7 +407,7 @@ class HelpFormatter {
 
   /**
    * Formats an option's requirements to be included in the description.
-   * @param values The option definition
+   * @param option The option definition
    * @param phrase The description item phrase
    * @param styles The set of styles
    * @param style The description style
