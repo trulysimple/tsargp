@@ -351,7 +351,15 @@ with [semantic version](#semantic-version).
 ### Function option
 
 The **function** option executes a generic callback function and saves its result as the option
-value. The following attributes can be specified.
+value. You can use it to perform many kinds of useful things, such as:
+
+- reading configuration from a file
+- altering the values of previous options
+- altering the option definitions in response to an option value
+  - e.g., if `--verbose` is set, add more help items to the [help format](#format--heading-style)
+    (or replace it altogether)
+
+The following attributes can be specified.
 
 #### Execute callback
 
@@ -371,6 +379,10 @@ call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
   parsing loop.
 </Callout>
 
+<Callout type="warning">
+  Altering the `rest` parameter will have _no_ effect on the original command-line arguments.
+</Callout>
+
 #### Break loop
 
 The `break` attribute, if present, tells the parser to exit the parsing loop immediately after
@@ -379,7 +391,7 @@ returning from the callback.
 <Callout type="warning">
   When setting this attribute, the requirements of all options specified up to the current iteration
   (including the function option) will be verified. Hence, you should make it clear in the help
-  message that any option required by the affected one must be specified before it.
+  message that any option required by the affected one must be specified _before_ it.
 </Callout>
 
 ### Command option
@@ -398,13 +410,13 @@ attributes and parses the remaining arguments for you.
 The `cmd` attribute is the callback function that should be executed. It is required and accepts
 two parameters:
 
-- `values` - the values parsed before the command
-- `cmdValues` - the values parsed after the command
+- `values` - the values parsed for the parent command
+- `cmdValues` - the values parsed for the command
 
 It should return the option value or `void{:ts}`. It can be asynchronous, in which case you should
 call [`parseAsync`](parser.mdx#executing-callbacks) and await its result. The simplest
-implementation would just return the values parsed for the command. In this way, they get stored in
-the option value and can be worked on after the parser returns from the parsing loop.
+implementation would just return `cmdValues`. This way, they are stored in the option value and
+can be handled after the parser returns from the parsing loop.
 
 <Callout type="info">
   When bash completion is in effect, this callback will _not_ be called. Otherwise, the parser will
@@ -415,12 +427,12 @@ the option value and can be worked on after the parser returns from the parsing 
 
 The `options` attribute is the set of option definitions for the command, and is required. You may
 also specify a (non-asynchronous) callback that returns the option definitions (this allows the
-implementation of [tail-recursive commands](../guides/commands.mdx)).
+implementation of [recursive commands](../guides/commands.mdx)).
 
 <Callout type="warning">
-  All incoming arguments will be parsed using the option definitions from this attribute, _not_
-  those in which the option was declared. Hence, you should make it clear in the help message that
-  all arguments pertaining to the command should be specified after it.
+  All incoming arguments will be parsed using the option definitions from this attribute, not those
+  in which the option was declared. Hence, you should make it clear in the help message that all
+  arguments pertaining to the command must be specified _after_ it.
 </Callout>
 
 ### Flag option
@@ -428,21 +440,21 @@ implementation of [tail-recursive commands](../guides/commands.mdx)).
 The **flag** option is unique in the sense that it is both niladic and has an intrinsic value
 (boolean). It differs from the [boolean option](#boolean-option) in that it does _not_ expect a
 parameter, although it may have the [required](#required) or the
-[default value](#default-value--callback) attribute for a `boolean{:ts}` data type.
+[default value](#default-value--callback) attribute for a `boolean{:ts}` data type, as well as the
+following (optional) attribute.
 
 <Callout type="info">
-  We could have reused the boolean option for this purpose and make the parameter optional, but it
-  would complicate the parser implementation unnecessarily. Besides, the flag option has a
-  particularly useful feature, which is described below.
+  We could have reused the boolean option for this purpose and made the parameter optional, but it
+  would complicate the parser implementation. One benefit of this limitation is that it avoids
+  ambiguity about whether arguments are positional or not (e.g., in `-f 1`, is `1` a parameter to
+  `-f` or a positional argument?).
 </Callout>
-
-It has the following optional attribute.
 
 #### Negation names
 
 The `negationNames` attribute specifies alternate option names that can be used to turn the option
-value `false{:ts}` (e.g., _--no-flag_). This is useful in scripting scenarios where a flag that has
-been previously specified must be reset by a supplementary list of arguments.
+value `false{:ts}` (e.g., _--no-flag_). This is particularly useful in scripting scenarios where a
+flag that has been previously specified must be reset by a supplementary list of arguments.
 
 ## Non-niladic options
 

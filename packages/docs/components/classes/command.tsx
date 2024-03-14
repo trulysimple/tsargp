@@ -86,7 +86,11 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
   constructor(props: P, ...names: Array<string>) {
     super(props);
     this.commands = ['clear', ...names];
-    this.term = new Terminal({ cursorBlink: true, convertEol: true, rows: props.height });
+    this.term = new Terminal({
+      cursorBlink: true,
+      convertEol: true,
+      ...(props.height ? { rows: props.height } : {}),
+    });
     this.term.loadAddon(new WebLinksAddon());
     this.term.loadAddon(this.fit);
     this.term.loadAddon(this.readline);
@@ -165,16 +169,19 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
    */
   private onTab() {
     // @ts-expect-error since we need to use the private line buffer
-    const line: { buf: string; pos: number } = this.readline.state.line;
-    let { buf, pos } = line;
-    buf = buf.trimStart();
-    pos -= line.buf.length - buf.length;
+    const buffer: { buf: string; pos: number } = this.readline.state.line;
+    const cmdAndLine = processEnvVars(buffer.buf.trimStart());
+    if (!cmdAndLine) {
+      return;
+    }
+    const [command, line] = cmdAndLine;
+    const pos = buffer.pos - (buffer.buf.length - line.length);
     if (pos <= 0) {
       return;
     }
     let cmds = this.commands;
-    for (let i = 0; i < pos && buf[i] != ' '; ++i) {
-      cmds = cmds.filter((cmd) => i < cmd.length && cmd[i] == buf[i]);
+    for (let i = 0; i < pos && i < command.length; ++i) {
+      cmds = cmds.filter((cmd) => i < cmd.length && cmd[i] == line[i]);
     }
     if (cmds.length > 1) {
       this.readline.print(`\n> ${cmds.join(' ')}\n> `);
@@ -184,10 +191,10 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
         this.term.paste(`${cmd} `.slice(pos));
       } else if (cmd !== this.commands[0]) {
         try {
-          this.run(buf, pos);
+          this.run(line, pos);
         } catch (comp) {
           if (typeof comp === 'string' && comp) {
-            this.onComplete(comp.split('\n'), buf, pos);
+            this.onComplete(comp.split('\n'), line, pos);
           }
         }
       }
@@ -219,20 +226,22 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
    * @param line The command-line
    */
   private onInput(line: string) {
-    line = line.trimStart();
-    const [command] = line.split(' ', 1);
-    if (this.commands.includes(command)) {
-      switch (command) {
-        case 'clear':
-          this.term.clear();
-          break;
-        default: {
-          this.run(line);
-          break;
+    const cmdAndLine = processEnvVars(line.trimStart());
+    if (cmdAndLine) {
+      const [command, line] = cmdAndLine;
+      if (this.commands.includes(command)) {
+        switch (command) {
+          case 'clear':
+            this.term.clear();
+            break;
+          default: {
+            this.run(line);
+            break;
+          }
         }
+      } else {
+        this.readline.println(`${command}: command not found`);
       }
-    } else {
-      this.readline.println(`${command}: command not found`);
     }
     this.readInput();
   }
@@ -251,4 +260,22 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
   protected println(text: string) {
     this.readline.println(text);
   }
+}
+
+/**
+ * Parse and set environment variables from a command-line
+ * @param line The command-line
+ * @returns The command and line, after env. vars
+ */
+function processEnvVars(line: string) {
+  do {
+    const [command, rest] = line.split(/ +(.*)/, 2);
+    if (!command.includes('=')) {
+      return [command, line];
+    }
+    const [name, value] = command.split('=', 2);
+    process.env[name] = value; // mocked by webpack
+    line = rest;
+  } while (line);
+  return undefined;
 }

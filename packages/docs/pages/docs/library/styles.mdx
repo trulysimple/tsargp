@@ -174,9 +174,15 @@ Another paragraph
 ### Text wrapping
 
 Text is wrapped according to a configured _width_: the number of terminal columns by which to limit
-each line of text. When a width of zero (or `undefined{:ts}`) is provided, the terminal string
-instance will suppress inline styles and omit control sequences that it would otherwise use for
-rendering text in a terminal.
+each line of text. When a width of zero or `undefined{:ts}` is provided (which may happen if the
+output is being redirected), the terminal string instance will suppress styles and control sequences
+that it would otherwise use to render text in a terminal.
+
+<Callout type="info">
+  You can force omission of styles regardless of the terminal width by setting the `NO_COLOR`
+  environment variable. Reciprocally, you can force emission of styles regardless of the terminal
+  width by setting the `FORCE_COLOR` environment variable.
+</Callout>
 
 #### Indentation level
 

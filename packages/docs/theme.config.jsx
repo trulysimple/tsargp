@@ -4,7 +4,7 @@ export default {
     link: 'https://github.com/trulysimple/tsargp',
   },
   faviconGlyph: 'ts',
-  docsRepositoryBase: 'https://github.com/trulysimple/tsargp/tree/main/docs',
+  docsRepositoryBase: 'https://github.com/trulysimple/tsargp/tree/main/packages/docs',
   footer: {
     text: (
       <span>

@@ -16,6 +16,7 @@
     "println",
     "compspec",
     "svgr",
+    "oclif",
     "codemirror",
     "CODEOWNERS"
   ],

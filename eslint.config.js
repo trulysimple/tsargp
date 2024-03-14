@@ -35,6 +35,7 @@ export default [
       globals: {
         ...globals.browser,
         JSX: false,
+        process: false, // mocked by webpack
       },
     },
     plugins: {
