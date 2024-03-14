@@ -67,6 +67,7 @@ class PlayCommand extends Command<PlayProps> {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/** @ignore */
 export default function Play(props: PlayProps): JSX.Element {
   return <PlayCommand {...props} />;
 }

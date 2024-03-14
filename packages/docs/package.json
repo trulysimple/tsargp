@@ -38,8 +38,8 @@
   },
   "scripts": {
     "prepublishOnly": "bun run dist",
-    "dev": "ln -snf \"$(dirname `pwd`)/tsargp/dist/docs\" public/api && next",
-    "dist": "ln -snf \"$(dirname `pwd`)/tsargp/dist/docs\" public/api && next build",
+    "dev": "next",
+    "dist": "bun run --cwd ../tsargp typedoc && ln -snf \"$(dirname `pwd`)/tsargp/dist/docs\" public/api && next build",
     "serve": "ln -snf \"`pwd`/dist\" dist/tsargp && http-server dist"
   }
 }

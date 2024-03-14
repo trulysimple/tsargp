@@ -416,6 +416,7 @@ class OptionValidator {
    * @param key The option key
    * @param option The option definition
    * @param value The option value
+   * @returns Nothing
    * @throws On value not satisfying specified constraints
    */
   private validateValue(key: string, option: ParamOption, value: ParamOption['example']) {
@@ -693,6 +694,8 @@ function formatParam(value: unknown, styles: ConcreteStyles, style: Style, resul
 /**
  * Formats a previously formatted terminal string.
  * @param str The terminal string
+ * @param _1 unused
+ * @param _2 unused
  * @param result The resulting string
  */
 function formatTerm(str: TerminalString, _1: ConcreteStyles, _2: Style, result: TerminalString) {

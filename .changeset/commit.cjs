@@ -1,3 +1,4 @@
+/** @ignore */
 function getVersionMessage(releasePlan) {
   const releases = releasePlan.releases.filter((release) => release.type !== 'none');
   const lines = [`[release] Releasing ${releases.length} package(s)`];

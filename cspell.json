@@ -26,11 +26,11 @@
   "patterns": [
     {
       "name": "gh-username",
-      "pattern": "@[\\w-]+"
+      "pattern": "/@[\\w-]+/g"
     },
     {
       "name": "ga-measurement-id",
-      "pattern": "G-[\\w-]+"
+      "pattern": "/G-[\\w]+/g"
     }
   ]
 }

@@ -334,6 +334,7 @@ class HelpFormatter {
     let breaks = this.config.breaks.names;
     let start = this.namesStart;
     let str: TerminalString | undefined;
+    /** @ignore */
     function formatOption(name: string | null, width: number) {
       if (name) {
         if (str) {
@@ -456,6 +457,7 @@ class HelpFormatter {
 /**
  * Gets the required width of each name slot in a set of option definitions.
  * @param options The option definitions
+ * @returns The name slot widths
  */
 function getNameWidths(options: Options): Array<number> {
   const result = new Array<number>();
@@ -479,8 +481,10 @@ function getNameWidths(options: Options): Array<number> {
  * @param option The option definition
  * @param value The option value
  * @param result The resulting string
+ * @param styles The set of styles
  * @param style The style to revert to
  * @param inDesc True if in the description
+ * @returns Nothing
  */
 function formatValue(
   option: ValuedOption,
@@ -533,8 +537,9 @@ function formatValue(
 /**
  * Formats a list of values to be printed on the terminal.
  * @param option The option definition
- * @param values The array values
+ * @param value The array values
  * @param result The resulting string
+ * @param styles The set of styles
  * @param formatFn The function to convert a value to string
  * @param style The description style, if in the description
  * @param inDesc True if in the description
@@ -564,6 +569,7 @@ function formatArray<T extends string | number>(
  * @param values The array values
  * @param style The style to be applied
  * @param result The resulting string
+ * @param styles The set of styles
  * @param formatFn The function to convert a value to string
  * @param brackets An optional pair of brackets to surround the values
  * @param separator An optional separator to delimit the values
@@ -606,10 +612,10 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
 
 /**
  * Formats an option's synopsis to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatSynopsis(
@@ -627,7 +633,7 @@ function formatSynopsis(
 
 /**
  * Formats an option's negation names to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -655,7 +661,7 @@ function formatNegation(
 
 /**
  * Formats an option's separator string to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -685,10 +691,10 @@ function formatSeparator(
 
 /**
  * Formats an option's variadic nature to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatVariadic(
@@ -705,7 +711,7 @@ function formatVariadic(
 
 /**
  * Formats an option's positional attribute to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -733,10 +739,10 @@ function formatPositional(
 
 /**
  * Formats an option's append attribute to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatAppend(
@@ -753,10 +759,10 @@ function formatAppend(
 
 /**
  * Formats an option's trim normalization to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatTrim(
@@ -773,10 +779,10 @@ function formatTrim(
 
 /**
  * Formats an option's case normalization to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatCase(
@@ -794,10 +800,10 @@ function formatCase(
 
 /**
  * Formats an option's rounding normalization to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatRound(
@@ -818,7 +824,7 @@ function formatRound(
 
 /**
  * Formats an option's enumerated values to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -849,7 +855,7 @@ function formatEnums(
 
 /**
  * Formats an option's regex constraint to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -872,7 +878,7 @@ function formatRegex(
 
 /**
  * Formats an option's range constraint to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -895,10 +901,10 @@ function formatRange(
 
 /**
  * Formats an option's unique constraint to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatUnique(
@@ -915,7 +921,7 @@ function formatUnique(
 
 /**
  * Formats an option's limit constraint to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -938,10 +944,10 @@ function formatLimit(
 
 /**
  * Formats an option's required attribute to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatRequired(
@@ -958,7 +964,7 @@ function formatRequired(
 
 /**
  * Formats an option's default value to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style
@@ -981,10 +987,10 @@ function formatDefault(
 
 /**
  * Formats an option's deprecation reason to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
- * @param styles The set of styles
- * @param style The description style
+ * @param _styles unused
+ * @param _style unused
  * @param result The resulting string
  */
 function formatDeprecated(
@@ -1002,7 +1008,7 @@ function formatDeprecated(
 
 /**
  * Formats an option's external resource reference to be included in the description.
- * @param values The option definition
+ * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
  * @param style The description style

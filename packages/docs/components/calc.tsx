@@ -34,6 +34,7 @@ class CalcCommand extends Command {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/** @ignore */
 export default function Calc(props: Props): JSX.Element {
   return <CalcCommand {...props} />;
 }

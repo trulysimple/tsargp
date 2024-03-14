@@ -360,6 +360,7 @@ class TerminalString {
    * @returns The updated terminal column
    */
   wrapToWidth(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
+    /** @ignore */
     function shortenLine() {
       while (result.length && column > start) {
         const last = result[result.length - 1];

@@ -5,10 +5,12 @@ import mdx from 'eslint-plugin-mdx';
 import react from 'eslint-plugin-react';
 import hooks from 'eslint-plugin-react-hooks';
 import next from '@next/eslint-plugin-next';
+import jsdoc from 'eslint-plugin-jsdoc';
 import globals from 'globals';
 
 export default [
   js.configs.recommended,
+  jsdoc.configs['flat/recommended-typescript-error'],
   {
     files: ['**/*.ts'],
     languageOptions: {

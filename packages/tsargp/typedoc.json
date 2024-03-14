@@ -41,18 +41,5 @@
     "WithType",
     "WithVersion",
     "Writable"
-  ],
-  "requiredToBeDocumented": [
-    "Enum",
-    "EnumMember",
-    "Variable",
-    "Function",
-    "Class",
-    "Interface",
-    "Property",
-    "Method",
-    "Parameter",
-    "Accessor",
-    "TypeAlias"
   ]
 }

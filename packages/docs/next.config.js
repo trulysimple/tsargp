@@ -1,6 +1,7 @@
 import nextra from 'nextra';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
 
+// eslint-disable-next-line jsdoc/check-tag-names
 /** @type {import('nextra').NextraConfig} */
 const nextraConfig = {
   theme: 'nextra-theme-docs',
@@ -8,6 +9,7 @@ const nextraConfig = {
 };
 const withNextra = nextra(nextraConfig);
 
+// eslint-disable-next-line jsdoc/check-tag-names
 /** @type {import('next').NextConfig} */
 const baseConfig = {
   swcMinify: false,
@@ -23,8 +25,10 @@ const baseConfig = {
   },
 };
 
+/** @ignore */
 export default function (phase) {
   if (phase === PHASE_PRODUCTION_BUILD) {
+    // eslint-disable-next-line jsdoc/check-tag-names
     /** @type {import('next').NextConfig} */
     const nextConfig = {
       ...baseConfig,
