@@ -2,8 +2,7 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["dist/types/index.d.ts"],
   "basePath": ".",
-  "out": "dist/docs",
-  "gaID": "G-W0635HEKLH",
+  "githubPages": false,
   "excludeExternals": true,
   "treatWarningsAsErrors": true,
   "intentionallyNotExported": [

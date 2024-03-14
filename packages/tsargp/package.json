@@ -37,8 +37,7 @@
     }
   },
   "files": [
-    "dist/{enums,examples,lib,types}/*.{js,ts}",
-    "dist/index.min.js"
+    "dist/**/*.{js,ts}"
   ],
   "repository": {
     "url": "git+https://github.com/trulysimple/tsargp.git",

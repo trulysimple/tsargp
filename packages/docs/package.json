@@ -39,7 +39,7 @@
   "scripts": {
     "prepublishOnly": "bun run dist",
     "dev": "next",
-    "dist": "bun run --cwd ../tsargp typedoc && ln -snf \"$(dirname `pwd`)/tsargp/dist/docs\" public/api && next build",
+    "dist": "bun run --cwd ../tsargp typedoc --gaID G-W0635HEKLH --out ../docs/public/api && next build",
     "serve": "ln -snf \"`pwd`/dist\" dist/tsargp && http-server dist"
   }
 }
