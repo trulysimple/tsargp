@@ -89,6 +89,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
     this.term = new Terminal({
       cursorBlink: true,
       convertEol: true,
+      // xterm chokes on undefined value for this prop (it logs an error on the console)
       ...(props.height ? { rows: props.height } : {}),
     });
     this.term.loadAddon(new WebLinksAddon());
@@ -172,12 +173,12 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
     const buffer: { buf: string; pos: number } = this.readline.state.line;
     const cmdAndLine = processEnvVars(buffer.buf.trimStart());
     if (!cmdAndLine) {
-      return;
+      return; // happens when there is no command beyond the environment variables
     }
     const [command, line] = cmdAndLine;
     const pos = buffer.pos - (buffer.buf.length - line.length);
     if (pos <= 0) {
-      return;
+      return; // happens when the cursor is positioned before the start of the command
     }
     let cmds = this.commands;
     for (let i = 0; i < pos && i < command.length; ++i) {
@@ -265,7 +266,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
 /**
  * Parse and set environment variables from a command-line
  * @param line The command-line
- * @returns The command and line, after env. vars
+ * @returns The command and line, or undefined if nothing remains after parsing env. vars
  */
 function processEnvVars(line: string) {
   do {
