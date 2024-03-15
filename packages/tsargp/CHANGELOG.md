@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.2.9
+
+### Patch Changes
+
+- [#39](https://github.com/trulysimple/tsargp/pull/39) [`d0028a2`](https://github.com/trulysimple/tsargp/commit/d0028a253eff2cd61fe2b68cef43184e7b914a15) Thanks [@disog](https://github.com/disog)! - The datatype of a required option was fixed to be non-optional (i.e., it cannot be `undefined`).
+
 ## 0.2.8
 
 ### Patch Changes
