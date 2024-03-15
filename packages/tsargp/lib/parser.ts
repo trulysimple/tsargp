@@ -664,7 +664,7 @@ function handleHelp(validator: OptionValidator, option: HelpOption): never {
     } else {
       heading.splitText(group).addClosing(':');
     }
-    return heading.addBreaks(2).addSequence(style(tf.clear));
+    return heading.addSequence(style(tf.clear)).addBreaks(2); // add ending breaks after styles
   }
   const help = new HelpMessage();
   if (option.usage) {

@@ -83,6 +83,16 @@ describe('TerminalString', () => {
   });
 
   describe('splitText', () => {
+    it('should split text with emojis', () => {
+      const str = new TerminalString();
+      str.splitText(`⚠️ type script`);
+      expect(str).toHaveLength(12);
+      expect(str.strings).toHaveLength(3);
+      expect(str.strings[0]).toEqual('⚠️');
+      expect(str.strings[1]).toEqual('type');
+      expect(str.strings[2]).toEqual('script');
+    });
+
     it('should split text with style sequences', () => {
       const str = new TerminalString();
       str.splitText(`${style(tf.clear)}type script${style(tf.clear)}`);
@@ -237,6 +247,13 @@ describe('TerminalString', () => {
           .wrapToWidth(result, 0, 0, true);
         expect(result).toEqual(['abc' + style(tf.clear), style(tf.clear), ' def']);
       });
+
+      it('should preserve emojis', () => {
+        const str = new TerminalString();
+        const result = new Array<string>();
+        str.splitText('⚠️ abc').wrapToWidth(result, 0, 0, false);
+        expect(result).toEqual(['⚠️', ' abc']);
+      });
     });
 
     describe('when a width is provided', () => {
@@ -314,14 +331,14 @@ describe('TerminalString', () => {
         const str = new TerminalString(1);
         const result = new Array<string>();
         str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 2, 15, false);
-        expect(result).toEqual(['\n', `${move(2, mv.cha)}abc`, ' largest']);
+        expect(result).toEqual(['\n', move(2, mv.cha), 'abc', ' largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (9)', () => {
         const str = new TerminalString(2);
         const result = new Array<string>();
         str.addBreaks(1).splitText('abc largest').wrapToWidth(result, 1, 15, false);
-        expect(result).toEqual(['\n', `${move(3, mv.cha)}abc`, ' largest']);
+        expect(result).toEqual(['\n', move(3, mv.cha), 'abc', ' largest']);
       });
 
       it('should omit styles', () => {
@@ -340,6 +357,13 @@ describe('TerminalString', () => {
           .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
           .wrapToWidth(result, 0, 10, true);
         expect(result).toEqual(['abc' + style(tf.clear), style(tf.clear), ' def']);
+      });
+
+      it('should preserve emojis', () => {
+        const str = new TerminalString();
+        const result = new Array<string>();
+        str.splitText('⚠️ abc').wrapToWidth(result, 0, 10, false);
+        expect(result).toEqual(['⚠️', ' abc']);
       });
     });
   });

@@ -62,7 +62,7 @@ export default {
     ${style(tf.bold, tf.italic)}TrulySimple${style(tf.clear)}
 
     Report a bug:
-    ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues${style(tf.clear)}`,
+    ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
   },
   /**
    * A version option that throws the package version.
