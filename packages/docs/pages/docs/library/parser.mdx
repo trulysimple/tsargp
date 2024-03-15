@@ -26,7 +26,7 @@ accepts two optional parameters:
 Normally you should _not_ need to pass these parameters, as they have sensible default values:
 
 - `command` - `process.env['COMP_LINE']{:ts}` or `process.argv.slice(2){:ts}`
-- `config.progName` - `undefined{:ts}` or `process.argv[1].split(/[\\/]/).at(-1){:ts}`
+- `config.progName` - command name from `command` or `process.argv[1].split(/[\\/]/).at(-1){:ts}`
 - `config.compIndex` - `Number(process.env['COMP_POINT']){:ts}` or `undefined{:ts}`
 
 If you feel the need to configure the parser, make sure to first understand how
@@ -266,5 +266,5 @@ The process title would be updated in the following way:
 3. `node myscript.js cmd1` - the title at the start of the `cmd1` command
 4. `node myscript.js cmd1 cmd2` - the title at the start of the `cmd2` command
 
-The title will remain this way after the parser returns. Other option names are not used, because
+The title will remain unchanged after the parser returns. Other option names are not used, because
 they would pollute the output of process management utilities such as `ps`.

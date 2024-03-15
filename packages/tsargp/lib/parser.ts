@@ -109,16 +109,16 @@ class OpaqueArgumentParser {
   parseInto(
     values: CastToOptionValues,
     command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
-    config: ParseConfig = {
-      progName: typeof command === 'string' ? undefined : process?.argv[1].split(/[\\/]/).at(-1),
-      compIndex: Number(process?.env['COMP_POINT']),
-    },
+    config: ParseConfig = { compIndex: Number(process?.env['COMP_POINT']) },
   ): Promise<Array<void>> {
     let args, progName;
     if (typeof command === 'string') {
       [progName, ...args] = getArgs(command, config.compIndex);
     } else {
       [progName, args] = [config.progName, command];
+      if (!progName) {
+        progName = process?.argv[1].split(/[\\/]/).at(-1);
+      }
     }
     const completing = (config.compIndex ?? -1) >= 0;
     const loop = new ParserLoop(this.validator, values, args, completing, progName);
