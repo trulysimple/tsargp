@@ -33,6 +33,18 @@ describe('ArgumentParser', () => {
       );
     });
 
+    it('should throw an error when a required option with no name is not specified', () => {
+      const options = {
+        required: {
+          type: 'boolean',
+          required: true,
+          positional: true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options, config);
+      expect(() => parser.parse([])).toThrow(/Option is required\./);
+    });
+
     it('should throw an error when a required option is not specified', () => {
       const options = {
         required: {

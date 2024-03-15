@@ -1,5 +1,5 @@
 import type { Options, OptionValues } from 'tsargp';
-import { fg, style, req, tf, fg8 } from 'tsargp';
+import { fg, style, req, tf, fg8, ArgumentParser } from 'tsargp';
 
 /**
  * The hello option definitions.
@@ -39,9 +39,35 @@ const helloOpts = {
 } as const satisfies Options;
 
 /**
+ * The helpCmd option definitions.
+ */
+const helpOpts = {
+  name: {
+    type: 'string',
+    desc: 'The name of the nested command.',
+    enums: ['hello'],
+    preferredName: 'command name',
+    positional: true,
+    required: true, // error if called with no argument
+  },
+} as const satisfies Options;
+
+/**
  * The main option definitions.
  */
 export default {
+  /**
+   * A command option that throws the help message of a nested command.
+   */
+  helpCmd: {
+    type: 'command',
+    names: ['help'],
+    desc: 'Prints the help of a nested command.',
+    options: helpOpts,
+    cmd() {
+      new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
+    },
+  },
   /**
    * A help option that throws the help message of the main command.
    */
