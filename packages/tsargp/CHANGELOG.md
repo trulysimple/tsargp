@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.2.8
+
+### Patch Changes
+
+- [#36](https://github.com/trulysimple/tsargp/pull/36) [`4fbbfaa`](https://github.com/trulysimple/tsargp/commit/4fbbfaab1a5faf7297696d47f34481bbf79a2356) Thanks [@disog](https://github.com/disog)! - The data type of an option with `enums` was fixed. Now it will have a union base type, as expected.
+
 ## 0.2.7
 
 ### Patch Changes
