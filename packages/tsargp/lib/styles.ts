@@ -15,6 +15,7 @@ export type {
   Style,
   Margin,
   Sequence,
+  FormatCallback,
 };
 
 export {
@@ -238,7 +239,7 @@ class TerminalString {
 
   /**
    * Appends a word to the list of strings.
-   * @param words The word to be appended. Should not contain control characters or sequences.
+   * @param word The word to be appended. Should not contain control characters or sequences.
    * @returns The terminal string instance
    */
   addWord(word: string): this {
@@ -247,7 +248,7 @@ class TerminalString {
 
   /**
    * Appends line breaks to the list of strings.
-   * @param words The number of line breaks to insert
+   * @param count The number of line breaks to insert
    * @returns The terminal string instance
    */
   addBreaks(count: number): this {
@@ -355,9 +356,11 @@ class TerminalString {
    * @param result The resulting strings to append to
    * @param column The current terminal column
    * @param width The desired terminal width (or zero to avoid wrapping)
+   * @param emitStyles True if styles should be emitted
    * @returns The updated terminal column
    */
-  wrapToWidth(result: Array<string>, column: number, width?: number): number {
+  wrapToWidth(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
+    /** @ignore */
     function shortenLine() {
       while (result.length && column > start) {
         const last = result[result.length - 1];
@@ -409,12 +412,12 @@ class TerminalString {
       }
       const len = this.lengths[i];
       if (!len) {
-        if (width) {
+        if (emitStyles) {
           result.push(str);
         }
         continue;
       }
-      if (!width) {
+      if (!emitStyles) {
         str = str.replace(regex.styles, '');
       }
       if (!column) {
@@ -456,13 +459,14 @@ class ErrorMessage extends Error {
 
   /**
    * Wraps the error message to a specified width.
-   * @param width The terminal width (in number of columns)
+   * @param width The terminal width (or zero to avoid wrapping)
+   * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process.stderr.columns): string {
+  wrap(width = process.stderr.columns ?? 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
-    this.str.wrapToWidth(result, 0, width);
-    if (width) {
+    this.str.wrapToWidth(result, 0, width, emitStyles);
+    if (emitStyles) {
       result.push(style(tf.clear));
     }
     return result.join('');
@@ -482,16 +486,17 @@ class HelpMessage extends Array<TerminalString> {
 
   /**
    * Wraps the help message to a specified width.
-   * @param width The terminal width (in number of columns)
+   * @param width The terminal width (or zero to avoid wrapping)
+   * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process.stdout.columns): string {
+  wrap(width = process.stdout.columns ?? 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     let column = 0;
     for (const str of this) {
-      column = str.wrapToWidth(result, column, width);
+      column = str.wrapToWidth(result, column, width, emitStyles);
     }
-    if (width) {
+    if (emitStyles) {
       result.push(style(tf.clear));
     }
     return result.join('');
@@ -501,6 +506,18 @@ class HelpMessage extends Array<TerminalString> {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * @param width The terminal width (in number of columns)
+ * @returns True if styles should be omitted from terminal strings
+ * @see https://clig.dev/#output
+ */
+function omitStyles(width: number): boolean {
+  return (
+    !process.env['FORCE_COLOR'] &&
+    (!width || !!process.env['NO_COLOR'] || process.env['TERM'] === 'dumb')
+  );
+}
+
 /**
  * Creates a CSI sequence.
  * @template P The type of the sequence parameter

@@ -13,6 +13,7 @@ export { assert, getArgs, checkRequiredArray, gestaltSimilarity, splitPhrase };
  * @returns The list of arguments
  */
 function getArgs(line: string, compIndex: number = NaN): Array<string> {
+  /** @ignore */
   function append(char: string) {
     if (arg === undefined) {
       arg = char;
@@ -167,5 +168,6 @@ function splitPhrase(phrase: string): Array<string> {
 
 /**
  * Asserts that a condition is true. This is a no-op.
+ * @param _condition The condition
  */
 function assert(_condition: unknown): asserts _condition {}

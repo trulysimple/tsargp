@@ -14,5 +14,10 @@
   "play": {
     "type": "page",
     "title": "Play"
+  },
+  "api": {
+    "type": "page",
+    "title": "API",
+    "href": "/api/index.html"
   }
 }

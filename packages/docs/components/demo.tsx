@@ -38,6 +38,7 @@ class DemoCommand extends Command {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/** @ignore */
 export default function Demo(props: Props): JSX.Element {
   return <DemoCommand {...props} />;
 }

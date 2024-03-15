@@ -144,8 +144,9 @@ class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
 
   /**
    * Async version. Use this if the option definitions contain async callbacks.
+   * @param command The raw command line or command-line arguments
+   * @param config The parse configuration
    * @returns A promise that resolves to the options' values
-   * @see parse
    */
   async parseAsync(
     command?: string | Array<string>,
@@ -209,6 +210,7 @@ class ParserLoop {
    * @returns The list of async callback promises. Can be ignored if empty.
    */
   loop(): Array<Promise<void>> {
+    /** @ignore */
     function suggestName(option: ParamOption): boolean {
       return (
         argKind === ArgKind.positional ||
@@ -261,8 +263,8 @@ class ParserLoop {
         } catch (err) {
           // do not propagate errors during completion
           if (!this.completing) {
-            if (suggestName(option)) {
-              handleUnknown(this.validator, value, err as ErrorMessage);
+            if (err instanceof ErrorMessage && suggestName(option)) {
+              handleUnknown(this.validator, value, err);
             }
             throw err;
           }
@@ -626,7 +628,7 @@ function handleCompletion(option: ParamOption, param?: string) {
  * Handles an unknown option.
  * @param validator The option validator
  * @param name The unknown option name
- * @param msg The previous error message, if any
+ * @param err The previous error message, if any
  */
 function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
   const similar = findSimilarNames(validator, name);
@@ -652,6 +654,7 @@ function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMess
  * @param option The option definition
  */
 function handleHelp(validator: OptionValidator, option: HelpOption): never {
+  /** @ignore */
   function formatHeading(group: string): TerminalString {
     const heading = new TerminalString().addBreaks(help.length ? 1 : 0).addSequence(headingStyle);
     if (!group) {
@@ -732,6 +735,7 @@ function handleNameCompletion(validator: OptionValidator, prefix?: string): neve
  * Checks the items of a requirement expression or object.
  * @param items The list of requirement items
  * @param itemFn The callback to execute on each item
+ * @param error The terminal string error
  * @param negate True if the requirement should be negated
  * @param and If true, return on the first error; else return on the first success
  * @returns True if the requirement was satisfied
@@ -938,7 +942,7 @@ function parseValue(
         ? (str: string) => str
         : Number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (parseFn as any)(validator, values, key, option, name, value, convertFn);
+  (parseFn as any)(validator, values, key, option, name, value, convertFn);
 }
 
 /**
@@ -1093,7 +1097,7 @@ function checkRequiredValue(
  * Sets the normalized default value of an option.
  * @param validator The option validator
  * @param values The option values
- * @param name The option key
+ * @param key The option key
  * @param option The option definition
  */
 function setDefaultValue(
