@@ -3,7 +3,7 @@ import { ArgumentParser } from 'tsargp';
 import options from './demo.options.js';
 
 /**
- * An interface for the option values. (To make sure that they abide by it.)
+ * An interface for the option values. (To make sure that they comply with it.)
  */
 interface Values {
   flag: boolean | undefined;
