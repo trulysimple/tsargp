@@ -410,6 +410,10 @@ class TerminalString {
         column = 0;
         continue;
       }
+      if (!column && indent) {
+        result.push(indent);
+        column = start;
+      }
       const len = this.lengths[i];
       if (!len) {
         if (emitStyles) {
@@ -420,10 +424,7 @@ class TerminalString {
       if (!emitStyles) {
         str = str.replace(regex.styles, '');
       }
-      if (!column) {
-        result.push(indent + str);
-        column = start + len;
-      } else if (column === start) {
+      if (column === start) {
         result.push(str);
         column += len;
       } else if (!width || column + 1 + len <= width) {
