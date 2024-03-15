@@ -746,7 +746,7 @@ type ParamDataType<T extends ParamOption, D, E> = T extends
  * @template T The option definition type
  * @template D The option value data type
  */
-type EnumsDataType<T extends ParamOption, D> = T extends { enums: Array<infer E> } ? E : D;
+type EnumsDataType<T extends ParamOption, D> = T extends { enums: ReadonlyArray<infer E> } ? E : D;
 
 /**
  * The data type of a (possibly) delimited array-valued option.

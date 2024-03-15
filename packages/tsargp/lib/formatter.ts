@@ -398,7 +398,7 @@ class HelpFormatter {
       this.format[item](option, phrase, this.styles, descStyle, result);
     }
     if (result.strings.length > len) {
-      result.addBreaks(1).addSequence(style(tf.clear));
+      result.addSequence(style(tf.clear)).addBreaks(1); // add ending breaks after styles
     } else {
       result.strings.length = 1;
       result.strings[0] = '\n';
