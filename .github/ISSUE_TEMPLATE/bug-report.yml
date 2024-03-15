@@ -12,6 +12,14 @@ body:
       label: Search terms
       description: Which terms did you use when trying to find an existing report?
       placeholder: e.g., "text wrapped incorrectly", "inline style suppressed in help"
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which version of the library are you using?
+      placeholder: npm exec -- tsargp -v
+    validations:
+      required: true
   - type: dropdown
     id: component
     attributes:
