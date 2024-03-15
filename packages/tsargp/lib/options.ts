@@ -719,7 +719,9 @@ type DefaultDataType<T extends ValuedOption> =
     ? Writable<R>
     : T extends { default: infer D }
       ? Writable<D>
-      : undefined;
+      : T extends { required: true }
+        ? never
+        : undefined;
 
 /**
  * The data type of a non-niladic option.
