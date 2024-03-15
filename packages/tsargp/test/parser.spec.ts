@@ -4,6 +4,10 @@ import { errorConfig as config } from './utils.spec';
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
+    it('should handle empty command', () => {
+      expect(new ArgumentParser({}).validate().parse('')).toEqual({});
+    });
+
     it('should handle zero arguments', () => {
       expect(new ArgumentParser({}).validate().parse([])).toEqual({});
     });

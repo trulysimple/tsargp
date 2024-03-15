@@ -463,7 +463,7 @@ class ErrorMessage extends Error {
    * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process.stderr.columns ?? 0, emitStyles = !omitStyles(width)): string {
+  wrap(width = process?.stderr?.columns ?? 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     this.str.wrapToWidth(result, 0, width, emitStyles);
     if (emitStyles) {
@@ -490,7 +490,7 @@ class HelpMessage extends Array<TerminalString> {
    * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process.stdout.columns ?? 0, emitStyles = !omitStyles(width)): string {
+  wrap(width = process?.stdout?.columns ?? 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     let column = 0;
     for (const str of this) {
@@ -513,8 +513,8 @@ class HelpMessage extends Array<TerminalString> {
  */
 function omitStyles(width: number): boolean {
   return (
-    !process.env['FORCE_COLOR'] &&
-    (!width || !!process.env['NO_COLOR'] || process.env['TERM'] === 'dumb')
+    !process?.env['FORCE_COLOR'] &&
+    (!width || !!process?.env['NO_COLOR'] || process?.env['TERM'] === 'dumb')
   );
 }
 

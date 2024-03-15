@@ -26,6 +26,7 @@ accepts two optional parameters:
 Normally you should _not_ need to pass these parameters, as they have sensible default values:
 
 - `command` - `process.env['COMP_LINE']{:ts}` or `process.argv.slice(2){:ts}`
+- `config.progName` - command name from `command` or `process.argv[1].split(/[\\/]/).at(-1){:ts}`
 - `config.compIndex` - `Number(process.env['COMP_POINT']){:ts}` or `undefined{:ts}`
 
 If you feel the need to configure the parser, make sure to first understand how
@@ -58,8 +59,14 @@ This method returns a promise that can be awaited in order to resolve async
 
 ## Parse configuration
 
-The parsing procedure can be configured with a `ParseConfig` object that (currently) has only one
-optional property, as described below.
+The parsing procedure can be configured with a `ParseConfig` object that has a few optional
+properties, as described below.
+
+### Program name
+
+The `progName` property is a custom name for the program, which is used to update the process title.
+It defaults to the basename of the executing script (if no command-line is explicitly provided) or
+to the command name (in case a raw command-line string is provided).
 
 ### Completion index
 
@@ -242,3 +249,22 @@ with normal parameters, the value may contain any number of equal signs, and eve
 
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
 [Gestalt algorithm]: https://www.wikiwand.com/en/Gestalt_pattern_matching
+
+### Process title
+
+The process title will be updated to reflect the current command being executed. This includes the
+main script and any nested commands. For example, if the command-line is:
+
+```sh
+./path/to/myscript.js -flag0 cmd1 -flag1 cmd2 args...
+```
+
+The process title would be updated in the following way:
+
+1. `node` - this the starting title, before any update
+2. `node myscript.js` - the title at the beginning of the parsing loop
+3. `node myscript.js cmd1` - the title at the start of the `cmd1` command
+4. `node myscript.js cmd1 cmd2` - the title at the start of the `cmd2` command
+
+The title will remain unchanged after the parser returns. Other option names are not used, because
+they would pollute the output of process management utilities such as `ps`.
