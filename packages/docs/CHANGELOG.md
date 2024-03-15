@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.1.47
+
+### Patch Changes
+
+- [#30](https://github.com/trulysimple/tsargp/pull/30) [`e9d8c9b`](https://github.com/trulysimple/tsargp/commit/e9d8c9bcb4b464345689025e73cbc9a6019615e5) Thanks [@disog](https://github.com/disog)! - A new page was added in the project website for code documentation generated with [TypeDoc](https://typedoc.org/). It's called "API" and is served under the `api` subpath.
+
 ## 0.1.46
 
 ### Patch Changes
