@@ -58,9 +58,13 @@ const enum ArgKind {
  */
 type ParseConfig = {
   /**
+   * The program name.
+   */
+  readonly progName?: string;
+  /**
    * The completion index of a raw command line.
    */
-  compIndex?: number;
+  readonly compIndex?: number;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -104,13 +108,20 @@ class OpaqueArgumentParser {
    */
   parseInto(
     values: CastToOptionValues,
-    command: string | Array<string> = process.env['COMP_LINE'] ?? process.argv.slice(2),
-    config: ParseConfig = { compIndex: Number(process.env['COMP_POINT']) },
+    command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
+    config: ParseConfig = {
+      progName: typeof command === 'string' ? undefined : process?.argv[1].split(/[\\/]/).at(-1),
+      compIndex: Number(process?.env['COMP_POINT']),
+    },
   ): Promise<Array<void>> {
-    const args =
-      typeof command === 'string' ? getArgs(command, config.compIndex).slice(1) : command;
+    let args, progName;
+    if (typeof command === 'string') {
+      [progName, ...args] = getArgs(command, config.compIndex);
+    } else {
+      [progName, args] = [config.progName, command];
+    }
     const completing = (config.compIndex ?? -1) >= 0;
-    const loop = new ParserLoop(this.validator, values, args, completing);
+    const loop = new ParserLoop(this.validator, values, args, completing, progName);
     return Promise.all(loop.loop());
   }
 }
@@ -187,13 +198,18 @@ class ParserLoop {
    * @param values The option values
    * @param args The command-line arguments
    * @param completing True if performing completion
+   * @param progName The program name, if any
    */
   constructor(
     private readonly validator: OptionValidator,
     private readonly values: CastToOptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
+    progName?: string,
   ) {
+    if (!completing && progName && process?.title) {
+      process.title += ' ' + progName;
+    }
     this.styles = validator.config.styles;
     for (const key in validator.options) {
       if (!(key in values)) {
@@ -302,7 +318,7 @@ class ParserLoop {
       case 'function':
         return this.handleFunction(key, option, index);
       case 'command':
-        return this.handleCommand(key, option, index);
+        return this.handleCommand(key, option, name, index);
       default:
         return this.handleSpecial(option);
     }
@@ -349,10 +365,11 @@ class ParserLoop {
    * Handles a command option.
    * @param key The option key
    * @param option The option definition
+   * @param name The option name (as specified in the command-line)
    * @param index The current argument index
    * @returns True to break parsing loop (always)
    */
-  private handleCommand(key: string, option: CommandOption, index: number): true {
+  private handleCommand(key: string, option: CommandOption, name: string, index: number): true {
     if (!this.completing) {
       this.checkRequired();
       this.setDefaultValues();
@@ -361,7 +378,7 @@ class ParserLoop {
     const options = typeof option.options === 'function' ? option.options() : option.options;
     const validator = new OptionValidator(options, this.validator.config);
     const args = this.args.slice(index + 1);
-    const loop = new ParserLoop(validator, values, args, this.completing);
+    const loop = new ParserLoop(validator, values, args, this.completing, name);
     this.promises.push(...loop.loop());
     if (!this.completing) {
       const result = option.cmd(this.values, values);
