@@ -15,6 +15,7 @@ export type {
   Style,
   Margin,
   Sequence,
+  FormatCallback,
 };
 
 export {
@@ -238,7 +239,7 @@ class TerminalString {
 
   /**
    * Appends a word to the list of strings.
-   * @param words The word to be appended. Should not contain control characters or sequences.
+   * @param word The word to be appended. Should not contain control characters or sequences.
    * @returns The terminal string instance
    */
   addWord(word: string): this {
@@ -247,7 +248,7 @@ class TerminalString {
 
   /**
    * Appends line breaks to the list of strings.
-   * @param words The number of line breaks to insert
+   * @param count The number of line breaks to insert
    * @returns The terminal string instance
    */
   addBreaks(count: number): this {
@@ -359,6 +360,7 @@ class TerminalString {
    * @returns The updated terminal column
    */
   wrapToWidth(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
+    /** @ignore */
     function shortenLine() {
       while (result.length && column > start) {
         const last = result[result.length - 1];

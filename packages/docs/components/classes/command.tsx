@@ -127,6 +127,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
 
   /**
    * Fires when the user presses a key.
+   * @param data The key value
    */
   private onData(data: string) {
     switch (data.charCodeAt(0)) {
@@ -150,6 +151,8 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
 
   /**
    * Fires when the terminal size changes.
+   * @param size The new terminal size
+   * @param size.cols The terminal width
    */
   private onResize(size: { cols: number }) {
     this.setState({ width: size.cols });

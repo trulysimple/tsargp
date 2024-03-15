@@ -136,6 +136,7 @@ describe('HelpFormatter', () => {
       });
 
       it('should handle an option with a group', () => {
+        /** @ignore */
         function assert(_condition: unknown): asserts _condition {}
         const options = {
           flag: {

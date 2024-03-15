@@ -16,7 +16,9 @@ class CodeEditor extends Editor {}
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/** @ignore */
 export default function Code(props: Props): JSX.Element {
+  /** @ignore */
   function getHash(): string {
     return compress(props.callbacks.getSource());
   }

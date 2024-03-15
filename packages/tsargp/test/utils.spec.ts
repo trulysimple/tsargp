@@ -14,6 +14,7 @@ declare module 'vitest' {
   interface AsymmetricMatchersContaining extends CustomMatchers {}
 }
 
+/** @ignore */
 async function toResolve(
   this: MatcherState,
   received: Promise<unknown>,
