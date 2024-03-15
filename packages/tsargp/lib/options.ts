@@ -12,6 +12,7 @@ export type {
   ExecuteCallback,
   CompleteCallback,
   CommandCallback,
+  DefaultCallback,
   Option,
   Options,
   OptionDataType,
@@ -29,6 +30,7 @@ export type {
   HelpOption,
   VersionOption,
   SpecialOption,
+  ExecutingOption,
   SingleOption,
   ArrayOption,
   NiladicOption,
@@ -38,6 +40,24 @@ export type {
   RequiresExp,
   RequiresVal,
   ParamValue,
+  WithArray,
+  WithDefault,
+  WithDelimited,
+  WithExample,
+  WithNegation,
+  WithNumber,
+  WithEnums,
+  WithRange,
+  WithRegex,
+  WithParam,
+  WithParamName,
+  WithParse,
+  WithParseDelimited,
+  WithRequired,
+  WithResolve,
+  WithString,
+  WithType,
+  WithVersion,
 };
 
 export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isVariadic };
@@ -282,8 +302,10 @@ type WithDefault<T> = {
    * based on those values.
    */
   readonly default?: T | DefaultCallback<T>;
+  // TODO: change link to WithDefault.default once this is resolved:
+  // https://github.com/TypeStrong/typedoc/issues/2524
   /**
-   * @deprecated mutually exclusive with {@link WithDefault.default}
+   * @deprecated mutually exclusive with {@link WithDefault['default']}
    */
   readonly required?: never;
 };

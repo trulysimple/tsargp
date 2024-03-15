@@ -1,3 +1,5 @@
+// eslint-disable-next-line jsdoc/check-tag-names
+/** @type {import('nextra-theme-docs').DocsThemeConfig} */
 export default {
   logo: <span>tsargp</span>,
   project: {

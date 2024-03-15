@@ -68,6 +68,7 @@ export default [
     rules: {
       ...mdx.flat.rules,
       'no-unused-vars': 'off',
+      'jsdoc/require-jsdoc': 'off',
     },
   },
   {
