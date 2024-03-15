@@ -76,6 +76,6 @@ export default [
     ...mdx.flatCodeBlocks,
   },
   {
-    ignores: ['**/.next', '**/dist'],
+    ignores: ['**/.next', '**/dist', '**/public'],
   },
 ];
