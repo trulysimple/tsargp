@@ -539,6 +539,63 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-f2', '-f1'])).toEqual({ function: undefined, flag: true });
       });
+
+      it('should handle a function option with an environment variable', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            envVar: 'FUNCTION',
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['FUNCTION'] = 'abc';
+        expect(parser.parse([])).toEqual({ function: 'abc' });
+        expect(options.function.exec).not.toHaveBeenCalled();
+      });
+
+      it('should handle a function option with a default value', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            default: false,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ function: false });
+        expect(options.function.exec).not.toHaveBeenCalled();
+      });
+
+      it('should handle a function option with a default callback', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            default: () => false,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ function: false });
+        expect(options.function.exec).not.toHaveBeenCalled();
+      });
+
+      it('should handle a function option with an async default callback', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            default: async () => false,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ function: expect.toResolve(false) });
+        expect(options.function.exec).not.toHaveBeenCalled();
+      });
     });
 
     describe('command', () => {
@@ -675,6 +732,67 @@ describe('ArgumentParser', () => {
         expect(options.command.options).toHaveBeenCalled();
         const cmdValues = expect.objectContaining({ flag: true });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues);
+      });
+
+      it('should handle a command option with an environment variable', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            envVar: 'COMMAND',
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['COMMAND'] = 'abc';
+        expect(parser.parse([])).toEqual({ command: 'abc' });
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
+
+      it('should handle a command option with a default value', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            default: false,
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ command: false });
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
+
+      it('should handle a command option with a default callback', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            default: () => false,
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ command: false });
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
+
+      it('should handle a command option with an async default callback', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            default: async () => false,
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ command: expect.toResolve(false) });
+        expect(options.command.cmd).not.toHaveBeenCalled();
       });
     });
 
