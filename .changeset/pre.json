@@ -5,5 +5,12 @@
     "@trulysimple/tsargp-docs": "0.1.45",
     "tsargp": "0.2.5"
   },
-  "changesets": []
+  "changesets": [
+    "breezy-oranges-approve",
+    "healthy-seals-suffer",
+    "poor-trainers-drive",
+    "six-camels-jam",
+    "tricky-planets-pay",
+    "yellow-spies-fix"
+  ]
 }
