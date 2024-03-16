@@ -50,6 +50,7 @@ export type {
   WithRegex,
   WithParam,
   WithEnvVar,
+  WithRequires,
   WithParamName,
   WithParse,
   WithParseDelimited,
@@ -265,10 +266,6 @@ type WithType<T extends string> = {
    * The option deprecation reason. It may contain inline styles.
    */
   readonly deprecated?: string;
-  /**
-   * The option requirements.
-   */
-  readonly requires?: Requires;
   /**
    * A reference to an external resource.
    */
@@ -547,9 +544,19 @@ type WithEnvVar = {
 };
 
 /**
+ * Defines attributes common to all options that may have requirements.
+ */
+type WithRequires = {
+  /**
+   * The option requirements.
+   */
+  readonly requires?: Requires;
+};
+
+/**
  * Defines attributes common to all options that have values.
  */
-type WithValue<T> = (WithDefault<T> | WithRequired) & WithEnvVar;
+type WithValue<T> = (WithDefault<T> | WithRequired) & WithEnvVar & WithRequires;
 
 /**
  * An option that has a boolean value (accepts a single boolean parameter).
@@ -616,32 +623,34 @@ type FlagOption = WithType<'flag'> &
 /**
  * An option that executes a callback function.
  */
-type FunctionOption = WithType<'function'> & {
-  /**
-   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-   * its result.
-   */
-  readonly exec: ExecuteCallback;
-  /**
-   * True to break the parsing loop.
-   */
-  readonly break?: true;
-};
+type FunctionOption = WithType<'function'> &
+  WithRequires & {
+    /**
+     * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+     * its result.
+     */
+    readonly exec: ExecuteCallback;
+    /**
+     * True to break the parsing loop.
+     */
+    readonly break?: true;
+  };
 
 /**
  * An option that executes a command.
  */
-type CommandOption = WithType<'command'> & {
-  /**
-   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-   * its result.
-   */
-  readonly cmd: CommandCallback;
-  /**
-   * The command options or a callback that returns the options (for use with recursive commands).
-   */
-  readonly options: Options | (() => Options);
-};
+type CommandOption = WithType<'command'> &
+  WithRequires & {
+    /**
+     * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+     * its result.
+     */
+    readonly cmd: CommandCallback;
+    /**
+     * The command options or a callback that returns the options (for use with recursive commands).
+     */
+    readonly options: Options | (() => Options);
+  };
 
 /**
  * An option that throws a help message.

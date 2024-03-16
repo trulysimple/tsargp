@@ -310,7 +310,7 @@ class OptionValidator {
         this.validateValue(key, option, option.example);
       }
       // no need to verify flag option default value
-      if (option.requires) {
+      if ('requires' in option && option.requires) {
         this.validateRequirements(key, option.requires);
       }
       if (option.type === 'version' && option.version === '') {

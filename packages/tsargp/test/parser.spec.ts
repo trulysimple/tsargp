@@ -488,8 +488,10 @@ describe('ArgumentParser', () => {
           function: {
             type: 'function',
             names: ['-f1'],
-            exec() {},
             break: true,
+            exec(values) {
+              expect((values as OptionValues<typeof options>).flag).toBeTruthy();
+            },
           },
           flag: {
             type: 'flag',
@@ -1283,6 +1285,22 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-s=1', '-s==2'])).toEqual({ string: '=2' });
       });
 
+      it('should throw an error on string option with env. variable that fails validation', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            envVar: 'STRING',
+            regex: /\d+/s,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['STRING'] = 'abc';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to STRING: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        );
+      });
+
       it('should handle a string option with an environment variable', () => {
         const options = {
           string: {
@@ -1291,8 +1309,8 @@ describe('ArgumentParser', () => {
             envVar: 'STRING',
           },
         } as const satisfies Options;
-        process.env['STRING'] = '123';
         const parser = new ArgumentParser(options, config);
+        process.env['STRING'] = '123';
         expect(parser.parse([])).toEqual({ string: '123' });
       });
 
@@ -1707,6 +1725,22 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-n=1', '-n=2'])).toEqual({ number: 2 });
       });
 
+      it('should throw an error on number option with env. variable that fails validation', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            envVar: 'NUMBER',
+            range: [0, Infinity],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['NUMBER'] = '-3';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to NUMBER: -3\. Value must be in the range \[0, Infinity\]\./,
+        );
+      });
+
       it('should handle a number option with an environment variable', () => {
         const options = {
           number: {
@@ -1715,8 +1749,8 @@ describe('ArgumentParser', () => {
             envVar: 'NUMBER',
           },
         } as const satisfies Options;
-        process.env['NUMBER'] = '123';
         const parser = new ArgumentParser(options, config);
+        process.env['NUMBER'] = '123';
         expect(parser.parse([])).toEqual({ number: 123 });
       });
 
@@ -2185,6 +2219,23 @@ describe('ArgumentParser', () => {
         });
       });
 
+      it('should throw an error on strings option with env. variable that fails validation', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            envVar: 'STRINGS',
+            separator: ',',
+            regex: /\d+/s,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['STRINGS'] = '123,abc';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to STRINGS: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        );
+      });
+
       it('should handle a strings option with an environment variable', () => {
         const options = {
           strings: {
@@ -2195,8 +2246,8 @@ describe('ArgumentParser', () => {
             case: 'upper',
           },
         } as const satisfies Options;
-        process.env['STRINGS'] = 'one,two';
         const parser = new ArgumentParser(options, config);
+        process.env['STRINGS'] = 'one,two';
         expect(parser.parse([])).toEqual({ strings: ['ONE', 'TWO'] });
       });
 
@@ -2698,11 +2749,28 @@ describe('ArgumentParser', () => {
             names: ['-ns'],
             envVar: 'NUMBERS',
             separator: ',',
+            range: [0, Infinity],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['NUMBERS'] = '1,-3';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to NUMBERS: -3\. Value must be in the range \[0, Infinity\]\./,
+        );
+      });
+
+      it('should handle a numbers option with an environment variable', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            envVar: 'NUMBERS',
+            separator: ',',
             round: 'trunc',
           },
         } as const satisfies Options;
-        process.env['NUMBERS'] = '1.1,2.2';
         const parser = new ArgumentParser(options, config);
+        process.env['NUMBERS'] = '1.1,2.2';
         expect(parser.parse([])).toEqual({ numbers: [1, 2] });
       });
 

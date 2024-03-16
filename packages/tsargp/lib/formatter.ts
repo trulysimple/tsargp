@@ -421,7 +421,7 @@ class HelpFormatter {
     style: Style,
     result: TerminalString,
   ) {
-    if (option.requires) {
+    if ('requires' in option && option.requires) {
       const requires = option.requires;
       result.splitText(phrase, () => {
         formatRequirements(this.options, requires, styles, style, result);

@@ -400,7 +400,6 @@ class ParserLoop {
     if (this.completing) {
       return false; // skip special options during completion
     }
-    this.checkRequired();
     if (option.type === 'help') {
       handleHelp(this.validator, option);
     } else if (option.version) {
@@ -461,13 +460,12 @@ class ParserLoop {
               if (isArray(option)) {
                 resetValue(this.values, key, option);
               }
-              parseValue(this.validator, this.values, key, option, key, value);
+              parseValue(this.validator, this.values, key, option, option.envVar, value);
             }
             continue;
           }
         }
         if ('required' in option && option.required) {
-          const option = this.validator.options[key];
           const name = option.preferredName ?? '';
           throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
         }
@@ -478,7 +476,7 @@ class ParserLoop {
     }
     for (const key of this.specifiedKeys) {
       const option = this.validator.options[key];
-      if (option.requires) {
+      if ('requires' in option && option.requires) {
         const error = new TerminalString();
         if (!this.checkRequires(option.requires, error)) {
           const name = option.preferredName ?? '';
