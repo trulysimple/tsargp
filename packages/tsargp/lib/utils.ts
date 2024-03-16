@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-export { assert, getArgs, checkRequiredArray, gestaltSimilarity, splitPhrase };
+export { assert, getArgs, checkRequiredArray, gestaltSimilarity, splitPhrase, isTrue };
 
 //--------------------------------------------------------------------------------------------------
 // Functions
@@ -171,3 +171,12 @@ function splitPhrase(phrase: string): Array<string> {
  * @param _condition The condition
  */
 function assert(_condition: unknown): asserts _condition {}
+
+/**
+ * Converts a string to boolean.
+ * @param str The string value
+ * @returns True if the string evaluates to true
+ */
+function isTrue(str: string): boolean {
+  return !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
+}

@@ -44,12 +44,12 @@ export type {
   WithDefault,
   WithDelimited,
   WithExample,
-  WithNegation,
   WithNumber,
   WithEnums,
   WithRange,
   WithRegex,
   WithParam,
+  WithEnvVar,
   WithParamName,
   WithParse,
   WithParseDelimited,
@@ -536,21 +536,27 @@ type WithNumber = (WithEnums<number> | WithRange) & {
 };
 
 /**
- * Defines attributes for a flag option with negation.
+ * Defines attributes common to all options that may have environment variables.
  */
-type WithNegation = {
+type WithEnvVar = {
   /**
-   * The names used for negation (e.g., '--no-flag').
+   * The name of an environment variable to read from, if the option is not specified in the
+   * command-line.
    */
-  readonly negationNames?: ReadonlyArray<string>;
+  readonly envVar?: string;
 };
+
+/**
+ * Defines attributes common to all options that have values.
+ */
+type WithValue<T> = (WithDefault<T> | WithRequired) & WithEnvVar;
 
 /**
  * An option that has a boolean value (accepts a single boolean parameter).
  */
 type BooleanOption = WithType<'boolean'> &
   WithParam &
-  (WithDefault<boolean> | WithRequired) &
+  WithValue<boolean> &
   (WithExample<boolean> | WithParamName) &
   WithParse<boolean>;
 
@@ -559,7 +565,7 @@ type BooleanOption = WithType<'boolean'> &
  */
 type StringOption = WithType<'string'> &
   WithParam &
-  (WithDefault<string> | WithRequired) &
+  WithValue<string> &
   (WithExample<string> | WithParamName) &
   WithString &
   WithParse<string>;
@@ -569,7 +575,7 @@ type StringOption = WithType<'string'> &
  */
 type NumberOption = WithType<'number'> &
   WithParam &
-  (WithDefault<number> | WithRequired) &
+  WithValue<number> &
   (WithExample<number> | WithParamName) &
   WithNumber &
   WithParse<number>;
@@ -579,7 +585,7 @@ type NumberOption = WithType<'number'> &
  */
 type StringsOption = WithType<'strings'> &
   WithParam &
-  (WithDefault<ReadonlyArray<string>> | WithRequired) &
+  WithValue<ReadonlyArray<string>> &
   (WithExample<ReadonlyArray<string>> | WithParamName) &
   WithString &
   WithArray &
@@ -590,7 +596,7 @@ type StringsOption = WithType<'strings'> &
  */
 type NumbersOption = WithType<'numbers'> &
   WithParam &
-  (WithDefault<ReadonlyArray<number>> | WithRequired) &
+  WithValue<ReadonlyArray<number>> &
   (WithExample<ReadonlyArray<number>> | WithParamName) &
   WithNumber &
   WithArray &
@@ -599,7 +605,13 @@ type NumbersOption = WithType<'numbers'> &
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
-type FlagOption = WithType<'flag'> & (WithDefault<boolean> | WithRequired) & WithNegation;
+type FlagOption = WithType<'flag'> &
+  WithValue<boolean> & {
+    /**
+     * The names used for negation (e.g., '--no-flag').
+     */
+    readonly negationNames?: ReadonlyArray<string>;
+  };
 
 /**
  * An option that executes a callback function.

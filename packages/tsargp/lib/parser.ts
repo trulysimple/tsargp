@@ -33,7 +33,7 @@ import { HelpFormatter } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
 import { ErrorMessage, HelpMessage, TerminalString, style } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
-import { assert, checkRequiredArray, gestaltSimilarity, getArgs } from './utils';
+import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
 
 export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
 
@@ -297,8 +297,8 @@ class ParserLoop {
         singleParam = true;
       }
     }
+    // assert(!this.completing);
     this.checkRequired();
-    this.setDefaultValues();
     return this.promises;
   }
 
@@ -332,7 +332,8 @@ class ParserLoop {
    * @returns True if the parsing loop should be broken
    */
   private handleFunction(key: string, option: FunctionOption, index: number): boolean {
-    if (option.break && !this.completing) {
+    const result = !!option.break && !this.completing;
+    if (result) {
       this.checkRequired();
     }
     try {
@@ -354,11 +355,7 @@ class ParserLoop {
       }
       throw err;
     }
-    if (option.break && !this.completing) {
-      this.setDefaultValues();
-      return true;
-    }
-    return false;
+    return result;
   }
 
   /**
@@ -372,7 +369,6 @@ class ParserLoop {
   private handleCommand(key: string, option: CommandOption, name: string, index: number): true {
     if (!this.completing) {
       this.checkRequired();
-      this.setDefaultValues();
     }
     const values: CastToOptionValues = {};
     const options = typeof option.options === 'function' ? option.options() : option.options;
@@ -448,26 +444,36 @@ class ParserLoop {
   }
 
   /**
-   * Set options' values to their default value, if not previously set.
-   */
-  private setDefaultValues() {
-    for (const key in this.validator.options) {
-      const option = this.validator.options[key];
-      if ('default' in option && !this.specifiedKeys.has(key)) {
-        setDefaultValue(this.validator, this.values, key, option);
-      }
-    }
-  }
-
-  /**
    * Checks if required options were correctly specified.
+   * Also sets option values to their default, if not previously set.
+   * This should only be called when completion is not in effect.
    */
   private checkRequired() {
-    for (const key of this.validator.required) {
+    for (const key in this.validator.options) {
       if (!this.specifiedKeys.has(key)) {
         const option = this.validator.options[key];
-        const name = option.preferredName ?? '';
-        throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
+        if ('envVar' in option && option.envVar) {
+          const value = process?.env[option.envVar];
+          if (value) {
+            if (option.type === 'flag') {
+              this.values[key] = isTrue(value);
+            } else {
+              if (isArray(option)) {
+                resetValue(this.values, key, option);
+              }
+              parseValue(this.validator, this.values, key, option, key, value);
+            }
+            continue;
+          }
+        }
+        if ('required' in option && option.required) {
+          const option = this.validator.options[key];
+          const name = option.preferredName ?? '';
+          throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
+        }
+        if ('default' in option) {
+          setDefaultValue(this.validator, this.values, key, option);
+        }
       }
     }
     for (const key of this.specifiedKeys) {
@@ -954,7 +960,7 @@ function parseValue(
   const parseFn = isArray(option) ? parseArray : parseSingle;
   const convertFn =
     option.type === 'boolean'
-      ? (str: string) => !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i))
+      ? isTrue
       : option.type === 'string' || option.type === 'strings'
         ? (str: string) => str
         : Number;

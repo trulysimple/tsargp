@@ -227,7 +227,6 @@ type Concrete<T> = Exclude<
  */
 class OptionValidator {
   readonly names = new Map<string, string>();
-  readonly required = new Array<string>();
   readonly positional: Positional | undefined;
 
   /**
@@ -249,9 +248,6 @@ class OptionValidator {
         }
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name: option.preferredName ?? '', option, marker };
-      }
-      if ('required' in option && option.required) {
-        this.required.push(key);
       }
     }
   }
