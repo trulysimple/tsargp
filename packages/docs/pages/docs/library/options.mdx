@@ -94,6 +94,48 @@ option. It has the following optional properties:
 - `param` - the style of the option paramater
 - `descr` - the style of the option description
 
+#### External reference
+
+The `link` attribute is the URL of an external resource or media, that is included in the help
+message if specified.
+
+### Value attributes
+
+All option types that may have a value share a set of attributes, which are described below.
+
+#### Required
+
+The `required` attribute indicates that the option is _always_ required, regardless of other
+options. Mutually exclusive with [default value](#default-value--callback).
+
+#### Default value | callback
+
+The `default` attribute, if present, specifies the default option value or a callback that returns
+the default value. This value is set as the option's value at the end of the parsing loop _if_ the
+option was specified neither on the command-line nor as an
+[environment variable](#environment-variable). Mutually exclusive with [required](#required).
+
+If the value is not known beforehand (e.g., if it depends on the values of other options), you may
+want to use a callback to inspect parsed values and determine the default value based on those
+values. This callback accepts one parameter:
+
+- `values` - the parsed values
+
+<Callout type="info">
+  If a callback is used, it will _not_ be displayed as the default value in the help message.
+</Callout>
+
+<Callout type="default">
+  In the case of [function options](#function-option) and [command options](#command-option), you
+  may specify any value as the default. If an object is used, you can add a `toString: () => string`
+  property which will be used to render the value in the help message, e.g.:
+  ```ts
+  toString() {
+    return JSON.stringify(this);
+  }
+  ```
+</Callout>
+
 #### Requirements
 
 The `requires` attribute, if present, specifies the option requirements, which can be either:
@@ -116,31 +158,14 @@ corresponding value. If an expression, then it is evaluated as follows:
   and `null{:ts}` values to signify required _absence_.
 </Callout>
 
-#### External reference
+#### Environment variable
 
-The `link` attribute is the URL of an external resource or media, that is included in the help
-message if specified.
+The `envVar` attribute, if present, specifies the name of an environment variable from which the
+option value will be read, in case the option is not specified on the command-line.
 
 ### Parameter attributes
 
 All non-niladic option types share a set of attributes, which are described below.
-
-#### Required
-
-The `required` attribute indicates that the option is _always_ required, independently of other
-options. Mutually exclusive with [default value](#default-value--callback).
-
-#### Default value | callback
-
-The `default` attribute, if present, specifies either the default option value or a callback that
-returns the default value. This value is set as the option's value at the end of the parsing loop
-_if_ the option was not specified on the command-line. Mutually exclusive with [required](#required).
-
-If the value is not known beforehand (e.g., if it depends on the values of other options), you may
-want to use a callback to inspect parsed values and determine the default value based on those
-values. This callback accepts one parameter:
-
-- `values` - the parsed values
 
 #### Example value
 
