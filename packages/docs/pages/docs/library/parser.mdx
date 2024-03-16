@@ -15,10 +15,14 @@ The result of argument parsing is an object that contains the option values corr
 option definitions given in the parser constructor. There are two main ways to get the values, as
 explained below.
 
+<Callout type="info">
+  The initial value of any valued option is `undefined{:ts}`.
+</Callout>
+
 ### Using a newly-created object
 
-This is the easiest, most common method: you just call `parse` and use its result. This method
-accepts two optional parameters:
+This is the easiest, most common method: you just call `parse` and use the returned option values.
+This method accepts two optional parameters:
 
 - `command` - the raw command line (`string{:ts}`) or the command-line arguments (`string[]{:ts}`)
 - `config` - the [parse configuration](#parse-configuration)
@@ -44,9 +48,9 @@ parameters as the previous one, except for an additional (first) parameter:
 
 - `values` - the option values to parse into
 
-Existing initial values are preserved until they get overriden by values passed in the command-line.
-When using TypeScript, this parameter will be type-checked at compile-time against the expected type
-of the option values for a given set of option definitions.
+Existing values are preserved until they get overriden by values passed either in the command-line
+or in environment variables. When using TypeScript, this parameter will be type-checked at compile
+time against the expected type of the option values for a given set of option definitions.
 
 <Callout type="default">
   You may want to use IntelliSense to peak at the resulting type of the `parse` method (or declare a

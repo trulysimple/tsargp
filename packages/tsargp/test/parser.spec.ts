@@ -488,8 +488,10 @@ describe('ArgumentParser', () => {
           function: {
             type: 'function',
             names: ['-f1'],
-            exec() {},
             break: true,
+            exec(values) {
+              expect((values as OptionValues<typeof options>).flag).toBeTruthy();
+            },
           },
           flag: {
             type: 'flag',
@@ -536,6 +538,48 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
         expect(parser.parse(['-f2', '-f1'])).toEqual({ function: undefined, flag: true });
+      });
+
+      it('should handle a function option with a default value', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            default: false,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ function: false });
+        expect(options.function.exec).not.toHaveBeenCalled();
+      });
+
+      it('should handle a function option with a default callback', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            default: () => false,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ function: false });
+        expect(options.function.exec).not.toHaveBeenCalled();
+      });
+
+      it('should handle a function option with an async default callback', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            default: async () => false,
+            exec: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ function: expect.toResolve(false) });
+        expect(options.function.exec).not.toHaveBeenCalled();
       });
     });
 
@@ -674,6 +718,51 @@ describe('ArgumentParser', () => {
         const cmdValues = expect.objectContaining({ flag: true });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues);
       });
+
+      it('should handle a command option with a default value', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            default: false,
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ command: false });
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
+
+      it('should handle a command option with a default callback', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            default: () => false,
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ command: false });
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
+
+      it('should handle a command option with an async default callback', () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            default: async () => false,
+            options: {},
+            cmd: vi.fn(),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        expect(parser.parse([])).toEqual({ command: expect.toResolve(false) });
+        expect(options.command.cmd).not.toHaveBeenCalled();
+      });
     });
 
     describe('flag', () => {
@@ -694,7 +783,7 @@ describe('ArgumentParser', () => {
 
       it('should throw an error on flag option specified with value', () => {
         const options = {
-          function: {
+          flag: {
             type: 'flag',
             names: ['-f'],
           },
@@ -706,33 +795,48 @@ describe('ArgumentParser', () => {
 
       it('should handle a flag option with negation names', () => {
         const options = {
-          boolean: {
+          flag: {
             type: 'flag',
             names: ['-f'],
             negationNames: ['-no-f'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
-        expect(parser.parse([])).toEqual({ boolean: undefined });
-        expect(parser.parse(['-f'])).toEqual({ boolean: true });
-        expect(parser.parse(['-no-f'])).toEqual({ boolean: false });
+        expect(parser.parse([])).toEqual({ flag: undefined });
+        expect(parser.parse(['-f'])).toEqual({ flag: true });
+        expect(parser.parse(['-no-f'])).toEqual({ flag: false });
+      });
+
+      it('should handle a flag option with an environment variable', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f'],
+            envVar: 'FLAG',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['FLAG'] = '1';
+        expect(parser.parse([])).toEqual({ flag: true });
+        process.env['FLAG'] = '0';
+        expect(parser.parse([])).toEqual({ flag: false });
       });
 
       it('should handle a flag option with a default value', () => {
         const options = {
-          boolean: {
+          flag: {
             type: 'flag',
             names: ['-f'],
             default: false,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
-        expect(parser.parse([])).toEqual({ boolean: false });
+        expect(parser.parse([])).toEqual({ flag: false });
       });
 
       it('should handle a flag option with a default callback', () => {
         const options = {
-          boolean: {
+          flag: {
             type: 'flag',
             names: ['-f'],
             negationNames: ['-no-f'],
@@ -740,12 +844,12 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
-        expect(parser.parse([])).toEqual({ boolean: false });
+        expect(parser.parse([])).toEqual({ flag: false });
       });
 
       it('should handle a flag option with an async default callback', () => {
         const options = {
-          boolean: {
+          flag: {
             type: 'flag',
             names: ['-f'],
             negationNames: ['-no-f'],
@@ -753,7 +857,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
-        expect(parser.parse([])).toEqual({ boolean: expect.toResolve(false) });
+        expect(parser.parse([])).toEqual({ flag: expect.toResolve(false) });
       });
     });
 
@@ -932,6 +1036,21 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-b', ' 1 '])).toEqual({ boolean: true });
         expect(parser.parse(['--boolean', ''])).toEqual({ boolean: false });
         expect(parser.parse(['-b=1', '-b= False '])).toEqual({ boolean: false });
+      });
+
+      it('should handle a boolean option with an environment variable', () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            envVar: 'BOOLEAN',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['BOOLEAN'] = '1';
+        expect(parser.parse([])).toEqual({ boolean: true });
+        process.env['BOOLEAN'] = '0';
+        expect(parser.parse([])).toEqual({ boolean: false });
       });
 
       it('should handle a boolean option with a default value', () => {
@@ -1251,6 +1370,35 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-s', '123'])).toEqual({ string: '123' });
         expect(parser.parse(['--string', ''])).toEqual({ string: '' });
         expect(parser.parse(['-s=1', '-s==2'])).toEqual({ string: '=2' });
+      });
+
+      it('should throw an error on string option with env. variable that fails validation', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            envVar: 'STRING',
+            regex: /\d+/s,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['STRING'] = 'abc';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to STRING: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        );
+      });
+
+      it('should handle a string option with an environment variable', () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            envVar: 'STRING',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['STRING'] = '123';
+        expect(parser.parse([])).toEqual({ string: '123' });
       });
 
       it('should handle a string option with a default value', () => {
@@ -1662,6 +1810,35 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-n', '123'])).toEqual({ number: 123 });
         expect(parser.parse(['--number', '0'])).toEqual({ number: 0 });
         expect(parser.parse(['-n=1', '-n=2'])).toEqual({ number: 2 });
+      });
+
+      it('should throw an error on number option with env. variable that fails validation', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            envVar: 'NUMBER',
+            range: [0, Infinity],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['NUMBER'] = '-3';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to NUMBER: -3\. Value must be in the range \[0, Infinity\]\./,
+        );
+      });
+
+      it('should handle a number option with an environment variable', () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            envVar: 'NUMBER',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['NUMBER'] = '123';
+        expect(parser.parse([])).toEqual({ number: 123 });
       });
 
       it('should handle a number option with a default value', () => {
@@ -2127,6 +2304,38 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-ss', 'a', 'b', '-ss', 'c', 'd'])).toEqual({
           strings: ['a', 'b', 'c', 'd'],
         });
+      });
+
+      it('should throw an error on strings option with env. variable that fails validation', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            envVar: 'STRINGS',
+            separator: ',',
+            regex: /\d+/s,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['STRINGS'] = '123,abc';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to STRINGS: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        );
+      });
+
+      it('should handle a strings option with an environment variable', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            envVar: 'STRINGS',
+            separator: ',',
+            case: 'upper',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['STRINGS'] = 'one,two';
+        expect(parser.parse([])).toEqual({ strings: ['ONE', 'TWO'] });
       });
 
       it('should handle a strings option with a default value', () => {
@@ -2618,6 +2827,38 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['--numbers', '   '])).toEqual({ numbers: [0] });
         expect(parser.parse(['-ns=456', '-ns=123'])).toEqual({ numbers: [456, 123] });
         expect(parser.parse(['-ns', '5', '-ns', '6', '7'])).toEqual({ numbers: [5, 6, 7] });
+      });
+
+      it('should handle a numbers option with an environment variable', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            envVar: 'NUMBERS',
+            separator: ',',
+            range: [0, Infinity],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['NUMBERS'] = '1,-3';
+        expect(() => parser.parse([])).toThrow(
+          /Invalid parameter to NUMBERS: -3\. Value must be in the range \[0, Infinity\]\./,
+        );
+      });
+
+      it('should handle a numbers option with an environment variable', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            envVar: 'NUMBERS',
+            separator: ',',
+            round: 'trunc',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options, config);
+        process.env['NUMBERS'] = '1.1,2.2';
+        expect(parser.parse([])).toEqual({ numbers: [1, 2] });
       });
 
       it('should handle a numbers option with a default value', () => {

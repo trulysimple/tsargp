@@ -1,7 +1,7 @@
 import type { AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { describe, expect, it } from 'vitest';
 import { type ConcreteError, defaultConfig } from '../lib';
-import { checkRequiredArray, gestaltSimilarity, getArgs, splitPhrase } from '../lib/utils';
+import { checkRequiredArray, gestaltSimilarity, getArgs, splitPhrase, isTrue } from '../lib/utils';
 
 interface CustomMatchers<R = unknown> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -185,5 +185,28 @@ describe('splitPhrase', () => {
 
   it('should handle a phrase with groups with empty alternatives', () => {
     expect(splitPhrase('(|) is fun')).toEqual([' is fun', ' is fun']);
+  });
+});
+
+describe('isTrue', () => {
+  it('should return false on zero', () => {
+    expect(isTrue('')).toBeFalsy();
+    expect(isTrue('0')).toBeFalsy();
+    expect(isTrue(' 0 ')).toBeFalsy();
+    expect(isTrue('0.0')).toBeFalsy();
+  });
+
+  it('should return false on false', () => {
+    expect(isTrue('false')).toBeFalsy();
+    expect(isTrue(' false ')).toBeFalsy();
+    expect(isTrue('FalsE')).toBeFalsy();
+    expect(isTrue(' FalsE ')).toBeFalsy();
+  });
+
+  it('should return true on any other string', () => {
+    expect(isTrue('1')).toBeTruthy();
+    expect(isTrue(' 1 ')).toBeTruthy();
+    expect(isTrue('a')).toBeTruthy();
+    expect(isTrue(' A ')).toBeTruthy();
   });
 });

@@ -44,12 +44,13 @@ export type {
   WithDefault,
   WithDelimited,
   WithExample,
-  WithNegation,
   WithNumber,
   WithEnums,
   WithRange,
   WithRegex,
   WithParam,
+  WithValue,
+  WithEnvVar,
   WithParamName,
   WithParse,
   WithParseDelimited,
@@ -60,7 +61,7 @@ export type {
   WithVersion,
 };
 
-export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isVariadic };
+export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued, isVariadic };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -265,10 +266,6 @@ type WithType<T extends string> = {
    * The option deprecation reason. It may contain inline styles.
    */
   readonly deprecated?: string;
-  /**
-   * The option requirements.
-   */
-  readonly requires?: Requires;
   /**
    * A reference to an external resource.
    */
@@ -536,13 +533,24 @@ type WithNumber = (WithEnums<number> | WithRange) & {
 };
 
 /**
- * Defines attributes for a flag option with negation.
+ * Defines attributes common to all options that have values.
  */
-type WithNegation = {
+type WithValue<T> = (WithDefault<T> | WithRequired) & {
   /**
-   * The names used for negation (e.g., '--no-flag').
+   * The option requirements.
    */
-  readonly negationNames?: ReadonlyArray<string>;
+  readonly requires?: Requires;
+};
+
+/**
+ * Defines attributes common to all options that accept environment variables.
+ */
+type WithEnvVar = {
+  /**
+   * The name of an environment variable to read from, if the option is not specified in the
+   * command-line.
+   */
+  readonly envVar?: string;
 };
 
 /**
@@ -550,7 +558,8 @@ type WithNegation = {
  */
 type BooleanOption = WithType<'boolean'> &
   WithParam &
-  (WithDefault<boolean> | WithRequired) &
+  WithEnvVar &
+  WithValue<boolean> &
   (WithExample<boolean> | WithParamName) &
   WithParse<boolean>;
 
@@ -559,7 +568,8 @@ type BooleanOption = WithType<'boolean'> &
  */
 type StringOption = WithType<'string'> &
   WithParam &
-  (WithDefault<string> | WithRequired) &
+  WithEnvVar &
+  WithValue<string> &
   (WithExample<string> | WithParamName) &
   WithString &
   WithParse<string>;
@@ -569,7 +579,8 @@ type StringOption = WithType<'string'> &
  */
 type NumberOption = WithType<'number'> &
   WithParam &
-  (WithDefault<number> | WithRequired) &
+  WithEnvVar &
+  WithValue<number> &
   (WithExample<number> | WithParamName) &
   WithNumber &
   WithParse<number>;
@@ -579,7 +590,8 @@ type NumberOption = WithType<'number'> &
  */
 type StringsOption = WithType<'strings'> &
   WithParam &
-  (WithDefault<ReadonlyArray<string>> | WithRequired) &
+  WithEnvVar &
+  WithValue<ReadonlyArray<string>> &
   (WithExample<ReadonlyArray<string>> | WithParamName) &
   WithString &
   WithArray &
@@ -590,7 +602,8 @@ type StringsOption = WithType<'strings'> &
  */
 type NumbersOption = WithType<'numbers'> &
   WithParam &
-  (WithDefault<ReadonlyArray<number>> | WithRequired) &
+  WithEnvVar &
+  WithValue<ReadonlyArray<number>> &
   (WithExample<ReadonlyArray<number>> | WithParamName) &
   WithNumber &
   WithArray &
@@ -599,37 +612,46 @@ type NumbersOption = WithType<'numbers'> &
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
-type FlagOption = WithType<'flag'> & (WithDefault<boolean> | WithRequired) & WithNegation;
+type FlagOption = WithType<'flag'> &
+  WithEnvVar &
+  WithValue<boolean> & {
+    /**
+     * The names used for negation (e.g., '--no-flag').
+     */
+    readonly negationNames?: ReadonlyArray<string>;
+  };
 
 /**
  * An option that executes a callback function.
  */
-type FunctionOption = WithType<'function'> & {
-  /**
-   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-   * its result.
-   */
-  readonly exec: ExecuteCallback;
-  /**
-   * True to break the parsing loop.
-   */
-  readonly break?: true;
-};
+type FunctionOption = WithType<'function'> &
+  WithValue<unknown> & {
+    /**
+     * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+     * its result.
+     */
+    readonly exec: ExecuteCallback;
+    /**
+     * True to break the parsing loop.
+     */
+    readonly break?: true;
+  };
 
 /**
  * An option that executes a command.
  */
-type CommandOption = WithType<'command'> & {
-  /**
-   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-   * its result.
-   */
-  readonly cmd: CommandCallback;
-  /**
-   * The command options or a callback that returns the options (for use with recursive commands).
-   */
-  readonly options: Options | (() => Options);
-};
+type CommandOption = WithType<'command'> &
+  WithValue<unknown> & {
+    /**
+     * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+     * its result.
+     */
+    readonly cmd: CommandCallback;
+    /**
+     * The command options or a callback that returns the options (for use with recursive commands).
+     */
+    readonly options: Options | (() => Options);
+  };
 
 /**
  * An option that throws a help message.
@@ -697,7 +719,7 @@ type ParamOption = SingleOption | ArrayOption;
 /**
  * An option that has a default value.
  */
-type ValuedOption = FlagOption | ParamOption;
+type ValuedOption = FlagOption | ExecutingOption | ParamOption;
 
 /**
  * An option definition. (finally)
@@ -779,9 +801,9 @@ type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDa
  * @template T The option definition type
  */
 type OptionDataType<T extends Option> = T extends FunctionOption
-  ? ReturnType<T['exec']> | undefined
+  ? ReturnType<T['exec']> | DefaultDataType<T>
   : T extends CommandOption
-    ? ReturnType<T['cmd']> | undefined
+    ? ReturnType<T['cmd']> | DefaultDataType<T>
     : T extends FlagOption
       ? boolean | DefaultDataType<T>
       : T extends BooleanOption
@@ -846,6 +868,15 @@ function isNiladic(option: Option): option is NiladicOption {
  */
 function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
+}
+
+/**
+ * Tests if an option is a valued option (i.e., has a value).
+ * @param option The option definition
+ * @returns True if the option is a valued option
+ */
+function isValued(option: Option): option is ValuedOption {
+  return option.type !== 'help' && option.type !== 'version';
 }
 
 /**

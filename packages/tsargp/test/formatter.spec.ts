@@ -23,6 +23,36 @@ describe('HelpFormatter', () => {
         const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --function    A function option\n');
       });
+
+      it('should handle a function option with a default value', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f', '--function'],
+            desc: 'A function option.',
+            exec: () => {},
+            default: true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        expect(message.wrap(0)).toEqual(
+          '  -f, --function    A function option. Defaults to <true>.\n',
+        );
+      });
+
+      it('should handle a function option with a default callback', () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f', '--function'],
+            desc: 'A function option',
+            exec: () => {},
+            default: () => true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        expect(message.wrap(0)).toEqual('  -f, --function    A function option\n');
+      });
     });
 
     describe('flag', () => {
@@ -312,6 +342,32 @@ describe('HelpFormatter', () => {
         expect(message.wrap(0)).toEqual(
           '  -f, --flag    A flag option. Can be negated with -no-f or --no-flag.\n',
         );
+      });
+
+      it('should handle a flag option with a default value', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option.',
+            default: true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Defaults to true.\n');
+      });
+
+      it('should handle a flag option with a default callback', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+            desc: 'A flag option',
+            default: () => true,
+          },
+        } as const satisfies Options;
+        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        expect(message.wrap(0)).toEqual('  -f, --flag    A flag option\n');
       });
     });
 
