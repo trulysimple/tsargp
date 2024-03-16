@@ -161,7 +161,8 @@ corresponding value. If an expression, then it is evaluated as follows:
 #### Environment variable
 
 The `envVar` attribute, if present, specifies the name of an environment variable from which the
-option value will be read, in case the option is not specified on the command-line.
+option value will be read, in case the option is not specified on the command-line. Explicitly _not_
+available for [function options](#function-option) and [command options](#command-option).
 
 ### Parameter attributes
 
@@ -224,7 +225,7 @@ enclosed in a promise. Mutually exclusive with [separator](#separator) and
 
 The `enums` attribute, if present, specifies enumerated values that the option accepts as parameter.
 Any parameter that does not equal one of these values (after normalization) will cause an error to
-be thrown. Explicitly not available for the [boolean option](#boolean-option). Mutually exclusive
+be thrown. Explicitly _not_ available for the [boolean option](#boolean-option). Mutually exclusive
 with [regular expression](#regular-expression) and [numeric range](#numeric-range).
 
 ### String attributes
