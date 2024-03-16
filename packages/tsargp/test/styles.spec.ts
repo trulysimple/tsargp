@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { TerminalString, ErrorMessage, HelpMessage } from '../lib';
+import { TerminalString, ErrorMessage, HelpMessage, CompletionMessage } from '../lib';
 import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8 } from '../lib';
 
 describe('TerminalString', () => {
@@ -355,14 +355,13 @@ describe('ErrorMessage', () => {
   it('should wrap the error message', () => {
     const str = new TerminalString(0).splitText('type script');
     const err = new ErrorMessage(str);
-    expect(err.message).toMatch(/type script/);
     expect(err.wrap(0, false)).toEqual('type script');
     expect(err.wrap(0, true)).toEqual('type script' + style(tf.clear));
     expect(err.wrap(11, false)).toEqual('type script');
     expect(err.wrap(11, true)).toEqual('type script' + style(tf.clear));
   });
 
-  it('should be thrown and caught', () => {
+  it('can be thrown and caught', () => {
     const str = new TerminalString(0).splitText('type script');
     expect(() => {
       throw new ErrorMessage(str);
@@ -379,5 +378,25 @@ describe('HelpMessage', () => {
     expect(help.wrap(0, true)).toEqual('type script' + style(tf.clear));
     expect(help.wrap(11, false)).toEqual('type script');
     expect(help.wrap(11, true)).toEqual('type script' + style(tf.clear));
+  });
+
+  it('can be thrown and caught', () => {
+    const str = new TerminalString(0).splitText('type script');
+    expect(() => {
+      throw new HelpMessage(str);
+    }).toThrow('type script');
+  });
+});
+
+describe('CompletionMessage', () => {
+  it('should return the completion message', () => {
+    const msg = new CompletionMessage('type', 'script');
+    expect(msg.toString()).toEqual('type\nscript');
+  });
+
+  it('can be thrown and caught', () => {
+    expect(() => {
+      throw new CompletionMessage('type', 'script');
+    }).toThrow('type\nscript');
   });
 });

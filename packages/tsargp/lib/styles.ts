@@ -399,7 +399,14 @@ export class ErrorMessage extends Error {
  */
 export class HelpMessage extends Array<TerminalString> {
   /**
-   * @returns the message to be printed on a terminal
+   * @returns The message to be printed on a terminal
+   */
+  get message(): string {
+    return this.wrap();
+  }
+
+  /**
+   * @returns The message to be printed on a terminal
    */
   override toString(): string {
     return this.wrap();
@@ -421,6 +428,25 @@ export class HelpMessage extends Array<TerminalString> {
       result.push(sgr(tf.clear));
     }
     return result.join('');
+  }
+}
+
+/**
+ * A completion message.
+ */
+export class CompletionMessage extends Array<string> {
+  /**
+   * @returns The message to be printed on a terminal
+   */
+  get message(): string {
+    return this.join('\n');
+  }
+
+  /**
+   * @returns The message to be printed on a terminal
+   */
+  override toString(): string {
+    return this.join('\n');
   }
 }
 

@@ -39,7 +39,7 @@ import {
   isNiladic,
   isValued,
 } from './options';
-import { ErrorMessage, HelpMessage, TerminalString, style } from './styles';
+import { ErrorMessage, HelpMessage, CompletionMessage, TerminalString, style } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
 import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
 
@@ -262,7 +262,8 @@ class ParserLoop {
       const { key, name, option } = current;
       if (isNiladic(option)) {
         if (comp !== undefined) {
-          throw ''; // use default completion (value !== undefined)
+          // assert(value !== undefined);
+          throw new CompletionMessage();
         } else if (!this.completing && value !== undefined) {
           throw this.validator.error(ErrorItem.optionInlineValue, { o: name });
         } else if (this.handleNiladic(key, option, name, i)) {
@@ -278,7 +279,7 @@ class ParserLoop {
         if (suggestName(option)) {
           handleNameCompletion(this.validator, value);
         }
-        throw ''; // use default completion
+        throw new CompletionMessage();
       } else if (value !== undefined) {
         try {
           parseValue(this.validator, this.values, key, option, name, value);
@@ -357,7 +358,7 @@ class ParserLoop {
       if (this.completing) {
         // do not propagate errors during completion
         console.error(err);
-        throw '';
+        throw new CompletionMessage();
       }
       throw err;
     }
@@ -430,19 +431,19 @@ class ParserLoop {
     } catch (err) {
       // do not propagate errors during completion
       console.error(err);
-      throw '';
+      throw new CompletionMessage();
     }
     if (Array.isArray(result)) {
-      throw result.join('\n');
+      throw new CompletionMessage(...result);
     }
     const promise = result.then(
       (words) => {
-        throw words.join('\n');
+        throw new CompletionMessage(...words);
       },
       (err) => {
         // do not propagate errors during completion
         console.error(err);
-        throw '';
+        throw new CompletionMessage();
       },
     );
     this.promises.push(promise);
@@ -578,11 +579,11 @@ function parseOption(
   const key = validator.names.get(name);
   if (key) {
     if (comp && value === undefined) {
-      throw name;
+      throw new CompletionMessage(name);
     }
     if (validator.positional && name === validator.positional.marker) {
       if (comp) {
-        throw ''; // use default completion
+        throw new CompletionMessage();
       }
       if (value !== undefined) {
         throw validator.error(ErrorItem.positionalInlineValue, { o: name });
@@ -647,7 +648,7 @@ function handleCompletion(option: ParamOption, param?: string) {
     words = words.filter((word) => word.startsWith(param));
   }
   if (words.length) {
-    throw words.join('\n');
+    throw new CompletionMessage(...words);
   }
 }
 
@@ -755,7 +756,7 @@ function findSimilarNames(
 function handleNameCompletion(validator: OptionValidator, prefix?: string): never {
   const names = [...validator.names.keys()];
   const prefixedNames = prefix ? names.filter((name) => name.startsWith(prefix)) : names;
-  throw prefixedNames.join('\n');
+  throw new CompletionMessage(...prefixedNames);
 }
 
 /**

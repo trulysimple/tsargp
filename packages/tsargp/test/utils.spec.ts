@@ -1,9 +1,11 @@
-import type { AsyncExpectationResult, MatcherState } from '@vitest/expect';
+import type { SyncExpectationResult, AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { describe, expect, it } from 'vitest';
 import { type ConcreteError, defaultConfig } from '../lib/validator';
 import { checkRequiredArray, gestaltSimilarity, getArgs, splitPhrase, isTrue } from '../lib/utils';
 
 interface CustomMatchers<R = unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  toEqual(expected: any): R;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toResolve(expected: any): R;
 }
@@ -12,6 +14,13 @@ declare module 'vitest' {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   interface Assertion<T = any> extends CustomMatchers<T> {}
   interface AsymmetricMatchersContaining extends CustomMatchers {}
+}
+
+/** @ignore */
+function toEqual(this: MatcherState, actual: unknown, expected: unknown): SyncExpectationResult {
+  const pass = this.equals(actual, expected);
+  const message = () => `expected ${actual} to match ${expected}`;
+  return { message, pass, actual, expected };
 }
 
 /** @ignore */
@@ -26,7 +35,7 @@ async function toResolve(
   return { message, pass, actual, expected };
 }
 
-expect.extend({ toResolve });
+expect.extend({ toEqual, toResolve });
 
 export const errorConfig: ConcreteError = {
   styles: {
