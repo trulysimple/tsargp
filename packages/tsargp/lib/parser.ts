@@ -462,8 +462,8 @@ class ParserLoop {
         if ('envVar' in option && option.envVar) {
           const value = process?.env[option.envVar];
           if (value) {
-            if (isNiladic(option)) {
-              this.values[key] = option.type === 'flag' ? isTrue(value) : value;
+            if (option.type === 'flag') {
+              this.values[key] = isTrue(value);
             } else {
               if (isArray(option)) {
                 resetValue(this.values, key, option);

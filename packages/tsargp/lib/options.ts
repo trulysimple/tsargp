@@ -50,6 +50,7 @@ export type {
   WithRegex,
   WithParam,
   WithValue,
+  WithEnvVar,
   WithParamName,
   WithParse,
   WithParseDelimited,
@@ -539,6 +540,12 @@ type WithValue<T> = (WithDefault<T> | WithRequired) & {
    * The option requirements.
    */
   readonly requires?: Requires;
+};
+
+/**
+ * Defines attributes common to all options that accept environment variables.
+ */
+type WithEnvVar = {
   /**
    * The name of an environment variable to read from, if the option is not specified in the
    * command-line.
@@ -551,6 +558,7 @@ type WithValue<T> = (WithDefault<T> | WithRequired) & {
  */
 type BooleanOption = WithType<'boolean'> &
   WithParam &
+  WithEnvVar &
   WithValue<boolean> &
   (WithExample<boolean> | WithParamName) &
   WithParse<boolean>;
@@ -560,6 +568,7 @@ type BooleanOption = WithType<'boolean'> &
  */
 type StringOption = WithType<'string'> &
   WithParam &
+  WithEnvVar &
   WithValue<string> &
   (WithExample<string> | WithParamName) &
   WithString &
@@ -570,6 +579,7 @@ type StringOption = WithType<'string'> &
  */
 type NumberOption = WithType<'number'> &
   WithParam &
+  WithEnvVar &
   WithValue<number> &
   (WithExample<number> | WithParamName) &
   WithNumber &
@@ -580,6 +590,7 @@ type NumberOption = WithType<'number'> &
  */
 type StringsOption = WithType<'strings'> &
   WithParam &
+  WithEnvVar &
   WithValue<ReadonlyArray<string>> &
   (WithExample<ReadonlyArray<string>> | WithParamName) &
   WithString &
@@ -591,6 +602,7 @@ type StringsOption = WithType<'strings'> &
  */
 type NumbersOption = WithType<'numbers'> &
   WithParam &
+  WithEnvVar &
   WithValue<ReadonlyArray<number>> &
   (WithExample<ReadonlyArray<number>> | WithParamName) &
   WithNumber &
@@ -601,6 +613,7 @@ type NumbersOption = WithType<'numbers'> &
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
 type FlagOption = WithType<'flag'> &
+  WithEnvVar &
   WithValue<boolean> & {
     /**
      * The names used for negation (e.g., '--no-flag').
