@@ -1,15 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type {
-  Option,
-  Options,
-  Requires,
-  ValuedOption,
-  RequiresVal,
-  ArrayOption,
-  ParamOption,
-} from './options';
+import type { Option, Options, Requires, ValuedOption, RequiresVal, ArrayOption } from './options';
 import type { Style } from './styles';
 import type { Concrete, ConcreteStyles, OptionValidator } from './validator';
 
@@ -488,7 +480,7 @@ function getNameWidths(options: Options): Array<number> {
  */
 function formatValue(
   option: ValuedOption,
-  value: ParamOption['example'],
+  value: unknown,
   result: TerminalString,
   styles: ConcreteStyles,
   style: Style,
@@ -505,7 +497,7 @@ function formatValue(
       return formatFunctions.s(value as string, styles, style, result);
     case 'number':
       return formatFunctions.n(value as number, styles, style, result);
-    case 'strings': {
+    case 'strings':
       return formatArray(
         option,
         value as ReadonlyArray<string>,
@@ -515,8 +507,7 @@ function formatValue(
         style,
         inDesc,
       );
-    }
-    case 'numbers': {
+    case 'numbers':
       return formatArray(
         option,
         value as ReadonlyArray<number>,
@@ -526,11 +517,8 @@ function formatValue(
         style,
         inDesc,
       );
-    }
-    default: {
-      const _exhaustiveCheck: never = option;
-      return _exhaustiveCheck;
-    }
+    default:
+      formatFunctions.p(value, styles, style, result);
   }
 }
 

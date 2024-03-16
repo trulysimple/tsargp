@@ -30,7 +30,15 @@ import type {
 
 import { tf, ErrorItem } from './enums';
 import { HelpFormatter } from './formatter';
-import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
+import {
+  RequiresAll,
+  RequiresNot,
+  RequiresOne,
+  isArray,
+  isVariadic,
+  isNiladic,
+  isValued,
+} from './options';
 import { ErrorMessage, HelpMessage, TerminalString, style } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
 import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
@@ -214,7 +222,7 @@ class ParserLoop {
     for (const key in validator.options) {
       if (!(key in values)) {
         const option = validator.options[key];
-        if (option.type !== 'help' && option.type !== 'version') {
+        if (isValued(option)) {
           values[key] = undefined;
         }
       }
@@ -456,7 +464,7 @@ class ParserLoop {
           if (value) {
             if (option.type === 'flag') {
               this.values[key] = isTrue(value);
-            } else {
+            } else if (!isNiladic(option)) {
               if (isArray(option)) {
                 resetValue(this.values, key, option);
               }

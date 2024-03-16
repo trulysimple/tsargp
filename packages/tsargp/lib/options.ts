@@ -49,8 +49,7 @@ export type {
   WithRange,
   WithRegex,
   WithParam,
-  WithEnvVar,
-  WithRequires,
+  WithValue,
   WithParamName,
   WithParse,
   WithParseDelimited,
@@ -61,7 +60,7 @@ export type {
   WithVersion,
 };
 
-export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isVariadic };
+export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued, isVariadic };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -533,30 +532,19 @@ type WithNumber = (WithEnums<number> | WithRange) & {
 };
 
 /**
- * Defines attributes common to all options that may have environment variables.
+ * Defines attributes common to all options that have values.
  */
-type WithEnvVar = {
+type WithValue<T> = (WithDefault<T> | WithRequired) & {
+  /**
+   * The option requirements.
+   */
+  readonly requires?: Requires;
   /**
    * The name of an environment variable to read from, if the option is not specified in the
    * command-line.
    */
   readonly envVar?: string;
 };
-
-/**
- * Defines attributes common to all options that may have requirements.
- */
-type WithRequires = {
-  /**
-   * The option requirements.
-   */
-  readonly requires?: Requires;
-};
-
-/**
- * Defines attributes common to all options that have values.
- */
-type WithValue<T> = (WithDefault<T> | WithRequired) & WithEnvVar & WithRequires;
 
 /**
  * An option that has a boolean value (accepts a single boolean parameter).
@@ -624,7 +612,7 @@ type FlagOption = WithType<'flag'> &
  * An option that executes a callback function.
  */
 type FunctionOption = WithType<'function'> &
-  WithRequires & {
+  WithValue<unknown> & {
     /**
      * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
      * its result.
@@ -640,7 +628,7 @@ type FunctionOption = WithType<'function'> &
  * An option that executes a command.
  */
 type CommandOption = WithType<'command'> &
-  WithRequires & {
+  WithValue<unknown> & {
     /**
      * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
      * its result.
@@ -718,7 +706,7 @@ type ParamOption = SingleOption | ArrayOption;
 /**
  * An option that has a default value.
  */
-type ValuedOption = FlagOption | ParamOption;
+type ValuedOption = FlagOption | ExecutingOption | ParamOption;
 
 /**
  * An option definition. (finally)
@@ -800,9 +788,9 @@ type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDa
  * @template T The option definition type
  */
 type OptionDataType<T extends Option> = T extends FunctionOption
-  ? ReturnType<T['exec']> | undefined
+  ? ReturnType<T['exec']> | DefaultDataType<T>
   : T extends CommandOption
-    ? ReturnType<T['cmd']> | undefined
+    ? ReturnType<T['cmd']> | DefaultDataType<T>
     : T extends FlagOption
       ? boolean | DefaultDataType<T>
       : T extends BooleanOption
@@ -867,6 +855,15 @@ function isNiladic(option: Option): option is NiladicOption {
  */
 function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
+}
+
+/**
+ * Tests if an option is a valued option (i.e., has a value).
+ * @param option The option definition
+ * @returns True if the option is a valued option
+ */
+function isValued(option: Option): option is ValuedOption {
+  return option.type !== 'help' && option.type !== 'version';
 }
 
 /**
