@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8 } from '../lib';
 import { TerminalString, ErrorMessage, HelpMessage } from '../lib';
+import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8 } from '../lib';
 
 describe('TerminalString', () => {
   describe('addStyle', () => {
