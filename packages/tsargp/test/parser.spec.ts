@@ -84,6 +84,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options, config);
+      expect(() => parser.parse('cmd -s a ', { compIndex: 9 })).toThrow(/^-s$/);
       expect(() => parser.parse('cmd -s a -s ', { compIndex: 12 })).toThrow(/^abc$/);
     });
 
@@ -399,7 +400,7 @@ describe('ArgumentParser', () => {
         expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
       });
 
-      it('should handle the completion of a function option that throws', () => {
+      it('should handle a function option with a callback that throws during completion', () => {
         const options = {
           function: {
             type: 'function',
@@ -410,7 +411,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options, config);
-        expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^$/);
+        expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
         const anything = expect.anything();
         expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
       });
@@ -3189,216 +3190,274 @@ describe('ArgumentParser', () => {
       expect(values).toEqual({ flag: true });
     });
   });
+});
 
-  describe('parseAsync', () => {
-    it('should throw a version message on a version option with a resolve function', async () => {
-      const options = {
-        function: {
-          type: 'version',
-          names: ['-v'],
-          resolve: (str) => `file://${import.meta.dirname}/${str}`,
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync(['-v'])).rejects.toThrow(/^0.1.0$/);
-    });
+describe('parseAsync', () => {
+  it('should throw a version message on a version option with a resolve function', async () => {
+    const options = {
+      function: {
+        type: 'version',
+        names: ['-v'],
+        resolve: (str) => `file://${import.meta.dirname}/${str}`,
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync(['-v'])).rejects.toThrow(/^0.1.0$/);
+  });
 
-    it('should throw an error on a version option that cannot resolve a package.json file', async () => {
-      const options = {
-        function: {
-          type: 'version',
-          names: ['-v'],
-          resolve: () => `file:///abc`,
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync(['-v'])).rejects.toThrow(
-        /Could not find a "package.json" file\./,
-      );
-    });
+  it('should throw an error on a version option that cannot resolve a package.json file', async () => {
+    const options = {
+      function: {
+        type: 'version',
+        names: ['-v'],
+        resolve: () => `file:///abc`,
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync(['-v'])).rejects.toThrow(
+      /Could not find a "package.json" file\./,
+    );
+  });
 
-    it('should handle a function option with an asynchronous callback', async () => {
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
-          exec: async () => 'abc',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync(['-f'])).resolves.toEqual({ function: 'abc' });
-    });
+  it('should handle a function option with an asynchronous callback', async () => {
+    const options = {
+      function: {
+        type: 'function',
+        names: ['-f'],
+        exec: async () => 'abc',
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync(['-f'])).resolves.toEqual({ function: 'abc' });
+  });
 
-    it('should handle a function option with an asynchronous callback that throws', async () => {
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
-          async exec() {
-            throw 'abc';
-          },
+  it('should handle a function option with an asynchronous callback that throws', async () => {
+    const options = {
+      function: {
+        type: 'function',
+        names: ['-f'],
+        async exec() {
+          throw 'abc';
         },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^abc$/);
-    });
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^abc$/);
+  });
 
-    it('should handle a command option with an asynchronous callback', async () => {
-      const options = {
-        command: {
-          type: 'command',
-          names: ['-c'],
-          cmd: async () => 'abc',
-          options: {},
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync(['-c'])).resolves.toEqual({ command: 'abc' });
-    });
+  it('should handle a command option with an asynchronous callback', async () => {
+    const options = {
+      command: {
+        type: 'command',
+        names: ['-c'],
+        cmd: async () => 'abc',
+        options: {},
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync(['-c'])).resolves.toEqual({ command: 'abc' });
+  });
 
-    it('should handle a command option with an asynchronous callback that throws', async () => {
-      const options = {
-        command: {
-          type: 'command',
-          names: ['-c'],
-          async cmd() {
-            throw 'abc';
-          },
-          options: {},
+  it('should handle a command option with an asynchronous callback that throws', async () => {
+    const options = {
+      command: {
+        type: 'command',
+        names: ['-c'],
+        async cmd() {
+          throw 'abc';
         },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync(['-c'])).rejects.toThrow(/^abc$/);
-    });
+        options: {},
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync(['-c'])).rejects.toThrow(/^abc$/);
+  });
 
-    it('should handle the completion of a boolean option with async custom completion', async () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-b'],
-          complete: async () => ['abc'],
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-    });
+  it('should handle the completion of a boolean option with async custom completion', async () => {
+    const options = {
+      boolean: {
+        type: 'boolean',
+        names: ['-b'],
+        complete: async () => ['abc'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
+  });
 
-    it('should handle the completion of a boolean option with async custom completion that throws', async () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-b'],
-          complete: async () => {
-            throw 'abc';
-          },
+  it('should handle the completion of a boolean option with async custom completion that throws', async () => {
+    const options = {
+      boolean: {
+        type: 'boolean',
+        names: ['-b'],
+        complete: async () => {
+          throw 'abc';
         },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^$/);
-    });
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^$/);
+  });
 
-    it('should handle the completion of a string option with async custom completion', async () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          complete: async () => ['abc'],
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-    });
+  it('should handle the completion of a string option with async custom completion', async () => {
+    const options = {
+      string: {
+        type: 'string',
+        names: ['-s'],
+        complete: async () => ['abc'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
+  });
 
-    it('should handle the completion of a string option with async custom completion that throws', async () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          complete: async () => {
-            throw 'abc';
-          },
+  it('should handle the completion of a string option with async custom completion that throws', async () => {
+    const options = {
+      string: {
+        type: 'string',
+        names: ['-s'],
+        complete: async () => {
+          throw 'abc';
         },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^$/);
-    });
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^$/);
+  });
 
-    it('should handle the completion of a number option with async custom completion', async () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          complete: async () => ['abc'],
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-    });
+  it('should handle the completion of a number option with async custom completion', async () => {
+    const options = {
+      number: {
+        type: 'number',
+        names: ['-n'],
+        complete: async () => ['abc'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
+  });
 
-    it('should handle the completion of a number option with async custom completion that throws', async () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          complete: async () => {
-            throw 'abc';
-          },
+  it('should handle the completion of a number option with async custom completion that throws', async () => {
+    const options = {
+      number: {
+        type: 'number',
+        names: ['-n'],
+        complete: async () => {
+          throw 'abc';
         },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^$/);
-    });
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -n ', { compIndex: 7 })).rejects.toThrow(/^$/);
+  });
 
-    it('should handle the completion of a strings option with async custom completion', async () => {
-      const options = {
-        strings: {
-          type: 'strings',
-          names: ['-ss'],
-          complete: async () => ['abc'],
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
-    });
+  it('should handle the completion of a strings option with async custom completion', async () => {
+    const options = {
+      strings: {
+        type: 'strings',
+        names: ['-ss'],
+        complete: async () => ['abc'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
+  });
 
-    it('should handle the completion of a strings option with async custom completion that throws', async () => {
-      const options = {
-        strings: {
-          type: 'strings',
-          names: ['-ss'],
-          complete: async () => {
-            throw 'abc';
-          },
+  it('should handle the completion of a strings option with async custom completion that throws', async () => {
+    const options = {
+      strings: {
+        type: 'strings',
+        names: ['-ss'],
+        complete: async () => {
+          throw 'abc';
         },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
-    });
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
+  });
 
-    it('should handle the completion of a numbers option with async custom completion', async () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          complete: async () => ['abc'],
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
-    });
+  it('should handle the completion of a numbers option with async custom completion', async () => {
+    const options = {
+      numbers: {
+        type: 'numbers',
+        names: ['-ns'],
+        complete: async () => ['abc'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
+  });
 
-    it('should handle the completion of a numbers option with async custom completion that throws', async () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          complete: async () => {
-            throw 'abc';
-          },
+  it('should handle the completion of a numbers option with async custom completion that throws', async () => {
+    const options = {
+      numbers: {
+        type: 'numbers',
+        names: ['-ns'],
+        complete: async () => {
+          throw 'abc';
         },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options, config);
-      await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
-    });
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
+  });
+
+  it('should handle a function option with an async callback that throws during completion', async () => {
+    const options = {
+      function: {
+        type: 'function',
+        names: ['-f'],
+        async exec() {
+          throw 'abc';
+        },
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.parseAsync('cmd -f ', { compIndex: 7 })).rejects.toThrow(/^-f$/);
+  });
+});
+
+describe('tryParse', () => {
+  it('should output a warning on a single deprecated option', async () => {
+    const options = {
+      flag: {
+        type: 'flag',
+        names: ['-f'],
+        deprecated: 'yes',
+      },
+    } as const satisfies Options;
+    const values = { flag: undefined };
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.tryParse(values, ['-f', '-f'])).resolves.toHaveProperty(
+      'message',
+      expect.stringMatching(/Option -f is deprecated and may be removed in future releases\.\n/),
+    );
+  });
+
+  it('should output a warning on multiple deprecated options', async () => {
+    const options = {
+      flag1: {
+        type: 'flag',
+        names: ['-f1'],
+        deprecated: 'yes',
+      },
+      flag2: {
+        type: 'flag',
+        names: ['-f2'],
+        deprecated: 'yes',
+      },
+    } as const satisfies Options;
+    const values = { flag1: undefined, flag2: undefined };
+    const parser = new ArgumentParser(options, config);
+    await expect(parser.tryParse(values, ['-f1', '-f2'])).resolves.toHaveProperty(
+      'message',
+      expect.stringMatching(
+        new RegExp(
+          'Option -f1 is deprecated and may be removed in future releases.\n' +
+            'Option -f2 is deprecated and may be removed in future releases.\n',
+        ),
+      ),
+    );
   });
 });

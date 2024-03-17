@@ -18,6 +18,10 @@ export {
 // Internal note: this needs to be defined before `defaultConfig`, otherwise bun chokes.
 export const enum ErrorItem {
   /**
+   * Warning saved by the parser when a deprecated option is specified on the command-line.
+   */
+  deprecatedOption,
+  /**
    * Raised by the parser when an option parameter fails to be parsed.
    */
   parseError,

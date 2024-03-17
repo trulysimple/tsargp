@@ -452,6 +452,18 @@ export class CompletionMessage extends Array<string> {
   }
 }
 
+/**
+ * A version message.
+ */
+export class VersionMessage extends String {
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------

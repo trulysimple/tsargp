@@ -51,7 +51,7 @@ class PlayCommand extends Command<PlayProps> {
         }
       } else if (this.parser) {
         const values = {};
-        this.parser.parseInto(values, line, { compIndex });
+        this.parser.doParse(values, line, { compIndex });
         this.println(JSON.stringify(values, null, 2));
       } else {
         this.println(`Please call ${style(1)}init${style(0)} first.`);

@@ -19,7 +19,7 @@ import type { Concrete, URL } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
 import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray } from './options';
-import { style, TerminalString, ErrorMessage } from './styles';
+import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
 import { assert } from './utils';
 
 //--------------------------------------------------------------------------------------------------
@@ -80,6 +80,7 @@ export const defaultConfig: ConcreteError = {
     text: style(tf.clear),
   },
   phrases: {
+    [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
     [ErrorItem.parseError]: '%t\n\nDid you mean to specify an option name instead of %o?',
     [ErrorItem.parseErrorWithSimilar]:
       '%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.',
@@ -549,6 +550,16 @@ export class OptionValidator {
   }
 
   /**
+   * Creates a warning with a formatted message.
+   * @param kind The kind of warning message
+   * @param args The warning arguments
+   * @returns The formatted warning
+   */
+  warn(kind: ErrorItem, args?: Record<string, unknown>): WarnMessage {
+    return new WarnMessage(formatMessage(this.config, kind, args));
+  }
+
+  /**
    * Creates an error with a formatted message.
    * @param kind The kind of error message
    * @param args The error arguments
@@ -574,33 +585,33 @@ function formatMessage(
   kind: ErrorItem,
   args?: Record<string, unknown>,
 ): TerminalString {
-  const str = new TerminalString().addSequence(config.styles.text);
+  const result = new TerminalString().addSequence(config.styles.text);
   const phrase = config.phrases[kind];
   if (args) {
-    str.splitText(phrase, (spec) => {
+    result.splitText(phrase, (spec) => {
       const arg = spec.slice(1);
       const fmt = arg[0];
       if (fmt in formatFunctions && arg in args) {
         const value = args[arg];
         const format = (formatFunctions as Record<string, FormatFunction>)[fmt];
         if (Array.isArray(value)) {
-          str.addOpening('[');
+          result.addOpening('[');
           value.forEach((val, i) => {
-            format(val, config.styles, config.styles.text, str);
+            format(val, config.styles, config.styles.text, result);
             if (i < value.length - 1) {
-              str.addClosing(',');
+              result.addClosing(',');
             }
           });
-          str.addClosing(']');
+          result.addClosing(']');
         } else {
-          format(value, config.styles, config.styles.text, str);
+          format(value, config.styles, config.styles.text, result);
         }
       }
     });
   } else {
-    str.splitText(phrase);
+    result.splitText(phrase);
   }
-  return str;
+  return result;
 }
 
 /**
