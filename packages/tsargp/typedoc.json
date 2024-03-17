@@ -6,23 +6,9 @@
   "excludeExternals": true,
   "treatWarningsAsErrors": true,
   "intentionallyNotExported": [
-    "Alias",
     "ArrayDataType",
-    "CSI",
-    "Decimal",
     "DefaultDataType",
     "DelimitedDataType",
-    "formatBoolean",
-    "formatNumber",
-    "formatOption",
-    "formatParam",
-    "formatRegExp",
-    "formatString",
-    "formatTerm",
-    "formatURL",
-    "Misc",
-    "Resolve",
-    "SingleDataType",
-    "Writable"
+    "SingleDataType"
   ]
 }

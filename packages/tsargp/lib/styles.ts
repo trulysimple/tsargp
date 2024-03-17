@@ -1,36 +1,20 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { mv, mt, ed, sc, st, mg, ms, tf, fg, bg, ul } from './enums';
+import { cs, tf, fg, bg, ul } from './enums';
+import type { Alias, Enumerate } from './utils';
 
-export type {
-  FgColor,
-  BgColor,
-  UlColor,
-  StyleAttr,
-  Move,
-  MoveTo,
-  Edit,
-  Scroll,
-  Style,
-  Margin,
-  Sequence,
-  FormatCallback,
-};
+export type { CSI, Decimal, FgColor, BgColor, UlColor, StyleAttr, Style, Sequence, FormatCallback };
 
 export {
   TerminalString,
   ErrorMessage,
   HelpMessage,
+  seq,
+  style,
   foreground as fg8,
   background as bg8,
   underline as ul8,
-  move,
-  moveTo,
-  edit,
-  scroll,
-  style,
-  margin,
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -53,94 +37,41 @@ const regex = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * A control sequence introducer command. It is divided into subgroups for convenience.
- */
-type Command = mv | mt | ed | sc | st | mg | ms;
-
-/**
- * A generic control sequence introducer string.
+ * A control sequence introducer.
  * @template P The type of the sequence parameter
  * @template C The type of the sequence command
  */
-type CSI<P extends string | number, C extends Command> = `\x9b${P}${C}`;
+type CSI<P extends string, C extends cs> = `\x9b${P}${C}`;
 
 /**
- * A single-parameter cursor movement sequence.
+ * A control sequence.
  */
-type Move = CSI<number, mv>;
+type Sequence = CSI<string, cs> | '';
 
 /**
- * A two-parameter cursor movement sequence.
+ * A select graphics rendition sequence.
  */
-type MoveTo = CSI<`${number};${number}`, mt>;
-
-/**
- * A single-parameter edit sequence.
- */
-type Edit = CSI<number, ed>;
-
-/**
- * A single-parameter scroll sequence.
- */
-type Scroll = CSI<number, sc>;
-
-/**
- * A multi-parameter text style sequence.
- */
-type Style = CSI<string, st> | '';
-
-/**
- * A two-parameter margin sequence.
- */
-type Margin = CSI<`${number};${number}`, mg>;
-
-/**
- * A miscellaneous sequence. For completeness only, but not currently used.
- */
-type Misc =
-  | CSI<string, ms.sm | ms.rm>
-  | CSI<number, ms.dsr | ms.scs>
-  | CSI<'', ms.str | ms.scp | ms.rcp>;
-
-/**
- * A control sequence introducer sequence.
- * @see https://xtermjs.org/docs/api/vtfeatures/#csi
- */
-type Sequence = Move | MoveTo | Edit | Scroll | Style | Margin | Misc;
-
-/**
- * A helper type to enumerate numbers.
- * @template N The type of last enumerated number
- */
-type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['length'] extends N
-  ? Acc[number]
-  : Enumerate<N, [...Acc, Acc['length']]>;
+type Style = CSI<string, cs.sgr> | '';
 
 /**
  * An 8-bit decimal number.
  */
-type Decimal = Enumerate<256>;
-
-/**
- * A helper type to alias another type while eliding type resolution in IntelliSense.
- * @template T The type to be aliased
- */
-type Alias<T> = T extends T ? T : T;
+type Decimal = Alias<Enumerate<256>>;
 
 /**
  * An 8-bit foreground color.
  */
-type FgColor = Alias<`38;5;${Decimal}`>;
+type FgColor = [38, 5, Decimal];
 
 /**
  * An 8-bit background color.
  */
-type BgColor = Alias<`48;5;${Decimal}`>;
+type BgColor = [48, 5, Decimal];
 
 /**
  * An 8-bit underline color.
  */
-type UlColor = Alias<`58;5;${Decimal}`>;
+type UlColor = [58, 5, Decimal];
 
 /**
  * A text styling attribute.
@@ -389,7 +320,7 @@ class TerminalString {
       }
     } else if (start) {
       if (width >= start + Math.max(...this.lengths)) {
-        indent = move(start + 1, mv.cha);
+        indent = seq(cs.cha, start + 1);
         if (!firstIsBreak && column != start) {
           result.push(indent);
         }
@@ -400,7 +331,7 @@ class TerminalString {
         start = 0;
       }
     } else if (!firstIsBreak && column) {
-      result.push(move(1, mv.cha));
+      result.push(seq(cs.cha, 1));
     }
     column = start;
     for (let i = 0; i < this.strings.length; ++i) {
@@ -520,55 +451,14 @@ function omitStyles(width: number): boolean {
 }
 
 /**
- * Creates a CSI sequence.
- * @template P The type of the sequence parameter
- * @template C The type of the sequence command
- * @param param The sequence parameter
+ * Creates a control sequence.
+ * @template T The type of the sequence command
  * @param cmd The sequence command
- * @returns The CSI sequence
+ * @param params The sequence parameters
+ * @returns The control sequence
  */
-function csi<P extends string | number, C extends Command>(param: P, cmd: C): CSI<P, C> {
-  return `\x9b${param}${cmd}`;
-}
-
-/**
- * Creates a move sequence.
- * @param times The move parameter
- * @param cmd The move command
- * @returns The move sequence
- */
-function move(times: number, cmd: mv): Move {
-  return csi(times, cmd);
-}
-
-/**
- * Creates a move-to sequence.
- * @param x The horizontal position
- * @param y The vertical position
- * @returns The move-to sequence
- */
-function moveTo(x: number, y: number): MoveTo {
-  return csi(`${x};${y}`, mt.cup);
-}
-
-/**
- * Creates an edit sequence.
- * @param times The edit parameter
- * @param cmd The edit command
- * @returns The edit sequence
- */
-function edit(times: number, cmd: ed): Edit {
-  return csi(times, cmd);
-}
-
-/**
- * Creates a scroll sequence.
- * @param times The scroll parameter
- * @param cmd The scroll command
- * @returns The scroll sequence
- */
-function scroll(times: number, cmd: sc): Scroll {
-  return csi(times, cmd);
+function seq<T extends cs>(cmd: T, ...params: Array<number>): CSI<string, T> {
+  return `\x9b${params.join(';')}${cmd}`;
 }
 
 /**
@@ -577,17 +467,7 @@ function scroll(times: number, cmd: sc): Scroll {
  * @returns The SGR sequence
  */
 function style(...attrs: Array<StyleAttr>): Style {
-  return csi(attrs.join(';'), st.sgr);
-}
-
-/**
- * Creates a margin sequence.
- * @param x The top margin
- * @param y The bottom margin
- * @returns The margin sequence
- */
-function margin(x: number, y: number): Margin {
-  return csi(`${x};${y}`, mg.tbm);
+  return seq(cs.sgr, ...attrs.flat());
 }
 
 /**
@@ -596,7 +476,7 @@ function margin(x: number, y: number): Margin {
  * @returns The foreground color
  */
 function foreground(color: Decimal): FgColor {
-  return `38;5;${color}`;
+  return [38, 5, color];
 }
 
 /**
@@ -605,7 +485,7 @@ function foreground(color: Decimal): FgColor {
  * @returns The background color
  */
 function background(color: Decimal): BgColor {
-  return `48;5;${color}`;
+  return [48, 5, color];
 }
 
 /**
@@ -614,5 +494,5 @@ function background(color: Decimal): BgColor {
  * @returns The underline color
  */
 function underline(color: Decimal): UlColor {
-  return `58;5;${color}`;
+  return [58, 5, color];
 }

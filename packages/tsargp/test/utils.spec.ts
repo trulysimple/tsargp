@@ -1,6 +1,6 @@
 import type { AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { describe, expect, it } from 'vitest';
-import { type ConcreteError, defaultConfig } from '../lib';
+import { type ConcreteError, defaultConfig } from '../lib/validator';
 import { checkRequiredArray, gestaltSimilarity, getArgs, splitPhrase, isTrue } from '../lib/utils';
 
 interface CustomMatchers<R = unknown> {

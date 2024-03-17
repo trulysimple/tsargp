@@ -4,6 +4,7 @@
     "types": ["bun"],
     "noEmit": false,
     "incremental": true,
+    "stripInternal": true,
     "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": false, // https://github.com/microsoft/TypeScript/issues/40344
     "disableSourceOfProjectReferenceRedirect": true

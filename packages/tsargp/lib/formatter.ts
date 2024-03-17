@@ -3,7 +3,8 @@
 //--------------------------------------------------------------------------------------------------
 import type { Option, Options, Requires, ValuedOption, RequiresVal, ArrayOption } from './options';
 import type { Style } from './styles';
-import type { Concrete, ConcreteStyles, OptionValidator } from './validator';
+import type { Concrete } from './utils';
+import type { ConcreteStyles, OptionValidator } from './validator';
 
 import { tf, HelpItem } from './enums';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';

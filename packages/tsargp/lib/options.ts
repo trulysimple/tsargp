@@ -3,10 +3,9 @@
 //--------------------------------------------------------------------------------------------------
 import type { HelpConfig } from './formatter';
 import type { Style } from './styles';
-import type { URL as _URL } from 'url';
+import type { Resolve, Writable, URL } from './utils';
 
 export type {
-  URL,
   ParseCallback,
   ResolveCallback,
   ExecuteCallback,
@@ -101,11 +100,6 @@ const req = {
 //--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
-/**
- * For some reason the global definition of `URL` has issues with static methods.
- */
-interface URL extends _URL {}
-
 /**
  * A set of styles for displaying an option on the terminal.
  */
@@ -833,19 +827,8 @@ type OptionValues<T extends Options> = Resolve<{
 type CastToOptionValues = Record<string, unknown>;
 
 /**
- * A helper type to resolve types in IntelliSense.
- * @template T The type to be resolved
- */
-type Resolve<T> = T & unknown;
-
-/**
- * A helper type to remove the readonly attribute from a type.
- * @template T The source type
- */
-type Writable<T> = { -readonly [P in keyof T]: T[P] };
-
-/**
- * The concrete data type of the option value of a non-niladic option. Used internally.
+ * The concrete data type of the option value of a non-niladic option.
+ * @internal
  */
 type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
 
@@ -856,6 +839,7 @@ type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
  * Tests if an option is niladic (i.e., accepts no parameter).
  * @param option The option definition
  * @returns True if the option is niladic
+ * @internal
  */
 function isNiladic(option: Option): option is NiladicOption {
   return ['flag', 'function', 'help', 'version', 'command'].includes(option.type);
@@ -865,6 +849,7 @@ function isNiladic(option: Option): option is NiladicOption {
  * Tests if an option is an array option (i.e., has an array value).
  * @param option The option definition
  * @returns True if the option is an array option
+ * @internal
  */
 function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
@@ -874,6 +859,7 @@ function isArray(option: Option): option is ArrayOption {
  * Tests if an option is a valued option (i.e., has a value).
  * @param option The option definition
  * @returns True if the option is a valued option
+ * @internal
  */
 function isValued(option: Option): option is ValuedOption {
   return option.type !== 'help' && option.type !== 'version';
@@ -883,6 +869,7 @@ function isValued(option: Option): option is ValuedOption {
  * Tests if an array option is variadic (i.e., accepts multiple parameters).
  * @param option The option definition
  * @returns True if the option is variadic
+ * @internal
  */
 function isVariadic(option: ArrayOption): boolean {
   return (

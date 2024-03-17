@@ -2,7 +2,6 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type {
-  URL,
   Option,
   Options,
   Requires,
@@ -16,21 +15,14 @@ import type {
   ParamValue,
 } from './options';
 import type { Style } from './styles';
+import type { Concrete, URL } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
 import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray } from './options';
 import { style, TerminalString, ErrorMessage } from './styles';
 import { assert } from './utils';
 
-export type {
-  Positional,
-  Concrete,
-  ErrorStyles,
-  ErrorConfig,
-  ConcreteStyles,
-  ConcreteError,
-  FormatFunction,
-};
+export type { Positional, ErrorStyles, ErrorConfig, ConcreteStyles, ConcreteError, FormatFunction };
 export { OptionValidator, defaultConfig, formatFunctions };
 
 //--------------------------------------------------------------------------------------------------
@@ -38,6 +30,7 @@ export { OptionValidator, defaultConfig, formatFunctions };
 //--------------------------------------------------------------------------------------------------
 /**
  * The error formatting functions.
+ * @internal
  */
 const formatFunctions = {
   /**
@@ -76,6 +69,7 @@ const formatFunctions = {
 
 /**
  * The default error messages configuration.
+ * @internal
  */
 const defaultConfig: ConcreteError = {
   styles: {
@@ -126,7 +120,8 @@ const defaultConfig: ConcreteError = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * Information regarding a positional option. Used internally.
+ * Information regarding a positional option.
+ * @internal
  */
 type Positional = {
   key: string;
@@ -137,6 +132,7 @@ type Positional = {
 
 /**
  * A set of formatting functions for error messages.
+ * @internal
  */
 type FormatFunction = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -205,19 +201,9 @@ type ConcreteError = Concrete<ErrorConfig>;
 
 /**
  * A concrete version of the error message styles.
+ * @internal
  */
 type ConcreteStyles = ConcreteError['styles'];
-
-/**
- * A helper type to remove optionality from types and properties.
- * @template T The source type
- */
-type Concrete<T> = Exclude<
-  {
-    [K in keyof T]-?: Concrete<T[K]>;
-  },
-  undefined
->;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
