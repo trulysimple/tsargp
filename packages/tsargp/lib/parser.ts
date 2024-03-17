@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Imports
 //--------------------------------------------------------------------------------------------------
 import type {
   ParamOption,
@@ -43,8 +43,6 @@ import { ErrorMessage, HelpMessage, TerminalString, style } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
 import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
 
-export { ArgumentParser, OpaqueArgumentParser, type ParseConfig };
-
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
@@ -64,7 +62,7 @@ const enum ArgKind {
 /**
  * The parse configuration.
  */
-type ParseConfig = {
+export type ParseConfig = {
   /**
    * The program name.
    */
@@ -81,7 +79,7 @@ type ParseConfig = {
 /**
  * Implements parsing of command-line arguments into option values.
  */
-class OpaqueArgumentParser {
+export class OpaqueArgumentParser {
   private readonly validator: OptionValidator;
 
   /**
@@ -138,7 +136,7 @@ class OpaqueArgumentParser {
  * Implements parsing of command-line arguments into option values.
  * @template T The type of the option definitions
  */
-class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
+export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions

@@ -1,9 +1,7 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Exports
 //--------------------------------------------------------------------------------------------------
 export {
-  ErrorItem,
-  HelpItem,
   ControlSequence as cs,
   TypeFace as tf,
   Foreground as fg,
@@ -18,7 +16,7 @@ export {
  * The kind of items that can be thrown as error messages.
  */
 // Internal note: this needs to be defined before `defaultConfig`, otherwise bun chokes.
-const enum ErrorItem {
+export const enum ErrorItem {
   /**
    * Raised by the parser when an option parameter fails to be parsed.
    */
@@ -142,7 +140,7 @@ const enum ErrorItem {
 /**
  * The kind of items that can be shown in the option description.
  */
-const enum HelpItem {
+export const enum HelpItem {
   /**
    * The option synopsis.
    */
@@ -271,6 +269,10 @@ const enum ControlSequence {
    */
   vpr = 'e',
   /**
+   * Cursor Position. Set cursor to position [Ps, Ps] (default = [1, 1]).
+   */
+  cup = 'H',
+  /**
    * Erase In Display. Erase various parts of the viewport.
    */
   ed = 'J',
@@ -331,26 +333,14 @@ const enum ControlSequence {
    */
   sd = 'T',
   /**
-   * Device Status Report. Request cursor position (CPR) with Ps = 6.
+   * Select Graphic Rendition. Set/Reset various text attributes.
    */
-  dsr = 'n',
-  /**
-   * Set Cursor Style.
-   */
-  scs = 'SPq',
-  /**
-   * Cursor Position. Set cursor to position [Ps, Ps] (default = [1, 1]).
-   */
-  cup = 'H',
+  sgr = 'm',
   /**
    * Set Top and Bottom Margins. Set top and bottom margins of the viewport [top;bottom] (default =
    * viewport size).
    */
   tbm = 'r',
-  /**
-   * Select Graphic Rendition. Set/Reset various text attributes.
-   */
-  sgr = 'm',
   /**
    * Set Mode. Set various terminal modes.
    */
@@ -360,9 +350,17 @@ const enum ControlSequence {
    */
   rm = 'l',
   /**
+   * Device Status Report. Request cursor position (CPR) with Ps = 6.
+   */
+  dsr = 'n',
+  /**
    * Soft Terminal Reset. Reset several terminal attributes to initial state.
    */
   str = '!p',
+  /**
+   * Set Cursor Style.
+   */
+  scs = 'SPq',
   /**
    * Save Cursor. Save cursor position, charmap and text attributes.
    */

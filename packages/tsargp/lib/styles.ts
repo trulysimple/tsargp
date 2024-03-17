@@ -1,21 +1,10 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { cs, tf, fg, bg, ul } from './enums';
 import type { Alias, Enumerate } from './utils';
+import { cs, tf, fg, bg, ul } from './enums';
 
-export type { CSI, Decimal, FgColor, BgColor, UlColor, StyleAttr, Style, Sequence, FormatCallback };
-
-export {
-  TerminalString,
-  ErrorMessage,
-  HelpMessage,
-  seq,
-  style,
-  foreground as fg8,
-  background as bg8,
-  underline as ul8,
-};
+export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -41,49 +30,49 @@ const regex = {
  * @template P The type of the sequence parameter
  * @template C The type of the sequence command
  */
-type CSI<P extends string, C extends cs> = `\x9b${P}${C}`;
+export type CSI<P extends string, C extends cs> = `\x9b${P}${C}`;
 
 /**
  * A control sequence.
  */
-type Sequence = CSI<string, cs> | '';
+export type Sequence = CSI<string, cs> | '';
 
 /**
  * A select graphics rendition sequence.
  */
-type Style = CSI<string, cs.sgr> | '';
+export type Style = CSI<string, cs.sgr> | '';
 
 /**
  * An 8-bit decimal number.
  */
-type Decimal = Alias<Enumerate<256>>;
+export type Decimal = Alias<Enumerate<256>>;
 
 /**
  * An 8-bit foreground color.
  */
-type FgColor = [38, 5, Decimal];
+export type FgColor = [38, 5, Decimal];
 
 /**
  * An 8-bit background color.
  */
-type BgColor = [48, 5, Decimal];
+export type BgColor = [48, 5, Decimal];
 
 /**
  * An 8-bit underline color.
  */
-type UlColor = [58, 5, Decimal];
+export type UlColor = [58, 5, Decimal];
 
 /**
  * A text styling attribute.
  */
-type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
+export type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
 
 /**
  * A callback that processes a format specifier when splitting text.
  * @param this The terminal string to append to
  * @param spec The format specifier (e.g., '%s')
  */
-type FormatCallback = (this: TerminalString, spec: string) => void;
+export type FormatCallback = (this: TerminalString, spec: string) => void;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -91,7 +80,7 @@ type FormatCallback = (this: TerminalString, spec: string) => void;
 /**
  * Implements concatenation of strings that can be printed on a terminal.
  */
-class TerminalString {
+export class TerminalString {
   private merge = false;
 
   /**
@@ -320,7 +309,7 @@ class TerminalString {
       }
     } else if (start) {
       if (width >= start + Math.max(...this.lengths)) {
-        indent = seq(cs.cha, start + 1);
+        indent = sequence(cs.cha, start + 1);
         if (!firstIsBreak && column != start) {
           result.push(indent);
         }
@@ -331,7 +320,7 @@ class TerminalString {
         start = 0;
       }
     } else if (!firstIsBreak && column) {
-      result.push(seq(cs.cha, 1));
+      result.push(sequence(cs.cha, 1));
     }
     column = start;
     for (let i = 0; i < this.strings.length; ++i) {
@@ -373,7 +362,7 @@ class TerminalString {
 /**
  * An error message.
  */
-class ErrorMessage extends Error {
+export class ErrorMessage extends Error {
   /**
    * Creates an error message
    * @param str The terminal string
@@ -399,7 +388,7 @@ class ErrorMessage extends Error {
     const result = new Array<string>();
     this.str.wrapToWidth(result, 0, width, emitStyles);
     if (emitStyles) {
-      result.push(style(tf.clear));
+      result.push(sgr(tf.clear));
     }
     return result.join('');
   }
@@ -408,7 +397,7 @@ class ErrorMessage extends Error {
 /**
  * A help message.
  */
-class HelpMessage extends Array<TerminalString> {
+export class HelpMessage extends Array<TerminalString> {
   /**
    * @returns the message to be printed on a terminal
    */
@@ -429,7 +418,7 @@ class HelpMessage extends Array<TerminalString> {
       column = str.wrapToWidth(result, column, width, emitStyles);
     }
     if (emitStyles) {
-      result.push(style(tf.clear));
+      result.push(sgr(tf.clear));
     }
     return result.join('');
   }
@@ -457,7 +446,7 @@ function omitStyles(width: number): boolean {
  * @param params The sequence parameters
  * @returns The control sequence
  */
-function seq<T extends cs>(cmd: T, ...params: Array<number>): CSI<string, T> {
+function sequence<T extends cs>(cmd: T, ...params: Array<number>): CSI<string, T> {
   return `\x9b${params.join(';')}${cmd}`;
 }
 
@@ -466,8 +455,8 @@ function seq<T extends cs>(cmd: T, ...params: Array<number>): CSI<string, T> {
  * @param attrs The text styling attributes
  * @returns The SGR sequence
  */
-function style(...attrs: Array<StyleAttr>): Style {
-  return seq(cs.sgr, ...attrs.flat());
+function sgr(...attrs: Array<StyleAttr>): Style {
+  return sequence(cs.sgr, ...attrs.flat());
 }
 
 /**

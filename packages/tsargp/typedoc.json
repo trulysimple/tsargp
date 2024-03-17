@@ -5,10 +5,5 @@
   "githubPages": false,
   "excludeExternals": true,
   "treatWarningsAsErrors": true,
-  "intentionallyNotExported": [
-    "ArrayDataType",
-    "DefaultDataType",
-    "DelimitedDataType",
-    "SingleDataType"
-  ]
+  "intentionallyNotExported": ["OptionDataType"]
 }

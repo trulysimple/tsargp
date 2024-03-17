@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Imports
 //--------------------------------------------------------------------------------------------------
 import type { Option, Options, Requires, ValuedOption, RequiresVal, ArrayOption } from './options';
 import type { Style } from './styles';
@@ -12,15 +12,13 @@ import { HelpMessage, TerminalString, style } from './styles';
 import { formatFunctions } from './validator';
 import { assert, splitPhrase } from './utils';
 
-export { HelpFormatter, type HelpConfig };
-
 //--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
  * The help format configuration.
  */
-type HelpConfig = {
+export type HelpConfig = {
   /**
    * The indentation level for each column.
    */
@@ -190,7 +188,7 @@ const defaultConfig: ConcreteFormat = {
 /**
  * Implements formatting of help messages for a set of option definitions.
  */
-class HelpFormatter {
+export class HelpFormatter {
   private readonly options: Options;
   private readonly styles: ConcreteStyles;
   private readonly groups = new Map<string, Array<HelpEntry>>();
