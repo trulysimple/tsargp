@@ -113,9 +113,9 @@ In addition to predefined colors, there are three utility functions to get custo
 ## Terminal strings
 
 The `TerminalString` class is an internal component that handles the construction of strings that
-can be printed in a terminal. It has methods to append strings with or without control sequences,
-and is used both by the [parser](parser.mdx) (to create error messages) and by the
-[formatter](formatter.mdx) (to build help messages).
+can be printed in a terminal. It has methods to split and append strings, with or without control
+sequences, and is used both by the [parser](parser.mdx) (to create error and warning messages) and
+by the [formatter](formatter.mdx) (to build help messages).
 
 The main logic implemented in this class is divided into _splitting_ and _wrapping_, as is explained
 below.
@@ -175,14 +175,8 @@ Another paragraph
 
 Text is wrapped according to a configured _width_: the number of terminal columns by which to limit
 each line of text. When a width of zero or `undefined{:ts}` is provided (which may happen if the
-output is being redirected), the terminal string instance will suppress styles and control sequences
-that it would otherwise use to render text in a terminal.
-
-<Callout type="info">
-  You can force omission of styles regardless of the terminal width by setting the `NO_COLOR`
-  environment variable. Reciprocally, you can force emission of styles regardless of the terminal
-  width by setting the `FORCE_COLOR` environment variable.
-</Callout>
+output is being redirected), the terminal string instance will avoid wrapping and will suppress
+control sequences that would otherwise be used to render text in a terminal.
 
 #### Indentation level
 
@@ -191,29 +185,63 @@ terminal column. When wrapping text to a desired width, it tries to respect this
 the desired width does not accommodate the text while respecting its indentation level, the text is
 instead wrapped relative to the beginning of each line.
 
-#### Error messages
+## Terminal messages
 
-The `ErrorMessage` class is a wrapper of a terminal string. It provides a `wrap` method to get a
-normal string, which accepts an optional parameter:
+The `TerminalMessage` is a base class that wraps a list of terminal strings. It provides a `wrap`
+method to get a normal string compiled from the list. This method accepts two optional parameters:
 
-- `width` - the terminal width (defaults to `process.stderr.columns`)
+- `width` - the terminal width (defaults to `0`)
+- `emitStyles` - whether styles should be emitted
 
-Its default value is the number of columns of the standard _error_ stream.
+The default value of `emitStyles` depends on a few environment variables:
+
+- `FORCE_COLOR` - force _emission_ of styles regardless of the terminal width
+- `NO_COLOR` - force _omission_ of styles regardless of the terminal width
+- `TERM` - set to `'dumb'{:ts}` to achieve the same behavior as `NO_COLOR`
+
+In addition, this class overrides the `toString` method and provides a `message` property, both of
+which can be used to obtain a string wrapped with a default terminal width. This default depends on
+the kind of message: in the case of `TerminalMessage`, it is `process.stdout.columns{:ts}` (the
+width of the standard _output_ stream). Therefore, this kind of message should be printed with
+`console.log` or equivalent, unless you are calling `wrap` directly.
 
 <Callout type="info">
   When redirecting the output of a command to a file, the associated stream will not have the 
-  `columns` property. Hence, if `stderr` is being redirected, the default value of the above
-  parameter will be `undefined{:ts}`.
+  `columns` property. Hence, if `stdout` is being redirected, the default value used by the above
+  procedure will be `undefined{:ts}` (thus disabling wrapping and, possibly, omitting styles).
 </Callout>
-
-#### Help messages
-
-The `HelpMessage` class is analog to the above one, except that the default value of the `width`
-parameter is the number of columns of the standard _output_ stream (`process.stdout.columns`).
 
 <Callout type="default">
-  Error and help messages are thrown by the library as instances of either one of the above classes.
+  Messages are thrown or returned by the library as instances of one of the classes described below.
   So you can check if a captured error is an instance of either one through `instanceof{:ts}`.
 </Callout>
+
+### Help message
+
+The `HelpMessage` class is analog to the above one, but used specifically for help messages. It
+should be printed with `console.log` or equivalent.
+
+### Warning message
+
+The `WarnMessage` class is a specialization of a terminal message that uses the width of the
+standard _error_ stream (`process.stderr.columns{:ts}`) as the default width. It should be printed
+with `console.error` or equivalent.
+
+### Error message
+
+The `ErrorMessage` class is a specialization of a warning message that actually derives from the
+standard `Error` class. It should be printed with `console.error` or equivalent.
+
+### Completion words
+
+The `CompletionMessage` class represents a list of bash completion words. It inherits from a string
+array and, on Linux, produces a string with the words separated by line feeds. It should be printed
+with `console.log` or equivalent.
+
+### Version message
+
+The `VersionMessage` class currently derives from `String`, so it has no wrapping. However, it may
+be remodeled in future versions of the library to accommodate new features. It should be printed
+with `console.log` or equivalent.
 
 [bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
