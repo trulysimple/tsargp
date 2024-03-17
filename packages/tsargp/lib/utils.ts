@@ -1,7 +1,52 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Imports
 //--------------------------------------------------------------------------------------------------
-export { assert, getArgs, checkRequiredArray, gestaltSimilarity, splitPhrase, isTrue };
+import type { URL as _URL } from 'url';
+
+//--------------------------------------------------------------------------------------------------
+// Types
+//--------------------------------------------------------------------------------------------------
+/**
+ * A helper type to alias another type while eliding type resolution in IntelliSense.
+ * @template T The type to be aliased
+ */
+export type Alias<T> = T extends T ? T : T;
+
+/**
+ * A helper type to enumerate numbers.
+ * @template N The type of last enumerated number
+ */
+export type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['length'] extends N
+  ? Acc[number]
+  : Enumerate<N, [...Acc, Acc['length']]>;
+
+/**
+ * A helper type to remove optionality from types and properties.
+ * @template T The source type
+ */
+export type Concrete<T> = Exclude<
+  {
+    [K in keyof T]-?: Concrete<T[K]>;
+  },
+  undefined
+>;
+
+/**
+ * A helper type to resolve types in IntelliSense.
+ * @template T The type to be resolved
+ */
+export type Resolve<T> = T & unknown;
+
+/**
+ * A helper type to remove the readonly attribute from a type.
+ * @template T The source type
+ */
+export type Writable<T> = { -readonly [P in keyof T]: T[P] };
+
+/**
+ * For some reason the global definition of `URL` has issues with static methods.
+ */
+export interface URL extends _URL {}
 
 //--------------------------------------------------------------------------------------------------
 // Functions
@@ -11,8 +56,9 @@ export { assert, getArgs, checkRequiredArray, gestaltSimilarity, splitPhrase, is
  * @param line The command line
  * @param compIndex The completion index, if any
  * @returns The list of arguments
+ * @internal
  */
-function getArgs(line: string, compIndex: number = NaN): Array<string> {
+export function getArgs(line: string, compIndex: number = NaN): Array<string> {
   /** @ignore */
   function append(char: string) {
     if (arg === undefined) {
@@ -67,8 +113,9 @@ function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * @param negate True if the requirement should be negated
  * @param unique True if array elements should be unique
  * @returns True if the requirement was satisfied
+ * @internal
  */
-function checkRequiredArray<T extends string | number>(
+export function checkRequiredArray<T extends string | number>(
   actual: ReadonlyArray<T>,
   expected: ReadonlyArray<T>,
   negate: boolean,
@@ -151,8 +198,9 @@ function matchingCharacters(S: string, T: string): number {
  * @param T The target string
  * @returns The similarity between the two strings
  * @see https://www.wikiwand.com/en/Gestalt_pattern_matching
+ * @internal
  */
-function gestaltSimilarity(S: string, T: string): number {
+export function gestaltSimilarity(S: string, T: string): number {
   return (2 * matchingCharacters(S, T)) / (S.length + T.length);
 }
 
@@ -160,8 +208,9 @@ function gestaltSimilarity(S: string, T: string): number {
  * Split a phrase into multiple alternatives
  * @param phrase The phrase string
  * @returns The phrase alternatives
+ * @internal
  */
-function splitPhrase(phrase: string): Array<string> {
+export function splitPhrase(phrase: string): Array<string> {
   const [l, c, r] = phrase.split(/\(([^)|]*\|[^)]*)\)/, 3);
   return c ? c.split('|').map((alt) => l + alt + r) : [l];
 }
@@ -169,14 +218,16 @@ function splitPhrase(phrase: string): Array<string> {
 /**
  * Asserts that a condition is true. This is a no-op.
  * @param _condition The condition
+ * @internal
  */
-function assert(_condition: unknown): asserts _condition {}
+export function assert(_condition: unknown): asserts _condition {}
 
 /**
  * Converts a string to boolean.
  * @param str The string value
  * @returns True if the string evaluates to true
+ * @internal
  */
-function isTrue(str: string): boolean {
+export function isTrue(str: string): boolean {
   return !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
 }

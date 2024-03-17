@@ -1,8 +1,7 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Imports
 //--------------------------------------------------------------------------------------------------
 import type {
-  URL,
   Option,
   Options,
   Requires,
@@ -16,30 +15,21 @@ import type {
   ParamValue,
 } from './options';
 import type { Style } from './styles';
+import type { Concrete, URL } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
 import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray } from './options';
 import { style, TerminalString, ErrorMessage } from './styles';
 import { assert } from './utils';
 
-export type {
-  Positional,
-  Concrete,
-  ErrorStyles,
-  ErrorConfig,
-  ConcreteStyles,
-  ConcreteError,
-  FormatFunction,
-};
-export { OptionValidator, defaultConfig, formatFunctions };
-
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
  * The error formatting functions.
+ * @internal
  */
-const formatFunctions = {
+export const formatFunctions = {
   /**
    * The boolean formatting function.
    */
@@ -76,8 +66,9 @@ const formatFunctions = {
 
 /**
  * The default error messages configuration.
+ * @internal
  */
-const defaultConfig: ConcreteError = {
+export const defaultConfig: ConcreteError = {
   styles: {
     boolean: style(fg.yellow),
     string: style(fg.green),
@@ -126,9 +117,10 @@ const defaultConfig: ConcreteError = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * Information regarding a positional option. Used internally.
+ * Information regarding a positional option.
+ * @internal
  */
-type Positional = {
+export type Positional = {
   key: string;
   name: string;
   option: Option;
@@ -137,8 +129,9 @@ type Positional = {
 
 /**
  * A set of formatting functions for error messages.
+ * @internal
  */
-type FormatFunction = (
+export type FormatFunction = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any,
   styles: ConcreteStyles,
@@ -149,7 +142,7 @@ type FormatFunction = (
 /**
  * A set of styles for displaying text on the terminal.
  */
-type ErrorStyles = {
+export type ErrorStyles = {
   /**
    * The style of boolean values.
    */
@@ -187,7 +180,7 @@ type ErrorStyles = {
 /**
  * The error messages configuration.
  */
-type ErrorConfig = {
+export type ErrorConfig = {
   /**
    * The error message styles
    */
@@ -201,23 +194,13 @@ type ErrorConfig = {
 /**
  * A concrete version of the error messages configuration.
  */
-type ConcreteError = Concrete<ErrorConfig>;
+export type ConcreteError = Concrete<ErrorConfig>;
 
 /**
  * A concrete version of the error message styles.
+ * @internal
  */
-type ConcreteStyles = ConcreteError['styles'];
-
-/**
- * A helper type to remove optionality from types and properties.
- * @template T The source type
- */
-type Concrete<T> = Exclude<
-  {
-    [K in keyof T]-?: Concrete<T[K]>;
-  },
-  undefined
->;
+export type ConcreteStyles = ConcreteError['styles'];
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -225,7 +208,7 @@ type Concrete<T> = Exclude<
 /**
  * Implements a compilation of option definitions.
  */
-class OptionValidator {
+export class OptionValidator {
   readonly names = new Map<string, string>();
   readonly positional: Positional | undefined;
 

@@ -1,16 +1,8 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Exports
 //--------------------------------------------------------------------------------------------------
 export {
-  ErrorItem,
-  HelpItem,
-  MoveCommand as mv,
-  MoveToCommand as mt,
-  EditCommand as ed,
-  ScrollCommand as sc,
-  StyleCommand as st,
-  MarginCommand as mg,
-  MiscCommand as ms,
+  ControlSequence as cs,
   TypeFace as tf,
   Foreground as fg,
   Background as bg,
@@ -24,7 +16,7 @@ export {
  * The kind of items that can be thrown as error messages.
  */
 // Internal note: this needs to be defined before `defaultConfig`, otherwise bun chokes.
-const enum ErrorItem {
+export const enum ErrorItem {
   /**
    * Raised by the parser when an option parameter fails to be parsed.
    */
@@ -148,7 +140,7 @@ const enum ErrorItem {
 /**
  * The kind of items that can be shown in the option description.
  */
-const enum HelpItem {
+export const enum HelpItem {
   /**
    * The option synopsis.
    */
@@ -228,9 +220,10 @@ const enum HelpItem {
 }
 
 /**
- * A single-parameter cursor movement command.
+ * A control sequence introducer command.
+ * @see https://xtermjs.org/docs/api/vtfeatures/#csi
  */
-const enum MoveCommand {
+const enum ControlSequence {
   /**
    * Cursor Up. Move cursor Ps times up (default=1).
    */
@@ -275,22 +268,10 @@ const enum MoveCommand {
    * Vertical Position Relative. Move cursor Ps times down (default=1).
    */
   vpr = 'e',
-}
-
-/**
- * A two-parameter cursor movement command.
- */
-const enum MoveToCommand {
   /**
    * Cursor Position. Set cursor to position [Ps, Ps] (default = [1, 1]).
    */
   cup = 'H',
-}
-
-/**
- * A single-parameter edit command.
- */
-const enum EditCommand {
   /**
    * Erase In Display. Erase various parts of the viewport.
    */
@@ -335,12 +316,6 @@ const enum EditCommand {
    * Delete Columns. Delete Ps columns at cursor position.
    */
   dcl = "'~",
-}
-
-/**
- * A single-parameter scroll command.
- */
-const enum ScrollCommand {
   /**
    * Scroll Left. Scroll viewport Ps times to the left.
    */
@@ -357,33 +332,15 @@ const enum ScrollCommand {
    * Scroll Down. Scroll Ps lines down (default=1).
    */
   sd = 'T',
-}
-
-/**
- * A multi-parameter text style command.
- */
-const enum StyleCommand {
   /**
    * Select Graphic Rendition. Set/Reset various text attributes.
    */
   sgr = 'm',
-}
-
-/**
- * A two-parameter margin command.
- */
-const enum MarginCommand {
   /**
    * Set Top and Bottom Margins. Set top and bottom margins of the viewport [top;bottom] (default =
    * viewport size).
    */
   tbm = 'r',
-}
-
-/**
- * A miscellaneous command.
- */
-const enum MiscCommand {
   /**
    * Set Mode. Set various terminal modes.
    */

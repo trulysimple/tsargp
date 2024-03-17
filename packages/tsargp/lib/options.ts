@@ -1,67 +1,9 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Imports
 //--------------------------------------------------------------------------------------------------
 import type { HelpConfig } from './formatter';
 import type { Style } from './styles';
-import type { URL as _URL } from 'url';
-
-export type {
-  URL,
-  ParseCallback,
-  ResolveCallback,
-  ExecuteCallback,
-  CompleteCallback,
-  CommandCallback,
-  DefaultCallback,
-  Option,
-  Options,
-  OptionDataType,
-  OptionValues,
-  CastToOptionValues,
-  OptionStyles,
-  StringOption,
-  NumberOption,
-  FlagOption,
-  BooleanOption,
-  StringsOption,
-  NumbersOption,
-  FunctionOption,
-  CommandOption,
-  HelpOption,
-  VersionOption,
-  SpecialOption,
-  ExecutingOption,
-  SingleOption,
-  ArrayOption,
-  NiladicOption,
-  ParamOption,
-  ValuedOption,
-  Requires,
-  RequiresExp,
-  RequiresVal,
-  ParamValue,
-  WithArray,
-  WithDefault,
-  WithDelimited,
-  WithExample,
-  WithNumber,
-  WithEnums,
-  WithRange,
-  WithRegex,
-  WithParam,
-  WithValue,
-  WithEnvVar,
-  WithParamName,
-  WithParse,
-  WithParseDelimited,
-  WithRequired,
-  WithResolve,
-  WithString,
-  WithType,
-  WithVersion,
-};
-
-export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued, isVariadic };
+import type { Resolve, Writable, URL } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -69,7 +11,7 @@ export { req, RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValue
 /**
  * A helper object to create option requirement expressions.
  */
-const req = {
+export const req = {
   /**
    * Creates a requirement expression that is satisfied only when all items are satisfied.
    * @param items The requirement items
@@ -102,14 +44,9 @@ const req = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * For some reason the global definition of `URL` has issues with static methods.
- */
-interface URL extends _URL {}
-
-/**
  * A set of styles for displaying an option on the terminal.
  */
-type OptionStyles = {
+export type OptionStyles = {
   /**
    * The style of the option names.
    */
@@ -127,35 +64,35 @@ type OptionStyles = {
 /**
  * A requirement expression that is satisfied only when all items are satisfied.
  */
-class RequiresAll {
+export class RequiresAll {
   constructor(readonly items: Array<Requires>) {}
 }
 
 /**
  * A requirement expression that is satisfied when at least one item is satisfied.
  */
-class RequiresOne {
+export class RequiresOne {
   constructor(readonly items: Array<Requires>) {}
 }
 
 /**
  * A requirement expression that is satisfied when the item is not satisfied.
  */
-class RequiresNot {
+export class RequiresNot {
   constructor(readonly item: Requires) {}
 }
 
 /**
  * A requirement expression.
  */
-type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
+export type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
 
 /**
  * An object that maps option keys to required values.
  *
  * Values can be `undefined` to indicate presence, or `null` to indicate absence.
  */
-type RequiresVal = { [key: string]: ParamOption['example'] | null };
+export type RequiresVal = { [key: string]: ParamOption['example'] | null };
 
 /**
  * An option requirement can be either:
@@ -164,7 +101,7 @@ type RequiresVal = { [key: string]: ParamOption['example'] | null };
  * - an object that maps option keys to required values; or
  * - a requirement expression.
  */
-type Requires = string | RequiresVal | RequiresExp;
+export type Requires = string | RequiresVal | RequiresExp;
 
 /**
  * A callback to parse the value of option parameters. Any specified normalization or constraint
@@ -175,13 +112,13 @@ type Requires = string | RequiresVal | RequiresExp;
  * @param value The parameter value
  * @returns The parsed value
  */
-type ParseCallback<T> = (values: CastToOptionValues, name: string, value: string) => T;
+export type ParseCallback<T> = (values: CastToOptionValues, name: string, value: string) => T;
 
 /**
  * A module-relative resolution function (i.e., scoped to a module). To be used in non-browser
  * environments only.
  */
-type ResolveCallback = (specifier: string) => string;
+export type ResolveCallback = (specifier: string) => string;
 
 /**
  * A callback for default values.
@@ -189,7 +126,7 @@ type ResolveCallback = (specifier: string) => string;
  * @param values The values parsed so far
  * @returns The default value
  */
-type DefaultCallback<T> = (values: CastToOptionValues) => T | Promise<T>;
+export type DefaultCallback<T> = (values: CastToOptionValues) => T | Promise<T>;
 
 /**
  * A callback for function options.
@@ -198,7 +135,11 @@ type DefaultCallback<T> = (values: CastToOptionValues) => T | Promise<T>;
  * @param rest The remaining command-line arguments
  * @returns The option value
  */
-type ExecuteCallback = (values: CastToOptionValues, comp: boolean, rest: Array<string>) => unknown;
+export type ExecuteCallback = (
+  values: CastToOptionValues,
+  comp: boolean,
+  rest: Array<string>,
+) => unknown;
 
 /**
  * A callback for command options.
@@ -206,7 +147,10 @@ type ExecuteCallback = (values: CastToOptionValues, comp: boolean, rest: Array<s
  * @param cmdValues The values parsed after the command
  * @returns The option value
  */
-type CommandCallback = (values: CastToOptionValues, cmdValues: CastToOptionValues) => unknown;
+export type CommandCallback = (
+  values: CastToOptionValues,
+  cmdValues: CastToOptionValues,
+) => unknown;
 
 /**
  * A callback for option completion.
@@ -215,7 +159,7 @@ type CommandCallback = (values: CastToOptionValues, cmdValues: CastToOptionValue
  * @param rest The remaining command-line arguments
  * @returns The list of completion words
  */
-type CompleteCallback = (
+export type CompleteCallback = (
   values: CastToOptionValues,
   comp: string,
   rest: Array<string>,
@@ -225,7 +169,7 @@ type CompleteCallback = (
  * Defines attributes common to all options.
  * @template T The option type
  */
-type WithType<T extends string> = {
+export type WithType<T extends string> = {
   /**
    * The option type.
    */
@@ -275,7 +219,7 @@ type WithType<T extends string> = {
 /**
  * Defines attributes for a required option.
  */
-type WithRequired = {
+export type WithRequired = {
   /**
    * True if the option is always required.
    */
@@ -290,7 +234,7 @@ type WithRequired = {
  * Defines attributes for a default value.
  * @template T The default data type
  */
-type WithDefault<T> = {
+export type WithDefault<T> = {
   /**
    * The option default value or a callback that returns the default value.
    *
@@ -310,7 +254,7 @@ type WithDefault<T> = {
 /**
  * Defines attributes common to all options that accept parameters.
  */
-type WithParam = {
+export type WithParam = {
   /**
    * Allows positional arguments. There may be at most one option with this setting.
    *
@@ -332,7 +276,7 @@ type WithParam = {
  * Defines attributes for an example value.
  * @template T The example data type
  */
-type WithExample<T> = {
+export type WithExample<T> = {
   /**
    * The option example value. Replaces the option type in the help message parameter column.
    */
@@ -346,7 +290,7 @@ type WithExample<T> = {
 /**
  * Defines attributes for a parameter name.
  */
-type WithParamName = {
+export type WithParamName = {
   /**
    * The option parameter name. Replaces the option type in the help message parameter column.
    */
@@ -360,7 +304,7 @@ type WithParamName = {
 /**
  * Defines attributes for a custom callback that parses single-value parameters.
  */
-type WithParse<T> = {
+export type WithParse<T> = {
   /**
    * A custom function to parse the value of the option parameter.
    */
@@ -378,7 +322,7 @@ type WithParse<T> = {
 /**
  * Defines attributes for a custom callback that parses delimited-value parameters.
  */
-type WithParseDelimited<T> = {
+export type WithParseDelimited<T> = {
   /**
    * A custom function to parse the delimited values of the option parameter. If specified, the
    * option accepts a single parameter.
@@ -397,7 +341,7 @@ type WithParseDelimited<T> = {
 /**
  * Defines attributes for an option that accepts delimited-value parameters.
  */
-type WithDelimited = {
+export type WithDelimited = {
   /**
    * The parameter value separator. If specified, the option accepts a single parameter.
    */
@@ -415,7 +359,7 @@ type WithDelimited = {
 /**
  * Defines attributes common to all options that have array values.
  */
-type WithArray = {
+export type WithArray = {
   /**
    * True if duplicate elements should be removed.
    */
@@ -434,7 +378,7 @@ type WithArray = {
  * Defines attributes for an enumeration constraint.
  * @template T The enumeration data type
  */
-type WithEnums<T> = {
+export type WithEnums<T> = {
   /**
    * The enumerated values.
    */
@@ -452,7 +396,7 @@ type WithEnums<T> = {
 /**
  * Defines attributes for a regex constraint.
  */
-type WithRegex = {
+export type WithRegex = {
   /**
    * The regular expression.
    */
@@ -466,7 +410,7 @@ type WithRegex = {
 /**
  * Defines attributes for a range constraint.
  */
-type WithRange = {
+export type WithRange = {
   /**
    * The (closed) numeric range. You may want to use `[-Infinity, Infinity]` to disallow `NaN`.
    */
@@ -480,7 +424,7 @@ type WithRange = {
 /**
  * Defines the version attribute of a version option.
  */
-type WithVersion = {
+export type WithVersion = {
   /**
    * The semantic version (e.g., 0.1.0) or version information. It is not validated, but cannot be
    * empty. It may contain inline styles.
@@ -495,7 +439,7 @@ type WithVersion = {
 /**
  * Defines the resolve attribute of a version option.
  */
-type WithResolve = {
+export type WithResolve = {
   /**
    * A resolution function scoped to the module where a `package.json` file should be searched. Use
    * `import.meta.resolve`. Use in non-browser environments only. This results in an asynchronous
@@ -511,7 +455,7 @@ type WithResolve = {
 /**
  * Defines attributes common to all options that accept string parameters.
  */
-type WithString = (WithEnums<string> | WithRegex) & {
+export type WithString = (WithEnums<string> | WithRegex) & {
   /**
    * True if the values should be trimmed (remove leading and trailing whitespace).
    */
@@ -525,7 +469,7 @@ type WithString = (WithEnums<string> | WithRegex) & {
 /**
  * Defines attributes common to all options that accept number parameters.
  */
-type WithNumber = (WithEnums<number> | WithRange) & {
+export type WithNumber = (WithEnums<number> | WithRange) & {
   /**
    * The kind of rounding to apply.
    */
@@ -535,7 +479,7 @@ type WithNumber = (WithEnums<number> | WithRange) & {
 /**
  * Defines attributes common to all options that have values.
  */
-type WithValue<T> = (WithDefault<T> | WithRequired) & {
+export type WithValue<T> = (WithDefault<T> | WithRequired) & {
   /**
    * The option requirements.
    */
@@ -545,7 +489,7 @@ type WithValue<T> = (WithDefault<T> | WithRequired) & {
 /**
  * Defines attributes common to all options that accept environment variables.
  */
-type WithEnvVar = {
+export type WithEnvVar = {
   /**
    * The name of an environment variable to read from, if the option is not specified in the
    * command-line.
@@ -556,7 +500,7 @@ type WithEnvVar = {
 /**
  * An option that has a boolean value (accepts a single boolean parameter).
  */
-type BooleanOption = WithType<'boolean'> &
+export type BooleanOption = WithType<'boolean'> &
   WithParam &
   WithEnvVar &
   WithValue<boolean> &
@@ -566,7 +510,7 @@ type BooleanOption = WithType<'boolean'> &
 /**
  * An option that has a string value (accepts a single string parameter).
  */
-type StringOption = WithType<'string'> &
+export type StringOption = WithType<'string'> &
   WithParam &
   WithEnvVar &
   WithValue<string> &
@@ -577,7 +521,7 @@ type StringOption = WithType<'string'> &
 /**
  * An option that has a number value (accepts a single number parameter).
  */
-type NumberOption = WithType<'number'> &
+export type NumberOption = WithType<'number'> &
   WithParam &
   WithEnvVar &
   WithValue<number> &
@@ -588,7 +532,7 @@ type NumberOption = WithType<'number'> &
 /**
  * An option that has a string array value (may accept single or multiple parameters).
  */
-type StringsOption = WithType<'strings'> &
+export type StringsOption = WithType<'strings'> &
   WithParam &
   WithEnvVar &
   WithValue<ReadonlyArray<string>> &
@@ -600,7 +544,7 @@ type StringsOption = WithType<'strings'> &
 /**
  * An option that has a number array value (may accept single or multiple parameters).
  */
-type NumbersOption = WithType<'numbers'> &
+export type NumbersOption = WithType<'numbers'> &
   WithParam &
   WithEnvVar &
   WithValue<ReadonlyArray<number>> &
@@ -612,7 +556,7 @@ type NumbersOption = WithType<'numbers'> &
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
-type FlagOption = WithType<'flag'> &
+export type FlagOption = WithType<'flag'> &
   WithEnvVar &
   WithValue<boolean> & {
     /**
@@ -624,7 +568,7 @@ type FlagOption = WithType<'flag'> &
 /**
  * An option that executes a callback function.
  */
-type FunctionOption = WithType<'function'> &
+export type FunctionOption = WithType<'function'> &
   WithValue<unknown> & {
     /**
      * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
@@ -640,7 +584,7 @@ type FunctionOption = WithType<'function'> &
 /**
  * An option that executes a command.
  */
-type CommandOption = WithType<'command'> &
+export type CommandOption = WithType<'command'> &
   WithValue<unknown> & {
     /**
      * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
@@ -656,7 +600,7 @@ type CommandOption = WithType<'command'> &
 /**
  * An option that throws a help message.
  */
-type HelpOption = WithType<'help'> & {
+export type HelpOption = WithType<'help'> & {
   /**
    * The usage message. This goes before everything else.
    */
@@ -684,52 +628,52 @@ type HelpOption = WithType<'help'> & {
 /**
  * An option that throws a semantic version.
  */
-type VersionOption = WithType<'version'> & (WithVersion | WithResolve);
+export type VersionOption = WithType<'version'> & (WithVersion | WithResolve);
 
 /**
  * An option that performs some predefined action.
  */
-type SpecialOption = HelpOption | VersionOption;
+export type SpecialOption = HelpOption | VersionOption;
 
 /**
  * An option that performs a user-defined action.
  */
-type ExecutingOption = FunctionOption | CommandOption;
+export type ExecutingOption = FunctionOption | CommandOption;
 
 /**
  * An option that accepts no parameters.
  */
-type NiladicOption = FlagOption | ExecutingOption | SpecialOption;
+export type NiladicOption = FlagOption | ExecutingOption | SpecialOption;
 
 /**
  * A single-valued option that accepts a single parameter.
  */
-type SingleOption = BooleanOption | StringOption | NumberOption;
+export type SingleOption = BooleanOption | StringOption | NumberOption;
 
 /**
  * An array-valued option that may accept multiple parameters.
  */
-type ArrayOption = StringsOption | NumbersOption;
+export type ArrayOption = StringsOption | NumbersOption;
 
 /**
  * An option that accepts any kind of parameter.
  */
-type ParamOption = SingleOption | ArrayOption;
+export type ParamOption = SingleOption | ArrayOption;
 
 /**
  * An option that has a default value.
  */
-type ValuedOption = FlagOption | ExecutingOption | ParamOption;
+export type ValuedOption = FlagOption | ExecutingOption | ParamOption;
 
 /**
  * An option definition. (finally)
  */
-type Option = NiladicOption | ParamOption;
+export type Option = NiladicOption | ParamOption;
 
 /**
  * A collection of option definitions.
  */
-type Options = Readonly<Record<string, Option>>;
+export type Options = Readonly<Record<string, Option>>;
 
 /**
  * The data type of an option with a default value.
@@ -822,7 +766,7 @@ type OptionDataType<T extends Option> = T extends FunctionOption
  * A generic collection of option values.
  * @template T The type of the option definitions
  */
-type OptionValues<T extends Options> = Resolve<{
+export type OptionValues<T extends Options> = Resolve<{
   -readonly [key in keyof T as T[key] extends SpecialOption ? never : key]: OptionDataType<T[key]>;
 }>;
 
@@ -830,24 +774,13 @@ type OptionValues<T extends Options> = Resolve<{
  * An opaque collection of option values. It should be cast to
  * {@link OptionValues}`<typeof _your_options_>` or to the type of your values class.
  */
-type CastToOptionValues = Record<string, unknown>;
+export type CastToOptionValues = Record<string, unknown>;
 
 /**
- * A helper type to resolve types in IntelliSense.
- * @template T The type to be resolved
+ * The concrete data type of the option value of a non-niladic option.
+ * @internal
  */
-type Resolve<T> = T & unknown;
-
-/**
- * A helper type to remove the readonly attribute from a type.
- * @template T The source type
- */
-type Writable<T> = { -readonly [P in keyof T]: T[P] };
-
-/**
- * The concrete data type of the option value of a non-niladic option. Used internally.
- */
-type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
+export type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
 
 //--------------------------------------------------------------------------------------------------
 // Functions
@@ -856,8 +789,9 @@ type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
  * Tests if an option is niladic (i.e., accepts no parameter).
  * @param option The option definition
  * @returns True if the option is niladic
+ * @internal
  */
-function isNiladic(option: Option): option is NiladicOption {
+export function isNiladic(option: Option): option is NiladicOption {
   return ['flag', 'function', 'help', 'version', 'command'].includes(option.type);
 }
 
@@ -865,8 +799,9 @@ function isNiladic(option: Option): option is NiladicOption {
  * Tests if an option is an array option (i.e., has an array value).
  * @param option The option definition
  * @returns True if the option is an array option
+ * @internal
  */
-function isArray(option: Option): option is ArrayOption {
+export function isArray(option: Option): option is ArrayOption {
   return option.type === 'strings' || option.type === 'numbers';
 }
 
@@ -874,8 +809,9 @@ function isArray(option: Option): option is ArrayOption {
  * Tests if an option is a valued option (i.e., has a value).
  * @param option The option definition
  * @returns True if the option is a valued option
+ * @internal
  */
-function isValued(option: Option): option is ValuedOption {
+export function isValued(option: Option): option is ValuedOption {
   return option.type !== 'help' && option.type !== 'version';
 }
 
@@ -883,8 +819,9 @@ function isValued(option: Option): option is ValuedOption {
  * Tests if an array option is variadic (i.e., accepts multiple parameters).
  * @param option The option definition
  * @returns True if the option is variadic
+ * @internal
  */
-function isVariadic(option: ArrayOption): boolean {
+export function isVariadic(option: ArrayOption): boolean {
   return (
     !('separator' in option && option.separator) &&
     !('parseDelimited' in option && option.parseDelimited)
