@@ -178,7 +178,7 @@ export type ErrorStyles = {
 };
 
 /**
- * The error messages configuration.
+ * The error message configuration.
  */
 export type ErrorConfig = {
   /**
@@ -192,7 +192,7 @@ export type ErrorConfig = {
 };
 
 /**
- * A concrete version of the error messages configuration.
+ * A concrete version of the error message configuration.
  */
 export type ConcreteError = Concrete<ErrorConfig>;
 
@@ -215,7 +215,7 @@ export class OptionValidator {
   /**
    * Creates an option validator based on a set of option definitions.
    * @param options The option definitions
-   * @param config The error messages configuration
+   * @param config The error message configuration
    * @throws On duplicate option names and duplicate positional options
    */
   constructor(
@@ -555,39 +555,54 @@ export class OptionValidator {
    * @returns The formatted error
    */
   error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
-    const str = new TerminalString().addSequence(this.config.styles.text);
-    const phrase = this.config.phrases[kind];
-    if (args) {
-      str.splitText(phrase, (spec) => {
-        const arg = spec.slice(1);
-        const fmt = arg[0];
-        if (fmt in formatFunctions && arg in args) {
-          const value = args[arg];
-          const format = (formatFunctions as Record<string, FormatFunction>)[fmt];
-          if (Array.isArray(value)) {
-            str.addOpening('[');
-            value.forEach((val, i) => {
-              format(val, this.config.styles, this.config.styles.text, str);
-              if (i < value.length - 1) {
-                str.addClosing(',');
-              }
-            });
-            str.addClosing(']');
-          } else {
-            format(value, this.config.styles, this.config.styles.text, str);
-          }
-        }
-      });
-    } else {
-      str.splitText(phrase);
-    }
-    return new ErrorMessage(str);
+    return new ErrorMessage(formatMessage(this.config, kind, args));
   }
 }
 
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Creates a terminal string with a formatted message.
+ * @param config The error message configuration
+ * @param kind The kind of error message
+ * @param args The error arguments
+ * @returns The terminal string
+ */
+function formatMessage(
+  config: ConcreteError,
+  kind: ErrorItem,
+  args?: Record<string, unknown>,
+): TerminalString {
+  const str = new TerminalString().addSequence(config.styles.text);
+  const phrase = config.phrases[kind];
+  if (args) {
+    str.splitText(phrase, (spec) => {
+      const arg = spec.slice(1);
+      const fmt = arg[0];
+      if (fmt in formatFunctions && arg in args) {
+        const value = args[arg];
+        const format = (formatFunctions as Record<string, FormatFunction>)[fmt];
+        if (Array.isArray(value)) {
+          str.addOpening('[');
+          value.forEach((val, i) => {
+            format(val, config.styles, config.styles.text, str);
+            if (i < value.length - 1) {
+              str.addClosing(',');
+            }
+          });
+          str.addClosing(']');
+        } else {
+          format(value, config.styles, config.styles.text, str);
+        }
+      }
+    });
+  } else {
+    str.splitText(phrase);
+  }
+  return str;
+}
+
 /**
  * Formats a boolean value to be printed on the terminal.
  * @param value The boolean value

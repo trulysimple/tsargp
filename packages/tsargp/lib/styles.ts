@@ -360,65 +360,16 @@ export class TerminalString {
 }
 
 /**
- * An error message.
+ * A terminal message. Used as base for other message classes.
  */
-export class ErrorMessage extends Error {
-  /**
-   * Creates an error message
-   * @param str The terminal string
-   */
-  constructor(readonly str: TerminalString) {
-    super();
-  }
-
-  /**
-   * @returns The message to be printed on a terminal
-   */
-  get message(): string {
-    return this.wrap();
-  }
-
-  /**
-   * Wraps the error message to a specified width.
-   * @param width The terminal width (or zero to avoid wrapping)
-   * @param emitStyles True if styles should be emitted
-   * @returns The message to be printed on a terminal
-   */
-  wrap(width = process?.stderr?.columns ?? 0, emitStyles = !omitStyles(width)): string {
-    const result = new Array<string>();
-    this.str.wrapToWidth(result, 0, width, emitStyles);
-    if (emitStyles) {
-      result.push(sgr(tf.clear));
-    }
-    return result.join('');
-  }
-}
-
-/**
- * A help message.
- */
-export class HelpMessage extends Array<TerminalString> {
-  /**
-   * @returns The message to be printed on a terminal
-   */
-  get message(): string {
-    return this.wrap();
-  }
-
-  /**
-   * @returns The message to be printed on a terminal
-   */
-  override toString(): string {
-    return this.wrap();
-  }
-
+export class TerminalMessage extends Array<TerminalString> {
   /**
    * Wraps the help message to a specified width.
    * @param width The terminal width (or zero to avoid wrapping)
    * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process?.stdout?.columns ?? 0, emitStyles = !omitStyles(width)): string {
+  wrap(width = 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     let column = 0;
     for (const str of this) {
@@ -429,6 +380,57 @@ export class HelpMessage extends Array<TerminalString> {
     }
     return result.join('');
   }
+
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.wrap(process?.stdout?.columns);
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
+/**
+ * A help message.
+ */
+export class HelpMessage extends TerminalMessage {}
+
+/**
+ * A warning message.
+ */
+export class WarnMessage extends TerminalMessage {
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.wrap(process?.stderr?.columns);
+  }
+}
+
+/**
+ * An error message.
+ */
+export class ErrorMessage extends Error {
+  /**
+   * The terminal message.
+   */
+  readonly msg: TerminalMessage;
+
+  /**
+   * Creates an error message
+   * @param str The terminal string
+   */
+  constructor(str: TerminalString) {
+    const msg = new WarnMessage(str);
+    super(msg.message);
+    this.msg = msg;
+  }
 }
 
 /**
@@ -436,17 +438,17 @@ export class HelpMessage extends Array<TerminalString> {
  */
 export class CompletionMessage extends Array<string> {
   /**
-   * @returns The message to be printed on a terminal
+   * @returns The wrapped message
    */
-  get message(): string {
+  override toString(): string {
     return this.join('\n');
   }
 
   /**
-   * @returns The message to be printed on a terminal
+   * @returns The wrapped message
    */
-  override toString(): string {
-    return this.join('\n');
+  get message(): string {
+    return this.toString();
   }
 }
 

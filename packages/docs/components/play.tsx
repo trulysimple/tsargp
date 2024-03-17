@@ -57,9 +57,12 @@ class PlayCommand extends Command<PlayProps> {
         this.println(`Please call ${style(1)}init${style(0)} first.`);
       }
     } catch (err) {
-      throw err instanceof ErrorMessage || err instanceof HelpMessage
-        ? err.wrap(this.state.width)
-        : err;
+      if (err instanceof ErrorMessage) {
+        throw 'Error: ' + err.msg.wrap(this.state.width);
+      } else if (err instanceof HelpMessage) {
+        throw err.wrap(this.state.width);
+      }
+      throw err;
     }
   }
 }

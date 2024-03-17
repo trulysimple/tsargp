@@ -20,13 +20,7 @@ import type {
   CastToOptionValues,
   ParamValue,
 } from './options';
-import type {
-  Positional,
-  ConcreteError,
-  ErrorConfig,
-  ConcreteStyles,
-  FormatFunction,
-} from './validator';
+import type { Positional, ConcreteError, ErrorConfig, FormatFunction } from './validator';
 
 import { tf, ErrorItem } from './enums';
 import { HelpFormatter } from './formatter';
@@ -196,7 +190,6 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
 class ParserLoop {
   private readonly promises = new Array<Promise<void>>();
   private readonly specifiedKeys = new Set<string>();
-  private readonly styles: ConcreteStyles;
 
   /**
    * Creates a parser loop.
@@ -216,7 +209,6 @@ class ParserLoop {
     if (!completing && progName && process?.title) {
       process.title += ' ' + progName;
     }
-    this.styles = validator.config.styles;
     for (const key in validator.options) {
       if (!(key in values)) {
         const option = validator.options[key];
@@ -542,19 +534,11 @@ class ParserLoop {
         error.addWord('no');
       }
       const name = option.preferredName ?? '';
-      formatFunctions.o(name, this.styles, this.styles.text, error);
+      const styles = this.validator.config.styles;
+      formatFunctions.o(name, styles, styles.text, error);
       return false;
     }
-    return checkRequiredValue(
-      this.validator,
-      this.values,
-      option,
-      negate,
-      key,
-      value,
-      error,
-      this.styles,
-    );
+    return checkRequiredValue(this.validator, this.values, option, negate, key, value, error);
   }
 }
 
@@ -665,10 +649,10 @@ function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMess
       throw validator.error(ErrorItem.parseErrorWithSimilar, {
         o1: name,
         o2: similar,
-        t: err.str,
+        t: err.msg[0],
       });
     }
-    throw validator.error(ErrorItem.parseError, { o: name, t: err.str });
+    throw validator.error(ErrorItem.parseError, { o: name, t: err.msg[0] });
   }
   if (similar.length) {
     throw validator.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
@@ -1012,7 +996,6 @@ function resetValue(values: CastToOptionValues, key: string, option: ArrayOption
  * @param key The required option key
  * @param value The required value
  * @param error The terminal string error
- * @param styles The error message styles
  * @param formatFn The function to convert to string
  * @returns True if the requirement was satisfied
  */
@@ -1024,7 +1007,6 @@ function checkSingle<T extends boolean | string | number>(
   key: string,
   value: T,
   error: TerminalString,
-  styles: ConcreteStyles,
   formatFn: FormatFunction,
 ): boolean {
   const actual = values[key] as T | Promise<T>;
@@ -1036,6 +1018,7 @@ function checkSingle<T extends boolean | string | number>(
   if ((actual === expected) !== negate) {
     return true;
   }
+  const styles = validator.config.styles;
   formatFunctions.o(name, styles, styles.text, error);
   error.addWord(negate ? '!=' : '=');
   formatFn(expected, styles, styles.text, error);
@@ -1052,7 +1035,6 @@ function checkSingle<T extends boolean | string | number>(
  * @param key The required option key
  * @param value The required value
  * @param error The terminal string error
- * @param styles The error message styles
  * @param formatFn The function to convert to string
  * @returns True if the requirement was satisfied
  */
@@ -1064,7 +1046,6 @@ function checkArray<T extends string | number>(
   key: string,
   value: ReadonlyArray<T>,
   error: TerminalString,
-  styles: ConcreteStyles,
   formatFn: FormatFunction,
 ): boolean {
   const actual = values[key] as Array<T> | Promise<Array<T>>;
@@ -1076,6 +1057,7 @@ function checkArray<T extends string | number>(
   if (checkRequiredArray(actual, expected, negate, option.unique === true)) {
     return true;
   }
+  const styles = validator.config.styles;
   formatFunctions.o(name, styles, styles.text, error);
   error.addWord(negate ? '!=' : '=').addOpening('[');
   expected.forEach((val, i) => {
@@ -1097,7 +1079,6 @@ function checkArray<T extends string | number>(
  * @param key The required option key (to get the specified value)
  * @param value The required value
  * @param error The terminal string error
- * @param styles The error message styles
  * @returns True if the requirement was satisfied
  */
 function checkRequiredValue(
@@ -1108,7 +1089,6 @@ function checkRequiredValue(
   key: string,
   value: Exclude<RequiresVal[string], undefined | null>,
   error: TerminalString,
-  styles: ConcreteStyles,
 ): boolean {
   const checkFn = isArray(option) ? checkArray : checkSingle;
   const formatFn =
@@ -1118,7 +1098,7 @@ function checkRequiredValue(
         ? formatFunctions.s
         : formatFunctions.n;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (checkFn as any)(validator, values, option, negate, key, value, error, styles, formatFn);
+  return (checkFn as any)(validator, values, option, negate, key, value, error, formatFn);
 }
 
 /**
