@@ -4,6 +4,23 @@
 import type { URL as _URL } from 'url';
 
 //--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+/**
+ * A collection of global variables to configure the behavior of the library.
+ * @internal
+ */
+export const globalVars = {
+  stdoutCols: process?.stdout?.columns,
+  stderrCols: process?.stderr?.columns,
+  forceColor: !!process?.env['FORCE_COLOR'],
+  noColor: !!process?.env['NO_COLOR'],
+  termAttrs: process?.env['TERM'],
+  compLine: process?.env['COMP_LINE'],
+  compPoint: process?.env['COMP_POINT'],
+};
+
+//--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
 /**

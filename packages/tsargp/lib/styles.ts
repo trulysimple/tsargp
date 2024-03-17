@@ -3,6 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Enumerate } from './utils';
 import { cs, tf, fg, bg, ul } from './enums';
+import { globalVars } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 
@@ -73,6 +74,11 @@ export type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
  * @param spec The format specifier (e.g., '%s')
  */
 export type FormatCallback = (this: TerminalString, spec: string) => void;
+
+/**
+ * A message that can be printed on a terminal.
+ */
+export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage | CompletionMessage;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -385,7 +391,7 @@ export class TerminalMessage extends Array<TerminalString> {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(process?.stdout?.columns);
+    return this.wrap(globalVars.stdoutCols);
   }
 
   /**
@@ -409,7 +415,7 @@ export class WarnMessage extends TerminalMessage {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(process?.stderr?.columns);
+    return this.wrap(globalVars.stderrCols);
   }
 }
 
@@ -427,9 +433,23 @@ export class ErrorMessage extends Error {
    * @param str The terminal string
    */
   constructor(str: TerminalString) {
-    const msg = new WarnMessage(str);
-    super(msg.message);
-    this.msg = msg;
+    super(); // do not wrap the message now. wait until it is actually needed
+    this.msg = new WarnMessage(str);
+  }
+
+  /**
+   * We have to override this, since the message cannot be transformed after being wrapped.
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.msg.toString();
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
   }
 }
 
@@ -474,8 +494,7 @@ export class VersionMessage extends String {
  */
 function omitStyles(width: number): boolean {
   return (
-    !process?.env['FORCE_COLOR'] &&
-    (!width || !!process?.env['NO_COLOR'] || process?.env['TERM'] === 'dumb')
+    !globalVars.forceColor && (!width || globalVars.noColor || globalVars.termAttrs === 'dumb')
   );
 }
 

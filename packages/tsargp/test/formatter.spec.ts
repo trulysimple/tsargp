@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Options, HelpConfig } from '../lib';
 import { HelpFormatter, OptionValidator, req, style, tf, fg8 } from '../lib';
-import { errorConfig as config } from './utils.spec';
+import './utils.spec';
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
@@ -20,7 +20,7 @@ describe('HelpFormatter', () => {
             exec: () => {},
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --function    A function option\n');
       });
 
@@ -34,7 +34,7 @@ describe('HelpFormatter', () => {
             default: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -f, --function    A function option. Defaults to <true>.\n',
         );
@@ -50,7 +50,7 @@ describe('HelpFormatter', () => {
             default: () => true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --function    A function option\n');
       });
     });
@@ -60,7 +60,7 @@ describe('HelpFormatter', () => {
         const options = {
           flag: { type: 'flag' },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('\n');
       });
 
@@ -71,7 +71,7 @@ describe('HelpFormatter', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f\n');
       });
 
@@ -84,7 +84,7 @@ describe('HelpFormatter', () => {
             link: new URL('https://trulysimple.dev/tsargp/docs'),
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -f, --flag    A flag option. Refer to https://trulysimple.dev/tsargp/docs for details.\n',
         );
@@ -102,7 +102,7 @@ describe('HelpFormatter', () => {
             },
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option with custom styles\n');
       });
 
@@ -114,7 +114,7 @@ describe('HelpFormatter', () => {
             desc: `A flag option with ${style(tf.bold, fg8(123))}inline styles${style(tf.clear)}`,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option with inline styles\n');
       });
 
@@ -129,7 +129,7 @@ describe('HelpFormatter', () => {
             paragraphs`,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toMatch(
           /^ {2}-f, --flag {4}A flag option with line breaks, tabs and ...\n\n {16}paragraphs\n$/,
         );
@@ -146,7 +146,7 @@ describe('HelpFormatter', () => {
             1. item3`,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toMatch(
           /^ {2}-f, --flag {4}A flag option with lists:\n {16}- item1\n {16}\* item2\n {16}1\. item3\n$/,
         );
@@ -161,7 +161,7 @@ describe('HelpFormatter', () => {
             hide: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('');
       });
 
@@ -176,7 +176,7 @@ describe('HelpFormatter', () => {
             group: 'group',
           },
         } as const satisfies Options;
-        const groups = new HelpFormatter(new OptionValidator(options, config)).formatGroups();
+        const groups = new HelpFormatter(new OptionValidator(options)).formatGroups();
         const group = groups.get('group');
         assert(group);
         const message = group;
@@ -192,7 +192,7 @@ describe('HelpFormatter', () => {
             deprecated: 'reason',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Deprecated for reason.\n');
       });
 
@@ -205,7 +205,7 @@ describe('HelpFormatter', () => {
             required: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Always required.\n');
       });
 
@@ -223,7 +223,7 @@ describe('HelpFormatter', () => {
             hide: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Requires -req.\n');
       });
 
@@ -241,7 +241,7 @@ describe('HelpFormatter', () => {
             hide: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Requires -req.\n');
       });
 
@@ -259,7 +259,7 @@ describe('HelpFormatter', () => {
             hide: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Requires no -req.\n');
       });
 
@@ -277,7 +277,7 @@ describe('HelpFormatter', () => {
             hide: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Requires no -req.\n');
       });
 
@@ -295,7 +295,7 @@ describe('HelpFormatter', () => {
             hide: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(`  -f, --flag    A flag option. Requires -req = 'abc'.\n`);
       });
 
@@ -323,7 +323,7 @@ describe('HelpFormatter', () => {
             hide: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -f, --flag    A flag option. Requires (-req1 and (-req2 = 1 or -req3 != '2')).\n`,
         );
@@ -338,7 +338,7 @@ describe('HelpFormatter', () => {
             negationNames: ['-no-f', '', '--no-flag'],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -f, --flag    A flag option. Can be negated with -no-f or --no-flag.\n',
         );
@@ -353,7 +353,7 @@ describe('HelpFormatter', () => {
             default: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option. Defaults to true.\n');
       });
 
@@ -366,7 +366,7 @@ describe('HelpFormatter', () => {
             default: () => true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -f, --flag    A flag option\n');
       });
     });
@@ -381,7 +381,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const cfg: HelpConfig = { breaks: { names: -1, param: -1, descr: -1 } };
-        const message = new HelpFormatter(new OptionValidator(options, config), cfg).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
         expect(message.wrap(0)).toEqual('  -b, --boolean  <boolean>  A boolean option\n');
       });
 
@@ -394,7 +394,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const cfg: HelpConfig = { breaks: { names: 1, param: 1, descr: 1 } };
-        const message = new HelpFormatter(new OptionValidator(options, config), cfg).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
         expect(message.wrap(0)).toMatch(
           /^\n {2}-b, --boolean\n {17}<boolean>\n {28}A boolean option\n$/,
         );
@@ -412,7 +412,7 @@ describe('HelpFormatter', () => {
           indent: { paramAbsolute: true, descrAbsolute: true },
           breaks: { names: 1, param: 1, descr: 1 },
         };
-        const message = new HelpFormatter(new OptionValidator(options, config), cfg).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
         expect(message.wrap(0)).toMatch(
           /^\n {2}-b, --boolean\n {2}<boolean>\n {2}A boolean option\n$/,
         );
@@ -430,7 +430,7 @@ describe('HelpFormatter', () => {
           indent: { names: -1, param: -1, descr: -1 },
           breaks: { names: 1, param: 1, descr: 1 },
         };
-        const message = new HelpFormatter(new OptionValidator(options, config), cfg).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
         expect(message.wrap(0)).toMatch(
           /^\n-b, --boolean\n {12}<boolean>\n {20}A boolean option\n$/,
         );
@@ -445,7 +445,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const cfg: HelpConfig = { hidden: { names: true } };
-        const message = new HelpFormatter(new OptionValidator(options, config), cfg).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
         expect(message.wrap(0)).toEqual('    <boolean>  A boolean option\n');
       });
 
@@ -458,7 +458,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const cfg: HelpConfig = { hidden: { param: true } };
-        const message = new HelpFormatter(new OptionValidator(options, config), cfg).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
         expect(message.wrap(0)).toEqual('  -b, --boolean    A boolean option\n');
       });
 
@@ -471,7 +471,7 @@ describe('HelpFormatter', () => {
           },
         } as const satisfies Options;
         const cfg: HelpConfig = { hidden: { descr: true } };
-        const message = new HelpFormatter(new OptionValidator(options, config), cfg).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
         expect(message.wrap(0)).toEqual('  -b, --boolean  <boolean>\n');
       });
 
@@ -484,7 +484,7 @@ describe('HelpFormatter', () => {
             paramName: 'param',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -b, --boolean  <param>  A boolean option\n');
       });
 
@@ -497,7 +497,7 @@ describe('HelpFormatter', () => {
             paramName: '<token>=<value>',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -b, --boolean  <token>=<value>  A boolean option\n');
       });
 
@@ -510,7 +510,7 @@ describe('HelpFormatter', () => {
             default: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -b, --boolean  <boolean>  A boolean option. Defaults to true.\n',
         );
@@ -525,7 +525,7 @@ describe('HelpFormatter', () => {
             default: () => true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -b, --boolean  <boolean>  A boolean option\n');
       });
 
@@ -538,7 +538,7 @@ describe('HelpFormatter', () => {
             example: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -b, --boolean  true  A boolean option\n');
       });
     });
@@ -553,7 +553,7 @@ describe('HelpFormatter', () => {
             paramName: 'param',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -s, --string  <param>  A string option\n');
       });
 
@@ -566,7 +566,7 @@ describe('HelpFormatter', () => {
             paramName: '<token>=<value>',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -s, --string  <token>=<value>  A string option\n');
       });
 
@@ -579,7 +579,7 @@ describe('HelpFormatter', () => {
             default: '123',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -s, --string  <string>  A string option. Defaults to '123'.\n`,
         );
@@ -594,7 +594,7 @@ describe('HelpFormatter', () => {
             default: () => '123',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -s, --string  <string>  A string option\n');
       });
 
@@ -607,7 +607,7 @@ describe('HelpFormatter', () => {
             example: '123',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(`  -s, --string  '123'  A string option\n`);
       });
 
@@ -620,7 +620,7 @@ describe('HelpFormatter', () => {
             enums: ['one', 'two'],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -s, --string  <string>  A string option. Values must be one of {'one', 'two'}.\n`,
         );
@@ -635,7 +635,7 @@ describe('HelpFormatter', () => {
             regex: /\d+/s,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -s, --string  <string>  A string option. Values must match the regex /\\d+/s.\n',
         );
@@ -650,7 +650,7 @@ describe('HelpFormatter', () => {
             trim: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -s, --string  <string>  A string option. Values will be trimmed.\n',
         );
@@ -665,7 +665,7 @@ describe('HelpFormatter', () => {
             case: 'lower',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -s, --string  <string>  A string option. Values will be converted to lowercase.\n',
         );
@@ -680,7 +680,7 @@ describe('HelpFormatter', () => {
             case: 'upper',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -s, --string  <string>  A string option. Values will be converted to uppercase.\n',
         );
@@ -697,7 +697,7 @@ describe('HelpFormatter', () => {
             default: 123,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -n, --number  <number>  A number option. Defaults to 123.\n',
         );
@@ -712,7 +712,7 @@ describe('HelpFormatter', () => {
             default: () => 123,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -n, --number  <number>  A number option\n');
       });
 
@@ -725,7 +725,7 @@ describe('HelpFormatter', () => {
             example: 123,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual('  -n, --number  123  A number option\n');
       });
 
@@ -738,7 +738,7 @@ describe('HelpFormatter', () => {
             enums: [1, 2],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -n, --number  <number>  A number option. Values must be one of {1, 2}.\n',
         );
@@ -753,7 +753,7 @@ describe('HelpFormatter', () => {
             range: [0, Infinity],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -n, --number  <number>  A number option. Values must be in the range [0, Infinity].\n',
         );
@@ -768,7 +768,7 @@ describe('HelpFormatter', () => {
             round: 'trunc',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -n, --number  <number>  A number option. Values will be rounded towards zero.\n',
         );
@@ -783,7 +783,7 @@ describe('HelpFormatter', () => {
             round: 'ceil',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -n, --number  <number>  A number option. Values will be rounded up.\n',
         );
@@ -798,7 +798,7 @@ describe('HelpFormatter', () => {
             round: 'floor',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -n, --number  <number>  A number option. Values will be rounded down.\n',
         );
@@ -813,7 +813,7 @@ describe('HelpFormatter', () => {
             round: 'round',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -n, --number  <number>  A number option. Values will be rounded to the nearest integer.\n',
         );
@@ -831,7 +831,7 @@ describe('HelpFormatter', () => {
             separator: /[,;]/s,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -ss, --strings  <strings>  A strings option. Values are delimited by /[,;]/s. May be specified multiple times.\n',
         );
@@ -847,7 +847,7 @@ describe('HelpFormatter', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. May be specified multiple times.\n`,
         );
@@ -862,7 +862,7 @@ describe('HelpFormatter', () => {
             default: ['one', 'two'],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Defaults to ['one', 'two'].\n`,
         );
@@ -877,7 +877,7 @@ describe('HelpFormatter', () => {
             default: () => ['one', 'two'],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -ss, --strings  <strings>  A strings option. Accepts multiple parameters.\n',
         );
@@ -893,7 +893,7 @@ describe('HelpFormatter', () => {
             separator: /[,;]/s,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  'one[,;]two'  A strings option. Values are delimited by /[,;]/s.\n`,
         );
@@ -909,7 +909,7 @@ describe('HelpFormatter', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  'one,two'  A strings option. Values are delimited by ','.\n`,
         );
@@ -924,7 +924,7 @@ describe('HelpFormatter', () => {
             enums: ['one', 'two'],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Values must be one of {'one', 'two'}.\n`,
         );
@@ -940,7 +940,7 @@ describe('HelpFormatter', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values must match the regex /\\d+/s.\n`,
         );
@@ -955,7 +955,7 @@ describe('HelpFormatter', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Accepts positional parameters.\n',
         );
@@ -970,7 +970,7 @@ describe('HelpFormatter', () => {
             positional: '--',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Accepts positional parameters that may be preceded by --.\n',
         );
@@ -986,7 +986,7 @@ describe('HelpFormatter', () => {
             trim: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be trimmed.\n`,
         );
@@ -1002,7 +1002,7 @@ describe('HelpFormatter', () => {
             case: 'lower',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be converted to lowercase.\n`,
         );
@@ -1018,7 +1018,7 @@ describe('HelpFormatter', () => {
             case: 'upper',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be converted to uppercase.\n`,
         );
@@ -1033,7 +1033,7 @@ describe('HelpFormatter', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Value count is limited to 2.\n`,
         );
@@ -1049,7 +1049,7 @@ describe('HelpFormatter', () => {
             unique: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Duplicate values will be removed.\n`,
         );
@@ -1067,7 +1067,7 @@ describe('HelpFormatter', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. May be specified multiple times.\n`,
         );
@@ -1082,7 +1082,7 @@ describe('HelpFormatter', () => {
             default: [1, 2],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toMatch(
           `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Defaults to [1, 2].\n`,
         );
@@ -1097,7 +1097,7 @@ describe('HelpFormatter', () => {
             default: () => [1, 2],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           '  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters.\n',
         );
@@ -1113,7 +1113,7 @@ describe('HelpFormatter', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  '1,2'  A numbers option. Values are delimited by ','.\n`,
         );
@@ -1128,7 +1128,7 @@ describe('HelpFormatter', () => {
             enums: [1, 2],
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Values must be one of {1, 2}.\n`,
         );
@@ -1144,7 +1144,7 @@ describe('HelpFormatter', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values must be in the range [0, Infinity].\n`,
         );
@@ -1159,7 +1159,7 @@ describe('HelpFormatter', () => {
             positional: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Accepts positional parameters.\n`,
         );
@@ -1175,7 +1175,7 @@ describe('HelpFormatter', () => {
             unique: true,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Duplicate values will be removed.\n`,
         );
@@ -1190,7 +1190,7 @@ describe('HelpFormatter', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Value count is limited to 2.\n`,
         );
@@ -1206,7 +1206,7 @@ describe('HelpFormatter', () => {
             round: 'trunc',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded towards zero.\n`,
         );
@@ -1221,7 +1221,7 @@ describe('HelpFormatter', () => {
             round: 'ceil',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Values will be rounded up.\n`,
         );
@@ -1237,7 +1237,7 @@ describe('HelpFormatter', () => {
             round: 'floor',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded down.\n`,
         );
@@ -1252,7 +1252,7 @@ describe('HelpFormatter', () => {
             round: 'round',
           },
         } as const satisfies Options;
-        const message = new HelpFormatter(new OptionValidator(options, config)).formatHelp();
+        const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
         expect(message.wrap(0)).toEqual(
           `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Values will be rounded to the nearest integer.\n`,
         );

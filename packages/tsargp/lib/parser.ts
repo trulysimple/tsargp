@@ -34,6 +34,7 @@ import {
   isValued,
 } from './options';
 import {
+  Message,
   ErrorMessage,
   HelpMessage,
   WarnMessage,
@@ -43,7 +44,14 @@ import {
   style,
 } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
-import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
+import {
+  globalVars,
+  assert,
+  checkRequiredArray,
+  gestaltSimilarity,
+  getArgs,
+  isTrue,
+} from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -88,16 +96,6 @@ export type ParseResult = {
    */
   readonly warnings: Array<WarnMessage>;
 };
-
-/**
- * The parse result message.
- */
-export type ParseMessage =
-  | ErrorMessage
-  | HelpMessage
-  | WarnMessage
-  | VersionMessage
-  | CompletionMessage;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -206,6 +204,21 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
   }
 
   /**
+   * Parses command-line arguments into option values.
+   * @param values The options' values to parse into
+   * @param command The raw command line or command-line arguments
+   * @param config The parse configuration
+   * @returns The parse result
+   */
+  doParse(
+    values: OptionValues<T>,
+    command?: string | Array<string>,
+    config?: ParseConfig,
+  ): ParseResult {
+    return super.doParse(values, command, config);
+  }
+
+  /**
    * Tries to parse command-line arguments into option values.
    * @param values The options' values to parse into
    * @param command The raw command line or command-line arguments
@@ -216,15 +229,17 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
     values: OptionValues<T>,
     command?: string | Array<string>,
     config?: ParseConfig,
-  ): Promise<Error | ParseMessage | null> {
+  ): Promise<Error | Message | null> {
     try {
       const { promises, warnings } = super.doParse(values, command, config);
       await Promise.all(promises);
       return warnings.length
-        ? new WarnMessage(...warnings.map((msg) => msg[0].addBreaks(1)))
+        ? new WarnMessage(
+            ...warnings.map((msg, i) => (i < warnings.length - 1 ? msg[0].addBreaks(1) : msg[0])),
+          )
         : null;
     } catch (err) {
-      return err as Error;
+      return err as Error | Message;
     }
   }
 }
@@ -620,8 +635,8 @@ class ParserLoop {
 function createLoop(
   validator: OptionValidator,
   values: CastToOptionValues,
-  command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
-  config: ParseConfig = { compIndex: Number(process?.env['COMP_POINT']) },
+  command = globalVars.compLine ?? process?.argv.slice(2) ?? [],
+  config: ParseConfig = { compIndex: Number(globalVars.compPoint) },
 ): ParserLoop {
   let args, progName;
   if (typeof command === 'string') {

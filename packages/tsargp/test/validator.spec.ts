@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { type Options, OptionValidator, req } from '../lib';
-import { errorConfig as config } from './utils.spec';
+import './utils.spec';
 
 describe('OptionValidator', () => {
   describe('constructor', () => {
@@ -26,7 +26,7 @@ describe('OptionValidator', () => {
             names: ['dup', 'dup'],
           },
         } as const satisfies Options;
-        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on duplicate option name across different options', () => {
@@ -40,7 +40,7 @@ describe('OptionValidator', () => {
             names: ['dup'],
           },
         } as const satisfies Options;
-        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on flag option with duplicate negation name', () => {
@@ -51,7 +51,7 @@ describe('OptionValidator', () => {
             negationNames: ['dup'],
           },
         } as const satisfies Options;
-        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on option with duplicate positional marker name', () => {
@@ -66,7 +66,7 @@ describe('OptionValidator', () => {
             positional: 'dup',
           },
         } as const satisfies Options;
-        expect(() => new OptionValidator(options, config)).toThrow(/Duplicate option name dup\./);
+        expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
       });
 
       it('should throw an error on duplicate positional option', () => {
@@ -82,7 +82,7 @@ describe('OptionValidator', () => {
             positional: true,
           },
         } as const satisfies Options;
-        expect(() => new OptionValidator(options, config)).toThrow(
+        expect(() => new OptionValidator(options)).toThrow(
           /Duplicate positional option positional2\./,
         );
       });
@@ -97,7 +97,7 @@ describe('OptionValidator', () => {
           positional: true,
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).not.toThrow();
     });
 
@@ -108,7 +108,7 @@ describe('OptionValidator', () => {
           negationNames: ['-no-f'],
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).not.toThrow();
     });
 
@@ -119,7 +119,7 @@ describe('OptionValidator', () => {
           names: ['', null],
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Non-positional option flag has no name\./);
     });
 
@@ -130,7 +130,7 @@ describe('OptionValidator', () => {
           names: ['a = b'],
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
     });
 
@@ -142,7 +142,7 @@ describe('OptionValidator', () => {
           negationNames: ['a = b'],
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
     });
 
@@ -154,7 +154,7 @@ describe('OptionValidator', () => {
           positional: 'a = b',
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
     });
 
@@ -166,7 +166,7 @@ describe('OptionValidator', () => {
           positional: '',
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
         /Option string contains empty positional marker\./,
       );
@@ -180,7 +180,7 @@ describe('OptionValidator', () => {
           version: '',
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options, config);
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Option version contains empty version\./);
     });
 
@@ -197,7 +197,7 @@ describe('OptionValidator', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option requires requires itself\./);
       });
 
@@ -213,7 +213,7 @@ describe('OptionValidator', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Unknown required option unknown\./);
       });
 
@@ -229,7 +229,7 @@ describe('OptionValidator', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).not.toThrow();
       });
 
@@ -245,7 +245,7 @@ describe('OptionValidator', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).not.toThrow();
       });
 
@@ -261,7 +261,7 @@ describe('OptionValidator', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Required option required does not accept values\./,
         );
@@ -280,7 +280,7 @@ describe('OptionValidator', () => {
             exec: () => {},
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Required option required does not accept values\./,
         );
@@ -298,7 +298,7 @@ describe('OptionValidator', () => {
             names: ['-b'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'boolean'\./,
         );
@@ -316,7 +316,7 @@ describe('OptionValidator', () => {
             names: ['-s'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'string'\./,
         );
@@ -334,7 +334,7 @@ describe('OptionValidator', () => {
             names: ['-n'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'number'\./,
         );
@@ -352,7 +352,7 @@ describe('OptionValidator', () => {
             names: ['-ss'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'object'\./,
         );
@@ -370,7 +370,7 @@ describe('OptionValidator', () => {
             names: ['-ss'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'string'\./,
         );
@@ -388,7 +388,7 @@ describe('OptionValidator', () => {
             names: ['-ns'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'object'\./,
         );
@@ -406,7 +406,7 @@ describe('OptionValidator', () => {
             names: ['-ns'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has incompatible value <1>\. Should be of type 'number'\./,
         );
@@ -422,7 +422,7 @@ describe('OptionValidator', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option string has zero enum values\./);
       });
 
@@ -434,7 +434,7 @@ describe('OptionValidator', () => {
             enums: ['dup', 'dup'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option string has duplicate enum 'dup'\./);
       });
 
@@ -447,7 +447,7 @@ describe('OptionValidator', () => {
             example: 'abc',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
@@ -462,7 +462,7 @@ describe('OptionValidator', () => {
             default: 'abc',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
@@ -481,7 +481,7 @@ describe('OptionValidator', () => {
             regex: /\d+/s,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
@@ -496,7 +496,7 @@ describe('OptionValidator', () => {
             example: 'abc',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
@@ -511,7 +511,7 @@ describe('OptionValidator', () => {
             default: 'abc',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to string: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
@@ -530,7 +530,7 @@ describe('OptionValidator', () => {
             enums: ['one', 'two'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
@@ -546,7 +546,7 @@ describe('OptionValidator', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option number has zero enum values\./);
       });
 
@@ -558,7 +558,7 @@ describe('OptionValidator', () => {
             enums: [1, 1],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option number has duplicate enum 1\./);
       });
 
@@ -571,7 +571,7 @@ describe('OptionValidator', () => {
             example: -3,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: -3\. Value must be in the range \[0, Infinity\]\./,
         );
@@ -586,7 +586,7 @@ describe('OptionValidator', () => {
             default: -3,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: -3\. Value must be in the range \[0, Infinity\]\./,
         );
@@ -605,7 +605,7 @@ describe('OptionValidator', () => {
             range: [0, Infinity],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: -3\. Value must be in the range \[0, Infinity\]\./,
         );
@@ -620,7 +620,7 @@ describe('OptionValidator', () => {
             example: 3,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: 3\. Possible values are \[1, 2\]\./,
         );
@@ -635,7 +635,7 @@ describe('OptionValidator', () => {
             default: 3,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to number: 3\. Possible values are \[1, 2\]\./,
         );
@@ -654,7 +654,7 @@ describe('OptionValidator', () => {
             enums: [1, 2],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 3\. Possible values are \[1, 2\]\./,
         );
@@ -670,7 +670,7 @@ describe('OptionValidator', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option strings has zero enum values\./);
       });
 
@@ -682,7 +682,7 @@ describe('OptionValidator', () => {
             enums: ['dup', 'dup'],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option strings has duplicate enum 'dup'\./);
       });
 
@@ -696,7 +696,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
@@ -712,7 +712,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
@@ -732,7 +732,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Value must match the regex \/\\d\+\/s\./,
         );
@@ -748,7 +748,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
@@ -764,7 +764,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to strings: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
@@ -784,7 +784,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 'abc'\. Possible values are \['one', 'two'\]\./,
         );
@@ -799,7 +799,7 @@ describe('OptionValidator', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option strings has too many values \(3\)\. Should have at most 2\./,
         );
@@ -814,7 +814,7 @@ describe('OptionValidator', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option strings has too many values \(3\)\. Should have at most 2\./,
         );
@@ -833,7 +833,7 @@ describe('OptionValidator', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has too many values \(3\)\. Should have at most 2\./,
         );
@@ -849,7 +849,7 @@ describe('OptionValidator', () => {
             enums: [],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option numbers has zero enum values\./);
       });
 
@@ -861,7 +861,7 @@ describe('OptionValidator', () => {
             enums: [1, 1],
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(/Option numbers has duplicate enum 1\./);
       });
 
@@ -875,7 +875,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: -3\. Value must be in the range \[0, Infinity\]\./,
         );
@@ -891,7 +891,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: -3\. Value must be in the range \[0, Infinity\]\./,
         );
@@ -911,7 +911,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: -3\. Value must be in the range \[0, Infinity\]\./,
         );
@@ -927,7 +927,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: 3. Possible values are \[1, 2\]\./,
         );
@@ -943,7 +943,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to numbers: 3. Possible values are \[1, 2\]\./,
         );
@@ -963,7 +963,7 @@ describe('OptionValidator', () => {
             separator: ',',
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Invalid parameter to required: 3. Possible values are \[1, 2\]\./,
         );
@@ -978,7 +978,7 @@ describe('OptionValidator', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option numbers has too many values \(3\)\. Should have at most 2\./,
         );
@@ -993,7 +993,7 @@ describe('OptionValidator', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option numbers has too many values \(3\)\. Should have at most 2\./,
         );
@@ -1012,7 +1012,7 @@ describe('OptionValidator', () => {
             limit: 2,
           },
         } as const satisfies Options;
-        const validator = new OptionValidator(options, config);
+        const validator = new OptionValidator(options);
         expect(() => validator.validate()).toThrow(
           /Option required has too many values \(3\)\. Should have at most 2\./,
         );

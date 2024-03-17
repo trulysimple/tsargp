@@ -8,6 +8,7 @@ import {
   HelpMessage,
   CompletionMessage,
 } from '../lib';
+import './utils.spec';
 
 describe('TerminalString', () => {
   describe('addStyle', () => {
@@ -386,6 +387,12 @@ describe('WarnMessage', () => {
 });
 
 describe('ErrorMessage', () => {
+  it('should not prefix the message when converting to string', () => {
+    const str = new TerminalString().splitText('type script');
+    const msg = new ErrorMessage(str);
+    expect(`${msg}`).toEqual('type script');
+  });
+
   it('can be thrown and caught', () => {
     const str = new TerminalString().splitText('type script');
     expect(() => {

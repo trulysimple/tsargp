@@ -1,7 +1,13 @@
 import type { SyncExpectationResult, AsyncExpectationResult, MatcherState } from '@vitest/expect';
-import { describe, expect, it } from 'vitest';
-import { type ConcreteError, defaultConfig } from '../lib/validator';
-import { checkRequiredArray, gestaltSimilarity, getArgs, splitPhrase, isTrue } from '../lib/utils';
+import { beforeAll, describe, expect, it } from 'vitest';
+import {
+  globalVars,
+  checkRequiredArray,
+  gestaltSimilarity,
+  getArgs,
+  splitPhrase,
+  isTrue,
+} from '../lib/utils';
 
 interface CustomMatchers<R = unknown> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,19 +43,15 @@ async function toResolve(
 
 expect.extend({ toEqual, toResolve });
 
-export const errorConfig: ConcreteError = {
-  styles: {
-    boolean: '',
-    string: '',
-    number: '',
-    regex: '',
-    option: '',
-    param: '',
-    url: '',
-    text: '',
-  },
-  phrases: defaultConfig.phrases,
-};
+beforeAll(() => {
+  globalVars.stderrCols = 0;
+  globalVars.stdoutCols = 0;
+  globalVars.forceColor = false;
+  globalVars.noColor = false;
+  globalVars.termAttrs = undefined;
+  globalVars.compLine = undefined;
+  globalVars.compPoint = undefined;
+});
 
 describe('getArgs', () => {
   describe('with no completion index', () => {

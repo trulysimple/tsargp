@@ -58,7 +58,7 @@ class PlayCommand extends Command<PlayProps> {
       }
     } catch (err) {
       if (err instanceof ErrorMessage) {
-        throw 'Error: ' + err.msg.wrap(this.state.width);
+        throw err.msg.wrap(this.state.width);
       } else if (err instanceof HelpMessage) {
         throw err.wrap(this.state.width);
       }
