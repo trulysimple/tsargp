@@ -10,3 +10,6 @@ Added new classes to represent the various kinds of messages that the parser may
 - `VersionMessage` - the version (currently, it's just a string)
 - `ArgumentParser.doParse` - the most flexible method to parse arguments
 - `ArgumentParser.tryParse` - a convenience method that catches any error before returning
+
+Removed the `OpaqueArgumentParser` and `CastToOptionValues` as they are not needed anymore. Instead,
+you can use `ArgumentParser` or `OptionValues` with no template argument.
