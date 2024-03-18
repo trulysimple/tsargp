@@ -3439,6 +3439,22 @@ describe('doParse', () => {
 });
 
 describe('tryParse', () => {
+  it('should output an error on parse failure', async () => {
+    const options = {
+      flag: {
+        type: 'flag',
+        names: ['-f'],
+        required: true,
+      },
+    } as const satisfies Options;
+    const values = { flag: false };
+    const parser = new ArgumentParser(options);
+    await expect(parser.tryParse(values, [])).resolves.toHaveProperty(
+      'message',
+      expect.stringMatching(/Option -f is required\./),
+    );
+  });
+
   it('should output a warning on a single deprecated option', async () => {
     const options = {
       flag: {
