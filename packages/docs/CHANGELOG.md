@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.2.0-dev.1
+
+### Minor Changes
+
+- [#48](https://github.com/trulysimple/tsargp/pull/48) [`4050cb9`](https://github.com/trulysimple/tsargp/commit/4050cb9bc20c6c9cbd46bf6ef099af50aee82f9b) Thanks [@disog](https://github.com/disog)! - Added a new section called "Terminal messages" in the Styles page to describe the various kinds of messages produced by the library. Updated the Parser page to document the new parsing methods that can be used to check for these messages. Also updated the Validator page to document the new `deprecatedOption` warning.
+
 ## 0.2.0-dev.0
 
 ### Minor Changes
