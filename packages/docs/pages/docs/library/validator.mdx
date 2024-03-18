@@ -169,6 +169,8 @@ optional properties:
 The `ErrorItem` enumeration is a type that is used in the property described next. It lists the
 kinds of error messages that may be raised by the library:
 
+- `deprecatedOption` - warning saved by the parser when a deprecated option is specified on the
+  command-line
 - `parseError` - raised by the parser when an option parameter fails to be parsed
 - `parseErrorWithSimilar` - raised by the parser when an option parameter fails to be parsed, and
   there are option name suggestions
@@ -219,6 +221,7 @@ kinds of error messages that may be raised by the library:
 
 The `phrases` property specifies the phrases to be used for each kind of error message:
 
+- `deprecatedOption` - `'Option %o is deprecated and may be removed in future releases.'{:ts}`
 - `parseError` - `'%t\n\nDid you mean to specify an option name instead of %o?'{:ts}`
 - `parseErrorWithSimilar` - `'%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.'{:ts}`
 - `unknownOption` - `'Unknown option %o.'{:ts}`
@@ -269,6 +272,7 @@ description of the corresponding value.
 
 | Error                      | Specifiers                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------- |
+| deprecatedOption           | `%o` = the specified option name                                                |
 | parseError                 | `%t` = the previous error message; `%o` = the unknown option name               |
 | parseErrorWithSimilar      | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
 | unknownOption              | `%o` = the unknown option name                                                  |

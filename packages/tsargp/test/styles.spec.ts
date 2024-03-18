@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { TerminalString, ErrorMessage, HelpMessage } from '../lib';
 import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8 } from '../lib';
+import {
+  TerminalString,
+  TerminalMessage,
+  WarnMessage,
+  ErrorMessage,
+  HelpMessage,
+  CompletionMessage,
+} from '../lib';
+import './utils.spec';
 
 describe('TerminalString', () => {
   describe('addStyle', () => {
@@ -190,37 +198,37 @@ describe('TerminalString', () => {
 
       it('should shorten the current line (1)', () => {
         const result = ['  '];
-        new TerminalString(0).splitText('abc def').wrapToWidth(result, 2, 0, false);
+        new TerminalString().splitText('abc def').wrapToWidth(result, 2, 0, false);
         expect(result).toEqual(['abc', ' def']);
       });
 
       it('should shorten the current line (2)', () => {
         const result = ['   '];
-        new TerminalString(0).splitText('abc def').wrapToWidth(result, 2, 0, false);
+        new TerminalString().splitText('abc def').wrapToWidth(result, 2, 0, false);
         expect(result).toEqual([' ', 'abc', ' def']);
       });
 
       it('should not shorten the current line if the string is empty', () => {
         const result = ['  '];
-        new TerminalString(0).wrapToWidth(result, 2, 0, false);
+        new TerminalString().wrapToWidth(result, 2, 0, false);
         expect(result).toEqual(['  ']);
       });
 
       it('should not shorten the current line if the string starts with a line break', () => {
         const result = ['  '];
-        new TerminalString(0).addBreaks(1).wrapToWidth(result, 2, 0, false);
+        new TerminalString().addBreaks(1).wrapToWidth(result, 2, 0, false);
         expect(result).toEqual(['  ', '\n']);
       });
 
       it('should preserve line breaks', () => {
         const result = new Array<string>();
-        new TerminalString(0).splitText('abc\n\ndef').wrapToWidth(result, 0, 0, false);
+        new TerminalString().splitText('abc\n\ndef').wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['abc', '\n\n', 'def']);
       });
 
       it('should omit styles', () => {
         const result = new Array<string>();
-        new TerminalString(0)
+        new TerminalString()
           .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
           .wrapToWidth(result, 0, 0, false);
         expect(result).toEqual(['abc', ' def']);
@@ -328,7 +336,7 @@ describe('TerminalString', () => {
 
       it('should omit styles', () => {
         const result = new Array<string>();
-        new TerminalString(0)
+        new TerminalString()
           .splitText(`abc${style(tf.clear)} ${style(tf.clear)} def`)
           .wrapToWidth(result, 0, 10, false);
         expect(result).toEqual(['abc', ' def']);
@@ -351,19 +359,42 @@ describe('TerminalString', () => {
   });
 });
 
-describe('ErrorMessage', () => {
+describe('TerminalMessage', () => {
   it('should wrap the error message', () => {
-    const str = new TerminalString(0).splitText('type script');
-    const err = new ErrorMessage(str);
-    expect(err.message).toMatch(/type script/);
-    expect(err.wrap(0, false)).toEqual('type script');
-    expect(err.wrap(0, true)).toEqual('type script' + style(tf.clear));
-    expect(err.wrap(11, false)).toEqual('type script');
-    expect(err.wrap(11, true)).toEqual('type script' + style(tf.clear));
+    const str = new TerminalString().splitText('type script');
+    const msg = new TerminalMessage(str);
+    expect(msg.wrap(0, false)).toEqual('type script');
+    expect(msg.wrap(0, true)).toEqual('type script' + style(tf.clear));
+    expect(msg.wrap(11, false)).toEqual('type script');
+    expect(msg.wrap(11, true)).toEqual('type script' + style(tf.clear));
   });
 
-  it('should be thrown and caught', () => {
-    const str = new TerminalString(0).splitText('type script');
+  it('can be thrown and caught', () => {
+    const str = new TerminalString().splitText('type script');
+    expect(() => {
+      throw new TerminalMessage(str);
+    }).toThrow('type script');
+  });
+});
+
+describe('WarnMessage', () => {
+  it('can be thrown and caught', () => {
+    const str = new TerminalString().splitText('type script');
+    expect(() => {
+      throw new WarnMessage(str);
+    }).toThrow('type script');
+  });
+});
+
+describe('ErrorMessage', () => {
+  it('should not prefix the message when converting to string', () => {
+    const str = new TerminalString().splitText('type script');
+    const msg = new ErrorMessage(str);
+    expect(`${msg}`).toEqual('type script');
+  });
+
+  it('can be thrown and caught', () => {
+    const str = new TerminalString().splitText('type script');
     expect(() => {
       throw new ErrorMessage(str);
     }).toThrow('type script');
@@ -371,13 +402,18 @@ describe('ErrorMessage', () => {
 });
 
 describe('HelpMessage', () => {
-  it('should wrap the help message', () => {
-    const str = new TerminalString(0).splitText('type script');
-    const help = new HelpMessage(str);
-    expect(help.toString()).toMatch(/type script/);
-    expect(help.wrap(0, false)).toEqual('type script');
-    expect(help.wrap(0, true)).toEqual('type script' + style(tf.clear));
-    expect(help.wrap(11, false)).toEqual('type script');
-    expect(help.wrap(11, true)).toEqual('type script' + style(tf.clear));
+  it('can be thrown and caught', () => {
+    const str = new TerminalString().splitText('type script');
+    expect(() => {
+      throw new HelpMessage(str);
+    }).toThrow('type script');
+  });
+});
+
+describe('CompletionMessage', () => {
+  it('can be thrown and caught', () => {
+    expect(() => {
+      throw new CompletionMessage('type', 'script');
+    }).toThrow('type\nscript');
   });
 });

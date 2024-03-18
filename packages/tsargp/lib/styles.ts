@@ -3,6 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Enumerate } from './utils';
 import { cs, tf, fg, bg, ul } from './enums';
+import { overrides } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 
@@ -73,6 +74,11 @@ export type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
  * @param spec The format specifier (e.g., '%s')
  */
 export type FormatCallback = (this: TerminalString, spec: string) => void;
+
+/**
+ * A message that can be printed on a terminal.
+ */
+export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage | CompletionMessage;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -360,58 +366,16 @@ export class TerminalString {
 }
 
 /**
- * An error message.
+ * A terminal message. Used as base for other message classes.
  */
-export class ErrorMessage extends Error {
-  /**
-   * Creates an error message
-   * @param str The terminal string
-   */
-  constructor(readonly str: TerminalString) {
-    super();
-  }
-
-  /**
-   * @returns The message to be printed on a terminal
-   */
-  get message(): string {
-    return this.wrap();
-  }
-
-  /**
-   * Wraps the error message to a specified width.
-   * @param width The terminal width (or zero to avoid wrapping)
-   * @param emitStyles True if styles should be emitted
-   * @returns The message to be printed on a terminal
-   */
-  wrap(width = process?.stderr?.columns ?? 0, emitStyles = !omitStyles(width)): string {
-    const result = new Array<string>();
-    this.str.wrapToWidth(result, 0, width, emitStyles);
-    if (emitStyles) {
-      result.push(sgr(tf.clear));
-    }
-    return result.join('');
-  }
-}
-
-/**
- * A help message.
- */
-export class HelpMessage extends Array<TerminalString> {
-  /**
-   * @returns the message to be printed on a terminal
-   */
-  override toString(): string {
-    return this.wrap();
-  }
-
+export class TerminalMessage extends Array<TerminalString> {
   /**
    * Wraps the help message to a specified width.
    * @param width The terminal width (or zero to avoid wrapping)
    * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process?.stdout?.columns ?? 0, emitStyles = !omitStyles(width)): string {
+  wrap(width = 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     let column = 0;
     for (const str of this) {
@@ -421,6 +385,102 @@ export class HelpMessage extends Array<TerminalString> {
       result.push(sgr(tf.clear));
     }
     return result.join('');
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.wrap(overrides.stdoutCols ?? process?.stdout?.columns);
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
+/**
+ * A help message.
+ */
+export class HelpMessage extends TerminalMessage {}
+
+/**
+ * A warning message.
+ */
+export class WarnMessage extends TerminalMessage {
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.wrap(overrides.stderrCols ?? process?.stderr?.columns);
+  }
+}
+
+/**
+ * An error message.
+ */
+export class ErrorMessage extends Error {
+  /**
+   * The terminal message.
+   */
+  readonly msg: TerminalMessage;
+
+  /**
+   * Creates an error message
+   * @param str The terminal string
+   */
+  constructor(str: TerminalString) {
+    super(); // do not wrap the message now. wait until it is actually needed
+    this.msg = new WarnMessage(str);
+  }
+
+  /**
+   * We have to override this, since the message cannot be transformed after being wrapped.
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.msg.toString();
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
+/**
+ * A completion message.
+ */
+export class CompletionMessage extends Array<string> {
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.join('\n');
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
+/**
+ * A version message.
+ */
+export class VersionMessage extends String {
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
   }
 }
 

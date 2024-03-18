@@ -24,9 +24,12 @@ class CalcCommand extends Command {
       const result = values['add'] ?? values['sub'] ?? values['mult'] ?? values['div'] ?? NaN;
       this.println(`${result}`);
     } catch (err) {
-      throw err instanceof ErrorMessage || err instanceof HelpMessage
-        ? err.wrap(this.state.width)
-        : err;
+      if (err instanceof ErrorMessage) {
+        throw err.msg.wrap(this.state.width);
+      } else if (err instanceof HelpMessage) {
+        throw err.wrap(this.state.width);
+      }
+      throw err;
     }
   }
 }

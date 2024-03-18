@@ -28,9 +28,12 @@ class DemoCommand extends Command {
         this.println(JSON.stringify(values, null, 2));
       }
     } catch (err) {
-      throw err instanceof ErrorMessage || err instanceof HelpMessage
-        ? err.wrap(this.state.width)
-        : err;
+      if (err instanceof ErrorMessage) {
+        throw err.msg.wrap(this.state.width);
+      } else if (err instanceof HelpMessage) {
+        throw err.wrap(this.state.width);
+      }
+      throw err;
     }
   }
 }

@@ -4,6 +4,24 @@
 import type { URL as _URL } from 'url';
 
 //--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+/**
+ * A collection of global variables to configure the behavior of the library.
+ * @internal
+ */
+export const overrides: {
+  /**
+   * Overrides the terminal width of the standard output stream.
+   */
+  stdoutCols?: number;
+  /**
+   * Overrides the terminal width of the standard error stream.
+   */
+  stderrCols?: number;
+} = {};
+
+//--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
 /**

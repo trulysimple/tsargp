@@ -112,7 +112,7 @@ export type Requires = string | RequiresVal | RequiresExp;
  * @param value The parameter value
  * @returns The parsed value
  */
-export type ParseCallback<T> = (values: CastToOptionValues, name: string, value: string) => T;
+export type ParseCallback<T> = (values: OptionValues, name: string, value: string) => T;
 
 /**
  * A module-relative resolution function (i.e., scoped to a module). To be used in non-browser
@@ -126,7 +126,7 @@ export type ResolveCallback = (specifier: string) => string;
  * @param values The values parsed so far
  * @returns The default value
  */
-export type DefaultCallback<T> = (values: CastToOptionValues) => T | Promise<T>;
+export type DefaultCallback<T> = (values: OptionValues) => T | Promise<T>;
 
 /**
  * A callback for function options.
@@ -135,11 +135,7 @@ export type DefaultCallback<T> = (values: CastToOptionValues) => T | Promise<T>;
  * @param rest The remaining command-line arguments
  * @returns The option value
  */
-export type ExecuteCallback = (
-  values: CastToOptionValues,
-  comp: boolean,
-  rest: Array<string>,
-) => unknown;
+export type ExecuteCallback = (values: OptionValues, comp: boolean, rest: Array<string>) => unknown;
 
 /**
  * A callback for command options.
@@ -147,10 +143,7 @@ export type ExecuteCallback = (
  * @param cmdValues The values parsed after the command
  * @returns The option value
  */
-export type CommandCallback = (
-  values: CastToOptionValues,
-  cmdValues: CastToOptionValues,
-) => unknown;
+export type CommandCallback = (values: OptionValues, cmdValues: OptionValues) => unknown;
 
 /**
  * A callback for option completion.
@@ -160,7 +153,7 @@ export type CommandCallback = (
  * @returns The list of completion words
  */
 export type CompleteCallback = (
-  values: CastToOptionValues,
+  values: OptionValues,
   comp: string,
   rest: Array<string>,
 ) => Array<string> | Promise<Array<string>>;
@@ -766,15 +759,9 @@ type OptionDataType<T extends Option> = T extends FunctionOption
  * A generic collection of option values.
  * @template T The type of the option definitions
  */
-export type OptionValues<T extends Options> = Resolve<{
+export type OptionValues<T extends Options = Options> = Resolve<{
   -readonly [key in keyof T as T[key] extends SpecialOption ? never : key]: OptionDataType<T[key]>;
 }>;
-
-/**
- * An opaque collection of option values. It should be cast to
- * {@link OptionValues}`<typeof _your_options_>` or to the type of your values class.
- */
-export type CastToOptionValues = Record<string, unknown>;
 
 /**
  * The concrete data type of the option value of a non-niladic option.
