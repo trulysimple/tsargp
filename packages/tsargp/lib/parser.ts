@@ -550,7 +550,7 @@ class ParserLoop {
         error.addWord('not');
       }
       const styles = this.validator.config.styles;
-      formatFunctions.p('fcn', styles, styles.text, error);
+      formatFunctions.p(requires, styles, styles.text, error);
       return false;
     }
     return true;

@@ -165,7 +165,9 @@ You can also specify a callback, which accepts the following parameter:
 
 - `values` - the parsed values
 
-It should return `true{:ts}` if the requirements were satisfied, or `false{:ts}` otherwise.
+It should return `true{:ts}` if the requirements were satisfied, or `false{:ts}` otherwise. The
+callback may be configured with a custom `toString` method, that will be used when rendering this
+attribute in error and help messages.
 
 #### Conditional requirements
 

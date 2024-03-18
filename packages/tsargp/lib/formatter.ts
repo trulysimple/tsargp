@@ -1076,7 +1076,7 @@ function formatRequirements(
     if (negate) {
       result.addWord('not');
     }
-    formatFunctions.p('fcn', styles, style, result);
+    formatFunctions.p(requires, styles, style, result);
   }
 }
 
