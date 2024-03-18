@@ -17,7 +17,6 @@ import type {
   SingleOption,
   ResolveCallback,
   CommandOption,
-  CastToOptionValues,
   ParamValue,
 } from './options';
 import type { Positional, ConcreteError, ErrorConfig, FormatFunction } from './validator';
@@ -225,7 +224,7 @@ class ParserLoop {
    */
   constructor(
     private readonly validator: OptionValidator,
-    private readonly values: CastToOptionValues,
+    private readonly values: OptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
     progName?: string,
@@ -405,7 +404,7 @@ class ParserLoop {
     if (!this.completing) {
       this.checkRequired();
     }
-    const values: CastToOptionValues = {};
+    const values: OptionValues = {};
     const options = typeof option.options === 'function' ? option.options() : option.options;
     const validator = new OptionValidator(options, this.validator.config);
     const args = this.args.slice(index + 1);
@@ -589,7 +588,7 @@ class ParserLoop {
  */
 function createLoop(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
   config: ParseConfig = { compIndex: Number(process?.env['COMP_POINT']) },
 ): ParserLoop {
@@ -858,7 +857,7 @@ function checkRequireItems<T>(
  */
 function parseArray<T extends string | number>(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   key: string,
   option: ArrayOption,
   name: string,
@@ -926,7 +925,7 @@ function parseArray<T extends string | number>(
  */
 function parseSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   key: string,
   option: SingleOption,
   name: string,
@@ -950,7 +949,7 @@ function parseSingle<T extends boolean | string | number>(
  */
 function setSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   key: string,
   option: SingleOption,
   name: string,
@@ -974,7 +973,7 @@ function setSingle<T extends boolean | string | number>(
  */
 function setArray<T extends string | number>(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   key: string,
   option: ArrayOption,
   name: string,
@@ -1002,7 +1001,7 @@ function setArray<T extends string | number>(
  */
 function parseValue(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   key: string,
   option: ParamOption,
   name: string,
@@ -1025,7 +1024,7 @@ function parseValue(
  * @param key The option key
  * @param option The option definition
  */
-function resetValue(values: CastToOptionValues, key: string, option: ArrayOption) {
+function resetValue(values: OptionValues, key: string, option: ArrayOption) {
   type ArrayVal =
     | Array<string>
     | Array<number>
@@ -1063,7 +1062,7 @@ function resetValue(values: CastToOptionValues, key: string, option: ArrayOption
  */
 function checkSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   option: SingleOption,
   negate: boolean,
   key: string,
@@ -1102,7 +1101,7 @@ function checkSingle<T extends boolean | string | number>(
  */
 function checkArray<T extends string | number>(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   option: ArrayOption,
   negate: boolean,
   key: string,
@@ -1145,7 +1144,7 @@ function checkArray<T extends string | number>(
  */
 function checkRequiredValue(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   option: ParamOption,
   negate: boolean,
   key: string,
@@ -1172,7 +1171,7 @@ function checkRequiredValue(
  */
 function setDefaultValue(
   validator: OptionValidator,
-  values: CastToOptionValues,
+  values: OptionValues,
   key: string,
   option: ValuedOption,
 ) {
