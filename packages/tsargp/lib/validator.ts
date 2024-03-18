@@ -96,8 +96,8 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.invalidOptionName]: 'Invalid option name %o.',
     [ErrorItem.optionEmptyVersion]: 'Option %o contains empty version.',
     [ErrorItem.optionRequiresItself]: 'Option %o requires itself.',
-    [ErrorItem.unknownRequiredOption]: 'Unknown required option %o.',
-    [ErrorItem.niladicOptionRequiredValue]: 'Required option %o does not accept values.',
+    [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
+    [ErrorItem.niladicOptionRequiredValue]: 'Option %o does not accept values.',
     [ErrorItem.optionZeroEnum]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Duplicate option name %o.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o.',
@@ -111,6 +111,7 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.numberOptionRange]: 'Invalid parameter to %o: %n1. Value must be in the range %n2.',
     [ErrorItem.arrayOptionLimit]: 'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
+    [ErrorItem.optionRequiredIf]: 'Option %o is required if %t.',
   },
 };
 
@@ -297,6 +298,9 @@ export class OptionValidator {
       if ('requires' in option && option.requires) {
         this.validateRequirements(key, option.requires);
       }
+      if ('requiredIf' in option && option.requiredIf) {
+        this.validateRequirements(key, option.requiredIf);
+      }
       if (option.type === 'version' && option.version === '') {
         throw this.error(ErrorItem.optionEmptyVersion, { o: key });
       }
@@ -318,7 +322,7 @@ export class OptionValidator {
       for (const item of requires.items) {
         this.validateRequirements(key, item);
       }
-    } else {
+    } else if (typeof requires === 'object') {
       for (const requiredKey in requires) {
         this.validateRequirement(key, requiredKey, requires[requiredKey]);
       }

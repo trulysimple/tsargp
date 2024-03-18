@@ -159,6 +159,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.deprecated,
     HelpItem.link,
     HelpItem.envVar,
+    HelpItem.requiredIf,
   ],
   phrases: {
     [HelpItem.synopsis]: '%s',
@@ -181,6 +182,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.deprecated]: 'Deprecated for %s.',
     [HelpItem.link]: 'Refer to %s for details.',
     [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
+    [HelpItem.requiredIf]: 'Required if %s.',
   },
 };
 
@@ -222,6 +224,7 @@ export class HelpFormatter {
     formatDeprecated,
     formatLink,
     formatEnvVar,
+    this.formatRequiredIf.bind(this),
   ];
 
   /**
@@ -419,6 +422,29 @@ export class HelpFormatter {
       const requires = option.requires;
       result.splitText(phrase, () => {
         formatRequirements(this.options, requires, styles, style, result);
+      });
+    }
+  }
+
+  /**
+   * Formats an option's conditional requirements to be included in the description.
+   * @param option The option definition
+   * @param phrase The description item phrase
+   * @param styles The set of styles
+   * @param style The description style
+   * @param result The resulting string
+   */
+  private formatRequiredIf(
+    option: Option,
+    phrase: string,
+    styles: ConcreteStyles,
+    style: Style,
+    result: TerminalString,
+  ) {
+    if ('requiredIf' in option && option.requiredIf) {
+      const requiredIf = option.requiredIf;
+      result.splitText(phrase, () => {
+        formatRequirements(this.options, requiredIf, styles, style, result);
       });
     }
   }
@@ -1044,8 +1070,13 @@ function formatRequirements(
     formatRequirements(options, requires.item, styles, style, result, !negate);
   } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
     formatRequiresExp(options, requires, styles, style, result, negate);
-  } else {
+  } else if (typeof requires === 'object') {
     formatRequiresVal(options, requires, styles, style, result, negate);
+  } else {
+    if (negate) {
+      result.addWord('not');
+    }
+    formatFunctions.p('fcn', styles, style, result);
   }
 }
 

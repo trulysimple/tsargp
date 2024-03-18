@@ -123,5 +123,153 @@ describe('HelpFormatter', () => {
         `  -f, --flag    A flag option. Requires (-req1 and (-req2 = 1 or -req3 != '2')).\n`,
       );
     });
+    
+    it('should handle an option that is required if another is present', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: 'other',
+        },
+        other: {
+          type: 'boolean',
+          names: ['-req', '--req'],
+          hide: true,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if -req.\n');
+    });
+
+    it('should handle an option that is required if another is present (2)', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: { other: undefined },
+        },
+        other: {
+          type: 'boolean',
+          names: ['-req', '--req'],
+          hide: true,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if -req.\n');
+    });
+
+    it('should handle an option that is required if another is absent', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: req.not('other'),
+        },
+        other: {
+          type: 'boolean',
+          names: ['-req', '--req'],
+          hide: true,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if no -req.\n');
+    });
+
+    it('should handle an option that is required if another is absent (2)', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: { other: null },
+        },
+        other: {
+          type: 'boolean',
+          names: ['-req', '--req'],
+          hide: true,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if no -req.\n');
+    });
+
+    it('should handle an option that is required if another option has a specific value', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: { other: 'abc' },
+        },
+        other: {
+          type: 'string',
+          names: ['-req', '--req'],
+          hide: true,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --flag    A flag option. Required if -req = 'abc'.\n`,
+      );
+    });
+
+    it('should handle an option with a conditional requirement expression', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: req.all('other1', req.one({ other2: 1 }, req.not({ other3: '2' }))),
+        },
+        other1: {
+          type: 'boolean',
+          names: ['-req1', '--req1'],
+          hide: true,
+        },
+        other2: {
+          type: 'number',
+          names: ['-req2', '--req2'],
+          hide: true,
+        },
+        other3: {
+          type: 'string',
+          names: ['-req3', '--req3'],
+          hide: true,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --flag    A flag option. Required if (-req1 and (-req2 = 1 or -req3 != '2')).\n`,
+      );
+    });
+
+    it('should handle an option with a conditional requirement callback', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: () => true,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if <fcn>.\n`);
+    });
+
+    it('should handle an option with a negated conditional requirement callback', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requiredIf: req.not(() => true),
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if not <fcn>.\n`);
+    });
   });
 });
