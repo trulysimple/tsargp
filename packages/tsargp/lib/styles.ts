@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Enumerate } from './utils';
 import { cs, tf, fg, bg, ul } from './enums';
-import { globalVars } from './utils';
+import { overrides } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 
@@ -391,7 +391,7 @@ export class TerminalMessage extends Array<TerminalString> {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(globalVars.stdoutCols);
+    return this.wrap(overrides.stdoutCols ?? process?.stdout?.columns);
   }
 
   /**
@@ -415,7 +415,7 @@ export class WarnMessage extends TerminalMessage {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(globalVars.stderrCols);
+    return this.wrap(overrides.stderrCols ?? process?.stderr?.columns);
   }
 }
 
@@ -494,7 +494,8 @@ export class VersionMessage extends String {
  */
 function omitStyles(width: number): boolean {
   return (
-    !globalVars.forceColor && (!width || globalVars.noColor || globalVars.termAttrs === 'dumb')
+    !process?.env['FORCE_COLOR'] &&
+    (!width || !!process?.env['NO_COLOR'] || process?.env['TERM'] === 'dumb')
   );
 }
 

@@ -44,14 +44,7 @@ import {
   style,
 } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
-import {
-  globalVars,
-  assert,
-  checkRequiredArray,
-  gestaltSimilarity,
-  getArgs,
-  isTrue,
-} from './utils';
+import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -102,16 +95,17 @@ export type ParseResult = {
 //--------------------------------------------------------------------------------------------------
 /**
  * Implements parsing of command-line arguments into option values.
+ * @template T The type of the option definitions
  */
-export class OpaqueArgumentParser {
+export class ArgumentParser<T extends Options = Options> {
   private readonly validator: OptionValidator;
 
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions
-   * @param config The error messages configuration
+   * @param config The error message configuration
    */
-  constructor(options: Options, config: ErrorConfig = {}) {
+  constructor(options: T, config: ErrorConfig = {}) {
     const concreteConfig: ConcreteError = {
       styles: Object.assign({}, defaultConfig.styles, config.styles),
       phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
@@ -130,38 +124,6 @@ export class OpaqueArgumentParser {
   }
 
   /**
-   * Parses command-line arguments into option values.
-   * @param values The options' values to parse into
-   * @param command The raw command line or command-line arguments
-   * @param config The parse configuration
-   * @returns The parse result
-   */
-  doParse(
-    values: CastToOptionValues,
-    command?: string | Array<string>,
-    config?: ParseConfig,
-  ): ParseResult {
-    const { promises, warnings } = createLoop(this.validator, values, command, config).loop();
-    return { promises, warnings };
-  }
-}
-
-/**
- * Implements parsing of command-line arguments into option values.
- * @template T The type of the option definitions
- */
-export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
-  /**
-   * Creates an argument parser based on a set of option definitions.
-   * @param options The option definitions
-   * @param config The error messages configuration
-   */
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-  constructor(options: T, config?: ErrorConfig) {
-    super(options, config);
-  }
-
-  /**
    * Convenience method to parse command-line arguments into option values.
    * @param command The raw command line or command-line arguments
    * @param config The parse configuration
@@ -169,7 +131,7 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
    */
   parse(command?: string | Array<string>, config?: ParseConfig): OptionValues<T> {
     const values = {} as OptionValues<T>;
-    super.doParse(values, command, config);
+    this.doParse(values, command, config);
     return values;
   }
 
@@ -184,7 +146,7 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
     config?: ParseConfig,
   ): Promise<OptionValues<T>> {
     const values = {} as OptionValues<T>;
-    await Promise.all(super.doParse(values, command, config).promises);
+    await Promise.all(this.doParse(values, command, config).promises);
     return values;
   }
 
@@ -200,7 +162,7 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
     command?: string | Array<string>,
     config?: ParseConfig,
   ): Promise<Array<void>> {
-    return Promise.all(super.doParse(values, command, config).promises);
+    return Promise.all(this.doParse(values, command, config).promises);
   }
 
   /**
@@ -215,7 +177,8 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
     command?: string | Array<string>,
     config?: ParseConfig,
   ): ParseResult {
-    return super.doParse(values, command, config);
+    const { promises, warnings } = createLoop(this.validator, values, command, config).loop();
+    return { promises, warnings };
   }
 
   /**
@@ -231,7 +194,7 @@ export class ArgumentParser<T extends Options> extends OpaqueArgumentParser {
     config?: ParseConfig,
   ): Promise<Error | Message | null> {
     try {
-      const { promises, warnings } = super.doParse(values, command, config);
+      const { promises, warnings } = this.doParse(values, command, config);
       await Promise.all(promises);
       return warnings.length
         ? new WarnMessage(
@@ -343,10 +306,8 @@ class ParserLoop {
         try {
           parseValue(this.validator, this.values, key, option, name, value);
         } catch (err) {
-          if (this.completing) {
-            // do not propagate errors during completion
-            console.error(`Was ignored: ${err}`);
-          } else {
+          // do not propagate errors during completion
+          if (!this.completing) {
             if (err instanceof ErrorMessage && suggestName(option)) {
               handleUnknown(this.validator, value, err);
             }
@@ -413,10 +374,8 @@ class ParserLoop {
               this.values[key] = val;
             },
             (err) => {
-              if (this.completing) {
-                // do not propagate errors during completion
-                console.error(`Was ignored: ${err}`);
-              } else {
+              // do not propagate errors during completion
+              if (!this.completing) {
                 throw err;
               }
             },
@@ -426,10 +385,8 @@ class ParserLoop {
         this.values[key] = result;
       }
     } catch (err) {
-      if (this.completing) {
-        // do not propagate errors during completion
-        console.error(`Was ignored: ${err}`);
-      } else {
+      // do not propagate errors during completion
+      if (!this.completing) {
         throw err;
       }
     }
@@ -501,7 +458,6 @@ class ParserLoop {
       result = complete(this.values, param, this.args.slice(index + 1));
     } catch (err) {
       // do not propagate errors during completion
-      console.error(`Was ignored: ${err}`);
       throw new CompletionMessage();
     }
     if (Array.isArray(result)) {
@@ -511,9 +467,8 @@ class ParserLoop {
       (words) => {
         throw new CompletionMessage(...words);
       },
-      (err) => {
+      () => {
         // do not propagate errors during completion
-        console.error(`Was ignored: ${err}`);
         throw new CompletionMessage();
       },
     );
@@ -635,8 +590,8 @@ class ParserLoop {
 function createLoop(
   validator: OptionValidator,
   values: CastToOptionValues,
-  command = globalVars.compLine ?? process?.argv.slice(2) ?? [],
-  config: ParseConfig = { compIndex: Number(globalVars.compPoint) },
+  command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
+  config: ParseConfig = { compIndex: Number(process?.env['COMP_POINT']) },
 ): ParserLoop {
   let args, progName;
   if (typeof command === 'string') {

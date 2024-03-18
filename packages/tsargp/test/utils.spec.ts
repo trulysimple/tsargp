@@ -1,7 +1,7 @@
 import type { SyncExpectationResult, AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
-  globalVars,
+  overrides,
   checkRequiredArray,
   gestaltSimilarity,
   getArgs,
@@ -44,13 +44,13 @@ async function toResolve(
 expect.extend({ toEqual, toResolve });
 
 beforeAll(() => {
-  globalVars.stderrCols = 0;
-  globalVars.stdoutCols = 0;
-  globalVars.forceColor = false;
-  globalVars.noColor = false;
-  globalVars.termAttrs = undefined;
-  globalVars.compLine = undefined;
-  globalVars.compPoint = undefined;
+  overrides.stderrCols = 0;
+  overrides.stdoutCols = 0;
+  process.env['FORCE_COLOR'] = undefined;
+  process.env['NO_COLOR'] = undefined;
+  process.env['TERM'] = undefined;
+  process.env['COMP_LINE'] = undefined;
+  process.env['COMP_POINT'] = undefined;
 });
 
 describe('getArgs', () => {

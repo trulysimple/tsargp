@@ -199,6 +199,16 @@ The default value of `emitStyles` depends on a few environment variables:
 - `NO_COLOR` - force _omission_ of styles regardless of the terminal width
 - `TERM` - set to `'dumb'{:ts}` to achieve the same behavior as `NO_COLOR`
 
+<Callout type="warning">
+  Generally, you should not alter the returned string after being wrapped, as this will mess the
+  disposition of text in the terminal. If you do need to, you can _prepend_ additional text ending
+  with a line feed character `'\n'{:ts}`, or _append_ text starting with a line feed, as this will
+  preserve the disposition of wrapped text.
+  
+  Alternatively, you can retrieve the underlying terminal string instances from the list and
+  manipulate them before converting the message to string.
+</Callout>
+
 In addition, this class overrides the `toString` method and provides a `message` property, both of
 which can be used to obtain a string wrapped with a default terminal width. This default depends on
 the kind of message: in the case of `TerminalMessage`, it is `process.stdout.columns{:ts}` (the
@@ -212,8 +222,8 @@ width of the standard _output_ stream). Therefore, this kind of message should b
 </Callout>
 
 <Callout type="default">
-  Messages are thrown or returned by the library as instances of one of the classes described below.
-  So you can check if a captured error is an instance of either one through `instanceof{:ts}`.
+  Messages are produced by the library as instances of one of the classes described below. So you
+  can check what kind of message a captured error is through `instanceof{:ts}`.
 </Callout>
 
 ### Help message

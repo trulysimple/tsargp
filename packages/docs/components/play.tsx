@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { OpaqueArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
+import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
 import { style, req, fg8, bg8, ul8 } from 'tsargp';
 import { HelpItem, ErrorItem, tf, fg, bg, ul } from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
@@ -31,7 +31,7 @@ type PlayProps = Props & {
 // Classes
 //--------------------------------------------------------------------------------------------------
 class PlayCommand extends Command<PlayProps> {
-  private parser: OpaqueArgumentParser | undefined;
+  private parser: ArgumentParser | undefined;
 
   constructor(props: PlayProps) {
     super(props, 'init', 'play');
@@ -40,7 +40,7 @@ class PlayCommand extends Command<PlayProps> {
   private init() {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
-    this.parser = new OpaqueArgumentParser(options).validate();
+    this.parser = new ArgumentParser(options).validate();
   }
 
   override run(line: string, compIndex?: number) {
