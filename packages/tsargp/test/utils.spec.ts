@@ -1,5 +1,5 @@
 import type { SyncExpectationResult, AsyncExpectationResult, MatcherState } from '@vitest/expect';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   overrides,
   checkRequiredArray,
@@ -41,17 +41,20 @@ async function toResolve(
   return { message, pass, actual, expected };
 }
 
-expect.extend({ toEqual, toResolve });
-
-beforeAll(() => {
+/*
+  Initialization section. Do not do any of the following:
+  - wrap this code in an IIFE, default export or vitest's `beforeAll`
+  - assign `undefined` to `process.env`, as it will be converted to the string 'undefined'
+*/
+{
+  expect.extend({ toEqual, toResolve });
   overrides.stderrCols = 0;
   overrides.stdoutCols = 0;
-  process.env['FORCE_COLOR'] = undefined;
-  process.env['NO_COLOR'] = undefined;
-  process.env['TERM'] = undefined;
-  process.env['COMP_LINE'] = undefined;
-  process.env['COMP_POINT'] = undefined;
-});
+  for (const name of ['FORCE_COLOR', 'NO_COLOR', 'TERM', 'COMP_LINE', 'COMP_POINT']) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete process.env[name];
+  }
+}
 
 describe('getArgs', () => {
   describe('with no completion index', () => {

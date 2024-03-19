@@ -8,7 +8,7 @@ import {
   HelpMessage,
   CompletionMessage,
 } from '../lib';
-import './utils.spec';
+import './utils.spec'; // initialize globals
 
 describe('TerminalString', () => {
   describe('addStyle', () => {

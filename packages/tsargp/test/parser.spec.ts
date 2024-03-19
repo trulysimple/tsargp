@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { type Options, ArgumentParser, req, OptionValues, HelpMessage } from '../lib';
-import './utils.spec';
+import './utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
@@ -200,57 +200,172 @@ describe('ArgumentParser', () => {
         expect(options.required.exec).not.toHaveBeenCalled();
       });
 
-      it('should throw an error when an option requirement is not satisfied', () => {
+      it('should throw an error when an option requirement is not satisfied with req.not', () => {
         const options = {
-          requires: {
-            type: 'flag',
-            names: ['req0'],
-            requires: req.all(
-              'required1',
-              req.one({ required2: [' a', 'b '] }, req.not({ required3: ['c'] })),
-            ),
+          string: {
+            type: 'string',
+            names: ['-s'],
           },
-          required1: {
-            type: 'flag',
-            names: ['req1'],
-          },
-          required2: {
-            type: 'strings',
-            names: ['req2'],
-            separator: '|',
-            unique: true,
-            trim: true,
-          },
-          required3: {
-            type: 'strings',
-            names: ['req3'],
-            preferredName: 'preferred',
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
             positional: true,
-            requires: req.all('required1', 'required4'),
-          },
-          required4: {
-            type: 'function',
-            names: ['req4'],
-            exec() {},
+            requires: req.not({ string: 'a' }),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse([])).not.toThrow();
-        expect(() => parser.parse(['req0'])).toThrow(/Option req0 requires req1\./);
-        expect(() => parser.parse(['req0', 'req1'])).toThrow(
-          /Option req0 requires \(req2 or preferred\)\./,
+        expect(() => parser.parse(['1'])).not.toThrow();
+        expect(() => parser.parse(['-s', 'b', '1'])).not.toThrow();
+        expect(() => parser.parse(['-s', 'a', '1'])).toThrow(/Option -b requires -s != 'a'\./);
+      });
+
+      it('should throw an error when an option requirement is not satisfied with req.all', () => {
+        const options = {
+          flag1: {
+            type: 'flag',
+            names: ['-f1'],
+          },
+          flag2: {
+            type: 'flag',
+            names: ['-f2'],
+          },
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            positional: true,
+            requires: req.all('flag1', 'flag2'),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse([])).not.toThrow();
+        expect(() => parser.parse(['1'])).toThrow(/Option -b requires -f1\./);
+        expect(() => parser.parse(['-f1', '1'])).toThrow(/Option -b requires -f2\./);
+        expect(() => parser.parse(['-f2', '1'])).toThrow(/Option -b requires -f1\./);
+        expect(() => parser.parse(['-f1', '-f2', '1'])).not.toThrow();
+      });
+
+      it('should throw an error when an option requirement is not satisfied with req.one', () => {
+        const options = {
+          flag1: {
+            type: 'flag',
+            names: ['-f1'],
+          },
+          flag2: {
+            type: 'flag',
+            names: ['-f2'],
+          },
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            positional: true,
+            requires: req.one('flag1', 'flag2'),
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse([])).not.toThrow();
+        expect(() => parser.parse(['1'])).toThrow(/Option -b requires \(-f1 or -f2\)\./);
+        expect(() => parser.parse(['-f1', '1'])).not.toThrow();
+        expect(() => parser.parse(['-f2', '1'])).not.toThrow();
+        expect(() => parser.parse(['-f1', '-f2', '1'])).not.toThrow();
+      });
+
+      it('should throw an error when an option requirement is not satisfied with an expression', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: {
+              string: 'abc',
+              number: 123,
+              strings: ['a', 'b'],
+              numbers: [1, 2],
+            },
+          },
+          string: {
+            type: 'string',
+            names: ['-s'],
+          },
+          number: {
+            type: 'number',
+            names: ['-n'],
+          },
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse([])).not.toThrow();
+        expect(() => parser.parse(['-f'])).toThrow(/Option -f requires -s\./);
+        expect(() => parser.parse(['-f', '-s', 'a'])).toThrow(/Option -f requires -s = 'abc'\./);
+        expect(() => parser.parse(['-f', '-s', 'abc'])).toThrow(/Option -f requires -n\./);
+        expect(() => parser.parse(['-f', '-s', 'abc', '-n', '1'])).toThrow(
+          /Option -f requires -n = 123\./,
         );
-        expect(() => parser.parse(['req0', 'req1', 'req2=a'])).toThrow(
-          /Option req0 requires \(req2 = \['a', 'b'\] or preferred\)\./,
+        expect(() => parser.parse(['-f', '-n', '123'])).toThrow(/Option -f requires -s\./);
+        expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123'])).toThrow(
+          /Option -f requires -ss\./,
         );
-        expect(() => parser.parse(['a'])).toThrow(/Option preferred requires req1\./);
-        expect(() => parser.parse(['req1', 'a'])).toThrow(/Option preferred requires req4\./);
-        expect(() => parser.parse(['req0', 'req1', 'c'])).toThrow(
-          /Option req0 requires \(req2 or preferred != \['c'\]\)\./,
+        expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a'])).toThrow(
+          /Option -f requires -ss = \['a', 'b'\]\./,
         );
-        expect(() => parser.parse(['req0', 'req1', 'req2', 'a|a|b'])).not.toThrow();
-        expect(() => parser.parse(['req0', 'req1', 'req2', 'b|b|a'])).not.toThrow();
-        expect(() => parser.parse(['req1', 'req4', 'a'])).not.toThrow();
+        expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).toThrow(
+          /Option -f requires -ns\./,
+        );
+        expect(() =>
+          parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1']),
+        ).toThrow(/Option -f requires -ns = \[1, 2\]\./);
+        expect(() =>
+          parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
+        ).not.toThrow();
+      });
+
+      it('should throw an error when an option requirement is not satisfied with a negated expression', () => {
+        const options = {
+          requires: {
+            type: 'flag',
+            names: ['-f'],
+            requires: req.not({
+              string: 'abc',
+              number: 123,
+              strings: ['a', 'b'],
+              numbers: [1, 2],
+            }),
+          },
+          string: {
+            type: 'string',
+            names: ['-s'],
+          },
+          number: {
+            type: 'number',
+            names: ['-n'],
+          },
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse([])).not.toThrow();
+        expect(() => parser.parse(['-f'])).not.toThrow();
+        expect(() => parser.parse(['-f', '-s', 'a'])).not.toThrow();
+        expect(() => parser.parse(['-f', '-s', 'abc'])).not.toThrow();
+        expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123'])).not.toThrow();
+        expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).not.toThrow();
+        expect(() =>
+          parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
+        ).toThrow(
+          /Option -f requires \(-s != 'abc' or -n != 123 or -ss != \['a', 'b'\] or -ns != \[1, 2\]\)\./,
+        );
       });
     });
 
@@ -812,15 +927,22 @@ describe('ArgumentParser', () => {
         const options = {
           flag: {
             type: 'flag',
-            names: ['-f'],
+            names: ['-f1'],
             envVar: 'FLAG',
+            requires: 'required',
+          },
+          required: {
+            type: 'flag',
+            names: ['-f2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         process.env['FLAG'] = '1';
-        expect(parser.parse([])).toEqual({ flag: true });
+        expect(() => parser.parse([])).toThrow(/Option -f1 requires -f2\./);
+        expect(parser.parse(['-f2'])).toEqual({ flag: true, required: true });
         process.env['FLAG'] = '0';
-        expect(parser.parse([])).toEqual({ flag: false });
+        expect(() => parser.parse([])).toThrow(/Option -f1 requires -f2\./);
+        expect(parser.parse(['-f2'])).toEqual({ flag: false, required: true });
       });
 
       it('should handle a flag option with a default value', () => {
@@ -1045,13 +1167,20 @@ describe('ArgumentParser', () => {
             type: 'boolean',
             names: ['-b'],
             envVar: 'BOOLEAN',
+            requires: 'required',
+          },
+          required: {
+            type: 'flag',
+            names: ['-f'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         process.env['BOOLEAN'] = '1';
-        expect(parser.parse([])).toEqual({ boolean: true });
+        expect(() => parser.parse([])).toThrow(/Option -b requires -f\./);
+        expect(parser.parse(['-f'])).toEqual({ boolean: true, required: true });
         process.env['BOOLEAN'] = '0';
-        expect(parser.parse([])).toEqual({ boolean: false });
+        expect(() => parser.parse([])).toThrow(/Option -b requires -f\./);
+        expect(parser.parse(['-f'])).toEqual({ boolean: false, required: true });
       });
 
       it('should handle a boolean option with a default value', () => {
@@ -1395,11 +1524,17 @@ describe('ArgumentParser', () => {
             type: 'string',
             names: ['-s'],
             envVar: 'STRING',
+            requires: 'required',
+          },
+          required: {
+            type: 'flag',
+            names: ['-f'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         process.env['STRING'] = '123';
-        expect(parser.parse([])).toEqual({ string: '123' });
+        expect(() => parser.parse([])).toThrow(/Option -s requires -f\./);
+        expect(parser.parse(['-f'])).toEqual({ string: '123', required: true });
       });
 
       it('should handle a string option with a default value', () => {
@@ -1835,11 +1970,17 @@ describe('ArgumentParser', () => {
             type: 'number',
             names: ['-n'],
             envVar: 'NUMBER',
+            requires: 'required',
+          },
+          required: {
+            type: 'flag',
+            names: ['-f'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         process.env['NUMBER'] = '123';
-        expect(parser.parse([])).toEqual({ number: 123 });
+        expect(() => parser.parse([])).toThrow(/Option -n requires -f\./);
+        expect(parser.parse(['-f'])).toEqual({ number: 123, required: true });
       });
 
       it('should handle a number option with a default value', () => {
@@ -2332,11 +2473,17 @@ describe('ArgumentParser', () => {
             envVar: 'STRINGS',
             separator: ',',
             case: 'upper',
+            requires: 'required',
+          },
+          required: {
+            type: 'flag',
+            names: ['-f'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         process.env['STRINGS'] = 'one,two';
-        expect(parser.parse([])).toEqual({ strings: ['ONE', 'TWO'] });
+        expect(() => parser.parse([])).toThrow(/Option -ss requires -f\./);
+        expect(parser.parse(['-f'])).toEqual({ strings: ['ONE', 'TWO'], required: true });
       });
 
       it('should handle a strings option with a default value', () => {
@@ -2830,7 +2977,7 @@ describe('ArgumentParser', () => {
         expect(parser.parse(['-ns', '5', '-ns', '6', '7'])).toEqual({ numbers: [5, 6, 7] });
       });
 
-      it('should handle a numbers option with an environment variable', () => {
+      it('should throw an error on numbers option with env. variable that fails validation', () => {
         const options = {
           numbers: {
             type: 'numbers',
@@ -2855,11 +3002,17 @@ describe('ArgumentParser', () => {
             envVar: 'NUMBERS',
             separator: ',',
             round: 'trunc',
+            requires: 'required',
+          },
+          required: {
+            type: 'flag',
+            names: ['-f'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         process.env['NUMBERS'] = '1.1,2.2';
-        expect(parser.parse([])).toEqual({ numbers: [1, 2] });
+        expect(() => parser.parse([])).toThrow(/Option -ns requires -f\./);
+        expect(parser.parse(['-f'])).toEqual({ numbers: [1, 2], required: true });
       });
 
       it('should handle a numbers option with a default value', () => {

@@ -4,7 +4,7 @@
 import type { Option, Options, Requires, ValuedOption, RequiresVal, ArrayOption } from './options';
 import type { Style } from './styles';
 import type { Concrete } from './utils';
-import type { ConcreteStyles, OptionValidator } from './validator';
+import type { ConcreteStyles, FormatFunction, OptionValidator } from './validator';
 
 import { tf, HelpItem } from './enums';
 import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
@@ -158,6 +158,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.default,
     HelpItem.deprecated,
     HelpItem.link,
+    HelpItem.envVar,
   ],
   phrases: {
     [HelpItem.synopsis]: '%s',
@@ -179,6 +180,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.default]: 'Defaults to %s.',
     [HelpItem.deprecated]: 'Deprecated for %s.',
     [HelpItem.link]: 'Refer to %s for details.',
+    [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
   },
 };
 
@@ -219,6 +221,7 @@ export class HelpFormatter {
     formatDefault,
     formatDeprecated,
     formatLink,
+    formatEnvVar,
   ];
 
   /**
@@ -485,39 +488,20 @@ function formatValue(
   style: Style,
   inDesc: boolean,
 ) {
-  if (value === undefined) {
-    return;
-  }
-  switch (option.type) {
-    case 'flag':
+  switch (typeof value) {
     case 'boolean':
-      return formatFunctions.b(value as boolean, styles, style, result);
+      return formatFunctions.b(value, styles, style, result);
     case 'string':
-      return formatFunctions.s(value as string, styles, style, result);
+      return formatFunctions.s(value, styles, style, result);
     case 'number':
-      return formatFunctions.n(value as number, styles, style, result);
-    case 'strings':
-      return formatArray(
-        option,
-        value as ReadonlyArray<string>,
-        result,
-        styles,
-        formatFunctions.s,
-        style,
-        inDesc,
-      );
-    case 'numbers':
-      return formatArray(
-        option,
-        value as ReadonlyArray<number>,
-        result,
-        styles,
-        formatFunctions.n,
-        style,
-        inDesc,
-      );
+      return formatFunctions.n(value, styles, style, result);
     default:
-      formatFunctions.p(value, styles, style, result);
+      if (isArray(option) && Array.isArray(value)) {
+        const formatFn = option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
+        return formatArray(option, value, result, styles, formatFn, style, inDesc);
+      } else if (value !== undefined) {
+        formatFunctions.p(value, styles, style, result);
+      }
   }
 }
 
@@ -531,12 +515,12 @@ function formatValue(
  * @param style The description style, if in the description
  * @param inDesc True if in the description
  */
-function formatArray<T extends string | number>(
+function formatArray(
   option: ArrayOption,
-  value: ReadonlyArray<T>,
+  value: ReadonlyArray<string> | ReadonlyArray<number>,
   result: TerminalString,
   styles: ConcreteStyles,
-  formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
+  formatFn: FormatFunction,
   style: Style,
   inDesc: boolean,
 ) {
@@ -561,12 +545,12 @@ function formatArray<T extends string | number>(
  * @param brackets An optional pair of brackets to surround the values
  * @param separator An optional separator to delimit the values
  */
-function formatArray2<T extends string | number>(
-  values: ReadonlyArray<T>,
+function formatArray2(
+  values: ReadonlyArray<string> | ReadonlyArray<number>,
   style: Style,
   result: TerminalString,
   styles: ConcreteStyles,
-  formatFn: (value: T, styles: ConcreteStyles, style: Style, result: TerminalString) => void,
+  formatFn: FormatFunction,
   brackets?: [string, string],
   separator?: string,
 ) {
@@ -828,14 +812,8 @@ function formatEnums(
     const enums = option.enums;
     const formatFn =
       option.type === 'string' || option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
-    type FormatFn = (
-      value: string | number,
-      styles: ConcreteStyles,
-      style: Style,
-      result: TerminalString,
-    ) => void;
     result.splitText(phrase, () => {
-      formatArray2(enums, style, result, styles, formatFn as FormatFn, ['{', '}'], ',');
+      formatArray2(enums, style, result, styles, formatFn, ['{', '}'], ',');
     });
   }
 }
@@ -964,7 +942,7 @@ function formatDefault(
   style: Style,
   result: TerminalString,
 ) {
-  if ('default' in option && option.default !== undefined && typeof option.default !== 'function') {
+  if ('default' in option && option.default !== undefined) {
     const def = option.default;
     result.splitText(phrase, () => {
       formatValue(option, def, result, styles, style, true);
@@ -1012,6 +990,29 @@ function formatLink(
     const link = option.link;
     result.splitText(phrase, () => {
       formatFunctions.u(link, styles, style, result);
+    });
+  }
+}
+
+/**
+ * Formats an option's environment variable to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param styles The set of styles
+ * @param style The description style
+ * @param result The resulting string
+ */
+function formatEnvVar(
+  option: Option,
+  phrase: string,
+  styles: ConcreteStyles,
+  style: Style,
+  result: TerminalString,
+) {
+  if ('envVar' in option && option.envVar) {
+    const envVar = option.envVar;
+    result.splitText(phrase, () => {
+      formatFunctions.o(envVar, styles, style, result);
     });
   }
 }
@@ -1065,7 +1066,7 @@ function formatRequiresExp(
   result: TerminalString,
   negate: boolean,
 ) {
-  const op = requires instanceof RequiresAll ? (negate ? 'or' : 'and') : negate ? 'and' : 'or';
+  const op = requires instanceof RequiresAll === negate ? 'or' : 'and';
   if (requires.items.length > 1) {
     result.addOpening('(');
   }

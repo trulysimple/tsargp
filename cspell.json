@@ -18,7 +18,8 @@
     "svgr",
     "oclif",
     "codemirror",
-    "CODEOWNERS"
+    "CODEOWNERS",
+    "IIFE"
   ],
   "ignoreRegExpList": ["gh-username", "ga-measurement-id"],
   "ignorePaths": ["*.lockb", ".prettierignore", "CODEOWNERS", "pre.json", ".git"],
