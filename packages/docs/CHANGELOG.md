@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.2.0-dev.2
+
+### Minor Changes
+
+- [#49](https://github.com/trulysimple/tsargp/pull/49) [`4a76dc1`](https://github.com/trulysimple/tsargp/commit/4a76dc17b2c82d089284348918a54a5cd454e639) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `requiredIf` attribute for valued options. An example was added in the respective section to explain the difference between this attribute and the traditional `requires`.
+
 ## 0.2.0-dev.1
 
 ### Minor Changes
