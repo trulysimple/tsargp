@@ -92,8 +92,13 @@ normalized.
 
 ### Requirements validation
 
-When an option declares that it requires other options, these requirements are subject to the
-restrictions listed below.
+When an option declares requirements referencing other options, these requirements are subject to
+the restrictions listed below.
+
+<Callout type="info">
+  This does not apply to [requirement callbacks](options.mdx#forward-requirements). They are ignored
+  during validation.
+</Callout>
 
 #### Option requiring itself
 

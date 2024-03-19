@@ -106,7 +106,8 @@ All option types that may have a value share a set of attributes, which are desc
 #### Always required
 
 The `required` attribute indicates that the option is _always_ required, regardless of other
-options. Mutually exclusive with [default value](#default-value--callback).
+options. Mutually exclusive with [default value](#default-value--callback) and
+[conditional requirements](#conditional-requirements).
 
 #### Default value | callback
 
@@ -165,17 +166,20 @@ You can also specify a callback, which accepts the following parameter:
 
 - `values` - the parsed values
 
-It should return `true{:ts}` if the requirements were satisfied, or `false{:ts}` otherwise. The
-callback may be configured with a custom `toString` method, that will be used when rendering this
-attribute in error and help messages.
+Notes about this callback:
+
+- it should return `true{:ts}` if the requirements were satisfied, or `false{:ts}` otherwise
+- it cannot be asynchronous, since it must be evaluated within the parsing loop
+- it may be configured with a custom `toString` method to render it in error and help messages
 
 #### Conditional requirements
 
-The `requiredIf` attribute, if present, specifies conditional requirements. They work like the
+The `requiredIf` attribute, if present, specifies conditional requirements. They behave like the
 reverse of the previous attribute: they indicate requirements that must be satisfied for the
-affected option to be _considered_ required.
+affected option to be _considered_ required. Mutually exclusive with
+[always required](#always-required).
 
-An example might help elucidate this difference. Suppose we have:
+An example might help elucidate this distinction. Suppose we have these requirements:
 
 ```ts
 req.all(
@@ -185,13 +189,13 @@ req.all(
 );
 ```
 
-If these requirements were defined in the `requires` attribute, they would mean:
+If they were defined in the `requires` attribute, they would mean:
 
 > _If this option is specified (either on the command-line or in an environment variable), then the
 > following must hold true: `option1` must be present AND (`option2` must be absent OR `option3`
 > must have a value different than `[2]`) AND `option1` must have the same value as `option3`._
 
-If these requirements were defined in the `requiredIf` attribute, they would mean:
+If they were defined in the `requiredIf` attribute, they would mean:
 
 > _If `option1` is present AND (`option2` is absent OR `option3` has a value different than `[2]`)
 > AND `option1` has the same value as `option3`, then this option is considered required and must be
