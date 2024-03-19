@@ -102,18 +102,19 @@ parsing the argument that overlaps this position in the string.
 ## Asynchronous parsing
 
 To understand how the parser supports asynchronous operations, we need to review the kinds of
-callbacks that an option definition may declare. There are seven of them:
+callbacks that an option definition may declare:
 
-- [default callback](options.mdx#default-value--callback)
-- [parse callback](options.mdx#parse-callback)
-- [parse delimited](options.mdx#parse-delimited)
-- [complete callback](options.mdx#complete-callback)
-- [resolve callback](options.mdx#resolve-callback)
-- [execute callback](options.mdx#execute-callback)
-- [command callback](options.mdx#command-callback)
+- Parsing callbacks
+  - [default callback](options.mdx#default-value--callback)
+  - [parse callback](options.mdx#parse-callback)
+  - [parse delimited](options.mdx#parse-delimited)
+- Executing callbacks
+  - [complete callback](options.mdx#complete-callback)
+  - [resolve callback](options.mdx#resolve-callback)
+  - [execute callback](options.mdx#execute-callback)
+  - [command callback](options.mdx#command-callback)
 
-They can be categorized as either _parsing_ callbacks or _executing_ callbacks, and are further
-explained below.
+All of these callbacks can be asynchronous, and are discussed below.
 
 ### Parsing callbacks
 
@@ -241,9 +242,9 @@ resolution before returning from the parsing loop.
 
 This check may also be performed in two more situations:
 
-- before calling a function option's [execute callback](options.mdx#execute-callback), if the
-  `break` attribute was set
-- before calling a command option's [command callback](options.mdx#command-callback)
+- before calling an [execute callback](options.mdx#execute-callback), if the
+  `break` attribute was set in the function option definition
+- before calling a [command callback](options.mdx#command-callback)
 
 However, requirements are not checked when performing bash completion. This is due to the fact that
 the completion builtin always expects a list of words as result. Hence, the library must suppress

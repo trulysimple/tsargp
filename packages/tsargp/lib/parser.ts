@@ -18,6 +18,7 @@ import type {
   ResolveCallback,
   CommandOption,
   ParamValue,
+  Option,
 } from './options';
 import type { Positional, ConcreteError, ErrorConfig, FormatFunction } from './validator';
 
@@ -476,26 +477,16 @@ class ParserLoop {
 
   /**
    * Checks if required options were correctly specified.
-   * Also sets option values to their default, if not previously set.
+   * Sets option values to their env. var. or default value, if not previously set.
    * This should only be called when completion is not in effect.
    */
   private checkRequired() {
     for (const key in this.validator.options) {
       if (!this.specifiedKeys.has(key)) {
         const option = this.validator.options[key];
-        if ('envVar' in option && option.envVar) {
-          const value = process?.env[option.envVar];
-          if (value) {
-            if (option.type === 'flag') {
-              this.values[key] = isTrue(value);
-            } else {
-              if (isArray(option)) {
-                resetValue(this.values, key, option);
-              }
-              parseValue(this.validator, this.values, key, option, option.envVar, value);
-            }
-            continue;
-          }
+        if (checkEnvVar(this.validator, this.values, option, key)) {
+          this.specifiedKeys.add(key); // need this for checking requirements in the second loop
+          continue;
         }
         if ('required' in option && option.required) {
           const name = option.preferredName ?? '';
@@ -558,9 +549,8 @@ class ParserLoop {
     const option = this.validator.options[key];
     const specified = this.specifiedKeys.has(key);
     const required = value !== null;
-    const withValue = required && value !== undefined;
-    if (isNiladic(option) || !specified || !required || !withValue) {
-      if ((specified && required != negate) || (!specified && required == negate && !withValue)) {
+    if (isNiladic(option) || !specified || !required || value === undefined) {
+      if ((specified == required) != negate) {
         return true;
       }
       if (specified) {
@@ -578,6 +568,37 @@ class ParserLoop {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Checks if the environment variable of an option is present, and reads its value.
+ * @param validator The option validator
+ * @param values The options' values to parse into
+ * @param option The option definition
+ * @param key The option key
+ * @returns True if the environment variable was found
+ */
+function checkEnvVar(
+  validator: OptionValidator,
+  values: OptionValues,
+  option: Option,
+  key: string,
+): boolean {
+  if ('envVar' in option && option.envVar) {
+    const value = process?.env[option.envVar];
+    if (value) {
+      if (option.type === 'flag') {
+        values[key] = isTrue(value);
+      } else {
+        if (isArray(option)) {
+          resetValue(values, key, option);
+        }
+        parseValue(validator, values, key, option, option.envVar, value);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Creates a parser loop.
  * @param validator The option validator

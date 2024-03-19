@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Exports
+// Exports - NOTE: some enumerations are abbreviated for ease of use in client code.
 //--------------------------------------------------------------------------------------------------
 export {
   ControlSequence as cs,
@@ -10,17 +10,12 @@ export {
 };
 
 //--------------------------------------------------------------------------------------------------
-// Constants
+// Constants - NOTE: please add new enumerators at the _end_ of the enumeration.
 //--------------------------------------------------------------------------------------------------
 /**
  * The kind of items that can be thrown as error messages.
  */
-// Internal note: this needs to be defined before `defaultConfig`, otherwise bun chokes.
 export const enum ErrorItem {
-  /**
-   * Warning saved by the parser when a deprecated option is specified on the command-line.
-   */
-  deprecatedOption,
   /**
    * Raised by the parser when an option parameter fails to be parsed.
    */
@@ -139,6 +134,10 @@ export const enum ErrorItem {
    * limit constraint.
    */
   arrayOptionLimit,
+  /**
+   * Warning saved by the parser when a deprecated option is specified on the command-line.
+   */
+  deprecatedOption,
 }
 
 /**
@@ -202,7 +201,7 @@ export const enum HelpItem {
    */
   limit,
   /**
-   * The option requirements, if any.
+   * The option's requirements, if any.
    */
   requires,
   /**
@@ -221,6 +220,10 @@ export const enum HelpItem {
    * The external resource reference, if any.
    */
   link,
+  /**
+   * The option's environment variable, if any.
+   */
+  envVar,
 }
 
 /**

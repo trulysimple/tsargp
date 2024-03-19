@@ -80,7 +80,6 @@ export const defaultConfig: ConcreteError = {
     text: style(tf.clear),
   },
   phrases: {
-    [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
     [ErrorItem.parseError]: '%t\n\nDid you mean to specify an option name instead of %o?',
     [ErrorItem.parseErrorWithSimilar]:
       '%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.',
@@ -111,6 +110,7 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.numberOptionEnums]: 'Invalid parameter to %o: %n1. Possible values are %n2.',
     [ErrorItem.numberOptionRange]: 'Invalid parameter to %o: %n1. Value must be in the range %n2.',
     [ErrorItem.arrayOptionLimit]: 'Option %o has too many values (%n1). Should have at most %n2.',
+    [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
   },
 };
 

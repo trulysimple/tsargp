@@ -161,6 +161,7 @@ description, and in what order. It is an array whose values can be one of the en
 - `default` - the option's default value, if not a callback
 - `deprecated` - reports if the option is deprecated, and why
 - `link` - the external resource reference, if any
+- `envVar` - the option's environment variable, if any
 
 The default is to print all items in the order listed above.
 
@@ -190,6 +191,7 @@ and grouped in parentheses, as can be seen in the default values listed below:
 - `default` - `'Defaults to %s.'{:ts}`
 - `deprecated` - `'Deprecated for %s.'{:ts}`
 - `link` - `'Refer to %s for details.'{:ts}`
+- `envVar` - `'Can be specified through the %s environment variable.'{:ts}`
 
 These phrases will be formatted according to [text formatting](styles.mdx#text-splitting) rules.
 
