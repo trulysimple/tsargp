@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.3.0-dev.2
+
+### Minor Changes
+
+- [#49](https://github.com/trulysimple/tsargp/pull/49) [`4a76dc1`](https://github.com/trulysimple/tsargp/commit/4a76dc17b2c82d089284348918a54a5cd454e639) Thanks [@disog](https://github.com/disog)! - A new attribute called `requiredIf` was added to valued options, to indicate the option's conditional requirements. Similarly, a new enumerator was added to `HelpItem` to print this attribute in the help message. Both the parser and the formatter were updated to handle conditional option requirements.
+
 ## 0.3.0-dev.1
 
 ### Minor Changes
