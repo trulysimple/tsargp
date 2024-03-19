@@ -534,7 +534,7 @@ describe('ArgumentParser', () => {
       );
     });
   });
-  
+
   it('should throw an error when on forward requirement not satisfied with a callback', () => {
     const options = {
       flag1: {
@@ -552,6 +552,7 @@ describe('ArgumentParser', () => {
         requires: (values) => values['flag1'] === values['flag2'],
       },
     } as const satisfies Options;
+    options.boolean.requires.toString = () => 'fcn';
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
     expect(() => parser.parse(['1'])).not.toThrow();
@@ -577,6 +578,7 @@ describe('ArgumentParser', () => {
         requires: req.not((values) => values['flag1'] === values['flag2']),
       },
     } as const satisfies Options;
+    options.boolean.requires.item.toString = () => 'fcn';
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
     expect(() => parser.parse(['1'])).toThrow(/Option -b requires not <fcn>\./);
@@ -585,8 +587,6 @@ describe('ArgumentParser', () => {
     expect(() => parser.parse(['-f1', '-f2', '1'])).toThrow(/Option -b requires not <fcn>\./);
   });
 
-  // ------
-  
   it('should throw an error on option absent despite being required if another is present (1)', () => {
     const options = {
       required: {
@@ -880,6 +880,7 @@ describe('ArgumentParser', () => {
         requiredIf: (values) => values['flag1'] === values['flag2'],
       },
     } as const satisfies Options;
+    options.boolean.requiredIf.toString = () => 'fcn';
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).toThrow(/Option -b is required if <fcn>\./);
     expect(() => parser.parse(['-f1'])).not.toThrow();
@@ -904,6 +905,7 @@ describe('ArgumentParser', () => {
         requiredIf: req.not((values) => values['flag1'] === values['flag2']),
       },
     } as const satisfies Options;
+    options.boolean.requiredIf.item.toString = () => 'fcn';
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
     expect(() => parser.parse(['-f1'])).toThrow(/Option -b is required if not <fcn>\./);

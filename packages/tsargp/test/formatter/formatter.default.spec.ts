@@ -94,6 +94,20 @@ describe('HelpFormatter', () => {
       );
     });
 
+    it('should handle a flag option with a default callback with a toString method', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          default: () => true,
+        },
+      } as const satisfies Options;
+      options.flag.default.toString = () => 'fcn';
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Defaults to <fcn>.\n');
+    });
+
     it('should handle a boolean option with a default value', () => {
       const options = {
         boolean: {

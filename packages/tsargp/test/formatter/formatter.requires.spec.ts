@@ -123,7 +123,35 @@ describe('HelpFormatter', () => {
         `  -f, --flag    A flag option. Requires (-req1 and (-req2 = 1 or -req3 != '2')).\n`,
       );
     });
-    
+
+    it('should handle an option with a requirement callback', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requires: () => true,
+        },
+      } as const satisfies Options;
+      options.flag.requires.toString = () => 'fcn';
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires <fcn>.\n`);
+    });
+
+    it('should handle an option with a negated requirement callback', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          requires: req.not(() => true),
+        },
+      } as const satisfies Options;
+      options.flag.requires.item.toString = () => 'fcn';
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires not <fcn>.\n`);
+    });
+
     it('should handle an option that is required if another is present', () => {
       const options = {
         flag: {
@@ -211,9 +239,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(
-        `  -f, --flag    A flag option. Required if -req = 'abc'.\n`,
-      );
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req = 'abc'.\n`);
     });
 
     it('should handle an option with a conditional requirement expression', () => {
@@ -255,6 +281,7 @@ describe('HelpFormatter', () => {
           requiredIf: () => true,
         },
       } as const satisfies Options;
+      options.flag.requiredIf.toString = () => 'fcn';
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if <fcn>.\n`);
     });
@@ -268,6 +295,7 @@ describe('HelpFormatter', () => {
           requiredIf: req.not(() => true),
         },
       } as const satisfies Options;
+      options.flag.requiredIf.item.toString = () => 'fcn';
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if not <fcn>.\n`);
     });
