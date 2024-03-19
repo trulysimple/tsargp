@@ -504,7 +504,6 @@ function getNameWidths(options: Options): Array<number> {
  * @param styles The set of styles
  * @param style The style to revert to
  * @param inDesc True if in the description
- * @returns Nothing
  */
 function formatValue(
   option: ValuedOption,
@@ -516,15 +515,18 @@ function formatValue(
 ) {
   switch (typeof value) {
     case 'boolean':
-      return formatFunctions.b(value, styles, style, result);
+      formatFunctions.b(value, styles, style, result);
+      break;
     case 'string':
-      return formatFunctions.s(value, styles, style, result);
+      formatFunctions.s(value, styles, style, result);
+      break;
     case 'number':
-      return formatFunctions.n(value, styles, style, result);
+      formatFunctions.n(value, styles, style, result);
+      break;
     default:
       if (isArray(option) && Array.isArray(value)) {
         const formatFn = option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
-        return formatArray(option, value, result, styles, formatFn, style, inDesc);
+        formatArray(option, value, result, styles, formatFn, style, inDesc);
       } else if (value !== undefined) {
         formatFunctions.p(value, styles, style, result);
       }

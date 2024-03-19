@@ -36,7 +36,40 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(/Unknown option unknown in requirement\./);
     });
 
-    it('should allow an option required to be present', () => {
+    it('should throw an error on required help option', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: { required: true },
+        },
+        required: {
+          type: 'help',
+          names: ['-h'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Non-valued option required in requirement\./);
+    });
+
+    it('should throw an error on required version option', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: { required: true },
+        },
+        required: {
+          type: 'version',
+          names: ['-v'],
+          version: '',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Non-valued option required in requirement\./);
+    });
+
+    it('should allow a flag option required to be present', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -52,7 +85,7 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).not.toThrow();
     });
 
-    it('should allow an option required to be absent', () => {
+    it('should allow a flag option required to be absent', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -68,7 +101,7 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).not.toThrow();
     });
 
-    it('should throw an error on option required with a specific value', () => {
+    it('should allow a flag option required with a value', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -81,12 +114,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
-        /Option required does not accept values\./,
-      );
+      expect(() => validator.validate()).not.toThrow();
     });
 
-    it('should throw an error on function option required with a value', () => {
+    it('should allow a function option required with a value', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -100,8 +131,42 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
+    });
+
+    it('should allow a command option required with a value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requires: { required: true },
+        },
+        required: {
+          type: 'command',
+          names: ['-c'],
+          options: {},
+          cmd: () => {},
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
+    });
+
+    it('should throw an error on flag option required with an incompatible value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requires: { required: 'abc' },
+        },
+        required: {
+          type: 'flag',
+          names: ['-f2'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required does not accept values\./,
+        /Option required has incompatible value <abc>\. Should be of type 'boolean'\./,
       );
     });
 
@@ -231,7 +296,7 @@ describe('OptionValidator', () => {
       );
     });
 
-    it('should throw an error on option required if itself', () => {
+    it('should throw an error on option required by its own presence', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -247,7 +312,7 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(/Option requires requires itself\./);
     });
 
-    it('should throw an error on option required if unknown option', () => {
+    it('should throw an error on option required if an unknown option is present', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -263,7 +328,7 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(/Unknown option unknown in requirement\./);
     });
 
-    it('should allow an option required if another is present', () => {
+    it('should allow an option required if a flag option is present', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -279,7 +344,7 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).not.toThrow();
     });
 
-    it('should allow an option required if another is absent', () => {
+    it('should allow an option required if a flag option is absent', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -295,7 +360,7 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).not.toThrow();
     });
 
-    it('should throw an error on option required if another has a specific value', () => {
+    it('should allow an option required if a flag option has a value', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -308,12 +373,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
-        /Option other does not accept values\./,
-      );
+      expect(() => validator.validate()).not.toThrow();
     });
 
-    it('should throw an error on option required if a function option has a value', () => {
+    it('should allow an option required if a function option has a value', () => {
       const options = {
         requires: {
           type: 'flag',
@@ -327,8 +390,42 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
+    });
+
+    it('should allow an option required if a command option has a value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requiredIf: { other: true },
+        },
+        other: {
+          type: 'command',
+          names: ['-c'],
+          options: {},
+          cmd: () => {},
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
+    });
+
+    it('should throw an error on option required if a flag option has an incompatible value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requiredIf: { other: 'abc' },
+        },
+        other: {
+          type: 'flag',
+          names: ['-f2'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other does not accept values\./,
+        /Option other has incompatible value <abc>\. Should be of type 'boolean'\./,
       );
     });
 

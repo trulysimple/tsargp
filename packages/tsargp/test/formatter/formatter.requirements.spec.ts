@@ -4,7 +4,7 @@ import '../utils.spec'; // initialize globals
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
-    it('should handle an option that requires the presence of another', () => {
+    it('should handle an option that requires the presence of another (1)', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -40,7 +40,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -f, --flag    A flag option. Requires -req.\n');
     });
 
-    it('should handle an option that requires the absence of another', () => {
+    it('should handle an option that requires the absence of another (1)', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -94,7 +94,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req = 'abc'.\n`);
     });
 
-    it('should handle an option with a requirement expression', () => {
+    it('should handle an option with a forward requirement expression', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -124,7 +124,7 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle an option with a requirement callback', () => {
+    it('should handle an option with a forward requirement callback', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -138,7 +138,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires <fcn>.\n`);
     });
 
-    it('should handle an option with a negated requirement callback', () => {
+    it('should handle an option with a negated forward requirement callback', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -152,7 +152,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires not <fcn>.\n`);
     });
 
-    it('should handle an option that is required if another is present', () => {
+    it('should handle an option that is required if another is present (1)', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -188,7 +188,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if -req.\n');
     });
 
-    it('should handle an option that is required if another is absent', () => {
+    it('should handle an option that is required if another is absent (1)', () => {
       const options = {
         flag: {
           type: 'flag',

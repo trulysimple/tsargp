@@ -82,9 +82,9 @@ export const enum ErrorItem {
    */
   unknownRequiredOption,
   /**
-   * Raised by the validator when an option requires a niladic option with a value.
+   * Raised by the validator when an option requires a non-valued option.
    */
-  niladicOptionRequiredValue,
+  invalidRequiredOption,
   /**
    * Raised by the validator when an option has a zero-length enumeration array.
    */
