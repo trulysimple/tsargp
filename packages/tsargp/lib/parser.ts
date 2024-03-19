@@ -488,9 +488,15 @@ class ParserLoop {
           this.specifiedKeys.add(key); // need this for checking requirements in the second loop
           continue;
         }
+        const name = option.preferredName ?? '';
         if ('required' in option && option.required) {
-          const name = option.preferredName ?? '';
           throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
+        }
+        if ('requiredIf' in option && option.requiredIf) {
+          const error = new TerminalString();
+          if (!this.checkRequires(option.requiredIf, error, true, true)) {
+            throw this.validator.error(ErrorItem.optionRequiredIf, { o: name, t: error });
+          }
         }
         if ('default' in option) {
           setDefaultValue(this.validator, this.values, key, option);
@@ -501,7 +507,7 @@ class ParserLoop {
       const option = this.validator.options[key];
       if ('requires' in option && option.requires) {
         const error = new TerminalString();
-        if (!this.checkRequires(option.requires, error)) {
+        if (!this.checkRequires(option.requires, error, false, false)) {
           const name = option.preferredName ?? '';
           throw this.validator.error(ErrorItem.optionRequires, { o: name, t: error });
         }
@@ -514,23 +520,40 @@ class ParserLoop {
    * @param requires The option requirements
    * @param error The terminal string error
    * @param negate True if the requirements should be negated
-   * @returns True if the requirement was satisfied
+   * @param invert True if the requirements should be inverted
+   * @returns True if the requirements were satisfied
    */
-  private checkRequires(requires: Requires, error: TerminalString, negate = false): boolean {
+  private checkRequires(
+    requires: Requires,
+    error: TerminalString,
+    negate: boolean,
+    invert: boolean,
+  ): boolean {
     if (typeof requires === 'string') {
-      return this.checkRequirement([requires, undefined], error, negate);
+      return this.checkRequirement([requires, undefined], error, negate, invert);
     }
     if (requires instanceof RequiresNot) {
-      return this.checkRequires(requires.item, error, !negate);
+      return this.checkRequires(requires.item, error, !negate, invert);
     }
     if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
       const and = requires instanceof RequiresAll !== negate;
       const itemFn = this.checkRequires.bind(this);
-      return checkRequireItems(requires.items, itemFn, error, negate, and);
+      return checkRequireItems(requires.items, itemFn, error, negate, invert, and);
     }
-    const entries = Object.entries(requires);
-    const itemFn = this.checkRequirement.bind(this);
-    return checkRequireItems(entries, itemFn, error, negate, !negate);
+    if (typeof requires === 'object') {
+      const entries = Object.entries(requires);
+      const itemFn = this.checkRequirement.bind(this);
+      return checkRequireItems(entries, itemFn, error, negate, invert, !negate);
+    }
+    if (requires(this.values) == negate) {
+      if (negate != invert) {
+        error.addWord('not');
+      }
+      const styles = this.validator.config.styles;
+      formatFunctions.p(requires, styles, styles.text, error);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -538,12 +561,14 @@ class ParserLoop {
    * @param kvp The required option key and value
    * @param error The terminal string error
    * @param negate True if the requirement should be negated
+   * @param invert True if the requirements should be inverted
    * @returns True if the requirement was satisfied
    */
   private checkRequirement(
     kvp: [key: string, value: RequiresVal[string]],
     error: TerminalString,
     negate: boolean,
+    invert: boolean,
   ): boolean {
     const [key, value] = kvp;
     const option = this.validator.options[key];
@@ -553,7 +578,7 @@ class ParserLoop {
       if ((specified == required) != negate) {
         return true;
       }
-      if (specified) {
+      if (specified != invert) {
         error.addWord('no');
       }
       const name = option.preferredName ?? '';
@@ -561,7 +586,16 @@ class ParserLoop {
       formatFunctions.o(name, styles, styles.text, error);
       return false;
     }
-    return checkRequiredValue(this.validator, this.values, option, negate, key, value, error);
+    return checkRequiredValue(
+      this.validator,
+      this.values,
+      option,
+      negate,
+      invert,
+      key,
+      value,
+      error,
+    );
   }
 }
 
@@ -831,14 +865,16 @@ function handleNameCompletion(validator: OptionValidator, prefix?: string): neve
  * @param itemFn The callback to execute on each item
  * @param error The terminal string error
  * @param negate True if the requirement should be negated
+ * @param invert True if the requirements should be inverted
  * @param and If true, return on the first error; else return on the first success
  * @returns True if the requirement was satisfied
  */
 function checkRequireItems<T>(
   items: Array<T>,
-  itemFn: (item: T, error: TerminalString, negate: boolean) => boolean,
+  itemFn: (item: T, error: TerminalString, negate: boolean, invert: boolean) => boolean,
   error: TerminalString,
   negate: boolean,
+  invert: boolean,
   and: boolean,
 ): boolean {
   if (!and && items.length > 1) {
@@ -849,9 +885,9 @@ function checkRequireItems<T>(
     if (and || first) {
       first = false;
     } else {
-      error.addWord('or');
+      error.addWord(invert ? 'and' : 'or');
     }
-    const success = itemFn(item, error, negate);
+    const success = itemFn(item, error, negate, invert);
     if (success !== and) {
       return success;
     }
@@ -1075,6 +1111,7 @@ function resetValue(values: OptionValues, key: string, option: ArrayOption) {
  * @param values The option values
  * @param option The option definition
  * @param negate True if the requirement should be negated
+ * @param invert True if the requirements should be inverted
  * @param key The required option key
  * @param value The required value
  * @param error The terminal string error
@@ -1086,6 +1123,7 @@ function checkSingle<T extends boolean | string | number>(
   values: OptionValues,
   option: SingleOption,
   negate: boolean,
+  invert: boolean,
   key: string,
   value: T,
   error: TerminalString,
@@ -1102,7 +1140,7 @@ function checkSingle<T extends boolean | string | number>(
   }
   const styles = validator.config.styles;
   formatFunctions.o(name, styles, styles.text, error);
-  error.addWord(negate ? '!=' : '=');
+  error.addWord(negate != invert ? '!=' : '=');
   formatFn(expected, styles, styles.text, error);
   return false;
 }
@@ -1114,6 +1152,7 @@ function checkSingle<T extends boolean | string | number>(
  * @param values The option values
  * @param option The option definition
  * @param negate True if the requirement should be negated
+ * @param invert True if the requirements should be inverted
  * @param key The required option key
  * @param value The required value
  * @param error The terminal string error
@@ -1125,6 +1164,7 @@ function checkArray<T extends string | number>(
   values: OptionValues,
   option: ArrayOption,
   negate: boolean,
+  invert: boolean,
   key: string,
   value: ReadonlyArray<T>,
   error: TerminalString,
@@ -1141,7 +1181,7 @@ function checkArray<T extends string | number>(
   }
   const styles = validator.config.styles;
   formatFunctions.o(name, styles, styles.text, error);
-  error.addWord(negate ? '!=' : '=').addOpening('[');
+  error.addWord(negate != invert ? '!=' : '=').addOpening('[');
   expected.forEach((val, i) => {
     formatFn(val, styles, styles.text, error);
     if (i < expected.length - 1) {
@@ -1158,6 +1198,7 @@ function checkArray<T extends string | number>(
  * @param values The option values
  * @param option The option definition
  * @param negate True if the requirement should be negated
+ * @param invert True if the requirements should be inverted
  * @param key The required option key (to get the specified value)
  * @param value The required value
  * @param error The terminal string error
@@ -1168,6 +1209,7 @@ function checkRequiredValue(
   values: OptionValues,
   option: ParamOption,
   negate: boolean,
+  invert: boolean,
   key: string,
   value: Exclude<RequiresVal[string], undefined | null>,
   error: TerminalString,
@@ -1180,7 +1222,7 @@ function checkRequiredValue(
         ? formatFunctions.s
         : formatFunctions.n;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (checkFn as any)(validator, values, option, negate, key, value, error, formatFn);
+  return (checkFn as any)(validator, values, option, negate, invert, key, value, error, formatFn);
 }
 
 /**

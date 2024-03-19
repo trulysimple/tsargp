@@ -106,7 +106,8 @@ All option types that may have a value share a set of attributes, which are desc
 #### Always required
 
 The `required` attribute indicates that the option is _always_ required, regardless of other
-options. Mutually exclusive with [default value](#default-value--callback).
+options. Mutually exclusive with [default value](#default-value--callback) and
+[conditional requirements](#conditional-requirements).
 
 #### Default value | callback
 
@@ -144,8 +145,9 @@ The `requires` attribute, if present, specifies requirements that must be satisf
 is specified on the command-line. It can be either:
 
 - an option key;
-- an object that maps option keys to required values; or
-- a requirement expression
+- an object that maps option keys to required values;
+- a requirement expression; or
+- a requirement callback
 
 In the case of an option key, the referenced option must also be present on the command-line.
 In the case of an object, every referenced option must have the corresponding value.
@@ -159,6 +161,45 @@ In the case of an expression, it is evaluated as follows:
   When an object is specified, `undefined{:ts}` values can be used to signify required _presence_,
   and `null{:ts}` values to signify required _absence_.
 </Callout>
+
+You can also specify a callback, which accepts the following parameter:
+
+- `values` - the parsed values
+
+Notes about this callback:
+
+- it should return `true{:ts}` if the requirements were satisfied, or `false{:ts}` otherwise
+- it cannot be asynchronous, since it must be evaluated within the parsing loop
+- it may be configured with a custom `toString` method to render it in error and help messages
+
+#### Conditional requirements
+
+The `requiredIf` attribute, if present, specifies conditional requirements. They behave like the
+reverse of the previous attribute: they indicate requirements that must be satisfied for the
+affected option to be _considered_ required. Mutually exclusive with
+[always required](#always-required).
+
+An example might help elucidate this distinction. Suppose we have these requirements:
+
+```ts
+req.all(
+  'option1',
+  req.one({ option2: null }, req.not({ option3: [2] })),
+  (values) => values['option1'] === values['option3'],
+);
+```
+
+If they were defined in the `requires` attribute, they would mean:
+
+> _If this option is specified (either on the command-line or in an environment variable), then the
+> following must hold true: `option1` must be present AND (`option2` must be absent OR `option3`
+> must have a value different than `[2]`) AND `option1` must have the same value as `option3`._
+
+If they were defined in the `requiredIf` attribute, they would mean:
+
+> _If `option1` is present AND (`option2` is absent OR `option3` has a value different than `[2]`)
+> AND `option1` has the same value as `option3`, then this option is considered required and must be
+> specified (either on the command-line or in an environment variable)._
 
 <Callout type="info">
   During requirement evaluation, values are compared _after_ being normalized.

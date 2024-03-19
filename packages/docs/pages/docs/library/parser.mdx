@@ -104,6 +104,7 @@ parsing the argument that overlaps this position in the string.
 To understand how the parser supports asynchronous operations, we need to review the kinds of
 callbacks that an option definition may declare:
 
+- [requirement callback](options.mdx#forward-requirements)
 - Parsing callbacks
   - [default callback](options.mdx#default-value--callback)
   - [parse callback](options.mdx#parse-callback)
@@ -114,7 +115,8 @@ callbacks that an option definition may declare:
   - [execute callback](options.mdx#execute-callback)
   - [command callback](options.mdx#command-callback)
 
-All of these callbacks can be asynchronous, and are discussed below.
+Except for the requirement callback, all other callbacks can be asynchronous, and are discussed
+below.
 
 ### Parsing callbacks
 

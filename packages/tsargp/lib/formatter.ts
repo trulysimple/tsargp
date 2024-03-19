@@ -159,6 +159,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.deprecated,
     HelpItem.link,
     HelpItem.envVar,
+    HelpItem.requiredIf,
   ],
   phrases: {
     [HelpItem.synopsis]: '%s',
@@ -181,6 +182,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.deprecated]: 'Deprecated for %s.',
     [HelpItem.link]: 'Refer to %s for details.',
     [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
+    [HelpItem.requiredIf]: 'Required if %s.',
   },
 };
 
@@ -222,6 +224,7 @@ export class HelpFormatter {
     formatDeprecated,
     formatLink,
     formatEnvVar,
+    this.formatRequiredIf.bind(this),
   ];
 
   /**
@@ -424,6 +427,29 @@ export class HelpFormatter {
   }
 
   /**
+   * Formats an option's conditional requirements to be included in the description.
+   * @param option The option definition
+   * @param phrase The description item phrase
+   * @param styles The set of styles
+   * @param style The description style
+   * @param result The resulting string
+   */
+  private formatRequiredIf(
+    option: Option,
+    phrase: string,
+    styles: ConcreteStyles,
+    style: Style,
+    result: TerminalString,
+  ) {
+    if ('requiredIf' in option && option.requiredIf) {
+      const requiredIf = option.requiredIf;
+      result.splitText(phrase, () => {
+        formatRequirements(this.options, requiredIf, styles, style, result);
+      });
+    }
+  }
+
+  /**
    * Formats a help message for the default option group.
    * @returns The formatted help message
    */
@@ -478,7 +504,6 @@ function getNameWidths(options: Options): Array<number> {
  * @param styles The set of styles
  * @param style The style to revert to
  * @param inDesc True if in the description
- * @returns Nothing
  */
 function formatValue(
   option: ValuedOption,
@@ -490,15 +515,18 @@ function formatValue(
 ) {
   switch (typeof value) {
     case 'boolean':
-      return formatFunctions.b(value, styles, style, result);
+      formatFunctions.b(value, styles, style, result);
+      break;
     case 'string':
-      return formatFunctions.s(value, styles, style, result);
+      formatFunctions.s(value, styles, style, result);
+      break;
     case 'number':
-      return formatFunctions.n(value, styles, style, result);
+      formatFunctions.n(value, styles, style, result);
+      break;
     default:
       if (isArray(option) && Array.isArray(value)) {
         const formatFn = option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
-        return formatArray(option, value, result, styles, formatFn, style, inDesc);
+        formatArray(option, value, result, styles, formatFn, style, inDesc);
       } else if (value !== undefined) {
         formatFunctions.p(value, styles, style, result);
       }
@@ -1044,8 +1072,13 @@ function formatRequirements(
     formatRequirements(options, requires.item, styles, style, result, !negate);
   } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
     formatRequiresExp(options, requires, styles, style, result, negate);
-  } else {
+  } else if (typeof requires === 'object') {
     formatRequiresVal(options, requires, styles, style, result, negate);
+  } else {
+    if (negate) {
+      result.addWord('not');
+    }
+    formatFunctions.p(requires, styles, style, result);
   }
 }
 

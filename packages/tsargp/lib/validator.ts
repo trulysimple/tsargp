@@ -13,12 +13,13 @@ import type {
   NumbersOption,
   ArrayOption,
   ParamValue,
+  ValuedOption,
 } from './options';
 import type { Style } from './styles';
 import type { Concrete, URL } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
-import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray } from './options';
+import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued } from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
 import { assert } from './utils';
 
@@ -96,8 +97,8 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.invalidOptionName]: 'Invalid option name %o.',
     [ErrorItem.optionEmptyVersion]: 'Option %o contains empty version.',
     [ErrorItem.optionRequiresItself]: 'Option %o requires itself.',
-    [ErrorItem.unknownRequiredOption]: 'Unknown required option %o.',
-    [ErrorItem.niladicOptionRequiredValue]: 'Required option %o does not accept values.',
+    [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
+    [ErrorItem.invalidRequiredOption]: 'Non-valued option %o in requirement.',
     [ErrorItem.optionZeroEnum]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Duplicate option name %o.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o.',
@@ -111,6 +112,7 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.numberOptionRange]: 'Invalid parameter to %o: %n1. Value must be in the range %n2.',
     [ErrorItem.arrayOptionLimit]: 'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
+    [ErrorItem.optionRequiredIf]: 'Option %o is required if %t.',
   },
 };
 
@@ -297,6 +299,9 @@ export class OptionValidator {
       if ('requires' in option && option.requires) {
         this.validateRequirements(key, option.requires);
       }
+      if ('requiredIf' in option && option.requiredIf) {
+        this.validateRequirements(key, option.requiredIf);
+      }
       if (option.type === 'version' && option.version === '') {
         throw this.error(ErrorItem.optionEmptyVersion, { o: key });
       }
@@ -318,7 +323,7 @@ export class OptionValidator {
       for (const item of requires.items) {
         this.validateRequirements(key, item);
       }
-    } else {
+    } else if (typeof requires === 'object') {
       for (const requiredKey in requires) {
         this.validateRequirement(key, requiredKey, requires[requiredKey]);
       }
@@ -344,11 +349,11 @@ export class OptionValidator {
     if (!(requiredKey in this.options)) {
       throw this.error(ErrorItem.unknownRequiredOption, { o: requiredKey });
     }
+    const option = this.options[requiredKey];
+    if (!isValued(option)) {
+      throw this.error(ErrorItem.invalidRequiredOption, { o: requiredKey });
+    }
     if (requiredValue !== undefined && requiredValue !== null) {
-      const option = this.options[requiredKey];
-      if (isNiladic(option)) {
-        throw this.error(ErrorItem.niladicOptionRequiredValue, { o: requiredKey });
-      }
       this.validateValue(requiredKey, option, requiredValue);
     }
   }
@@ -396,14 +401,14 @@ export class OptionValidator {
    * @param key The option key
    * @param option The option definition
    * @param value The option value
-   * @returns Nothing
    * @throws On value not satisfying specified constraints
    */
-  private validateValue(key: string, option: ParamOption, value: ParamOption['example']) {
+  private validateValue(key: string, option: ValuedOption, value: unknown) {
     if (value === undefined) {
       return;
     }
     switch (option.type) {
+      case 'flag':
       case 'boolean':
         this.assertType<boolean>(value, key, 'boolean');
         break;
@@ -416,7 +421,7 @@ export class OptionValidator {
         this.normalizeNumber(option, key, value);
         break;
       case 'strings': {
-        this.assertType<object>(value, key, 'object');
+        this.assertType<Array<string>>(value, key, 'object');
         const normalized = value.map((val) => {
           this.assertType<string>(val, key, 'string');
           return this.normalizeString(option, key, val);
@@ -425,17 +430,13 @@ export class OptionValidator {
         break;
       }
       case 'numbers': {
-        this.assertType<object>(value, key, 'object');
+        this.assertType<Array<number>>(value, key, 'object');
         const normalized = value.map((val) => {
           this.assertType<number>(val, key, 'number');
           return this.normalizeNumber(option, key, val);
         });
         this.normalizeArray(option, key, normalized);
         break;
-      }
-      default: {
-        const _exhaustiveCheck: never = option;
-        return _exhaustiveCheck;
       }
     }
   }

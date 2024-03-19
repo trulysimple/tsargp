@@ -98,10 +98,18 @@ export type RequiresVal = { [key: string]: ParamOption['example'] | null };
  * An option requirement can be either:
  *
  * - an option key;
- * - an object that maps option keys to required values; or
- * - a requirement expression.
+ * - an object that maps option keys to required values;
+ * - a requirement expression; or
+ * - a requirement callback
  */
-export type Requires = string | RequiresVal | RequiresExp;
+export type Requires = string | RequiresVal | RequiresExp | RequiresCallback;
+
+/**
+ * A callback to check option requirements.
+ * @param values The option values
+ * @returns True if the requirements were satisfied
+ */
+export type RequiresCallback = (values: OptionValues) => boolean;
 
 /**
  * A callback to parse the value of option parameters. Any specified normalization or constraint
@@ -221,6 +229,10 @@ export type WithRequired = {
    * @deprecated mutually exclusive with {@link WithRequired.required}
    */
   readonly default?: never;
+  /**
+   * @deprecated mutually exclusive with {@link WithRequired.required}
+   */
+  readonly requiredIf?: never;
 };
 
 /**
@@ -236,10 +248,15 @@ export type WithDefault<T> = {
    * based on those values.
    */
   readonly default?: T | DefaultCallback<T>;
+  /**
+   * The conditional requirements.
+   */
+  readonly requiredIf?: Requires;
   // TODO: change link to WithDefault.default once this is resolved:
   // https://github.com/TypeStrong/typedoc/issues/2524
   /**
-   * @deprecated mutually exclusive with {@link WithDefault['default']}
+   * @deprecated mutually exclusive with {@link WithDefault['default']} and
+   * {@link WithDefault['requiredIf']}
    */
   readonly required?: never;
 };

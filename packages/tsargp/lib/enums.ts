@@ -82,9 +82,9 @@ export const enum ErrorItem {
    */
   unknownRequiredOption,
   /**
-   * Raised by the validator when an option requires a niladic option with a value.
+   * Raised by the validator when an option requires a non-valued option.
    */
-  niladicOptionRequiredValue,
+  invalidRequiredOption,
   /**
    * Raised by the validator when an option has a zero-length enumeration array.
    */
@@ -138,6 +138,10 @@ export const enum ErrorItem {
    * Warning saved by the parser when a deprecated option is specified on the command-line.
    */
   deprecatedOption,
+  /**
+   * Raised by the parser when a conditional option requirement is not satisfied.
+   */
+  optionRequiredIf,
 }
 
 /**
@@ -224,6 +228,10 @@ export const enum HelpItem {
    * The option's environment variable, if any.
    */
   envVar,
+  /**
+   * The option's conditional requirements, if any.
+   */
+  requiredIf,
 }
 
 /**
