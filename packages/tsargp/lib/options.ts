@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
+import type { HelpConfig, HideSections } from './formatter';
 import type { Style } from './styles';
 import type { Resolve, Writable, URL } from './utils';
-import { HelpConfig, HideSections } from './formatter';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
