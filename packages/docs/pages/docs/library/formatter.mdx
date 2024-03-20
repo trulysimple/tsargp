@@ -12,20 +12,27 @@ instantiated with a [validator](validator.mdx) instance and provides methods to 
 ## Help message
 
 The help message is a list of [terminal strings](styles.mdx#terminal-strings) that may contain
-control sequences and can be printed in a terminal that supports sequences. There are two methods to
-obtain help messages:
+control sequences and can be printed in a terminal. There are different ways of obtaining help
+messages, as described below.
 
-- `formatHelp` - returns a message corresponding to the _default_ option group, which is the set of
-  options that did not explicitly declare an [option group](options.mdx#group--hide) in their
-  definition.
-- `formatGroups` - its sibling, returns a `Map{:ts}` of option group names to help messages,
-  including the default group with an empty name.
+### Default help
+
+The `formatHelp` method returns a message corresponding to the _default_ option group, which is the
+set of options that did not explicitly declare an [option group](options.mdx#group--hide) in their
+definition. It accepts no parameter.
+
+### Group help
+
+The `formatGroup` method, a sibling of the above one, returns the help of a specific option group.
+The `formatGroups` method, on the other hand, returns a `Map{:ts}` that maps group names to help
+messages, including the default group with an empty name. Neither of these methods accept any
+parameter.
 
 ## Help entries
 
-Each option definition results in a help entry being included in the message. An entry is divided
-into "columns" (not to be confused with terminal columns), each containing a piece of information,
-as described below.
+Each option definition results in a help entry being included under its respective group in the help
+message. An entry is divided into "columns" (not to be confused with terminal columns), each
+containing a piece of information, as described below.
 
 ### Names column
 
@@ -53,8 +60,8 @@ This column contains either:
 
 ### Description column
 
-The last column contains the option description, which is composed of [help items](#help-items),
-explained later in this page.
+The last column contains the option description and is composed of [help items](#help-items), which
+are explained later in this page.
 
 ## Help format
 
@@ -64,83 +71,41 @@ contains a set of optional properties, as described below.
 
 ### Indentation level
 
-The `indent` property specifies the indentation level of help entry columns. It has the following
-set of optional properties.
+The `indent` property specifies the indentation levels (in number of terminal columns) of help entry
+columns. It has the following set of optional properties:
 
-#### Names indentation
-
-The `names` property specifies the level of indentation for the option names (in number of terminal
-columns). This value should _not_ be negative. It defaults to `2{:ts}`.
-
-#### Parameter indentation
-
-The `param` property specifies the level of indentation for the option parameter (in number of
-terminal columns). This value may be negative if [parameter absolute](#parameter-absolute) is
-`false{:ts}`. It defaults to `2{:ts}`.
-
-#### Description indentation
-
-The `descr` property specifies the level of indentation for the option description (in number of
-terminal columns). This value may be negative if [description absolute](#description-absolute) is
-`false{:ts}`. It defaults to `2{:ts}`.
-
-#### Parameter absolute
-
-The `paramAbsolute` property, if `true{:ts}`, indicates that the indentation level for the option
-parameter should be relative to the beginning of the line instead of the end of the option names. It
-defaults to `false{:ts}`.
-
-#### Description absolute
-
-The `descrAbsolute` property, if `true{:ts}`, indicates that the indentation level for the option
-description should be relative to the beginning of the line instead of the end of the option
-parameter. It defaults to `false{:ts}`.
+- `names` - level of indentation for the option names (non-negative, defaults to `2{:ts}`)
+- `param` - level of indentation for the option parameter (non-negative if `paramAbsolute` is
+  `true{:ts}`, defaults to `2{:ts}`)
+- `descr` - level of indentation for the option description (non-negative if `descrAbsolute` is
+  `true{:ts}`, defaults to `2{:ts}`)
+- `paramAbsolute` whether the indentation level for the option parameter should be relative to the
+  beginning of the line instead of the end of the option names (defaults to `false{:ts}`)
+- `descrAbsolute` whether the indentation level for the option description should be relative to the
+  beginning of the line instead of the end of the option parameter (defaults to `false{:ts}`)
 
 ### Line breaks
 
 The `breaks` property specifies the number of line breaks to insert before help entry columns. It
-has the following set of optional properties.
+has the following set of optional properties:
 
-#### Breaks before names
-
-The `names` property specifies the number of line breaks to insert before the option names. It
-defaults to `0{:ts}`.
-
-#### Breaks before parameter
-
-The `param` property specifies the number of line breaks to insert before the option parameter. It
-defaults to `0{:ts}`.
-
-#### Breaks before description
-
-The `descr` property specifies the number of line breaks to insert before the option description. It
-defaults to `0{:ts}`.
+- `names` - line breaks to insert before the option names (defaults to `0{:ts}`)
+- `param` - line breaks to insert before the option parameter (defaults to `0{:ts}`)
+- `descr` - line breaks to insert before the option description (defaults to `0{:ts}`)
 
 ### Hidden columns
 
-The `hidden` property can be used to select help entry columns that should _not_ be displayed. It
-has the following set of optional properties.
+The `hidden` property can be used to select help entry columns that should be omitted. It has the
+following set of optional properties:
 
-#### Hidden names
-
-The `names` property, if `true{:ts}`, indicates that the option names should not be displayed. It
-defaults to `false{:ts}`.
-
-#### Hidden parameter
-
-The `param` property, if `true{:ts}`, indicates that the option parameter should not be displayed.
-It defaults to `false{:ts}`.
-
-#### Hidden description
-
-The `descr` property, if `true{:ts}`, indicates that the option description should not be displayed.
-It defaults to `false{:ts}`.
+- `names` - whether option names should be omitted (defaults to `false{:ts}`)
+- `param` - whether option parameters should be omitted (defaults to `false{:ts}`)
+- `descr` - whether option descriptions should be omitted (defaults to `false{:ts}`)
 
 ### Help items
 
-The `items` property specifies the kinds of items that should be displayed in the option
-description, and in what order. It is an array whose values can be one of the enumerated values from
-`HelpItem`:
+The `items` property specifies the kinds of items that should be displayed in option descriptions,
+and in what order. It is an array whose values can be one of the enumerators from `HelpItem`:
 
 - `synopsis` - the option synopsis
 - `negation` - the negation names of a flag option, if any
@@ -203,7 +168,7 @@ These phrases will be formatted according to [text formatting](styles.mdx#text-s
   ``` `Requires ${style(tf.bold)}%s`{:ts} ```.
 </Callout>
 
-### Help styles
+## Help styles
 
 Help messages are styled with the same set of styles as
 [error messages](validator.mdx#error-styles), except that they may get overriden by (or combined

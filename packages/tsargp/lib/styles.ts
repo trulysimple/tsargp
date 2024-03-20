@@ -100,17 +100,44 @@ export class TerminalString {
   readonly lengths = new Array<number>();
 
   /**
-   * @returns The sum of the lengths of all strings, ignoring control characters and sequences.
+   * @returns The sum of the lengths of all strings, ignoring control characters and sequences
    */
   get length(): number {
     return this.lengths.reduce((acc, len) => acc + len, 0);
   }
 
   /**
-   * Creates a terminal string.
-   * @param start The starting column for this string
+   * @returns The number of strings
    */
-  constructor(public start: number = 0) {}
+  get count(): number {
+    return this.strings.length;
+  }
+
+  /**
+   * Creates a terminal string.
+   * @param start The starting column for this string (negative values are replaced by zero)
+   * @param breaks The initial number of line feeds (non-positive values are ignored)
+   */
+  constructor(
+    public start: number = 0,
+    breaks = 0,
+  ) {
+    this.addBreaks(breaks);
+  }
+
+  /**
+   * Removes strings from the end of the list.
+   * @param count The number of strings
+   * @returns The terminal string instance
+   */
+  pop(count = 1): this {
+    if (count > 0) {
+      const len = Math.max(0, this.count - count);
+      this.strings.length = len;
+      this.lengths.length = len;
+    }
+    return this;
+  }
 
   /**
    * Appends another terminal string to the strings.
@@ -174,7 +201,7 @@ export class TerminalString {
 
   /**
    * Appends line breaks to the list of strings.
-   * @param count The number of line breaks to insert
+   * @param count The number of line breaks to insert (non-positive values are ignored)
    * @returns The terminal string instance
    */
   addBreaks(count: number): this {
@@ -198,7 +225,7 @@ export class TerminalString {
    */
   private addText(text: string, length: number): this {
     if (text) {
-      const count = this.strings.length;
+      const count = this.count;
       if (count && this.merge) {
         this.strings[count - 1] += text;
         this.lengths[count - 1] += length;
@@ -234,12 +261,12 @@ export class TerminalString {
    * @param format An optional callback to process format specifiers
    */
   private splitParagraph(para: string, format?: FormatCallback) {
-    const count = this.strings.length;
+    const count = this.count;
     para.split(regex.item).forEach((item, i) => {
       if (i % 2 == 0) {
         this.splitItem(item, format);
       } else {
-        if (this.strings.length > count) {
+        if (this.count > count) {
           this.addBreaks(1);
         }
         this.addWord(item);
@@ -298,12 +325,14 @@ export class TerminalString {
         result.length--;
       }
     }
-    if (!this.strings.length) {
+    if (!this.count) {
       return column;
     }
     const firstIsBreak = this.strings[0].startsWith('\n');
+    column = Math.max(0, column);
+    width = Math.max(0, width);
+    let start = Math.max(0, this.start);
     let indent = '';
-    let start = this.start;
     if (!width) {
       indent = ' '.repeat(start);
       if (!firstIsBreak) {
@@ -329,7 +358,7 @@ export class TerminalString {
       result.push(sequence(cs.cha, 1));
     }
     column = start;
-    for (let i = 0; i < this.strings.length; ++i) {
+    for (let i = 0; i < this.count; ++i) {
       let str = this.strings[i];
       if (str.startsWith('\n')) {
         result.push(str);

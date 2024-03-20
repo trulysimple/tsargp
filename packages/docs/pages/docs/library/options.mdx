@@ -172,6 +172,11 @@ Notes about this callback:
 - it cannot be asynchronous, since it must be evaluated within the parsing loop
 - it may be configured with a custom `toString` method to render it in error and help messages
 
+<Callout type="info">
+  You cannot reference options from a [nested command](#command-option) (parent or child) in a
+  requirement. Option keys must always refer to options in the same set of option definitions.
+</Callout>
+
 #### Conditional requirements
 
 The `requiredIf` attribute, if present, specifies conditional requirements. They behave like the

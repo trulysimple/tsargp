@@ -31,6 +31,12 @@ export const overrides: {
 export type Alias<T> = T extends T ? T : T;
 
 /**
+ * A helper type to resolve types in IntelliSense.
+ * @template T The type to be resolved
+ */
+export type Resolve<T> = T & unknown;
+
+/**
  * A helper type to enumerate numbers.
  * @template N The type of last enumerated number
  */
@@ -42,24 +48,13 @@ export type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['l
  * A helper type to remove optionality from types and properties.
  * @template T The source type
  */
-export type Concrete<T> = Exclude<
-  {
-    [K in keyof T]-?: Concrete<T[K]>;
-  },
-  undefined
->;
-
-/**
- * A helper type to resolve types in IntelliSense.
- * @template T The type to be resolved
- */
-export type Resolve<T> = T & unknown;
+export type Concrete<T> = { [K in keyof T]-?: Concrete<T[K]> };
 
 /**
  * A helper type to remove the readonly attribute from a type.
  * @template T The source type
  */
-export type Writable<T> = { -readonly [P in keyof T]: T[P] };
+export type Writable<T> = { -readonly [P in keyof T]: Writable<T[P]> };
 
 /**
  * For some reason the global definition of `URL` has issues with static methods.

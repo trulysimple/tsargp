@@ -3,7 +3,7 @@ import { type Options, OptionValidator } from '../../lib';
 import '../utils.spec';
 
 describe('OptionValidator', () => {
-  describe('constructor', () => {
+  describe('validate', () => {
     it('should throw an error on duplicate option name in the same option', () => {
       const options = {
         duplicate: {
@@ -11,7 +11,8 @@ describe('OptionValidator', () => {
           names: ['dup', 'dup'],
         },
       } as const satisfies Options;
-      expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
     });
 
     it('should throw an error on duplicate option name across different options', () => {
@@ -25,7 +26,8 @@ describe('OptionValidator', () => {
           names: ['dup'],
         },
       } as const satisfies Options;
-      expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
     });
 
     it('should throw an error on flag option with duplicate negation name', () => {
@@ -36,7 +38,8 @@ describe('OptionValidator', () => {
           negationNames: ['dup'],
         },
       } as const satisfies Options;
-      expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
     });
 
     it('should throw an error on option with duplicate positional marker name', () => {
@@ -51,7 +54,8 @@ describe('OptionValidator', () => {
           positional: 'dup',
         },
       } as const satisfies Options;
-      expect(() => new OptionValidator(options)).toThrow(/Duplicate option name dup\./);
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
     });
 
     it('should throw an error on duplicate positional option', () => {
@@ -67,13 +71,10 @@ describe('OptionValidator', () => {
           positional: true,
         },
       } as const satisfies Options;
-      expect(() => new OptionValidator(options)).toThrow(
-        /Duplicate positional option positional2\./,
-      );
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate positional option positional2\./);
     });
-  });
 
-  describe('validate', () => {
     it('should throw an error on string option with duplicate enumerated values', () => {
       const options = {
         string: {

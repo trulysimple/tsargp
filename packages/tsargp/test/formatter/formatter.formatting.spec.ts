@@ -99,24 +99,6 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('');
     });
 
-    it('should handle an option with a group', () => {
-      /** @ignore */
-      function assert(_condition: unknown): asserts _condition {}
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option',
-          group: 'group',
-        },
-      } as const satisfies Options;
-      const groups = new HelpFormatter(new OptionValidator(options)).formatGroups();
-      const group = groups.get('group');
-      assert(group);
-      const message = group;
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option\n');
-    });
-
     it('should not break columns in the help message when configured with negative values', () => {
       const options = {
         flag: {
@@ -125,8 +107,8 @@ describe('HelpFormatter', () => {
           desc: 'A boolean option',
         },
       } as const satisfies Options;
-      const cfg: HelpConfig = { breaks: { names: -1, param: -1, descr: -1 } };
-      const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
+      const config: HelpConfig = { breaks: { names: -1, param: -1, descr: -1 } };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toEqual('  -b, --boolean  <boolean>  A boolean option\n');
     });
 
@@ -138,8 +120,8 @@ describe('HelpFormatter', () => {
           desc: 'A boolean option',
         },
       } as const satisfies Options;
-      const cfg: HelpConfig = { breaks: { names: 1, param: 1, descr: 1 } };
-      const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
+      const config: HelpConfig = { breaks: { names: 1, param: 1, descr: 1 } };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toMatch(
         /^\n {2}-b, --boolean\n {17}<boolean>\n {28}A boolean option\n$/,
       );
@@ -153,11 +135,11 @@ describe('HelpFormatter', () => {
           desc: 'A boolean option',
         },
       } as const satisfies Options;
-      const cfg: HelpConfig = {
+      const config: HelpConfig = {
         indent: { paramAbsolute: true, descrAbsolute: true },
         breaks: { names: 1, param: 1, descr: 1 },
       };
-      const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toMatch(
         /^\n {2}-b, --boolean\n {2}<boolean>\n {2}A boolean option\n$/,
       );
@@ -171,11 +153,11 @@ describe('HelpFormatter', () => {
           desc: 'A boolean option',
         },
       } as const satisfies Options;
-      const cfg: HelpConfig = {
+      const config: HelpConfig = {
         indent: { names: -1, param: -1, descr: -1 },
         breaks: { names: 1, param: 1, descr: 1 },
       };
-      const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toMatch(/^\n-b, --boolean\n {12}<boolean>\n {20}A boolean option\n$/);
     });
 
@@ -187,8 +169,8 @@ describe('HelpFormatter', () => {
           desc: 'A boolean option',
         },
       } as const satisfies Options;
-      const cfg: HelpConfig = { hidden: { names: true } };
-      const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
+      const config: HelpConfig = { hidden: { names: true } };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toEqual('    <boolean>  A boolean option\n');
     });
 
@@ -200,8 +182,8 @@ describe('HelpFormatter', () => {
           desc: 'A boolean option',
         },
       } as const satisfies Options;
-      const cfg: HelpConfig = { hidden: { param: true } };
-      const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
+      const config: HelpConfig = { hidden: { param: true } };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toEqual('  -b, --boolean    A boolean option\n');
     });
 
@@ -213,8 +195,8 @@ describe('HelpFormatter', () => {
           desc: 'A boolean option',
         },
       } as const satisfies Options;
-      const cfg: HelpConfig = { hidden: { descr: true } };
-      const message = new HelpFormatter(new OptionValidator(options), cfg).formatHelp();
+      const config: HelpConfig = { hidden: { descr: true } };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toEqual('  -b, --boolean  <boolean>\n');
     });
   });

@@ -22,6 +22,11 @@ The following sections describe the various kinds of validation performed by thi
 definition that does not satisfy one of these restrictions will trigger an error with an explanatory
 message that may include the option's key.
 
+<Callout type="info">
+  Validation is performed recursively for nested commands, skipping circular references when
+  necessary.
+</Callout>
+
 ### Names validation
 
 Option names are subject to the restrictions listed below. In any of these, empty strings and

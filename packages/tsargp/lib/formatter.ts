@@ -1,7 +1,15 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, Requires, ValuedOption, RequiresVal, ArrayOption } from './options';
+import type {
+  Option,
+  Options,
+  Requires,
+  ValuedOption,
+  RequiresVal,
+  ArrayOption,
+  ParamOption,
+} from './options';
 import type { Style } from './styles';
 import type { Concrete } from './utils';
 import type { ConcreteStyles, FormatFunction, OptionValidator } from './validator';
@@ -198,7 +206,6 @@ export class HelpFormatter {
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number>;
-  private readonly namesStart: number;
 
   /**
    * Keep this in-sync with {@link HelpItem}.
@@ -235,15 +242,8 @@ export class HelpFormatter {
   constructor(validator: OptionValidator, config: HelpConfig = {}) {
     this.options = validator.options;
     this.styles = validator.config.styles;
-    this.config = {
-      indent: Object.assign({}, defaultConfig.indent, config.indent),
-      breaks: Object.assign({}, defaultConfig.breaks, config.breaks),
-      hidden: Object.assign({}, defaultConfig.hidden, config.hidden),
-      items: config.items ?? defaultConfig.items,
-      phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
-    };
+    this.config = mergeConfig(config);
     this.nameWidths = this.config.hidden.names ? [] : getNameWidths(this.options);
-    this.namesStart = Math.max(0, this.config.indent.names);
     let paramWidth = 0;
     for (const key in this.options) {
       const option = this.options[key];
@@ -262,18 +262,13 @@ export class HelpFormatter {
    * @param paramWidth The width of the param column
    */
   private adjustEntries(namesWidth: number, paramWidth: number) {
-    const paramStart = Math.max(
-      0,
-      this.config.indent.paramAbsolute
-        ? this.config.indent.param
-        : this.namesStart + namesWidth + this.config.indent.param,
-    );
-    const descrStart = Math.max(
-      0,
-      this.config.indent.descrAbsolute
-        ? this.config.indent.descr
-        : paramStart + paramWidth + this.config.indent.descr,
-    );
+    const namesStart = Math.max(0, this.config.indent.names);
+    const paramStart = this.config.indent.paramAbsolute
+      ? Math.max(0, this.config.indent.param)
+      : namesStart + namesWidth + this.config.indent.param;
+    const descrStart = this.config.indent.descrAbsolute
+      ? Math.max(0, this.config.indent.descr)
+      : paramStart + paramWidth + this.config.indent.descr;
     for (const entries of this.groups.values()) {
       for (const { param, descr } of entries) {
         param.start = paramStart;
@@ -329,7 +324,7 @@ export class HelpFormatter {
   ) {
     const textStyle = this.styles.text;
     let breaks = this.config.breaks.names;
-    let start = this.namesStart;
+    let start = Math.max(0, this.config.indent.names);
     let str: TerminalString | undefined;
     /** @ignore */
     function formatOption(name: string | null, width: number) {
@@ -337,7 +332,7 @@ export class HelpFormatter {
         if (str) {
           str.addClosing(',');
         }
-        str = new TerminalString(start).addBreaks(breaks);
+        str = new TerminalString(start, breaks);
         breaks = 0; // break only on the first name
         str.addAndRevert(style, name, textStyle);
         result.push(str);
@@ -355,52 +350,35 @@ export class HelpFormatter {
    * @returns A terminal string with the formatted option parameter
    */
   private formatParam(option: Option): TerminalString {
-    const result = new TerminalString();
     if (this.config.hidden.param || isNiladic(option)) {
-      return result;
+      return new TerminalString();
     }
-    result.addBreaks(this.config.breaks.param);
-    const textStyle = this.styles.text;
-    if ('example' in option && option.example !== undefined) {
-      formatValue(option, option.example, result, this.styles, textStyle, false);
-    } else {
-      const style = option.styles?.param ?? this.styles.param;
-      const param =
-        'paramName' in option && option.paramName
-          ? option.paramName.includes('<')
-            ? option.paramName
-            : `<${option.paramName}>`
-          : `<${option.type}>`;
-      result.addAndRevert(style, param, textStyle);
-    }
+    const result = new TerminalString(0, this.config.breaks.param);
+    formatParam(option, this.styles, this.styles.text, result);
     return result;
   }
 
   /**
    * Formats an option's description to be printed on the terminal.
+   * The description always ends with a single line break.
    * @param option The option definition
    * @returns A terminal string with the formatted option description
    */
   private formatDescription(option: Option): TerminalString {
-    const result = new TerminalString();
     if (this.config.hidden.descr || !this.config.items.length) {
-      result.addBreaks(1);
-      return result;
+      return new TerminalString(0, 1);
     }
-    const descStyle = option.styles?.descr ?? this.styles.text;
-    result.addBreaks(this.config.breaks.descr).addSequence(descStyle);
+    const descrStyle = option.styles?.descr ?? this.styles.text;
+    const result = new TerminalString(0, this.config.breaks.descr).addSequence(descrStyle);
     const len = result.strings.length;
     for (const item of this.config.items) {
       const phrase = this.config.phrases[item];
-      this.format[item](option, phrase, this.styles, descStyle, result);
+      this.format[item](option, phrase, this.styles, descrStyle, result);
     }
     if (result.strings.length > len) {
-      result.addSequence(style(tf.clear)).addBreaks(1); // add ending breaks after styles
-    } else {
-      result.strings.length = 1;
-      result.strings[0] = '\n';
+      return result.addSequence(style(tf.clear)).addBreaks(1); // add ending breaks after styles
     }
-    return result;
+    return new TerminalString(0, 1);
   }
 
   /**
@@ -408,7 +386,7 @@ export class HelpFormatter {
    * @param option The option definition
    * @param phrase The description item phrase
    * @param styles The set of styles
-   * @param style The description style
+   * @param style The default style
    * @param result The resulting string
    */
   private formatRequires(
@@ -431,7 +409,7 @@ export class HelpFormatter {
    * @param option The option definition
    * @param phrase The description item phrase
    * @param styles The set of styles
-   * @param style The description style
+   * @param style The default style
    * @param result The resulting string
    */
   private formatRequiredIf(
@@ -451,15 +429,27 @@ export class HelpFormatter {
 
   /**
    * Formats a help message for the default option group.
+   * Options are rendered in the same order as declared in the option definitions.
    * @returns The formatted help message
    */
   formatHelp(): HelpMessage {
-    const entries = this.groups.get('');
-    return entries ? formatEntries(entries) : new HelpMessage();
+    return this.formatGroup() ?? new HelpMessage();
+  }
+
+  /**
+   * Formats a help message for an option group.
+   * Options are rendered in the same order as declared in the option definitions.
+   * @param name The group name (defaults to the default group)
+   * @returns The formatted help message, if found
+   */
+  formatGroup(name = ''): HelpMessage | undefined {
+    const entries = this.groups.get(name);
+    return entries ? formatEntries(entries) : undefined;
   }
 
   /**
    * Formats help messages for all option groups.
+   * Options are rendered in the same order as declared in the option definitions.
    * @returns The formatted help messages
    */
   formatGroups(): Map<string, HelpMessage> {
@@ -474,6 +464,21 @@ export class HelpFormatter {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Merges a help configuration with the default configuration.
+ * @param config The provided configuration
+ * @returns The merged configuration
+ */
+function mergeConfig(config: HelpConfig): ConcreteFormat {
+  return {
+    indent: { ...defaultConfig.indent, ...config.indent },
+    breaks: { ...defaultConfig.breaks, ...config.breaks },
+    hidden: { ...defaultConfig.hidden, ...config.hidden },
+    items: config.items ?? defaultConfig.items,
+    phrases: { ...defaultConfig.phrases, ...config.phrases },
+  };
+}
+
 /**
  * Gets the required width of each name slot in a set of option definitions.
  * @param options The option definitions
@@ -502,7 +507,7 @@ function getNameWidths(options: Options): Array<number> {
  * @param value The option value
  * @param result The resulting string
  * @param styles The set of styles
- * @param style The style to revert to
+ * @param style The default style
  * @param inDesc True if in the description
  */
 function formatValue(
@@ -540,7 +545,7 @@ function formatValue(
  * @param result The resulting string
  * @param styles The set of styles
  * @param formatFn The function to convert a value to string
- * @param style The description style, if in the description
+ * @param style The default style
  * @param inDesc True if in the description
  */
 function formatArray(
@@ -610,6 +615,33 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
 }
 
 /**
+ * Formats an option's parameter to be included in the description.
+ * @param option The option definition
+ * @param styles The set of styles
+ * @param style The default style
+ * @param result The resulting string
+ */
+function formatParam(
+  option: ParamOption,
+  styles: ConcreteStyles,
+  style: Style,
+  result: TerminalString,
+) {
+  if ('example' in option && option.example !== undefined) {
+    formatValue(option, option.example, result, styles, style, false);
+  } else {
+    const paramStyle = option.styles?.param ?? styles.param;
+    const param =
+      'paramName' in option && option.paramName
+        ? option.paramName.includes('<')
+          ? option.paramName
+          : `<${option.paramName}>`
+        : `<${option.type}>`;
+    result.addAndRevert(paramStyle, param, style);
+  }
+}
+
+/**
  * Formats an option's synopsis to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
@@ -635,7 +667,7 @@ function formatSynopsis(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatNegation(
@@ -663,7 +695,7 @@ function formatNegation(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatSeparator(
@@ -713,7 +745,7 @@ function formatVariadic(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatPositional(
@@ -826,7 +858,7 @@ function formatRound(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatEnums(
@@ -851,7 +883,7 @@ function formatEnums(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatRegex(
@@ -874,7 +906,7 @@ function formatRegex(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatRange(
@@ -917,7 +949,7 @@ function formatUnique(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatLimit(
@@ -960,7 +992,7 @@ function formatRequired(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatDefault(
@@ -1004,7 +1036,7 @@ function formatDeprecated(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatLink(
@@ -1027,7 +1059,7 @@ function formatLink(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  */
 function formatEnvVar(
@@ -1050,7 +1082,7 @@ function formatEnvVar(
  * @param options The option definitions
  * @param requires The option requirements
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */
@@ -1087,7 +1119,7 @@ function formatRequirements(
  * @param options The option definitions
  * @param requires The requirement expression
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */
@@ -1119,7 +1151,7 @@ function formatRequiresExp(
  * @param options The option definitions
  * @param requires The requirement object
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */
@@ -1151,7 +1183,7 @@ function formatRequiresVal(
  * @param option The option definition
  * @param value The option value
  * @param styles The set of styles
- * @param style The description style
+ * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */

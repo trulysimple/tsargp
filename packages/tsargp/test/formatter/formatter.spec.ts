@@ -169,4 +169,23 @@ describe('HelpFormatter', () => {
       );
     });
   });
+
+  describe('formatGroups', () => {
+    it('should handle an option with a group', () => {
+      /** @ignore */
+      function assert(_condition: unknown): asserts _condition {}
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option',
+          group: 'group',
+        },
+      } as const satisfies Options;
+      const groups = new HelpFormatter(new OptionValidator(options)).formatGroups();
+      const message = groups.get('group');
+      assert(message);
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option\n');
+    });
+  });
 });
