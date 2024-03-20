@@ -200,8 +200,8 @@ export class TerminalString {
   }
 
   /**
-   * Appends line breaks to the list of strings. Non-positive values are ignored.
-   * @param count The number of line breaks to insert
+   * Appends line breaks to the list of strings.
+   * @param count The number of line breaks to insert (non-positive values are ignored)
    * @returns The terminal string instance
    */
   addBreaks(count: number): this {

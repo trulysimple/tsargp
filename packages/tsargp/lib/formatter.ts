@@ -354,7 +354,7 @@ export class HelpFormatter {
       return new TerminalString();
     }
     const result = new TerminalString(0, this.config.breaks.param);
-    formatUsageParam(option, this.styles, this.styles.text, result);
+    formatParam(option, this.styles, this.styles.text, result);
     return result;
   }
 
@@ -615,13 +615,13 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
 }
 
 /**
- * Formats an option's parameter to be included in the default usage.
+ * Formats an option's parameter to be included in the description.
  * @param option The option definition
  * @param styles The set of styles
  * @param style The default style
  * @param result The resulting string
  */
-function formatUsageParam(
+function formatParam(
   option: ParamOption,
   styles: ConcreteStyles,
   style: Style,
