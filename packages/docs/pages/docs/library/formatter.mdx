@@ -28,6 +28,21 @@ The `formatGroups` method, on the other hand, returns a `Map{:ts}` that maps gro
 messages, including the default group with an empty name. Neither of these methods accept any
 parameter.
 
+### Full help
+
+The `formatFull` method returns a help message that includes more information, as will be explained
+later in this page. It accepts two optional parameters:
+
+- `progName` - the name of the program to use in the default usage message
+- `hide` - an object to configure sections that should not be rendered
+
+The `hide` parameter is of type `HideSections`, which contains the following set of optional flags:
+
+- `intro` - true to omit the introduction section from the full help
+- `usage` - true to omit the usage section from the full help
+- `groups` - true if no option group should be displayed in the full help
+- `footer` - true to omit the footer section from the full help
+
 ## Help entries
 
 Each option definition results in a help entry being included under its respective group in the help
@@ -66,32 +81,66 @@ are explained later in this page.
 ## Help format
 
 In addition to the validator instance, the formatter constructor accepts a `HelpConfig` object that
-can be used to customize the message format. This configuration will apply to all help entries. It
-contains a set of optional properties, as described below.
+can be used to customize the message format. This configuration will apply to both help sections and
+help entries. It contains a set of optional properties, as described below.
+
+### Help sections
+
+The `sections` property specifies texts to be used in the various sections of the full help message.
+It has the following set of optional properties:
+
+- `intro` - the introduction of the help message. This is the initial section and has no heading.
+- `usage` - your CLI usage instructions. It can be either a text or `true{:ts}`, in which case a
+  default usage text will be rendered instead. This section has a heading that can be configured
+  with the `usageTitle` property.
+- `footer` - an afterword, copyright notice or external reference. This is the final section and has
+  no heading.
+- `usageTitle` - the title of the usage section (defaults to `'Usage'{:ts}`)
+- `optionsTitle` - the title of the default option group (defaults to `'Options'{:ts}`)
+
+<Callout type="warning">
+  All of these properties can include inline styles and will be formatted according to [text
+  formatting](styles.mdx#text-splitting) rules, unless `misc.noWrap` is set.
+</Callout>
 
 ### Indentation level
 
-The `indent` property specifies the indentation levels (in number of terminal columns) of help entry
-columns. It has the following set of optional properties:
+The `indent` property specifies the indentation levels (in number of terminal columns) of help
+sections and of entry columns. It has the following set of optional properties:
 
+- `intro` - level of indentation for the introduction section (non-negative, defaults to `0{:ts}`)
+- `usage` - level of indentation for the usage section text (non-negative, defaults to `2{:ts}`)
+- `footer` - level of indentation for the footer section (non-negative, defaults to `0{:ts}`)
+- `headings` - level of indentation for all headings (non-negative, defaults to `0{:ts}`)
 - `names` - level of indentation for the option names (non-negative, defaults to `2{:ts}`)
 - `param` - level of indentation for the option parameter (non-negative if `paramAbsolute` is
   `true{:ts}`, defaults to `2{:ts}`)
 - `descr` - level of indentation for the option description (non-negative if `descrAbsolute` is
   `true{:ts}`, defaults to `2{:ts}`)
+- `usageOptions` - level of indentation for the usage options (non-negative if `usageOptionsAbsolute`
+  is `true{:ts}`, defaults to `1{:ts}`)
 - `paramAbsolute` whether the indentation level for the option parameter should be relative to the
   beginning of the line instead of the end of the option names (defaults to `false{:ts}`)
 - `descrAbsolute` whether the indentation level for the option description should be relative to the
   beginning of the line instead of the end of the option parameter (defaults to `false{:ts}`)
+- `usageOptionsAbsolute` whether the indentation level for the usage options should be relative to
+  the beginning of the line instead of the end of the program name (defaults to `false{:ts}`)
 
 ### Line breaks
 
-The `breaks` property specifies the number of line breaks to insert before help entry columns. It
-has the following set of optional properties:
+The `breaks` property specifies the number of line breaks to insert before help sections or entry
+columns. It has the following set of optional properties:
 
+- `intro` - line breaks to insert before the introduction section (defaults to `0{:ts}`)
+- `usage` - line breaks to insert before the usage section text (defaults to `2{:ts}`)
+- `groups` - line breaks to insert before each option group content (defaults to `2{:ts}`)
+- `footer` - line breaks to insert before the footer section (defaults to `2{:ts}`)
 - `names` - line breaks to insert before the option names (defaults to `0{:ts}`)
 - `param` - line breaks to insert before the option parameter (defaults to `0{:ts}`)
 - `descr` - line breaks to insert before the option description (defaults to `0{:ts}`)
+- `usageTitle` - line breaks to insert before the usage section heading (defaults to `2{:ts}`)
+- `usageOptions` - line breaks to insert before the usage options (defaults to `0{:ts}`)
+- `groupTitle` - line breaks to insert before each option group heading (defaults to `2{:ts}`)
 
 ### Hidden columns
 
@@ -167,6 +216,17 @@ These phrases will be formatted according to [text formatting](styles.mdx#text-s
   will mess up the text wrapping. For example, the following phrase is not valid:
   ``` `Requires ${style(tf.bold)}%s`{:ts} ```.
 </Callout>
+
+### Miscellaneous
+
+The `misc` property specifies additional, uncategorized settings. It has the following set of
+optional properties:
+
+- `headingStyle` - a [style](styles.mdx#styling-attributes) to be applied to all headings (defaults
+  to `tf.bold{:ts}`)
+- `headingPhrase` - the phrase to use for all headings (defaults to `'%s:'{:ts}`)
+- `noWrap` - whether provided section texts should _not_ be split into words. This allows you to
+  format texts however you like, at the expense of not wrapping them (defaults to `false{:ts}`)
 
 ## Help styles
 

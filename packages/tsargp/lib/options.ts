@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { HelpConfig } from './formatter';
 import type { Style } from './styles';
 import type { Resolve, Writable, URL } from './utils';
+import { HelpConfig, HideSections } from './formatter';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -201,8 +201,9 @@ export type WithType<T extends string> = {
   readonly group?: string;
   /**
    * True if the option should be hidden from the help message.
+   * Use the string 'usage' to hide it only from the default usage message.
    */
-  readonly hide?: true;
+  readonly hide?: true | 'usage';
   /**
    * The option display styles.
    */
@@ -612,27 +613,13 @@ export type CommandOption = WithType<'command'> &
  */
 export type HelpOption = WithType<'help'> & {
   /**
-   * The usage message. This goes before everything else.
-   */
-  readonly usage?: string;
-  /**
-   * The footer message. This goes after everything else.
-   */
-  readonly footer?: string;
-  /**
    * The help format configuration.
    */
   readonly format?: HelpConfig;
   /**
-   * The style of option group headings.
+   * The help sections that should be omitted.
    */
-  readonly headingStyle?: Style;
-  /**
-   * Indicates that the usage, footer and heading texts should not be split into words. This allows
-   * them to have custom indentation and prevents a colon from being appended to group headings, but
-   * at the expense of losing the text wrapping feature.
-   */
-  readonly noSplit?: true;
+  readonly hideSections?: HideSections;
 };
 
 /**

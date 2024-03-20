@@ -3,6 +3,7 @@
   "version": "0.2",
   "language": "en",
   "dictionaries": ["cpp", "typescript"],
+  "words": ["uncategorized"],
   "ignoreWords": [
     "Sogari",
     "lockb",

@@ -28,9 +28,51 @@ import { assert, splitPhrase } from './utils';
  */
 export type HelpConfig = {
   /**
-   * The indentation level for each column.
+   * The texts for each help section.
+   */
+  readonly sections?: {
+    /**
+     * The text of the introduction section. This section has no heading.
+     */
+    readonly intro?: string;
+    /**
+     * The text of the usage section, or `true` to use a default text.
+     */
+    readonly usage?: string | true;
+    /**
+     * The text of the footer section. This section has no heading.
+     */
+    readonly footer?: string;
+    /**
+     * The title of the usage section. (Defaults to 'Usage')
+     */
+    readonly usageTitle?: string;
+    /**
+     * The title of the default option group. (Defaults to 'Options')
+     */
+    readonly optionsTitle?: string;
+  };
+
+  /**
+   * The indentation level for each help section or entry column.
    */
   readonly indent?: {
+    /**
+     * The indentation level for the introduction section. (Defaults to 0)
+     */
+    readonly intro?: number;
+    /**
+     * The indentation level for the usage section text. (Defaults to 2)
+     */
+    readonly usage?: number;
+    /**
+     * The indentation level for the footer section. (Defaults to 0)
+     */
+    readonly footer?: number;
+    /**
+     * The indentation level for all headings. (Defaults to 0)
+     */
+    readonly headings?: number;
     /**
      * The indentation level for the names column. (Defaults to 2)
      */
@@ -44,6 +86,10 @@ export type HelpConfig = {
      */
     readonly descr?: number;
     /**
+     * The indentation level for the usage options. (Defaults to 1)
+     */
+    readonly usageOptions?: number;
+    /**
      * True if the indentation level for the parameter column should be relative to the beginning
      * of the line instead of the end of the names column. (Defaults to false)
      */
@@ -53,12 +99,33 @@ export type HelpConfig = {
      * of the line instead of the end of the parameter column. (Defaults to false)
      */
     readonly descrAbsolute?: boolean;
+    /**
+     * True if the indentation level for the usage options should be relative to the beginning
+     * of the line instead of the end of the program name. (Defaults to false)
+     */
+    readonly usageOptionsAbsolute?: boolean;
   };
 
   /**
-   * The number of line breaks to insert before each column.
+   * The number of line breaks to insert before each help section or entry column.
    */
   readonly breaks?: {
+    /**
+     * The number of line breaks to insert before the introduction section. (Defaults to 0)
+     */
+    readonly intro?: number;
+    /**
+     * The number of line breaks to insert before the usage section text. (Defaults to 2)
+     */
+    readonly usage?: number;
+    /**
+     * The number of line breaks to insert before each option group content. (Defaults to 2)
+     */
+    readonly groups?: number;
+    /**
+     * The number of line breaks to insert before the footer section. (Defaults to 2)
+     */
+    readonly footer?: number;
     /**
      * The number of line breaks to insert before the names column. (Defaults to 0)
      */
@@ -71,6 +138,18 @@ export type HelpConfig = {
      * The number of line breaks to insert before the description column. (Defaults to 0)
      */
     readonly descr?: number;
+    /**
+     * The number of line breaks to insert before the usage section heading. (Defaults to 2)
+     */
+    readonly usageTitle?: number;
+    /**
+     * The number of line breaks to insert before the usage options. (Defaults to 0)
+     */
+    readonly usageOptions?: number;
+    /**
+     * The number of line breaks to insert before each option group heading. (Defaults to 2)
+     */
+    readonly groupTitle?: number;
   };
 
   /**
@@ -106,6 +185,24 @@ export type HelpConfig = {
    * `'Values will be converted to (lowercase|uppercase)'`.
    */
   readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
+
+  /**
+   * Miscellaneous settings.
+   */
+  readonly misc?: {
+    /**
+     * The style of section and group headings. (Defaults to tf.bold)
+     */
+    readonly headingStyle?: Style;
+    /**
+     * The phrase to use for section and group headings. (Defaults to '%s:')
+     */
+    readonly headingPhrase?: string;
+    /**
+     * True to disable wrapping of provided texts. (Defaults to false)
+     */
+    readonly noWrap?: boolean;
+  };
 };
 
 /**
@@ -122,6 +219,28 @@ type HelpEntry = {
   readonly descr: TerminalString;
 };
 
+/**
+ * A set of flags to configure sections that should be omitted from the full help.
+ */
+export type HideSections = {
+  /**
+   * True to omit the introduction section from the full help.
+   */
+  readonly intro?: true;
+  /**
+   * True to omit the usage section from the full help.
+   */
+  readonly usage?: true;
+  /**
+   * True if no option group should be displayed in the full help.
+   */
+  readonly groups?: true;
+  /**
+   * True to omit the footer section from the full help.
+   */
+  readonly footer?: true;
+};
+
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
@@ -129,17 +248,37 @@ type HelpEntry = {
  * The default configuration used by the formatter.
  */
 const defaultConfig: ConcreteFormat = {
+  sections: {
+    intro: '',
+    usage: '',
+    footer: '',
+    usageTitle: 'Usage',
+    optionsTitle: 'Options',
+  },
   indent: {
+    intro: 0,
+    usage: 2,
+    footer: 0,
+    headings: 0,
     names: 2,
     param: 2,
     descr: 2,
+    usageOptions: 1,
     paramAbsolute: false,
     descrAbsolute: false,
+    usageOptionsAbsolute: false,
   },
   breaks: {
+    intro: 0,
+    usage: 2,
+    groups: 2,
+    footer: 2,
     names: 0,
     param: 0,
     descr: 0,
+    usageTitle: 2,
+    usageOptions: 0,
+    groupTitle: 2,
   },
   hidden: {
     names: false,
@@ -191,6 +330,11 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.link]: 'Refer to %s for details.',
     [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
     [HelpItem.requiredIf]: 'Required if %s.',
+  },
+  misc: {
+    headingStyle: style(tf.clear, tf.bold),
+    headingPhrase: '%s:',
+    noWrap: false,
   },
 };
 
@@ -247,7 +391,7 @@ export class HelpFormatter {
     let paramWidth = 0;
     for (const key in this.options) {
       const option = this.options[key];
-      if (!option.hide) {
+      if (option.hide !== true) {
         const entry = this.formatOption(option);
         paramWidth = Math.max(paramWidth, entry.param.length);
       }
@@ -459,6 +603,55 @@ export class HelpFormatter {
     }
     return groups;
   }
+
+  /**
+   * Formats a complete help message with sections.
+   * Options are rendered in the same order as declared in the option definitions.
+   * @param hide Sections that should not be displayed
+   * @param progName The program name, if any
+   * @returns The formatted help message
+   */
+  formatFull(hide?: HideSections, progName?: string): HelpMessage {
+    const { sections, indent, breaks, misc } = this.config;
+    const help = new HelpMessage();
+    if (!hide?.intro && sections.intro) {
+      help.push(formatSection(sections.intro, indent.intro, breaks.intro, misc.noWrap));
+    }
+    if (!hide?.usage && sections.usage) {
+      const lb = help.length ? breaks.usageTitle : 0;
+      const defaultUsage = sections.usage === true;
+      const addProgName = defaultUsage && !!progName;
+      const usageOptionsBreaks = addProgName ? breaks.usageOptions : breaks.usage;
+      const usageOptionsIndent = addProgName ? progName.length + indent.usageOptions : 0;
+      const optionsIndent = indent.usageOptionsAbsolute
+        ? Math.max(0, indent.usageOptions)
+        : Math.max(0, indent.usage) + usageOptionsIndent;
+      help.push(
+        formatHeading(sections.usageTitle, indent.headings, lb, misc),
+        ...(addProgName ? [new TerminalString(indent.usage, breaks.usage).addWord(progName)] : []),
+        defaultUsage
+          ? formatUsage(this.options, this.styles, optionsIndent, usageOptionsBreaks)
+          : formatSection(sections.usage, indent.usage, breaks.usage, misc.noWrap),
+      );
+    }
+    if (!hide?.groups) {
+      let lb = help.length ? breaks.groupTitle : 0;
+      for (const [group, message] of this.formatGroups().entries()) {
+        const title = group || sections.optionsTitle;
+        help.push(
+          formatHeading(title, indent.headings, lb, misc).addBreaks(breaks.groups),
+          ...message,
+        );
+        help[help.length - 1].pop(); // remove trailing break
+        lb = breaks.groupTitle;
+      }
+    }
+    if (!hide?.footer && sections.footer) {
+      const lb = help.length ? breaks.footer : 0;
+      help.push(formatSection(sections.footer, indent.footer, lb, misc.noWrap));
+    }
+    return help;
+  }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -471,11 +664,13 @@ export class HelpFormatter {
  */
 function mergeConfig(config: HelpConfig): ConcreteFormat {
   return {
+    sections: { ...defaultConfig.sections, ...config.sections },
     indent: { ...defaultConfig.indent, ...config.indent },
     breaks: { ...defaultConfig.breaks, ...config.breaks },
     hidden: { ...defaultConfig.hidden, ...config.hidden },
     items: config.items ?? defaultConfig.items,
     phrases: { ...defaultConfig.phrases, ...config.phrases },
+    misc: { ...defaultConfig.misc, ...config.misc },
   };
 }
 
@@ -615,7 +810,149 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
 }
 
 /**
- * Formats an option's parameter to be included in the description.
+ * Formats a section heading to be included in the help message.
+ * @param text The heading title
+ * @param indent The indentation level (negative values are replaced by zero)
+ * @param breaks The number of line breaks (non-positive values are ignored)
+ * @param misc The miscellaneous settings
+ * @returns The terminal string
+ */
+function formatHeading(
+  text: string,
+  indent: number,
+  breaks: number,
+  misc: ConcreteFormat['misc'],
+): TerminalString {
+  const result = new TerminalString(indent, breaks).addSequence(misc.headingStyle);
+  result.splitText(misc.headingPhrase, () => {
+    if (misc.noWrap) {
+      result.addWord(text); // warning: may be larger than the terminal width
+    } else {
+      result.splitText(text);
+    }
+  });
+  return result.addSequence(style(tf.clear));
+}
+
+/**
+ * Formats a section text to be included in the help message.
+ * @param text The section text
+ * @param indent The indentation level (negative values are replaced by zero)
+ * @param breaks The number of line breaks (non-positive values are ignored)
+ * @param noWrap True if the provided text should not be split
+ * @returns The terminal string
+ */
+function formatSection(
+  text: string,
+  indent: number,
+  breaks: number,
+  noWrap: boolean,
+): TerminalString {
+  const result = new TerminalString(indent, breaks);
+  if (noWrap) {
+    result.addWord(text); // warning: may be larger than the terminal width
+  } else {
+    result.splitText(text);
+  }
+  return result;
+}
+
+/**
+ * Formats a default usage to be included in the help message.
+ * Options are rendered in the same order as declared in the option definitions.
+ * @param options The option definitions
+ * @param styles The set of styles
+ * @param indent The indentation level (negative values are replaced by zero)
+ * @param breaks The number of line breaks (non-positive values are ignored)
+ * @returns The terminal string
+ */
+function formatUsage(
+  options: Options,
+  styles: ConcreteStyles,
+  indent: number,
+  breaks: number,
+): TerminalString {
+  const result = new TerminalString(indent, breaks);
+  for (const key in options) {
+    const option = options[key];
+    if (!option.hide) {
+      formatUsageOption(option, styles, styles.text, result);
+    }
+  }
+  return result;
+}
+
+/**
+ * Formats an option to be included in the description or the default usage.
+ * @param option The option definition
+ * @param styles The set of styles
+ * @param style The default style
+ * @param result The resulting string
+ */
+function formatUsageOption(
+  option: Option,
+  styles: ConcreteStyles,
+  style: Style,
+  result: TerminalString,
+) {
+  const required = 'required' in option && option.required;
+  if (!required) {
+    result.addOpening('[');
+  }
+  formatUsageNames(option, styles, style, result);
+  if (!isNiladic(option)) {
+    formatParam(option, styles, style, result);
+  }
+  if (!required) {
+    result.addClosing(']');
+  }
+}
+
+/**
+ * Formats an option's names to be included in the default usage.
+ * @param option The option definition
+ * @param styles The set of styles
+ * @param style The default style
+ * @param result The resulting string
+ */
+function formatUsageNames(
+  option: Option,
+  styles: ConcreteStyles,
+  style: Style,
+  result: TerminalString,
+) {
+  const names = option.names?.filter((name): name is string => !!name);
+  if (names?.length) {
+    if ('negationNames' in option && option.negationNames) {
+      names.push(...option.negationNames.filter((name) => name));
+    }
+    const positional = 'positional' in option && option.positional;
+    if (typeof positional === 'string') {
+      names.push(positional);
+    }
+    if (positional) {
+      result.addOpening('[');
+    }
+    if (names.length > 1) {
+      result.addOpening('(');
+      names.forEach((name, i) => {
+        formatFunctions.o(name, styles, style, result);
+        if (i < names.length - 1) {
+          result.addClosing('|').setMerge();
+        }
+      });
+      result.addClosing(')');
+    } else {
+      formatFunctions.o(names[0], styles, style, result);
+    }
+    if (positional) {
+      result.addClosing(']');
+    }
+  }
+}
+
+/**
+ * Formats an option's parameter to be included in the default usage.
  * @param option The option definition
  * @param styles The set of styles
  * @param style The default style
