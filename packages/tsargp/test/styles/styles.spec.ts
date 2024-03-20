@@ -30,6 +30,21 @@ describe('TerminalString', () => {
     });
   });
 
+  describe('pop', () => {
+    it('should remove the last word', () => {
+      const str = new TerminalString().splitText('type script').pop();
+      expect(str).toHaveLength(4);
+      expect(str.strings).toHaveLength(1);
+      expect(str.strings[0]).toEqual('type');
+    });
+
+    it('should remove all words', () => {
+      const str = new TerminalString().splitText('type script').pop(3);
+      expect(str).toHaveLength(0);
+      expect(str.strings).toHaveLength(0);
+    });
+  });
+
   describe('addAndRevert', () => {
     it('should add a word with surrounding sequences', () => {
       const str = new TerminalString().addAndRevert(

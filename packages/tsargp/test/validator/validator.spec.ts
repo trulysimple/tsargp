@@ -95,5 +95,47 @@ describe('OptionValidator', () => {
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Option numbers has zero enum values\./);
     });
+
+    it('should validate nested command options recursively', () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            command: {
+              type: 'command',
+              names: ['-c'],
+              options: { flag: { type: 'flag' } },
+              cmd() {},
+            },
+          },
+          cmd() {},
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        /Non-positional option command\.command\.flag has no name\./,
+      );
+    });
+
+    it('should avoid circular references while evaluating nested command options', () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            command: {
+              type: 'command',
+              names: ['-c'],
+              options: (): Options => options,
+              cmd() {},
+            },
+          },
+          cmd() {},
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
+    });
   });
 });

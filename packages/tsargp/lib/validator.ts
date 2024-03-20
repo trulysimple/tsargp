@@ -219,7 +219,6 @@ export class OptionValidator {
    * Creates an option validator based on a set of option definitions.
    * @param options The option definitions
    * @param config The error message configuration
-   * @throws On duplicate option names and duplicate positional options
    */
   constructor(
     readonly options: Options,
@@ -229,9 +228,6 @@ export class OptionValidator {
       const option = this.options[key];
       this.registerNames(key, option);
       if ('positional' in option && option.positional) {
-        if (this.positional) {
-          throw this.error(ErrorItem.duplicatePositionalOption, { o: key });
-        }
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name: option.preferredName ?? '', option, marker };
       }
@@ -243,35 +239,35 @@ export class OptionValidator {
    * @param key The option key
    * @param option The option definition
    * @param validate True if performing validation
-   * @throws On no name, invalid name, duplicate name or empty positional marker
+   * @param prefix The command prefix, if any
+   * @throws On empty positional marker, option with no name, invalid option name or duplicate name
    */
-  private registerNames(key: string, option: Option, validate = false) {
+  private registerNames(key: string, option: Option, validate = false, prefix = '') {
     const names = option.names ? option.names.slice() : [];
     if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames);
     }
     if ('positional' in option) {
       if (validate && option.positional === '') {
-        throw this.error(ErrorItem.emptyPositionalMarker, { o: key });
+        throw this.error(ErrorItem.emptyPositionalMarker, { o: prefix + key });
       }
       if (typeof option.positional === 'string') {
         names.push(option.positional);
       }
     } else if (validate && !names.find((name) => name)) {
-      throw this.error(ErrorItem.optionWithNoName, { o: key });
+      throw this.error(ErrorItem.optionWithNoName, { o: prefix + key });
     }
     for (const name of names) {
       if (!name) {
         continue;
       }
-      if (!validate) {
-        if (this.names.has(name)) {
-          throw this.error(ErrorItem.duplicateOptionName, { o: name });
-        }
-        this.names.set(name, key);
-      } else if (name.match(/[\s=]+/)) {
+      if (validate && name.match(/[\s=]+/)) {
         throw this.error(ErrorItem.invalidOptionName, { o: name });
       }
+      if (validate && this.names.has(name)) {
+        throw this.error(ErrorItem.duplicateOptionName, { o: name });
+      }
+      this.names.set(name, key);
     }
     if (!option.preferredName) {
       option.preferredName = names.find((name): name is string => !!name);
@@ -279,88 +275,106 @@ export class OptionValidator {
   }
 
   /**
-   * Validates all options' definitions
-   * @throws On options with no name, invalid name, empty positional marker, invalid enum values,
-   * invalid default value, invalid example value, invalid requirements, invalid required values,
-   * version option with empty version and module-resolve function
+   * Validates all options' definitions, including command options recursively.
+   * @param prefix The command prefix, if any
+   * @param visited The set of visited option definitions
+   * @throws On duplicate positional option, invalid enum values, invalid default value or invalid
+   * example value
    */
-  validate() {
+  validate(prefix = '', visited = new Set<Options>()) {
+    let positional = false; // to check for duplicate positional options
+    this.names.clear(); // to check for duplicate option names
     for (const key in this.options) {
       const option = this.options[key];
-      this.registerNames(key, option, true);
+      this.registerNames(key, option, true, prefix);
       if (!isNiladic(option)) {
-        this.validateEnums(key, option);
-        if (typeof option.default !== 'function') {
-          this.validateValue(key, option, option.default);
+        if (option.positional) {
+          if (positional) {
+            throw this.error(ErrorItem.duplicatePositionalOption, { o: prefix + key });
+          }
+          positional = true;
         }
-        this.validateValue(key, option, option.example);
+        this.validateEnums(prefix + key, option);
+        if (typeof option.default !== 'function') {
+          this.validateValue(prefix + key, option, option.default);
+        }
+        this.validateValue(prefix + key, option, option.example);
       }
       // no need to verify flag option default value
       if ('requires' in option && option.requires) {
-        this.validateRequirements(key, option.requires);
+        this.validateRequirements(prefix, key, option.requires);
       }
       if ('requiredIf' in option && option.requiredIf) {
-        this.validateRequirements(key, option.requiredIf);
+        this.validateRequirements(prefix, key, option.requiredIf);
       }
       if (option.type === 'version' && option.version === '') {
-        throw this.error(ErrorItem.optionEmptyVersion, { o: key });
+        throw this.error(ErrorItem.optionEmptyVersion, { o: prefix + key });
+      }
+      if (option.type === 'command') {
+        const options = typeof option.options === 'function' ? option.options() : option.options;
+        if (!visited.has(options)) {
+          visited.add(options);
+          new OptionValidator(options, this.config).validate(prefix + key + '.', visited);
+        }
       }
     }
   }
 
   /**
    * Validates an option's requirements.
+   * @param prefix The command prefix
    * @param key The option key
    * @param requires The option requirements
-   * @throws On invalid requirements or invalid required values
    */
-  private validateRequirements(key: string, requires: Requires) {
+  private validateRequirements(prefix: string, key: string, requires: Requires) {
     if (typeof requires === 'string') {
-      this.validateRequirement(key, requires);
+      this.validateRequirement(prefix, key, requires);
     } else if (requires instanceof RequiresNot) {
-      this.validateRequirements(key, requires.item);
+      this.validateRequirements(prefix, key, requires.item);
     } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
       for (const item of requires.items) {
-        this.validateRequirements(key, item);
+        this.validateRequirements(prefix, key, item);
       }
     } else if (typeof requires === 'object') {
       for (const requiredKey in requires) {
-        this.validateRequirement(key, requiredKey, requires[requiredKey]);
+        this.validateRequirement(prefix, key, requiredKey, requires[requiredKey]);
       }
     }
   }
 
   /**
    * Validates an option requirement.
-   * @param key The requiring option key
+   * @param prefix The command prefix
+   * @param key The option key
    * @param requiredKey The required option key
    * @param requiredValue The required value, if any
-   * @throws On option requiring itself, unknown required option, niladic option required with value
-   * or invalid required values for non-niladic options
+   * @throws On option requiring itself, unknown required option, invalid required option or
+   * incompatible required values
    */
   private validateRequirement(
+    prefix: string,
     key: string,
     requiredKey: string,
     requiredValue?: RequiresVal[string],
   ) {
     if (requiredKey === key) {
-      throw this.error(ErrorItem.optionRequiresItself, { o: requiredKey });
+      throw this.error(ErrorItem.optionRequiresItself, { o: prefix + requiredKey });
     }
     if (!(requiredKey in this.options)) {
-      throw this.error(ErrorItem.unknownRequiredOption, { o: requiredKey });
+      throw this.error(ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
     }
     const option = this.options[requiredKey];
     if (!isValued(option)) {
-      throw this.error(ErrorItem.invalidRequiredOption, { o: requiredKey });
+      throw this.error(ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
     }
     if (requiredValue !== undefined && requiredValue !== null) {
-      this.validateValue(requiredKey, option, requiredValue);
+      this.validateValue(prefix + requiredKey, option, requiredValue);
     }
   }
 
   /**
    * Checks the sanity of the option's enumerated values.
-   * @param key The option key
+   * @param key The option key (plus the prefix, if any)
    * @param option The option definition
    * @throws On zero or duplicate enumerated values or values not satisfying specified constraints
    */
@@ -386,7 +400,7 @@ export class OptionValidator {
   /**
    * Asserts that an option value conforms to a type.
    * @param value The option value
-   * @param key The option key
+   * @param key The option key (plus the prefix, if any)
    * @param type The data type name
    * @throws On value not conforming to the given type
    */
@@ -398,7 +412,7 @@ export class OptionValidator {
 
   /**
    * Checks the sanity of the option's value (default, example or required).
-   * @param key The option key
+   * @param key The option key (plus the prefix, if any)
    * @param option The option definition
    * @param value The option value
    * @throws On value not satisfying specified constraints

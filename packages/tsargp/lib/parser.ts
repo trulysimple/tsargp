@@ -652,7 +652,7 @@ function createLoop(
     [progName, ...args] = getArgs(command, config.compIndex);
   } else {
     [progName, args] = [config.progName, command];
-    if (!progName) {
+    if (progName === undefined) {
       progName = process?.argv[1].split(/[\\/]/).at(-1);
     }
   }
