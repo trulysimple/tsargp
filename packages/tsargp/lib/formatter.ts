@@ -606,13 +606,13 @@ function getMaxNamesWidth(options: Options): number {
   for (const key in options) {
     const option = options[key];
     if (!option.hide && option.names) {
-      let sum = 0;
+      let len = 0;
       for (const name of option.names) {
         if (name) {
-          sum += (sum ? 2 : 0) + name.length;
+          len += (len ? 2 : 0) + name.length;
         }
       }
-      result = Math.max(result, sum);
+      result = Math.max(result, len);
     }
   }
   return result;
@@ -695,10 +695,9 @@ function formatNameSlots(
       if (str) {
         str.addClosing(',');
       }
-      str = new TerminalString(indent, breaks);
-      breaks = 0; // break only on the first name
-      str.addAndRevert(namesStyle, name, defStyle);
+      str = new TerminalString(indent, breaks).addAndRevert(namesStyle, name, defStyle);
       result.push(str);
+      breaks = 0; // break only on the first name
     } else {
       str = undefined;
     }
