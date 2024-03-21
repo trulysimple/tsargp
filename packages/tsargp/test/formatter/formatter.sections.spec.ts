@@ -58,7 +58,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('text');
     });
 
-    it('should render a usage section with a required flag option with a single multiple name', () => {
+    it('should render a usage section with a required flag option with a single name', () => {
       const options = {
         flag: {
           type: 'flag',

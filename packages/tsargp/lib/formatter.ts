@@ -773,7 +773,7 @@ function formatSection(
  * Formats a usage section text to be included in the full help message.
  * @param options The option definitions
  * @param styles The set of styles
- * @param breaks The number of line breaks (non-positive values are ignored)
+ * @param breaks The number of line breaks
  * @param section The help section
  * @param progName The program name
  * @param result The resulting message
@@ -805,7 +805,7 @@ function formatUsageSection(
  * Formats a groups section to be included in the full help message.
  * Options are rendered in the same order as declared in the option definitions.
  * @param groups The option groups
- * @param breaks The number of line breaks (non-positive values are ignored)
+ * @param breaks The number of line breaks
  * @param section The help section
  * @param result The resulting message
  */
