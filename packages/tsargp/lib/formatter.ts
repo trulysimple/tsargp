@@ -548,12 +548,12 @@ export class HelpFormatter {
     }
     const descrStyle = option.styles?.descr ?? this.styles.text;
     const result = new TerminalString(0, this.config.breaks.descr).addSequence(descrStyle);
-    const len = result.strings.length;
+    const count = result.count;
     for (const item of this.config.items) {
       const phrase = this.config.phrases[item];
       this.format[item](option, phrase, this.styles, descrStyle, result);
     }
-    if (result.strings.length > len) {
+    if (result.count > count) {
       return result.addSequence(style(tf.clear)).addBreaks(1); // add ending breaks after styles
     }
     return new TerminalString(0, 1);
@@ -675,7 +675,7 @@ export class HelpFormatter {
           ? [formatSection(progName, indent.usage, breaks.usage, styles.usage, true)]
           : []),
         defaultUsage
-          ? formatUsage(this.options, this.styles, optionsIndent, usageOptionsBreaks)
+          ? formatUsage(this.options, this.styles, styles.usage, optionsIndent, usageOptionsBreaks)
           : formatSection(sections.usage, indent.usage, breaks.usage, styles.usage, misc.noWrap),
       );
     }
@@ -904,6 +904,7 @@ function formatSection(
  * Options are rendered in the same order as declared in the option definitions.
  * @param options The option definitions
  * @param styles The set of styles
+ * @param style The default style
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
  * @returns The terminal string
@@ -911,15 +912,20 @@ function formatSection(
 function formatUsage(
   options: Options,
   styles: ConcreteStyles,
+  style: Style,
   indent: number,
   breaks: number,
 ): TerminalString {
-  const result = new TerminalString(indent, breaks);
+  const result = new TerminalString(indent, breaks).addSequence(style);
+  const count = result.count;
   for (const key in options) {
     const option = options[key];
     if (!option.hide) {
-      formatUsageOption(option, styles, styles.text, result);
+      formatUsageOption(option, styles, style, result);
     }
+  }
+  if (result.count == count) {
+    return new TerminalString(); // this string does not contain any word
   }
   return result;
 }

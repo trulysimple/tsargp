@@ -250,6 +250,24 @@ describe('HelpFormatter', () => {
       );
     });
 
+    it('should stylize the default usage text', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const config: HelpConfig = {
+        sections: { usage: true },
+        styles: { usage: style(tf.italic) },
+      };
+      const message = new HelpFormatter(validator, config).formatFull();
+      // cspell:disable-next-line
+      expect(message.wrap(0, true)).toMatch(/\x9b3m\[\(.+-f\x9b3m\|.+--flag\x9b3m\)\]/);
+    });
+
     it('should render the default usage text with a program title', () => {
       const options = {
         flag: {
@@ -318,6 +336,23 @@ describe('HelpFormatter', () => {
       );
     });
 
+    it('should stylize the default usage text with a program title', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const config: HelpConfig = {
+        sections: { usage: true },
+        styles: { usage: style(tf.italic) },
+      };
+      const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
+      expect(message.wrap(0, true)).toMatch(/\x9b3mprog/); // cspell:disable-line
+    });
+
     it('should use custom phrase for all headings', () => {
       const options = {
         flag: {
@@ -367,7 +402,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const config: HelpConfig = { sections: { usage: true } };
+      const config: HelpConfig = { sections: { usage: true }, breaks: { usageOptions: 1 } };
       const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
       expect(message.wrap()).toEqual(
         'Usage:\n\n  prog\n\nOptions:\n\n  -f, --flag    A flag option.',
