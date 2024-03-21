@@ -200,7 +200,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -b, --boolean  <boolean>\n');
     });
 
-    it('should indent name slots in compact mode', () => {
+    it('should align option names to the left boundary', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -208,7 +208,7 @@ describe('HelpFormatter', () => {
           desc: 'A flag option',
         },
       } as const satisfies Options;
-      const config: HelpConfig = { indent: { compactNames: true } };
+      const config: HelpConfig = { align: { names: 'left' } };
       const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toEqual('  -f, --flag    A flag option\n');
     });

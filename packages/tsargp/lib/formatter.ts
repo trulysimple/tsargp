@@ -24,6 +24,11 @@ import { assert, splitPhrase } from './utils';
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
+ * A text alignment setting.
+ */
+export type Alignment = 'left' | 'right' | 'justified';
+
+/**
  * The help format configuration.
  */
 export type HelpConfig = {
@@ -53,10 +58,19 @@ export type HelpConfig = {
      * of the line instead of the end of the parameter column. (Defaults to false)
      */
     readonly descrAbsolute?: boolean;
+  };
+
+  /**
+   * The alignment settings for each help entry column.
+   */
+  readonly align?: {
     /**
-     * True if name slots should not have extra spacing. (Defaults to false)
+     * The alignment of the names column. (Defaults to 'justified')
+     *
+     * Justified here means that each name receives a "slot" in the names column, and the name is
+     * left-aligned within that slot.
      */
-    readonly compactNames?: boolean;
+    readonly names?: Alignment;
   };
 
   /**
@@ -243,7 +257,9 @@ const defaultConfig: ConcreteFormat = {
     descr: 2,
     paramAbsolute: false,
     descrAbsolute: false,
-    compactNames: false,
+  },
+  align: {
+    names: 'justified',
   },
   breaks: {
     names: 0,
@@ -354,7 +370,7 @@ export class HelpFormatter {
     this.config = mergeConfig(config);
     this.nameWidths = this.config.hidden.names
       ? 0
-      : this.config.indent.compactNames
+      : this.config.align.names === 'left'
         ? getMaxNamesWidth(this.options)
         : getNameWidths(this.options);
     let paramWidth = 0;
@@ -545,6 +561,7 @@ export class HelpFormatter {
 function mergeConfig(config: HelpConfig): ConcreteFormat {
   return {
     indent: { ...defaultConfig.indent, ...config.indent },
+    align: { ...defaultConfig.align, ...config.align },
     breaks: { ...defaultConfig.breaks, ...config.breaks },
     hidden: { ...defaultConfig.hidden, ...config.hidden },
     items: config.items ?? defaultConfig.items,
