@@ -1,5 +1,13 @@
 # tsargp
 
+## 0.3.0-dev.3
+
+### Minor Changes
+
+- [#60](https://github.com/trulysimple/tsargp/pull/60) [`95736cf`](https://github.com/trulysimple/tsargp/commit/95736cfc3bc3b9d8c1396302674d58e482b56aa3) Thanks [@disog](https://github.com/disog)! - Added a help format configuration named `align`, that can be used to select the alignment of option names in the help message.
+
+- [#53](https://github.com/trulysimple/tsargp/pull/53) [`df5d7a4`](https://github.com/trulysimple/tsargp/commit/df5d7a49fb7b97affcf87d63f02f558251cca787) Thanks [@disog](https://github.com/disog)! - Added the `formatFull` method to the help formatter, that implements sections in the help message. Added the following properties to `HelpConfig`: `sections`, `styles` amd `misc`. Removed some attributes from the help option which are not needed anymore. (We will _not_ go through a deprecation process, since the library is under active development and not currently used by other packages.)
+
 ## 0.3.0-dev.2
 
 ### Minor Changes
