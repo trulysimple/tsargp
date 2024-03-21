@@ -1,5 +1,15 @@
 # @trulysimple/tsargp-docs
 
+## 0.2.0-dev.3
+
+### Minor Changes
+
+- [#53](https://github.com/trulysimple/tsargp/pull/53) [`df5d7a4`](https://github.com/trulysimple/tsargp/commit/df5d7a49fb7b97affcf87d63f02f558251cca787) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new `formatFull` method, as well as the new configuration properties: `sections`, `styles` amd `misc`. Updated the help option section in the Options page, to reflect the changes to this option's attributes.
+
+### Patch Changes
+
+- [#57](https://github.com/trulysimple/tsargp/pull/57) [`3cfbf64`](https://github.com/trulysimple/tsargp/commit/3cfbf6401962d66ac26035b6b77902c9e2a10722) Thanks [@disog](https://github.com/disog)! - Added missing source links in the API documentation generated with TypeDoc.
+
 ## 0.2.0-dev.2
 
 ### Minor Changes
