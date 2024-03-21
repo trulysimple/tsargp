@@ -1,0 +1,11 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["../tsargp/lib/index.ts"],
+  "tsconfig": "../tsargp/tsconfig.json",
+  "out": "public/api",
+  "gaID": "G-W0635HEKLH",
+  "githubPages": false,
+  "excludeExternals": true,
+  "treatWarningsAsErrors": true,
+  "intentionallyNotExported": ["OptionDataType", "HelpEntry", "Positional", "ParamValue"]
+}
