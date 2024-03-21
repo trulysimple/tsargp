@@ -44,10 +44,12 @@ containing a piece of information, as described below.
 
 ### Names column
 
-This column contains the option's names separated by commas. The names are listed in the same order
-specified in the [names](options.mdx#names--preferred-name) attribute. Each option name reserves a
-"slot" in the corresponding index in this column, and the length of a name slot will be the length
-of the largest name in that slot, among all options.
+This column contains the options' names separated by commas. The names are listed in the same order
+specified in the [names](options.mdx#names--preferred-name) attribute.
+
+Depending on the [alignment](#text-alignment) configuration, each option name may reserve a "slot"
+in the respective index in this column, and the length of a name slot will be the length of the
+largest name in that slot, among all options.
 
 For example, if an option's names are `'-f'{:ts}`, `'-ff'{:ts}`, `''{:ts}` and `'--flag'{:ts}`, the
 resulting entry might be formatted as:
@@ -158,10 +160,24 @@ columns. It has the following set of optional properties:
   `true{:ts}`, defaults to `2{:ts}`)
 - `descr` - level of indentation for the option description (non-negative if `descrAbsolute` is
   `true{:ts}`, defaults to `2{:ts}`)
-- `paramAbsolute` whether the indentation level for the option parameter should be relative to the
+- `paramAbsolute` - whether the indentation level for the option parameter should be relative to the
   beginning of the line instead of the end of the option names (defaults to `false{:ts}`)
-- `descrAbsolute` whether the indentation level for the option description should be relative to the
+- `descrAbsolute` - whether the indentation level for the option description should be relative to the
   beginning of the line instead of the end of the option parameter (defaults to `false{:ts}`)
+
+### Text alignment
+
+The `align` property specifies the `Alignment` of help entry columns. It has the following set of
+optional properties:
+
+- `names` - alignment for the names column (defaults to `'justified'{:ts}`)
+
+Possible values for each of these settings are `'left'{:ts}`, `'right'{:ts}` or `'justified'{:ts}`.
+
+<Callout type="info">
+  In the case of `names`, justified means that each name receives a "slot" in the names column, and
+  the name is left-aligned within that slot. See [names column](#names-column) for more information.
+</Callout>
 
 ### Line breaks
 
