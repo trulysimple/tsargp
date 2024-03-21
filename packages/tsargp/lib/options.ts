@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { HelpConfig, HideSections } from './formatter';
+import type { HelpConfig, HelpSections } from './formatter';
 import type { Style } from './styles';
 import type { Resolve, Writable, URL } from './utils';
 
@@ -201,9 +201,8 @@ export type WithType<T extends string> = {
   readonly group?: string;
   /**
    * True if the option should be hidden from the help message.
-   * Use the string 'usage' to hide it only from the default usage message.
    */
-  readonly hide?: true | 'usage';
+  readonly hide?: true;
   /**
    * The option display styles.
    */
@@ -617,9 +616,9 @@ export type HelpOption = WithType<'help'> & {
    */
   readonly format?: HelpConfig;
   /**
-   * The help sections that should be omitted.
+   * The help parts that should be rendered.
    */
-  readonly hideSections?: HideSections;
+  readonly sections?: HelpSections;
 };
 
 /**

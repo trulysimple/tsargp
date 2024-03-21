@@ -47,7 +47,7 @@ describe('ArgumentParser', () => {
     });
 
     describe('help', () => {
-      it('should throw a help message with no usage or footer', () => {
+      it('should throw a help message with default settings', () => {
         const options = {
           flag: {
             type: 'flag',
@@ -62,59 +62,34 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
         try {
-          parser.parse(['-h']);
+          parser.parse(['-h'], { progName: 'prog' });
         } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(/^Args:\n\n {2}-f\n\nOptions:\n\n {2}-h/);
+          expect((err as HelpMessage).wrap(0)).toMatch(
+            /^Usage:\n\n {2}prog \[-f\] \[-h\]\n\nArgs:\n\n {2}-f\n\nOptions:\n\n {2}-h/,
+          );
         }
       });
 
-      it('should throw a help message with usage and footer and custom indentation', () => {
+      it('should throw a help message with usage ans custom indentation', () => {
         const options = {
           help: {
             type: 'help',
             names: ['-h'],
-            group: 'example  heading',
-            format: {
-              sections: {
-                usage: 'example  usage',
-                footer: 'example  footer',
-              },
-              indent: { usage: 0, names: 0 },
-            },
+            group: 'group  heading',
+            sections: [
+              { type: 'usage', title: 'usage  heading' },
+              { type: 'groups', noWrap: true },
+            ],
+            format: { indent: { names: 0 } },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
         try {
-          parser.parse(['-h']);
+          parser.parse(['-h'], { progName: 'prog' });
         } catch (err) {
           expect((err as HelpMessage).wrap(0)).toMatch(
-            /^Usage:\n\nexample usage\n\nexample heading:\n\n-h\n\nexample footer/,
-          );
-        }
-      });
-
-      it('should throw a help message that does not wrap texts', () => {
-        const options = {
-          help: {
-            type: 'help',
-            names: ['-h'],
-            group: '  example  heading',
-            format: {
-              sections: {
-                usage: '  example  usage',
-                footer: '  example  footer',
-              },
-              misc: { noWrap: true, headingPhrase: '%s' },
-            },
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        try {
-          parser.parse(['-h']);
-        } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(
-            /^Usage\n\n {4}example {2}usage\n\n {2}example {2}heading\n\n {2}-h\n\n {2}example {2}footer/,
+            /^usage heading\n\nprog \[-h\]\n\ngroup {2}heading\n\n-h/,
           );
         }
       });

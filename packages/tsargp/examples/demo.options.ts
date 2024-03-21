@@ -75,19 +75,29 @@ export default {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'A help option. Prints this help message.',
-    format: {
-      sections: {
-        intro: `${style(tf.clear, tf.bold)}Argument parser for TypeScript.`,
-        usage: true,
-        footer: `MIT License.
+    sections: [
+      {
+        type: 'text',
+        text: `${style(tf.bold)}Argument parser for TypeScript.`,
+      },
+      {
+        type: 'groups',
+        phrase: '%s:',
+      },
+      {
+        type: 'usage',
+        title: 'Usage:',
+        indent: 2,
+      },
+      {
+        type: 'text',
+        text: `MIT License.
 Copyright (c) 2024 ${style(tf.bold, tf.italic)}TrulySimple${style(tf.clear)}
 
 Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
-      },
-      misc: {
         noWrap: true,
       },
-    },
+    ],
   },
   /**
    * A version option that throws the package version.
