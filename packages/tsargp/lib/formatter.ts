@@ -28,47 +28,9 @@ import { assert, splitPhrase } from './utils';
  */
 export type HelpConfig = {
   /**
-   * The texts for each help section.
-   */
-  readonly sections?: {
-    /**
-     * The text of the introduction section. This section has no heading.
-     */
-    readonly intro?: string;
-    /**
-     * The text of the usage section, or `true` to use the default text.
-     */
-    readonly usage?: string | true;
-    /**
-     * The text of the footer section. This section has no heading.
-     */
-    readonly footer?: string;
-    /**
-     * The text of the usage section heading. (Defaults to 'Usage')
-     */
-    readonly usageHeading?: string;
-    /**
-     * The text of the default option group heading. (Defaults to 'Options')
-     */
-    readonly groupHeading?: string;
-  };
-
-  /**
-   * The indentation level for each help section or entry column.
+   * The indentation level for each help entry column.
    */
   readonly indent?: {
-    /**
-     * The indentation level for the introduction section. (Defaults to 0)
-     */
-    readonly intro?: number;
-    /**
-     * The indentation level for the usage section text. (Defaults to 2)
-     */
-    readonly usage?: number;
-    /**
-     * The indentation level for the footer section. (Defaults to 0)
-     */
-    readonly footer?: number;
     /**
      * The indentation level for the names column. (Defaults to 2)
      */
@@ -82,18 +44,6 @@ export type HelpConfig = {
      */
     readonly descr?: number;
     /**
-     * The indentation level for the options in the default usage. (Defaults to 1)
-     */
-    readonly usageOptions?: number;
-    /**
-     * The indentation level for the usage section heading. (Defaults to 0)
-     */
-    readonly usageHeading?: number;
-    /**
-     * The indentation level for every option group heading. (Defaults to 0)
-     */
-    readonly groupHeading?: number;
-    /**
      * True if the indentation level for the parameter column should be relative to the beginning
      * of the line instead of the end of the names column. (Defaults to false)
      */
@@ -103,33 +53,12 @@ export type HelpConfig = {
      * of the line instead of the end of the parameter column. (Defaults to false)
      */
     readonly descrAbsolute?: boolean;
-    /**
-     * True if the indentation level for the usage options should be relative to the beginning
-     * of the line instead of the end of the program name. (Defaults to false)
-     */
-    readonly usageOptionsAbsolute?: boolean;
   };
 
   /**
-   * The number of line breaks to insert before each help section or entry column.
+   * The number of line breaks to insert before each help entry column.
    */
   readonly breaks?: {
-    /**
-     * The number of line breaks to insert before the introduction section. (Defaults to 0)
-     */
-    readonly intro?: number;
-    /**
-     * The number of line breaks to insert before the usage section text. (Defaults to 2)
-     */
-    readonly usage?: number;
-    /**
-     * The number of line breaks to insert before each option group content. (Defaults to 2)
-     */
-    readonly groups?: number;
-    /**
-     * The number of line breaks to insert before the footer section. (Defaults to 2)
-     */
-    readonly footer?: number;
     /**
      * The number of line breaks to insert before the names column. (Defaults to 0)
      */
@@ -142,18 +71,6 @@ export type HelpConfig = {
      * The number of line breaks to insert before the description column. (Defaults to 0)
      */
     readonly descr?: number;
-    /**
-     * The number of line breaks to insert before the options in the default usage. (Defaults to 0)
-     */
-    readonly usageOptions?: number;
-    /**
-     * The number of line breaks to insert before the usage section heading. (Defaults to 2)
-     */
-    readonly usageHeading?: number;
-    /**
-     * The number of line breaks to insert before every option group heading. (Defaults to 2)
-     */
-    readonly groupHeading?: number;
   };
 
   /**
@@ -190,46 +107,6 @@ export type HelpConfig = {
    * `'Values will be converted to (lowercase|uppercase)'`.
    */
   readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
-
-  /**
-   * The styles of the help sections.
-   */
-  readonly styles?: {
-    /**
-     * The style of the introduction section. (Defaults to tf.clear)
-     */
-    readonly intro?: Style;
-    /**
-     * The style of the usage section. (Defaults to tf.clear)
-     */
-    readonly usage?: Style;
-    /**
-     * The style of the footer section. (Defaults to tf.clear)
-     */
-    readonly footer?: Style;
-    /**
-     * The style of the usage section heading. (Defaults to tf.bold)
-     */
-    readonly usageHeading?: Style;
-    /**
-     * The style of every option group heading. (Defaults to tf.bold)
-     */
-    readonly groupHeading?: Style;
-  };
-
-  /**
-   * Miscellaneous settings.
-   */
-  readonly misc?: {
-    /**
-     * A custom phrase to use for all headings. (Defaults to '%s:')
-     */
-    readonly headingPhrase?: string;
-    /**
-     * True to disable wrapping of provided texts. (Defaults to false)
-     */
-    readonly noWrap?: boolean;
-  };
 };
 
 /**
@@ -247,26 +124,107 @@ type HelpEntry = {
 };
 
 /**
- * A set of flags to configure sections that should be omitted from the full help.
+ * Defines common attributes for a help section.
  */
-export type HideSections = {
+export type WithKind<T extends string> = {
   /**
-   * True to omit the introduction section from the full help.
+   * The kind of section.
    */
-  readonly intro?: true;
-  /**
-   * True to omit the usage section from the full help.
-   */
-  readonly usage?: true;
-  /**
-   * True if no option group should be displayed in the full help.
-   */
-  readonly groups?: true;
-  /**
-   * True to omit the footer section from the full help.
-   */
-  readonly footer?: true;
+  readonly type: T;
 };
+
+/**
+ * Defines attributes for a help section with text.
+ */
+export type WithText = {
+  /**
+   * The section text. May contain inline styles.
+   */
+  readonly text: string;
+};
+
+/**
+ * Defines attributes for a help section with wrapping.
+ */
+export type WithWrap = {
+  /**
+   * True to disable text wrapping of the provided text or headings.
+   */
+  readonly noWrap?: true;
+};
+
+/**
+ * Defines attributes for a help section with a title.
+ */
+export type WithTitle = {
+  /**
+   * The heading text. May contain inline styles.
+   */
+  readonly title?: string;
+  /**
+   * The style of headings. (Defaults to tf.bold)
+   */
+  readonly style?: Style;
+};
+
+/**
+ * Defines attributes for a help section with indentation.
+ */
+export type WithIndent = {
+  /**
+   * The indentation level of the section content. (Defaults to 0)
+   */
+  readonly indent?: number;
+};
+
+/**
+ * Defines attributes for a help section with filter.
+ */
+export type WithFilter = {
+  /**
+   * A list of options keys or group names to include or exclude.
+   */
+  readonly filter?: Array<string>;
+  /**
+   * True if the filter should exclude.
+   */
+  readonly exclude?: true;
+};
+
+/**
+ * Defines attributes for a help section with phrase.
+ */
+export type HelpPhrase = {
+  /**
+   * A custom phrase for group headings.
+   */
+  readonly phrase?: string;
+};
+
+/**
+ * A help text section.
+ */
+export type HelpText = WithKind<'text'> & WithText & WithWrap & WithIndent;
+
+/**
+ * A help usage section.
+ */
+export type HelpUsage = WithKind<'usage'> & WithTitle & WithWrap & WithIndent & WithFilter;
+
+/**
+ * A help groups section.
+ */
+export type HelpGroups = WithKind<'groups'> & WithTitle & WithWrap & HelpPhrase & WithFilter;
+
+/**
+ * A help section.
+ */
+export type HelpSection = HelpText | HelpUsage | HelpGroups;
+
+/**
+ * A list of help sections.
+ */
+export type HelpSections = Array<HelpSection>;
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -275,38 +233,17 @@ export type HideSections = {
  * The default configuration used by the formatter.
  */
 const defaultConfig: ConcreteFormat = {
-  sections: {
-    intro: '',
-    usage: '',
-    footer: '',
-    usageHeading: 'Usage',
-    groupHeading: 'Options',
-  },
   indent: {
-    intro: 0,
-    usage: 2,
-    footer: 0,
     names: 2,
     param: 2,
     descr: 2,
-    usageOptions: 1,
-    usageHeading: 0,
-    groupHeading: 0,
     paramAbsolute: false,
     descrAbsolute: false,
-    usageOptionsAbsolute: false,
   },
   breaks: {
-    intro: 0,
-    usage: 2,
-    groups: 2,
-    footer: 2,
     names: 0,
     param: 0,
     descr: 0,
-    usageOptions: 0,
-    usageHeading: 2,
-    groupHeading: 2,
   },
   hidden: {
     names: false,
@@ -358,17 +295,6 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.link]: 'Refer to %s for details.',
     [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
     [HelpItem.requiredIf]: 'Required if %s.',
-  },
-  styles: {
-    intro: style(tf.clear),
-    usage: style(tf.clear),
-    footer: style(tf.clear),
-    usageHeading: style(tf.clear, tf.bold),
-    groupHeading: style(tf.clear, tf.bold),
-  },
-  misc: {
-    headingPhrase: '%s:',
-    noWrap: false,
   },
 };
 
@@ -425,7 +351,7 @@ export class HelpFormatter {
     let paramWidth = 0;
     for (const key in this.options) {
       const option = this.options[key];
-      if (option.hide !== true) {
+      if (!option.hide) {
         const entry = this.formatOption(option);
         paramWidth = Math.max(paramWidth, entry.param.length);
       }
@@ -641,68 +567,14 @@ export class HelpFormatter {
   /**
    * Formats a complete help message with sections.
    * Options are rendered in the same order as declared in the option definitions.
-   * @param hide Sections that should not be displayed
+   * @param sections The help sections
    * @param progName The program name, if any
    * @returns The formatted help message
    */
-  formatFull(hide: HideSections = {}, progName = ''): HelpMessage {
-    const { sections, indent, breaks, styles, misc } = this.config;
+  formatSections(sections: HelpSections = [], progName = ''): HelpMessage {
     const help = new HelpMessage();
-    if (!hide.intro && sections.intro) {
-      help.push(
-        formatSection(sections.intro, indent.intro, breaks.intro, styles.intro, misc.noWrap),
-      );
-    }
-    if (!hide.usage && sections.usage) {
-      const heading = formatSection(
-        sections.usageHeading,
-        indent.usageHeading,
-        help.length ? breaks.usageHeading : 0,
-        styles.usageHeading,
-        misc.noWrap,
-        misc.headingPhrase,
-      );
-      const defaultUsage = sections.usage === true;
-      const addProgName = defaultUsage && progName;
-      const usageOptionsBreaks = addProgName ? breaks.usageOptions : breaks.usage;
-      const usageOptionsIndent = addProgName ? progName.length + indent.usageOptions : 0;
-      const optionsIndent = indent.usageOptionsAbsolute
-        ? Math.max(0, indent.usageOptions)
-        : Math.max(0, indent.usage) + usageOptionsIndent;
-      help.push(
-        heading,
-        ...(addProgName
-          ? [formatSection(progName, indent.usage, breaks.usage, styles.usage, true)]
-          : []),
-        defaultUsage
-          ? formatUsage(this.options, this.styles, styles.usage, optionsIndent, usageOptionsBreaks)
-          : formatSection(sections.usage, indent.usage, breaks.usage, styles.usage, misc.noWrap),
-      );
-    }
-    if (!hide.groups) {
-      for (const [group, message] of this.formatGroups().entries()) {
-        const heading = formatSection(
-          group || sections.groupHeading,
-          indent.groupHeading,
-          help.length ? breaks.groupHeading : 0,
-          styles.groupHeading,
-          misc.noWrap,
-          misc.headingPhrase,
-        );
-        help.push(heading.addBreaks(breaks.groups), ...message);
-        help[help.length - 1].pop(); // remove trailing break
-      }
-    }
-    if (!hide.footer && sections.footer) {
-      help.push(
-        formatSection(
-          sections.footer,
-          indent.footer,
-          help.length ? breaks.footer : 0,
-          styles.footer,
-          misc.noWrap,
-        ),
-      );
+    for (const section of sections) {
+      formatSection(this.options, this.groups, this.styles, section, progName, help);
     }
     return help;
   }
@@ -718,14 +590,11 @@ export class HelpFormatter {
  */
 function mergeConfig(config: HelpConfig): ConcreteFormat {
   return {
-    sections: { ...defaultConfig.sections, ...config.sections },
     indent: { ...defaultConfig.indent, ...config.indent },
     breaks: { ...defaultConfig.breaks, ...config.breaks },
     hidden: { ...defaultConfig.hidden, ...config.hidden },
     items: config.items ?? defaultConfig.items,
     phrases: { ...defaultConfig.phrases, ...config.phrases },
-    styles: { ...defaultConfig.styles, ...config.styles },
-    misc: { ...defaultConfig.misc, ...config.misc },
   };
 }
 
@@ -738,7 +607,7 @@ function getNameWidths(options: Options): Array<number> {
   const result = new Array<number>();
   for (const key in options) {
     const option = options[key];
-    if (option.hide !== true && option.names) {
+    if (!option.hide && option.names) {
       option.names.forEach((name, i) => {
         if (i == result.length) {
           result.push(name?.length ?? 0);
@@ -865,69 +734,170 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
 }
 
 /**
- * Formats a heading title or section text, to be included in the full help message.
+ * Formats a help section to be included in the full help message.
+ * Options are rendered in the same order as declared in the option definitions.
+ * @param options The option definitions
+ * @param groups The option groups
+ * @param styles The set of styles
+ * @param section The help section
+ * @param progName The program name
+ * @param result The resulting message
+ */
+function formatSection(
+  options: Options,
+  groups: Map<string, Array<HelpEntry>>,
+  styles: ConcreteStyles,
+  section: HelpSection,
+  progName: string,
+  result: HelpMessage,
+) {
+  let breaks = result.length ? 2 : 0;
+  switch (section.type) {
+    case 'text': {
+      const { text, indent, noWrap } = section;
+      if (text) {
+        result.push(formatText(text, styles.text, indent, breaks, noWrap));
+      }
+      break;
+    }
+    case 'usage':
+      formatUsageSection(options, styles, breaks, section, progName, result);
+      break;
+    case 'groups':
+      formatGroupsSection(groups, breaks, section, result);
+      break;
+  }
+}
+
+/**
+ * Formats a usage section text to be included in the full help message.
+ * @param options The option definitions
+ * @param styles The set of styles
+ * @param breaks The number of line breaks
+ * @param section The help section
+ * @param progName The program name
+ * @param result The resulting message
+ */
+function formatUsageSection(
+  options: Options,
+  styles: ConcreteStyles,
+  breaks: number,
+  section: HelpUsage,
+  progName: string,
+  result: HelpMessage,
+) {
+  const { title, indent, noWrap, filter, exclude, style: sty } = section;
+  if (title) {
+    result.push(formatText(title, sty ?? style(tf.bold), 0, breaks, noWrap));
+    breaks = 2;
+  }
+  let indent2 = indent;
+  if (progName) {
+    result.push(formatText(progName, styles.text, indent, breaks, true));
+    indent2 = Math.max(0, indent ?? 0) + progName.length + 1;
+    breaks = 0;
+  }
+  const filterKeys = filter ? new Set(filter) : undefined;
+  result.push(formatUsage(options, styles, styles.text, indent2, breaks, filterKeys, exclude));
+}
+
+/**
+ * Formats a groups section to be included in the full help message.
+ * Options are rendered in the same order as declared in the option definitions.
+ * @param groups The option groups
+ * @param breaks The number of line breaks
+ * @param section The help section
+ * @param result The resulting message
+ */
+function formatGroupsSection(
+  groups: Map<string, Array<HelpEntry>>,
+  breaks: number,
+  section: HelpGroups,
+  result: HelpMessage,
+) {
+  const { phrase, title, noWrap, filter, exclude, style: sty } = section;
+  const filterGroups = filter ? new Set(filter) : undefined;
+  for (const [group, entries] of groups.entries()) {
+    if ((filterGroups?.has(group) ?? !exclude) != !!exclude) {
+      const title2 = group || title;
+      const heading = title2
+        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap, phrase).addBreaks(2)
+        : new TerminalString(0, breaks);
+      result.push(heading, ...formatEntries(entries));
+      result[result.length - 1].pop(); // remove trailing break
+      breaks = 2;
+    }
+  }
+}
+
+/**
+ * Formats a custom text to be included in a help section.
  * @param text The heading title or section text
+ * @param defStyle The default style
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
- * @param style The style to apply to the text
  * @param noWrap True if the provided text should not be split
  * @param phrase The custom phrase, if any
  * @returns The terminal string
  */
-function formatSection(
+function formatText(
   text: string,
-  indent: number,
-  breaks: number,
-  style: Style,
-  noWrap: boolean,
+  defStyle: Style,
+  indent?: number,
+  breaks?: number,
+  noWrap = false,
   phrase?: string,
 ): TerminalString {
   /** @ignore */
-  function formatText() {
+  function format() {
     if (noWrap) {
       result.addWord(text); // warning: may be larger than the terminal width
     } else {
       result.splitText(text);
     }
   }
-  const result = new TerminalString(indent, breaks).addSequence(style);
+  const result = new TerminalString(indent, breaks).addSequence(defStyle);
   if (phrase) {
-    result.splitText(phrase, formatText);
+    result.splitText(phrase, format);
   } else {
-    formatText();
+    format();
   }
-  return result;
+  return result.addSequence(style(tf.clear)); // to simplify client code
 }
 
 /**
- * Formats a default usage to be included in the full help message.
+ * Formats a usage text to be included in a help section.
  * Options are rendered in the same order as declared in the option definitions.
  * @param options The option definitions
  * @param styles The set of styles
- * @param style The default style
+ * @param defStyle The default style
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
+ * @param filterKeys An optional set of options keys to filter
+ * @param exclude Whether the filter should exclude
  * @returns The terminal string
  */
 function formatUsage(
   options: Options,
   styles: ConcreteStyles,
-  style: Style,
-  indent: number,
-  breaks: number,
+  defStyle: Style,
+  indent?: number,
+  breaks?: number,
+  filterKeys?: Set<string>,
+  exclude = false,
 ): TerminalString {
-  const result = new TerminalString(indent, breaks).addSequence(style);
+  const result = new TerminalString(indent, breaks).addSequence(defStyle);
   const count = result.count;
   for (const key in options) {
     const option = options[key];
-    if (!option.hide) {
-      formatUsageOption(option, styles, style, result);
+    if (!option.hide && (filterKeys?.has(key) ?? !exclude) != exclude) {
+      formatUsageOption(option, styles, defStyle, result);
     }
   }
   if (result.count == count) {
     return new TerminalString(); // this string does not contain any word
   }
-  return result;
+  return result.addSequence(style(tf.clear)); // to simplify client code
 }
 
 /**

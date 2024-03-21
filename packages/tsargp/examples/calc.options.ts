@@ -120,11 +120,6 @@ const mainOpts = {
     type: 'help',
     names: ['help'],
     desc: 'Prints this help message.',
-    format: {
-      sections: {
-        usage: true,
-      },
-    },
   },
   ...addOpts,
   ...subOpts,

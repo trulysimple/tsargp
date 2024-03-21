@@ -21,27 +21,20 @@ The `formatHelp` method returns a message corresponding to the _default_ option 
 set of options that did not explicitly declare an [option group](options.mdx#group--hide) in their
 definition. It accepts no parameter.
 
-### Group help
+### Grouped help
 
 The `formatGroup` method, a sibling of the above one, returns the help of a specific option group.
 The `formatGroups` method, on the other hand, returns a `Map{:ts}` that maps group names to help
 messages, including the default group with an empty name. Neither of these methods accept any
 parameter.
 
-### Full help
+### Sectioned help
 
-The `formatFull` method returns a help message that includes [help sections](#help-sections), as
+The `formatSections` method returns a help message that includes [help sections](#help-sections), as
 will be explained later in this page. It accepts two optional parameters:
 
-- `hide` - an object to configure sections that should not be rendered
-- `progName` - the name of the program to use in the default usage message
-
-The `hide` parameter, of type `HideSections`, contains the following set of optional flags:
-
-- `intro` - true to omit the introduction section from the full help
-- `usage` - true to omit the usage section from the full help
-- `groups` - true if no option group should be displayed in the full help
-- `footer` - true to omit the footer section from the full help
+- `sections` - a list of `HelpSection` to include in the help message
+- `progName` - the name of the program to display in usage sections
 
 ## Help entries
 
@@ -78,9 +71,33 @@ This column contains either:
 The last column contains the option description and is composed of [help items](#help-items), which
 are explained later in this page.
 
-## Default usage
+## Help sections
 
-The default usage text is a concise representation of a program's command-line. Here is an example:
+Sections are a convenient way to organize the help content. There are three kinds of help sections:
+text, usage and groups. They are explained below.
+
+<Callout type="info">
+  In what follows, the `text` and `title` properties can contain inline styles and may be formatted
+  according to [text formatting](styles.mdx#text-splitting) rules, unless `noWrap` is set.
+</Callout>
+
+<Callout type="warning">
+  All sections and headings are separated by two line feeds by default, unless extra spacing is
+  provided in texts. For the sake of simplicity, there is no way to configure this feature.
+</Callout>
+
+### Text section
+
+A text section can be used to write many kinds of content, such as an introductory text, CLI usage
+instructions, afterword, copyright notice or external references. It has the following properties:
+
+- `text` - the section text
+- `noWrap` - true to disable wrapping of the provided text (defaults to `false{:ts}`)
+- `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
+
+### Usage section
+
+The usage text is a concise representation of a program's command-line. Here is an example:
 
 {/* cSpell:disable */}
 
@@ -100,76 +117,60 @@ demo.js [[95mhelp[0m] [([95m-h[0m|[95m--help[0m)] [([95m-v[0m|[95m--ver
 
 {/* cSpell:enable */}
 
-You can use the default text, or provide your own in the help format configuration, as is described
-in the next section.
+A usage section has the following properties:
+
+- `title` - the section heading (defaults to no heading)
+- `style` - the style of the section heading (defaults to `tf.bold{:ts}`)
+- `noWrap` - true to disable wrapping of the provided heading (defaults to `false{:ts}`)
+- `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
+- `filter` - a list of option keys to include or exclude (defaults to none)
+- `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
+
+<Callout type="default">
+  The filter can be used to create multiple usages of the same command, with different options.
+</Callout>
+
+### Groups section
+
+A groups section is a collection of option groups and their help entries. It has the following
+properties:
+
+- `title` - the default group heading (defaults to no heading)
+- `style` - the style of group headings (defaults to `tf.bold{:ts}`)
+- `noWrap` - true to disable text wrapping of group headings (defaults to `false{:ts}`)
+- `phrase` - a custom phrase for group headings (defaults to none)
+- `filter` - a list of group names to include or exclude (defaults to none)
+- `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
 
 ## Help format
 
 In addition to the validator instance, the formatter constructor accepts a `HelpConfig` object that
-can be used to customize the message format. This configuration will apply to both help sections and
-help entries. It contains a collection of optional properties, as described below.
-
-### Help sections
-
-The `sections` property specifies texts to be used in the various sections of the full help message.
-It has the following set of optional properties:
-
-- `intro` - the introduction of the help message. This is the initial section and has no heading.
-- `usage` - your CLI usage instructions. It can be either a text or `true{:ts}`, in which case the
-  [default usage](#default-usage) text will be rendered instead. This section has a heading that can
-  be configured with the `usageHeading` property.
-- `footer` - an afterword, copyright notice or external reference. This is the final section and has
-  no heading.
-- `usageHeading` - the text of the usage section heading (defaults to `'Usage'{:ts}`)
-- `groupHeading` - the text of the default option group heading (defaults to `'Options'{:ts}`)
-
-<Callout type="info">
-  All of these properties can include inline styles and will be formatted according to [text
-  formatting](styles.mdx#text-splitting) rules, unless `misc.noWrap` is set.
-</Callout>
+can be used to customize the message format. This configuration will apply to all help entries. It
+contains a collection of optional properties, as described below.
 
 ### Indentation level
 
-The `indent` property specifies the indentation levels (in number of terminal columns) of help
-sections and of entry columns. It has the following set of optional properties:
+The `indent` property specifies the indentation levels (in number of terminal columns) of help entry
+columns. It has the following set of optional properties:
 
-- `intro` - level of indentation for the introduction section (non-negative, defaults to `0{:ts}`)
-- `usage` - level of indentation for the usage section text (non-negative, defaults to `2{:ts}`)
-- `footer` - level of indentation for the footer section (non-negative, defaults to `0{:ts}`)
 - `names` - level of indentation for the option names (non-negative, defaults to `2{:ts}`)
 - `param` - level of indentation for the option parameter (non-negative if `paramAbsolute` is
   `true{:ts}`, defaults to `2{:ts}`)
 - `descr` - level of indentation for the option description (non-negative if `descrAbsolute` is
   `true{:ts}`, defaults to `2{:ts}`)
-- `usageOptions` - level of indentation for the options in the [default usage](#default-usage)
-  (non-negative if `usageOptionsAbsolute` is `true{:ts}`, defaults to `1{:ts}`)
-- `usageHeading` - level of indentation for the usage section heading (non-negative, defaults to
-  `0{:ts}`)
-- `groupHeading` - level of indentation for every option group heading (non-negative, defaults to
-  `0{:ts}`)
 - `paramAbsolute` whether the indentation level for the option parameter should be relative to the
   beginning of the line instead of the end of the option names (defaults to `false{:ts}`)
 - `descrAbsolute` whether the indentation level for the option description should be relative to the
   beginning of the line instead of the end of the option parameter (defaults to `false{:ts}`)
-- `usageOptionsAbsolute` whether the indentation level for the usage options should be relative to
-  the beginning of the line instead of the end of the program name (defaults to `false{:ts}`)
 
 ### Line breaks
 
-The `breaks` property specifies the number of line breaks to insert before help sections or entry
-columns. It has the following set of optional properties:
+The `breaks` property specifies the number of line breaks to insert before help entry columns. It
+has the following set of optional properties:
 
-- `intro` - line breaks to insert before the introduction section (defaults to `0{:ts}`)
-- `usage` - line breaks to insert before the usage section text (defaults to `2{:ts}`)
-- `groups` - line breaks to insert before each option group content (defaults to `2{:ts}`)
-- `footer` - line breaks to insert before the footer section (defaults to `2{:ts}`)
 - `names` - line breaks to insert before the option names (defaults to `0{:ts}`)
 - `param` - line breaks to insert before the option parameter (defaults to `0{:ts}`)
 - `descr` - line breaks to insert before the option description (defaults to `0{:ts}`)
-- `usageOptions` - line breaks to insert before the options in the [default usage](#default-usage)
-  (defaults to `0{:ts}`)
-- `usageHeading` - line breaks to insert before the usage section heading (defaults to `2{:ts}`)
-- `groupHeading` - line breaks to insert before every option group heading (defaults to `2{:ts}`)
 
 ### Hidden columns
 
@@ -179,10 +180,6 @@ following set of optional properties:
 - `names` - whether option names should be omitted (defaults to `false{:ts}`)
 - `param` - whether option parameters should be omitted (defaults to `false{:ts}`)
 - `descr` - whether option descriptions should be omitted (defaults to `false{:ts}`)
-
-<Callout type="info">
-  These settings do not apply to the [default usage](#default-usage) text.
-</Callout>
 
 ### Help items
 
@@ -249,26 +246,6 @@ These phrases will be formatted according to [text formatting](styles.mdx#text-s
   will mess up the text wrapping. For example, the following phrase is not valid:
   ``` `Requires ${style(tf.bold)}%s`{:ts} ```.
 </Callout>
-
-### Section styles
-
-The `styles` property specifies the [styles](styles.mdx#styling-attributes) of the help sections. It
-has the following set of optional properties:
-
-- `intro` - the style of the introduction section (defaults to `tf.clear{:ts}`)
-- `usage` - the style of the usage section (defaults to `tf.clear{:ts}`)
-- `footer` - the style of the footer section (defaults to `tf.clear{:ts}`)
-- `usageHeading` - the style of the usage section heading (defaults to `tf.bold{:ts}`)
-- `groupHeading` - the style of every option group heading (defaults to `tf.bold{:ts}`)
-
-### Miscellaneous
-
-The `misc` property specifies additional, uncategorized settings. It has the following set of
-optional properties:
-
-- `headingPhrase` - a custom phrase to use for all headings (defaults to `'%s:'{:ts}`)
-- `noWrap` - whether provided section texts should _not_ be split into words. This allows you to
-  format texts however you like, at the expense of not wrapping them (defaults to `false{:ts}`)
 
 ## Help styles
 

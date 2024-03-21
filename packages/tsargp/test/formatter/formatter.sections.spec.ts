@@ -1,151 +1,122 @@
 import { describe, expect, it } from 'vitest';
-import type { Options, HelpConfig, HideSections } from '../../lib';
-import { HelpFormatter, OptionValidator, style, tf } from '../../lib';
+import type { Options, HelpSections } from '../../lib';
+import { HelpFormatter, OptionValidator } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('HelpFormatter', () => {
-  describe('formatFull', () => {
-    it('should handle no options', () => {
-      const message = new HelpFormatter(new OptionValidator({})).formatFull();
+  describe('formatSections', () => {
+    it('should handle no sections', () => {
+      const message = new HelpFormatter(new OptionValidator({})).formatSections();
       expect(message.wrap()).toEqual('');
     });
 
-    it('should render the introduction section', () => {
-      const config: HelpConfig = { sections: { intro: 'intro' } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('intro');
-    });
-
-    it('should omit the introduction section', () => {
-      const config: HelpConfig = { sections: { intro: 'intro' } };
-      const hide: HideSections = { intro: true };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull(hide);
+    it('should skip an empty text section', () => {
+      const sections: HelpSections = [{ type: 'text', text: '' }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('');
     });
 
-    it('should indent the introduction section', () => {
-      const config: HelpConfig = { sections: { intro: 'intro' }, indent: { intro: 2 } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('  intro');
+    it('should render a text section', () => {
+      const sections: HelpSections = [{ type: 'text', text: 'text' }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      expect(message.wrap()).toEqual('text');
     });
 
-    it('should break the introduction section', () => {
-      const config: HelpConfig = { sections: { intro: 'intro' }, breaks: { intro: 2 } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('\n\nintro');
+    it('should indent a text section', () => {
+      const sections: HelpSections = [{ type: 'text', text: 'text', indent: 2 }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      expect(message.wrap()).toEqual('  text');
     });
 
-    it('should stylize the introduction section', () => {
-      const config: HelpConfig = {
-        sections: { intro: 'intro' },
-        styles: { intro: style(tf.italic) },
-      };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap(0, true)).toMatch(/\x9b3mintro/); // cspell:disable-line
+    it('should not wrap a text section', () => {
+      const sections: HelpSections = [{ type: 'text', text: 'section  text', noWrap: true }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      expect(message.wrap()).toEqual('section  text');
     });
 
-    it('should render the usage section', () => {
-      const config: HelpConfig = { sections: { usage: 'usage' } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('Usage:\n\n  usage');
-    });
-
-    it('should render the usage section with a custom heading', () => {
-      const config: HelpConfig = { sections: { usage: 'usage', usageHeading: 'title' } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('title:\n\n  usage');
-    });
-
-    it('should omit the usage section', () => {
-      const config: HelpConfig = { sections: { usage: 'usage' } };
-      const hide: HideSections = { usage: true };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull(hide);
+    it('should render an empty usage section', () => {
+      const sections: HelpSections = [{ type: 'usage' }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('');
     });
 
-    it('should indent the usage section', () => {
-      const config: HelpConfig = { sections: { usage: 'usage' }, indent: { usage: 0 } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('Usage:\n\nusage');
+    it('should render a usage section with a program name', () => {
+      const sections: HelpSections = [{ type: 'usage' }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections, 'prog');
+      expect(message.wrap()).toEqual('prog');
     });
 
-    it('should indent the usage section heading', () => {
-      const config: HelpConfig = { sections: { usage: 'usage' }, indent: { usageHeading: 2 } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('  Usage:\n\n  usage');
+    it('should indent a usage section with a program name', () => {
+      const sections: HelpSections = [{ type: 'usage', indent: 2 }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections, 'prog');
+      expect(message.wrap()).toEqual('  prog');
     });
 
-    it('should break the usage section', () => {
-      const config: HelpConfig = { sections: { usage: 'usage' }, breaks: { usage: 1 } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('Usage:\n  usage');
+    it('should render a usage section with a heading (but not indent it)', () => {
+      const sections: HelpSections = [{ type: 'usage', title: 'text', indent: 2 }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      expect(message.wrap()).toEqual('text');
     });
 
-    it('should break the usage section heading', () => {
-      const config: HelpConfig = {
-        sections: { intro: 'intro', usage: 'usage' },
-        breaks: { usageHeading: 1 },
-      };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('intro\nUsage:\n\n  usage');
+    it('should render a usage section with a required flag option with a single name', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          required: true,
+        },
+      } as const satisfies Options;
+      const sections: HelpSections = [{ type: 'usage' }];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      expect(message.wrap()).toEqual('-f');
     });
 
-    it('should stylize the usage section', () => {
-      const config: HelpConfig = {
-        sections: { usage: 'usage' },
-        styles: { usage: style(tf.italic) },
-      };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap(0, true)).toMatch(/\x9b3musage/); // cspell:disable-line
+    it('should render a usage section with a non-required flag option with multiple names', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+        },
+      } as const satisfies Options;
+      const sections: HelpSections = [{ type: 'usage' }];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      expect(message.wrap()).toEqual('[(-f|--flag)]');
     });
 
-    it('should stylize the usage section heading', () => {
-      const config: HelpConfig = {
-        sections: { usage: 'usage' },
-        styles: { usageHeading: style(tf.italic) },
-      };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap(0, true)).toMatch(/\x9b3mUsage:/); // cspell:disable-line
+    it('should render a usage section with a boolean option and a program name', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const sections: HelpSections = [{ type: 'usage' }];
+      const message = new HelpFormatter(validator).formatSections(sections, 'prog');
+      expect(message.wrap()).toEqual('prog [-b <boolean>]');
     });
 
-    it('should render the footer section', () => {
-      const config: HelpConfig = { sections: { footer: 'footer' } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('footer');
+    it('should render a usage section with a boolean option with an example value and a heading', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          example: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const sections: HelpSections = [{ type: 'usage', title: 'text', indent: 2 }];
+      const message = new HelpFormatter(validator).formatSections(sections, 'prog');
+      expect(message.wrap()).toEqual('text\n\n  prog [-b true]');
     });
 
-    it('should omit the footer section', () => {
-      const config: HelpConfig = { sections: { footer: 'footer' } };
-      const hide: HideSections = { footer: true };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull(hide);
+    it('should render an empty groups section', () => {
+      const sections: HelpSections = [{ type: 'groups' }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('');
     });
 
-    it('should indent the footer section', () => {
-      const config: HelpConfig = { sections: { footer: 'footer' }, indent: { footer: 2 } };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('  footer');
-    });
-
-    it('should break the footer section', () => {
-      const config: HelpConfig = {
-        sections: { intro: 'intro', footer: 'footer' },
-        breaks: { footer: 1 },
-      };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap()).toEqual('intro\nfooter');
-    });
-
-    it('should stylize the footer section', () => {
-      const config: HelpConfig = {
-        sections: { footer: 'footer' },
-        styles: { footer: style(tf.italic) },
-      };
-      const message = new HelpFormatter(new OptionValidator({}), config).formatFull();
-      expect(message.wrap(0, true)).toMatch(/\x9b3mfooter/); // cspell:disable-line
-    });
-
-    it('should render the default option group', () => {
+    it('should render a groups section with a default group', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -153,11 +124,12 @@ describe('HelpFormatter', () => {
           desc: 'A flag option.',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatFull();
-      expect(message.wrap()).toEqual('Options:\n\n  -f, --flag    A flag option.');
+      const sections: HelpSections = [{ type: 'groups' }];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option.');
     });
 
-    it('should render the default option group with a custom heading', () => {
+    it('should render a groups section with a custom heading for the default group', () => {
       const options = {
         flag: {
           type: 'flag',
@@ -165,207 +137,23 @@ describe('HelpFormatter', () => {
           desc: 'A flag option.',
         },
       } as const satisfies Options;
-      const config: HelpConfig = { sections: { groupHeading: 'title' } };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
-      expect(message.wrap()).toEqual('title:\n\n  -f, --flag    A flag option.');
+      const sections: HelpSections = [{ type: 'groups', title: 'text' }];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      expect(message.wrap()).toEqual('text\n\n  -f, --flag    A flag option.');
     });
 
-    it('should omit the option groups', () => {
+    it('should render a groups section with a custom phrase for group headings', () => {
       const options = {
         flag: {
           type: 'flag',
           names: ['-f', '--flag'],
           desc: 'A flag option.',
+          group: 'group',
         },
       } as const satisfies Options;
-      const hide: HideSections = { groups: true };
-      const message = new HelpFormatter(new OptionValidator(options)).formatFull(hide);
-      expect(message.wrap()).toEqual('');
-    });
-
-    it('should break the option groups', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const config: HelpConfig = { breaks: { groups: 1 } };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
-      expect(message.wrap()).toEqual('Options:\n  -f, --flag    A flag option.');
-    });
-
-    it('should break the option group headings', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const config: HelpConfig = { sections: { intro: 'intro' }, breaks: { groupHeading: 1 } };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
-      expect(message.wrap()).toEqual('intro\nOptions:\n\n  -f, --flag    A flag option.');
-    });
-
-    it('should indent the option group headings', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const config: HelpConfig = { indent: { groupHeading: 2 } };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
-      expect(message.wrap()).toEqual('  Options:\n\n  -f, --flag    A flag option.');
-    });
-
-    it('should stylize the option group headings', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const config: HelpConfig = { styles: { groupHeading: style(tf.italic) } };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
-      expect(message.wrap(0, true)).toMatch(/\x9b3mOptions:/); // cspell:disable-line
-    });
-
-    it('should render the default usage text', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const config: HelpConfig = { sections: { usage: true } };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
-      expect(message.wrap()).toEqual(
-        'Usage:\n\n  [(-f|--flag)]\n\nOptions:\n\n  -f, --flag    A flag option.',
-      );
-    });
-
-    it('should stylize the default usage text', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const config: HelpConfig = {
-        sections: { usage: true },
-        styles: { usage: style(tf.italic) },
-      };
-      const message = new HelpFormatter(validator, config).formatFull();
-      // cspell:disable-next-line
-      expect(message.wrap(0, true)).toMatch(/\x9b3m\[\(.+-f\x9b3m\|.+--flag\x9b3m\)\]/);
-    });
-
-    it('should render the default usage text with a program title', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const config: HelpConfig = { sections: { usage: true } };
-      const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
-      expect(message.wrap()).toEqual(
-        'Usage:\n\n  prog [(-f|--flag)]\n\nOptions:\n\n  -f, --flag    A flag option.',
-      );
-    });
-
-    it('should indent the usage options in the default usage text with a program title', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const config: HelpConfig = { sections: { usage: true }, indent: { usageOptions: 2 } };
-      const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
-      expect(message.wrap()).toEqual(
-        'Usage:\n\n  prog  [(-f|--flag)]\n\nOptions:\n\n  -f, --flag    A flag option.',
-      );
-    });
-
-    it('should break the usage options in the default usage text with a program title', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const config: HelpConfig = { sections: { usage: true }, breaks: { usageOptions: 1 } };
-      const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
-      expect(message.wrap()).toEqual(
-        'Usage:\n\n  prog\n       [(-f|--flag)]\n\nOptions:\n\n  -f, --flag    A flag option.',
-      );
-    });
-
-    it('should indent the usage options in the default usage text with a program title, relative to the beginning of the line', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const config: HelpConfig = {
-        sections: { usage: true },
-        indent: { usageOptionsAbsolute: true },
-        breaks: { usageOptions: 1 },
-      };
-      const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
-      expect(message.wrap()).toEqual(
-        'Usage:\n\n  prog\n [(-f|--flag)]\n\nOptions:\n\n  -f, --flag    A flag option.',
-      );
-    });
-
-    it('should stylize the default usage text with a program title', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const config: HelpConfig = {
-        sections: { usage: true },
-        styles: { usage: style(tf.italic) },
-      };
-      const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
-      expect(message.wrap(0, true)).toMatch(/\x9b3mprog/); // cspell:disable-line
-    });
-
-    it('should use custom phrase for all headings', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-        },
-      } as const satisfies Options;
-      const config: HelpConfig = { sections: { usage: 'usage' }, misc: { headingPhrase: '[%s]' } };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
-      expect(message.wrap()).toEqual(
-        '[Usage]\n\n  usage\n\n[Options]\n\n  -f, --flag    A flag option.',
-      );
+      const sections: HelpSections = [{ type: 'groups', phrase: '[%s]' }];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      expect(message.wrap()).toEqual('[group]\n\n  -f, --flag    A flag option.');
     });
 
     it('should not wrap section texts', () => {
@@ -376,37 +164,53 @@ describe('HelpFormatter', () => {
           desc: 'A flag option.',
         },
       } as const satisfies Options;
-      const config: HelpConfig = {
-        sections: {
-          intro: '  intro',
-          usage: 'usage  text',
-          footer: '  footer',
-          usageHeading: 'usage  title',
-          groupHeading: 'options  title',
-        },
-        misc: { noWrap: true },
-      };
-      const message = new HelpFormatter(new OptionValidator(options), config).formatFull();
+      const sections: HelpSections = [
+        { type: 'text', text: 'section  text', noWrap: true },
+        { type: 'usage', title: 'section  text', noWrap: true },
+        { type: 'groups', title: 'section  text', noWrap: true },
+      ];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual(
-        '  intro\n\nusage  title:\n\n  usage  text\n\noptions  title:\n\n  -f, --flag    A flag option.\n\n  footer',
+        'section  text\n\nsection  text\n\n[(-f|--flag)]\n\nsection  text\n\n  -f, --flag    A flag option.',
       );
     });
 
-    it('should hide an option from the default usage text', () => {
+    it('should include and exclude an option in a usage section', () => {
       const options = {
-        flag: {
+        flag1: {
           type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-          hide: 'usage',
+          names: ['-f1'],
+        },
+        flag2: {
+          type: 'flag',
+          names: ['-f2'],
         },
       } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const config: HelpConfig = { sections: { usage: true }, breaks: { usageOptions: 1 } };
-      const message = new HelpFormatter(validator, config).formatFull({}, 'prog');
-      expect(message.wrap()).toEqual(
-        'Usage:\n\n  prog\n\nOptions:\n\n  -f, --flag    A flag option.',
-      );
+      const sections1: HelpSections = [{ type: 'usage', filter: ['flag1'] }];
+      const sections2: HelpSections = [{ type: 'usage', filter: ['flag1'], exclude: true }];
+      const formatter = new HelpFormatter(new OptionValidator(options));
+      expect(formatter.formatSections(sections1).wrap()).toEqual('[-f1]');
+      expect(formatter.formatSections(sections2).wrap()).toEqual('[-f2]');
+    });
+
+    it('should include and exclude an group in a groups section', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['-f1'],
+          group: 'group1',
+        },
+        flag2: {
+          type: 'flag',
+          names: ['-f2'],
+          group: 'group2',
+        },
+      } as const satisfies Options;
+      const sections1: HelpSections = [{ type: 'groups', filter: ['group1'] }];
+      const sections2: HelpSections = [{ type: 'groups', filter: ['group1'], exclude: true }];
+      const formatter = new HelpFormatter(new OptionValidator(options));
+      expect(formatter.formatSections(sections1).wrap()).toEqual('group1\n\n  -f1');
+      expect(formatter.formatSections(sections2).wrap()).toEqual('group2\n\n  -f2');
     });
   });
 });

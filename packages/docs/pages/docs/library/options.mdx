@@ -398,14 +398,17 @@ handles the formatting of help messages. Internally, it performs the following a
 The application should catch the message and print it in a terminal. This option has the following
 optional attributes.
 
-#### Format
+#### Help format
 
 The `format` attribute specifies a custom [help format](formatter.mdx#help-format) configuration.
 
-#### Hide sections
+#### Help sections
 
-The `hideSections` attribute specifies [help sections](formatter.mdx#help-sections) that should be
-omitted from the help message.
+The `sections` attribute specifies [help sections](formatter.mdx#help-sections) to be rendered in
+the help message. The default is to include two:
+
+- usage section - with `'Usage:'{:ts}` as heading - indented by 2 spaces
+- groups section - with `'Options'{:ts}` as default group heading - appending a colon to headings
 
 ### Version option
 
@@ -439,8 +442,8 @@ value. You can use it to perform many kinds of useful things, such as:
 - reading configuration from a file
 - altering the values of previous options
 - altering the option definitions in response to an option value
-  - e.g., if `--verbose` is set, add more help items to the [help format](#format--heading-style)
-    (or replace it altogether)
+  - e.g., if `--verbose` is set, add more help items to the [help format](#help-format) (or replace
+    it altogether)
 
 In addition to the set of [value attributes](#value-attributes) (minus the environemnt variable),
 it has the following attributes.

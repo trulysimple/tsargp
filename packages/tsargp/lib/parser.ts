@@ -434,7 +434,11 @@ class ParserLoop {
     }
     if (option.type === 'help') {
       const formatter = new HelpFormatter(this.validator, option.format);
-      throw formatter.formatFull(option.hideSections, this.progName);
+      const sections = option.sections ?? [
+        { type: 'usage', title: 'Usage:', indent: 2 },
+        { type: 'groups', title: 'Options', phrase: '%s:' },
+      ];
+      throw formatter.formatSections(sections, this.progName);
     } else if (option.version) {
       throw new VersionMessage(option.version);
     } else if (option.resolve) {
