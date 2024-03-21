@@ -2,4 +2,4 @@
 'tsargp': minor
 ---
 
-Added a help format configuration named `compactNames`, that can be used to remove the extra spacing between option names in the help message.
+Added a help format configuration named `align`, that can be used to select the alignment of option names in the help message.

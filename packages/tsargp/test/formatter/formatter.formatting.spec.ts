@@ -202,15 +202,42 @@ describe('HelpFormatter', () => {
 
     it('should align option names to the left boundary', () => {
       const options = {
-        flag: {
+        flag1: {
           type: 'flag',
           names: ['-f', null, '--flag'],
+          desc: 'A flag option',
+        },
+        flag2: {
+          type: 'flag',
+          names: [null, '--flag2', null],
           desc: 'A flag option',
         },
       } as const satisfies Options;
       const config: HelpConfig = { align: { names: 'left' } };
       const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option\n');
+      expect(message.wrap()).toEqual(
+        '  -f, --flag    A flag option\n  --flag2       A flag option\n',
+      );
+    });
+
+    it('should align option names to the right boundary', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['-f', null, '--flag'],
+          desc: 'A flag option',
+        },
+        flag2: {
+          type: 'flag',
+          names: [null, '--flag2', null],
+          desc: 'A flag option',
+        },
+      } as const satisfies Options;
+      const config: HelpConfig = { align: { names: 'right' } };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
+      expect(message.wrap()).toEqual(
+        '  -f, --flag    A flag option\n     --flag2    A flag option\n',
+      );
     });
   });
 });

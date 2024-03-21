@@ -370,9 +370,9 @@ export class HelpFormatter {
     this.config = mergeConfig(config);
     this.nameWidths = this.config.hidden.names
       ? 0
-      : this.config.align.names === 'left'
-        ? getMaxNamesWidth(this.options)
-        : getNameWidths(this.options);
+      : this.config.align.names === 'justified'
+        ? getNameWidths(this.options)
+        : getMaxNamesWidth(this.options);
     let paramWidth = 0;
     for (const key in this.options) {
       const option = this.options[key];
@@ -412,10 +412,15 @@ export class HelpFormatter {
     if (this.config.hidden.names || !option.names) {
       return [];
     }
-    const style = option.styles?.names ?? this.styles.option;
-    const indent = this.config.indent.names;
-    const breaks = this.config.breaks.names;
-    return formatNameSlots(option.names, this.nameWidths, style, this.styles.text, indent, breaks);
+    return formatNameSlots(
+      option.names,
+      this.nameWidths,
+      option.styles?.names ?? this.styles.option,
+      this.styles.text,
+      this.config.align.names,
+      this.config.indent.names,
+      this.config.breaks.names,
+    );
   }
 
   /**
@@ -650,6 +655,7 @@ function adjustEntries(
  * @param nameWidths The name slot widths
  * @param namesStyle The style to apply
  * @param defStyle The default style
+ * @param align The text alignment
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
  * @returns The resulting strings
@@ -659,21 +665,25 @@ function formatNameSlots(
   nameWidths: Array<number> | number,
   namesStyle: Style,
   defStyle: Style,
+  align: Alignment,
   indent: number,
   breaks: number,
 ): Array<TerminalString> {
   if (typeof nameWidths === 'number') {
     const result = new TerminalString(indent, breaks);
-    let separator = '';
+    let len = 0;
     for (const name of names) {
       if (name) {
-        if (separator) {
-          result.addClosing(separator);
-        } else {
-          separator = ',';
+        if (len) {
+          result.addClosing(',');
+          len += 2;
         }
+        len += name.length;
         result.addAndRevert(namesStyle, name, defStyle);
       }
+    }
+    if (align === 'right') {
+      result.start += nameWidths - len;
     }
     return [result];
   }
