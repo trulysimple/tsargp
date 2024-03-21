@@ -6,11 +6,13 @@ import react from 'eslint-plugin-react';
 import hooks from 'eslint-plugin-react-hooks';
 import next from '@next/eslint-plugin-next';
 import jsdoc from 'eslint-plugin-jsdoc';
+import cspellConfigs from '@cspell/eslint-plugin/configs';
 import globals from 'globals';
 
 export default [
   js.configs.recommended,
   jsdoc.configs['flat/recommended-typescript-error'],
+  cspellConfigs.recommended,
   {
     files: ['**/*.ts'],
     languageOptions: {
@@ -20,9 +22,7 @@ export default [
         ErrnoException: false,
       },
     },
-    plugins: {
-      '@typescript-eslint': ts,
-    },
+    plugins: { '@typescript-eslint': ts },
     rules: ts.configs.strict.rules,
   },
   {
@@ -30,9 +30,7 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
+        ecmaFeatures: { jsx: true },
       },
       globals: {
         ...globals.browser,
@@ -47,12 +45,8 @@ export default [
       'react-hooks': hooks,
     },
     settings: {
-      react: {
-        version: 'detect',
-      },
-      next: {
-        rootDir: 'packages/docs',
-      },
+      react: { version: 'detect' },
+      next: { rootDir: 'packages/docs' },
     },
     rules: {
       ...ts.configs.strict.rules,
