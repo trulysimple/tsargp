@@ -64,7 +64,7 @@ describe('ArgumentParser', () => {
         try {
           parser.parse(['-h']);
         } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(/^Args:\n\n {2}-f\n\nOptions:\n\n {2}-h\n/);
+          expect((err as HelpMessage).wrap(0)).toMatch(/^Args:\n\n {2}-f\n\nOptions:\n\n {2}-h/);
         }
       });
 
@@ -73,10 +73,14 @@ describe('ArgumentParser', () => {
           help: {
             type: 'help',
             names: ['-h'],
-            usage: 'example  usage',
-            footer: 'example  footer',
             group: 'example  heading',
-            format: { indent: { names: 0 } },
+            format: {
+              sections: {
+                usage: 'example  usage',
+                footer: 'example  footer',
+              },
+              indent: { usage: 0, names: 0 },
+            },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -85,20 +89,24 @@ describe('ArgumentParser', () => {
           parser.parse(['-h']);
         } catch (err) {
           expect((err as HelpMessage).wrap(0)).toMatch(
-            /^example usage\n\nexample heading:\n\n-h\n\nexample footer\n/,
+            /^Usage:\n\nexample usage\n\nexample heading:\n\n-h\n\nexample footer/,
           );
         }
       });
 
-      it('should throw a help message that does not split texts into words', () => {
+      it('should throw a help message that does not wrap texts', () => {
         const options = {
           help: {
             type: 'help',
             names: ['-h'],
-            usage: '  example  usage',
-            footer: '  example  footer',
             group: '  example  heading',
-            noSplit: true,
+            format: {
+              sections: {
+                usage: '  example  usage',
+                footer: '  example  footer',
+              },
+              misc: { noWrap: true, headingPhrase: '%s' },
+            },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -106,7 +114,7 @@ describe('ArgumentParser', () => {
           parser.parse(['-h']);
         } catch (err) {
           expect((err as HelpMessage).wrap(0)).toMatch(
-            /^ {2}example {2}usage\n\n {2}example {2}heading\n\n {2}-h\n\n {2}example {2}footer\n/,
+            /^Usage\n\n {4}example {2}usage\n\n {2}example {2}heading\n\n {2}-h\n\n {2}example {2}footer/,
           );
         }
       });

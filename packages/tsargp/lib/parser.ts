@@ -6,7 +6,6 @@ import type {
   Options,
   OptionValues,
   Requires,
-  HelpOption,
   RequiresVal,
   ValuedOption,
   SpecialOption,
@@ -22,7 +21,7 @@ import type {
 } from './options';
 import type { Positional, ConcreteError, ErrorConfig, FormatFunction } from './validator';
 
-import { tf, ErrorItem } from './enums';
+import { ErrorItem } from './enums';
 import { HelpFormatter } from './formatter';
 import {
   RequiresAll,
@@ -36,12 +35,10 @@ import {
 import {
   Message,
   ErrorMessage,
-  HelpMessage,
   WarnMessage,
   VersionMessage,
   CompletionMessage,
   TerminalString,
-  style,
 } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
 import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
@@ -228,7 +225,7 @@ class ParserLoop {
     private readonly values: OptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
-    progName?: string,
+    private readonly progName?: string,
   ) {
     if (!completing && progName && process?.title) {
       process.title += ' ' + progName;
@@ -436,7 +433,8 @@ class ParserLoop {
       return false; // skip special options during completion
     }
     if (option.type === 'help') {
-      handleHelp(this.validator, option);
+      const formatter = new HelpFormatter(this.validator, option.format);
+      throw formatter.formatFull(option.hideSections, this.progName);
     } else if (option.version) {
       throw new VersionMessage(option.version);
     } else if (option.resolve) {
@@ -774,51 +772,6 @@ function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMess
     throw validator.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
   }
   throw validator.error(ErrorItem.unknownOption, { o: name });
-}
-
-/**
- * Handles the special "help" option.
- * @param validator The option validator
- * @param option The option definition
- */
-function handleHelp(validator: OptionValidator, option: HelpOption): never {
-  /** @ignore */
-  function formatHeading(group: string): TerminalString {
-    const heading = new TerminalString().addBreaks(help.length ? 1 : 0).addSequence(headingStyle);
-    if (!group) {
-      heading.addWord('Options:');
-    } else if (option.noSplit) {
-      heading.addWord(group); // warning: may be larger than the terminal width
-    } else {
-      heading.splitText(group).addClosing(':');
-    }
-    return heading.addSequence(style(tf.clear)).addBreaks(2); // add ending breaks after styles
-  }
-  const help = new HelpMessage();
-  if (option.usage) {
-    const usage = new TerminalString();
-    if (option.noSplit) {
-      usage.addWord(option.usage); // warning: may be larger than the terminal width
-    } else {
-      usage.splitText(option.usage);
-    }
-    help.push(usage.addBreaks(1));
-  }
-  const groups = new HelpFormatter(validator, option.format).formatGroups();
-  const headingStyle = option.headingStyle ?? style(tf.clear, tf.bold);
-  for (const [group, message] of groups.entries()) {
-    help.push(formatHeading(group), ...message);
-  }
-  if (option.footer) {
-    const footer = new TerminalString().addBreaks(1);
-    if (option.noSplit) {
-      footer.addWord(option.footer); // warning: may be larger than the terminal width
-    } else {
-      footer.splitText(option.footer);
-    }
-    help.push(footer.addBreaks(1));
-  }
-  throw help;
 }
 
 /**

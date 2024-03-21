@@ -398,25 +398,14 @@ handles the formatting of help messages. Internally, it performs the following a
 The application should catch the message and print it in a terminal. This option has the following
 optional attributes.
 
-#### Usage & footer
+#### Format
 
-The `usage` attribute describes your CLI usage instructions. It goes before everything else in the
-help message. The `footer` attribute is an afterword that can be used to insert a copyright notice
-or reference to other media. Both attributes can include inline styles and will be formatted
-according to [text formatting](styles.mdx#text-splitting) rules, unless the `noSplit` attribute is
-set.
+The `format` attribute specifies a custom [help format](formatter.mdx#help-format) configuration.
 
-#### Format & heading style
+#### Hide sections
 
-The `format` attribute, if present, specifies the [help format](formatter.mdx#help-format)
-configuration. The `headingStyle` attribute, if present, specifies a
-[style](styles.mdx#styling-attributes) to be applied to group headings.
-
-#### No text splitting
-
-The `noSplit` attribute, if present, indicates that the usage, footer and heading texts should _not_
-be split into words. This allows them to have custom indentation and prevents a colon from being
-appended to group headings, but at the expense of losing the text wrapping feature.
+The `hideSections` attribute specifies [help sections](formatter.mdx#help-sections) that should be
+omitted from the help message.
 
 ### Version option
 
