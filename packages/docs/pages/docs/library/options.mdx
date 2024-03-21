@@ -388,15 +388,11 @@ Niladic options do not expect any parameter on the command-line. With the notabl
 ### Help option
 
 The **help** option is a convenient specialization of the [function option](#function-option) that
-handles the formatting of help messages. Internally, it performs the following actions:
+handles the formatting of help messages. Internally, it instantiates a [formatter](formatter.mdx)
+class with the provided configuration, obtains a formatted message and throws it. The application
+is responsible for catching this message and printing it in a terminal.
 
-1. instantiate a [formatter](formatter.mdx) class with the provided (or default) configuration
-2. get the formatted messages, one for each option group
-3. assemble them into a single message interspersed with group headings
-4. throw the resulting message
-
-The application should catch the message and print it in a terminal. This option has the following
-optional attributes.
+This option has the following optional attributes.
 
 #### Help format
 

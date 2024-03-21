@@ -101,7 +101,7 @@ describe('HelpFormatter', () => {
 
     it('should not break columns in the help message when configured with negative values', () => {
       const options = {
-        flag: {
+        boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
           desc: 'A boolean option',
@@ -114,7 +114,7 @@ describe('HelpFormatter', () => {
 
     it('should break columns in the help message when configured with positive indentation', () => {
       const options = {
-        flag: {
+        boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
           desc: 'A boolean option',
@@ -129,7 +129,7 @@ describe('HelpFormatter', () => {
 
     it('should break columns in the help message when configured with absolute indentation', () => {
       const options = {
-        flag: {
+        boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
           desc: 'A boolean option',
@@ -147,7 +147,7 @@ describe('HelpFormatter', () => {
 
     it('should break columns in the help message when configured with negative indentation', () => {
       const options = {
-        flag: {
+        boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
           desc: 'A boolean option',
@@ -163,7 +163,7 @@ describe('HelpFormatter', () => {
 
     it('should hide the option names from the help message when configured to do so', () => {
       const options = {
-        flag: {
+        boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
           desc: 'A boolean option',
@@ -176,7 +176,7 @@ describe('HelpFormatter', () => {
 
     it('should hide the option param from the help message when configured to do so', () => {
       const options = {
-        flag: {
+        boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
           desc: 'A boolean option',
@@ -189,7 +189,7 @@ describe('HelpFormatter', () => {
 
     it('should hide the option description from the help message when configured to do so', () => {
       const options = {
-        flag: {
+        boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
           desc: 'A boolean option',
@@ -198,6 +198,19 @@ describe('HelpFormatter', () => {
       const config: HelpConfig = { hidden: { descr: true } };
       const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toEqual('  -b, --boolean  <boolean>\n');
+    });
+
+    it('should indent name slots in compact mode', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', null, '--flag'],
+          desc: 'A flag option',
+        },
+      } as const satisfies Options;
+      const config: HelpConfig = { indent: { compactNames: true } };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag    A flag option\n');
     });
   });
 });

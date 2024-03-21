@@ -53,6 +53,10 @@ export type HelpConfig = {
      * of the line instead of the end of the parameter column. (Defaults to false)
      */
     readonly descrAbsolute?: boolean;
+    /**
+     * True if name slots should not have extra spacing. (Defaults to false)
+     */
+    readonly compactNames?: boolean;
   };
 
   /**
@@ -239,6 +243,7 @@ const defaultConfig: ConcreteFormat = {
     descr: 2,
     paramAbsolute: false,
     descrAbsolute: false,
+    compactNames: false,
   },
   breaks: {
     names: 0,
@@ -309,7 +314,7 @@ export class HelpFormatter {
   private readonly styles: ConcreteStyles;
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly config: ConcreteFormat;
-  private readonly nameWidths: Array<number>;
+  private readonly nameWidths: Array<number> | number;
 
   /**
    * Keep this in-sync with {@link HelpItem}.
@@ -347,7 +352,11 @@ export class HelpFormatter {
     this.options = validator.options;
     this.styles = validator.config.styles;
     this.config = mergeConfig(config);
-    this.nameWidths = this.config.hidden.names ? [] : getNameWidths(this.options);
+    this.nameWidths = this.config.hidden.names
+      ? 0
+      : this.config.indent.compactNames
+        ? getMaxNamesWidth(this.options)
+        : getNameWidths(this.options);
     let paramWidth = 0;
     for (const key in this.options) {
       const option = this.options[key];
@@ -356,29 +365,7 @@ export class HelpFormatter {
         paramWidth = Math.max(paramWidth, entry.param.length);
       }
     }
-    const namesWidth = this.nameWidths.reduce((acc, len) => acc + len + 2, 0);
-    this.adjustEntries(namesWidth ? namesWidth - 2 : 0, paramWidth);
-  }
-
-  /**
-   * Updates the help entries to start at the appropriate terminal column.
-   * @param namesWidth The width of the names column
-   * @param paramWidth The width of the param column
-   */
-  private adjustEntries(namesWidth: number, paramWidth: number) {
-    const namesStart = Math.max(0, this.config.indent.names);
-    const paramStart = this.config.indent.paramAbsolute
-      ? Math.max(0, this.config.indent.param)
-      : namesStart + namesWidth + this.config.indent.param;
-    const descrStart = this.config.indent.descrAbsolute
-      ? Math.max(0, this.config.indent.descr)
-      : paramStart + paramWidth + this.config.indent.descr;
-    for (const entries of this.groups.values()) {
-      for (const { param, descr } of entries) {
-        param.start = paramStart;
-        descr.start = descrStart;
-      }
-    }
+    adjustEntries(this.groups, this.config.indent, this.nameWidths, paramWidth);
   }
 
   /**
@@ -406,46 +393,13 @@ export class HelpFormatter {
    * @returns A terminal string with the formatted names
    */
   private formatNames(option: Option): Array<TerminalString> {
-    const result = new Array<TerminalString>();
     if (this.config.hidden.names || !option.names) {
-      return result;
+      return [];
     }
     const style = option.styles?.names ?? this.styles.option;
-    this.formatNameSlots(option.names, style, result);
-    return result;
-  }
-
-  /**
-   * Formats a list of names to be printed on the terminal.
-   * @param names The list of option names
-   * @param style The names style
-   * @param result The resulting strings
-   */
-  private formatNameSlots(
-    names: ReadonlyArray<string | null>,
-    style: Style,
-    result: Array<TerminalString>,
-  ) {
-    const textStyle = this.styles.text;
-    let breaks = this.config.breaks.names;
-    let start = Math.max(0, this.config.indent.names);
-    let str: TerminalString | undefined;
-    /** @ignore */
-    function formatOption(name: string | null, width: number) {
-      if (name) {
-        if (str) {
-          str.addClosing(',');
-        }
-        str = new TerminalString(start, breaks);
-        breaks = 0; // break only on the first name
-        str.addAndRevert(style, name, textStyle);
-        result.push(str);
-      } else {
-        str = undefined;
-      }
-      start += width + 2;
-    }
-    names.forEach((name, i) => formatOption(name, this.nameWidths[i]));
+    const indent = this.config.indent.names;
+    const breaks = this.config.breaks.names;
+    return formatNameSlots(option.names, this.nameWidths, style, this.styles.text, indent, breaks);
   }
 
   /**
@@ -617,6 +571,112 @@ function getNameWidths(options: Options): Array<number> {
       });
     }
   }
+  return result;
+}
+
+/**
+ * Gets the maximum combined width of option names in a set of option definitions.
+ * @param options The option definitions
+ * @returns The maximum width
+ */
+function getMaxNamesWidth(options: Options): number {
+  let result = 0;
+  for (const key in options) {
+    const option = options[key];
+    if (!option.hide && option.names) {
+      let sum = 0;
+      for (const name of option.names) {
+        if (name) {
+          sum += (sum ? 2 : 0) + name.length;
+        }
+      }
+      result = Math.max(result, sum);
+    }
+  }
+  return result;
+}
+
+/**
+ * Updates help entries to start at the appropriate terminal column.
+ * @param groups The option groups
+ * @param indent The indentation settings
+ * @param namesWidth The width (or widths) of the names column
+ * @param paramWidth The width of the param column
+ */
+function adjustEntries(
+  groups: Map<string, Array<HelpEntry>>,
+  indent: ConcreteFormat['indent'],
+  namesWidth: Array<number> | number,
+  paramWidth: number,
+) {
+  if (typeof namesWidth !== 'number') {
+    namesWidth = namesWidth.length ? namesWidth.reduce((acc, len) => acc + len + 2, -2) : 0;
+  }
+  const namesStart = Math.max(0, indent.names);
+  const paramStart = indent.paramAbsolute
+    ? Math.max(0, indent.param)
+    : namesStart + namesWidth + indent.param;
+  const descrStart = indent.descrAbsolute
+    ? Math.max(0, indent.descr)
+    : paramStart + paramWidth + indent.descr;
+  for (const entries of groups.values()) {
+    for (const { param, descr } of entries) {
+      param.start = paramStart;
+      descr.start = descrStart;
+    }
+  }
+}
+
+/**
+ * Formats a list of names to be printed on the terminal.
+ * @param names The list of option names
+ * @param nameWidths The name slot widths
+ * @param namesStyle The style to apply
+ * @param defStyle The default style
+ * @param indent The indentation level (negative values are replaced by zero)
+ * @param breaks The number of line breaks (non-positive values are ignored)
+ * @returns The resulting strings
+ */
+function formatNameSlots(
+  names: ReadonlyArray<string | null>,
+  nameWidths: Array<number> | number,
+  namesStyle: Style,
+  defStyle: Style,
+  indent: number,
+  breaks: number,
+): Array<TerminalString> {
+  if (typeof nameWidths === 'number') {
+    const result = new TerminalString(indent, breaks);
+    let separator = '';
+    for (const name of names) {
+      if (name) {
+        if (separator) {
+          result.addClosing(separator);
+        } else {
+          separator = ',';
+        }
+        result.addAndRevert(namesStyle, name, defStyle);
+      }
+    }
+    return [result];
+  }
+  const result = new Array<TerminalString>();
+  let str: TerminalString | undefined;
+  indent = Math.max(0, indent);
+  names.forEach((name, i) => {
+    if (name) {
+      if (str) {
+        str.addClosing(',');
+      }
+      str = new TerminalString(indent, breaks);
+      breaks = 0; // break only on the first name
+      str.addAndRevert(namesStyle, name, defStyle);
+      result.push(str);
+    } else {
+      str = undefined;
+    }
+    indent += nameWidths[i] + 2;
+  });
   return result;
 }
 
