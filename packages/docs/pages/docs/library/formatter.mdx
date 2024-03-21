@@ -34,7 +34,7 @@ The `formatSections` method returns a help message that includes [help sections]
 will be explained later in this page. It accepts two optional parameters:
 
 - `sections` - a list of `HelpSection` to include in the help message
-- `progName` - the name of the program to use in usage sections
+- `progName` - the name of the program to display in usage sections
 
 ## Help entries
 
@@ -123,7 +123,7 @@ A usage section has the following properties:
 - `style` - the style of the section heading (defaults to `tf.bold{:ts}`)
 - `noWrap` - true to disable wrapping of the provided heading (defaults to `false{:ts}`)
 - `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
-- `filter` - a list of options keys to include or exclude (defaults to none)
+- `filter` - a list of option keys to include or exclude (defaults to none)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
 
 ### Groups section
@@ -132,7 +132,7 @@ A groups section is a collection of option groups and their help entries. It has
 properties:
 
 - `title` - the default group heading (defaults to no heading)
-- `style` - the style of the default group heading (defaults to `tf.bold{:ts}`)
+- `style` - the style of group headings (defaults to `tf.bold{:ts}`)
 - `noWrap` - true to disable text wrapping of group headings (defaults to `false{:ts}`)
 - `phrase` - a custom phrase for group headings (defaults to none)
 - `filter` - a list of group names to include or exclude (defaults to none)

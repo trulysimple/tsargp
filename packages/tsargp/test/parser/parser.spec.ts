@@ -70,7 +70,7 @@ describe('ArgumentParser', () => {
         }
       });
 
-      it('should throw a help message with usage ans custom indentation', () => {
+      it('should throw a help message with usage and custom indentation', () => {
         const options = {
           help: {
             type: 'help',

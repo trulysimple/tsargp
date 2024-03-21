@@ -110,6 +110,20 @@ export type HelpConfig = {
 };
 
 /**
+ * A concrete version of the format configuration.
+ */
+type ConcreteFormat = Concrete<HelpConfig>;
+
+/**
+ * Precomputed texts used by the formatter.
+ */
+type HelpEntry = {
+  readonly names: Array<TerminalString>;
+  readonly param: TerminalString;
+  readonly descr: TerminalString;
+};
+
+/**
  * Defines common attributes for a help section.
  */
 export type WithKind<T extends string> = {
@@ -144,7 +158,7 @@ export type WithWrap = {
  */
 export type WithTitle = {
   /**
-   * The usage heading or default group heading. May contain inline styles.
+   * The heading text. May contain inline styles.
    */
   readonly title?: string;
   /**
@@ -211,20 +225,6 @@ export type HelpSection = HelpText | HelpUsage | HelpGroups;
  * A list of help sections.
  */
 export type HelpSections = Array<HelpSection>;
-
-/**
- * A concrete version of the format configuration.
- */
-type ConcreteFormat = Concrete<HelpConfig>;
-
-/**
- * Precomputed texts used by the formatter.
- */
-type HelpEntry = {
-  readonly names: Array<TerminalString>;
-  readonly param: TerminalString;
-  readonly descr: TerminalString;
-};
 
 //--------------------------------------------------------------------------------------------------
 // Constants

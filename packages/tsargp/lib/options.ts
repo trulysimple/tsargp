@@ -616,7 +616,7 @@ export type HelpOption = WithType<'help'> & {
    */
   readonly format?: HelpConfig;
   /**
-   * The help parts that should be rendered.
+   * The help sections to be rendered.
    */
   readonly sections?: HelpSections;
 };
