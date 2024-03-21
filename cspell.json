@@ -23,7 +23,14 @@
     "IIFE"
   ],
   "ignoreRegExpList": ["gh-username", "ga-measurement-id"],
-  "ignorePaths": ["*.lockb", ".prettierignore", "CODEOWNERS", "pre.json", ".git"],
+  "ignorePaths": [
+    "*.lockb",
+    ".prettierignore",
+    "CODEOWNERS",
+    "pre.json",
+    ".git",
+    "*.{js,ts,jsx,tsx,mdx}"
+  ],
   "useGitignore": true,
   "enableGlobDot": true,
   "patterns": [
