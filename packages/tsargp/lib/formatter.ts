@@ -1029,8 +1029,7 @@ function formatParam(
   const variadic = isArray(option) && isVariadic(option);
   if ('example' in option && option.example !== undefined) {
     formatValue(option, option.example, result, styles, style, false);
-    const variadicArr = variadic && Array.isArray(option.example);
-    return result.length + (variadicArr ? option.example.length - 1 : 0);
+    return result.length + (variadic ? option.example.length - 1 : 0);
   }
   const ellipsis = variadic ? '...' : '';
   const paramStyle = option.styles?.param ?? styles.param;
