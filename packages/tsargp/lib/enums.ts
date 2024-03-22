@@ -241,6 +241,10 @@ export const enum HelpItem {
    * The option's conditional requirements, if any.
    */
   requiredIf,
+  /**
+   * The option's cluster letters, if any.
+   */
+  clusterLetters,
 }
 
 /**

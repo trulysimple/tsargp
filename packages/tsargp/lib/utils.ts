@@ -224,7 +224,7 @@ export function gestaltSimilarity(S: string, T: string): number {
  * @internal
  */
 export function splitPhrase(phrase: string): Array<string> {
-  const [l, c, r] = phrase.split(/\(([^)|]*\|[^)]*)\)/, 3);
+  const [l, c, r] = phrase.split(/\(([^)]*\|[^)]*)\)/, 3);
   return c ? c.split('|').map((alt) => l + alt + r) : [l];
 }
 

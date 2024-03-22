@@ -149,5 +149,41 @@ describe('ArgumentParser', () => {
         'Variadic array option n must be the last in a cluster.',
       );
     });
+
+    it('should parse options in a cluster argument for a nested command', () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            flag: {
+              type: 'flag',
+              names: ['-f'],
+              clusterLetters: 'f',
+            },
+            string: {
+              type: 'string',
+              names: ['-s'],
+              clusterLetters: 's',
+            },
+            number: {
+              type: 'number',
+              names: ['-n'],
+              clusterLetters: 'n',
+            },
+          },
+          cmd: (_, values) => values,
+          shortStyle: true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(parser.parse(['-c', 'fsn', '1', '2'])).toEqual({
+        command: {
+          flag: true,
+          string: '1',
+          number: 2,
+        },
+      });
+    });
   });
 });

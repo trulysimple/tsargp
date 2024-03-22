@@ -92,6 +92,19 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -f, --flag    A flag option. Deprecated for reason.\n');
     });
 
+    it('should handle a flag option with cluster letters', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+          clusterLetters: 'fF',
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Can be clusterd with 'fF'.\n`);
+    });
+
     it('should handle a boolean option with an environment variable', () => {
       const options = {
         boolean: {

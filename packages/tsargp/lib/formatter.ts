@@ -258,6 +258,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.link,
     HelpItem.envVar,
     HelpItem.requiredIf,
+    HelpItem.clusterLetters,
   ],
   phrases: {
     [HelpItem.synopsis]: '%s',
@@ -281,6 +282,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.link]: 'Refer to %s for details.',
     [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
     [HelpItem.requiredIf]: 'Required if %s.',
+    [HelpItem.clusterLetters]: 'Can be clusterd with %s.',
   },
 };
 
@@ -323,6 +325,7 @@ export class HelpFormatter {
     formatLink,
     formatEnvVar,
     this.formatRequiredIf.bind(this),
+    formatClusterLetters,
   ];
 
   /**
@@ -1475,6 +1478,29 @@ function formatEnvVar(
     const envVar = option.envVar;
     result.splitText(phrase, () => {
       formatFunctions.o(envVar, styles, style, result);
+    });
+  }
+}
+
+/**
+ * Formats an option's cluster letters to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param styles The set of styles
+ * @param style The default style
+ * @param result The resulting string
+ */
+function formatClusterLetters(
+  option: Option,
+  phrase: string,
+  styles: ConcreteStyles,
+  style: Style,
+  result: TerminalString,
+) {
+  if ('clusterLetters' in option && option.clusterLetters) {
+    const letters = option.clusterLetters;
+    result.splitText(phrase, () => {
+      formatFunctions.s(letters, styles, style, result);
     });
   }
 }
