@@ -26,7 +26,7 @@ import { assert, splitPhrase } from './utils';
 /**
  * A text alignment setting.
  */
-export type Alignment = 'left' | 'right' | 'justified';
+export type Alignment = 'left' | 'right';
 
 /**
  * The help format configuration.
@@ -70,7 +70,7 @@ export type HelpConfig = {
      * Justified here means that each name receives a "slot" in the names column, and the name is
      * left-aligned within that slot.
      */
-    readonly names?: Alignment;
+    readonly names?: Alignment | 'justified';
   };
 
   /**
@@ -331,6 +331,7 @@ export class HelpFormatter {
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number> | number;
+  private paramWidth = 0;
 
   /**
    * Keep this in-sync with {@link HelpItem}.
@@ -373,23 +374,20 @@ export class HelpFormatter {
       : this.config.align.names === 'justified'
         ? getNameWidths(this.options)
         : getMaxNamesWidth(this.options);
-    let paramWidth = 0;
     for (const key in this.options) {
       const option = this.options[key];
       if (!option.hide) {
-        const entry = this.formatOption(option);
-        paramWidth = Math.max(paramWidth, entry.param.length);
+        this.formatOption(option);
       }
     }
-    adjustEntries(this.groups, this.config.indent, this.nameWidths, paramWidth);
+    adjustEntries(this.groups, this.config.indent, this.nameWidths, this.paramWidth);
   }
 
   /**
    * Formats an option to be printed on the terminal.
    * @param option The option definition
-   * @returns The computed help entry
    */
-  private formatOption(option: Option): HelpEntry {
+  private formatOption(option: Option) {
     const names = this.formatNames(option);
     const param = this.formatParam(option);
     const descr = this.formatDescription(option);
@@ -400,7 +398,6 @@ export class HelpFormatter {
     } else {
       group.push(entry);
     }
-    return entry;
   }
 
   /**
@@ -433,7 +430,8 @@ export class HelpFormatter {
       return new TerminalString();
     }
     const result = new TerminalString(0, this.config.breaks.param);
-    formatParam(option, this.styles, this.styles.text, result);
+    const len = formatParam(option, this.styles, this.styles.text, result);
+    this.paramWidth = Math.max(this.paramWidth, len);
     return result;
   }
 
@@ -455,7 +453,7 @@ export class HelpFormatter {
       this.format[item](option, phrase, this.styles, descrStyle, result);
     }
     if (result.count > count) {
-      return result.addSequence(style(tf.clear)).addBreaks(1); // add ending breaks after styles
+      return result.addSequence(style(tf.clear)).addBreak(); // add ending breaks after styles
     }
     return new TerminalString(0, 1);
   }
@@ -634,17 +632,17 @@ function adjustEntries(
   if (typeof namesWidth !== 'number') {
     namesWidth = namesWidth.length ? namesWidth.reduce((acc, len) => acc + len + 2, -2) : 0;
   }
-  const namesStart = Math.max(0, indent.names);
-  const paramStart = indent.paramAbsolute
+  const namesIndent = Math.max(0, indent.names);
+  const paramIndent = indent.paramAbsolute
     ? Math.max(0, indent.param)
-    : namesStart + namesWidth + indent.param;
-  const descrStart = indent.descrAbsolute
+    : namesIndent + namesWidth + indent.param;
+  const descrIndent = indent.descrAbsolute
     ? Math.max(0, indent.descr)
-    : paramStart + paramWidth + indent.descr;
+    : paramIndent + paramWidth + indent.descr;
   for (const entries of groups.values()) {
     for (const { param, descr } of entries) {
-      param.start = paramStart;
-      descr.start = descrStart;
+      param.indent = paramIndent;
+      descr.indent = descrIndent;
     }
   }
 }
@@ -665,7 +663,7 @@ function formatNameSlots(
   nameWidths: Array<number> | number,
   namesStyle: Style,
   defStyle: Style,
-  align: Alignment,
+  align: Alignment | 'justified',
   indent: number,
   breaks: number,
 ): Array<TerminalString> {
@@ -683,7 +681,7 @@ function formatNameSlots(
       }
     }
     if (align === 'right') {
-      result.start += nameWidths - len;
+      result.indent += nameWidths - len;
     }
     return [result];
   }
@@ -907,7 +905,7 @@ function formatGroupsSection(
     if ((filterGroups?.has(group) ?? !exclude) != !!exclude) {
       const title2 = group || title;
       const heading = title2
-        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap, phrase).addBreaks(2)
+        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap, phrase).addBreak(2)
         : new TerminalString(0, breaks);
       result.push(heading, ...formatEntries(entries));
       result[result.length - 1].pop(); // remove trailing break
@@ -1061,25 +1059,28 @@ function formatUsageNames(
  * @param styles The set of styles
  * @param style The default style
  * @param result The resulting string
+ * @returns The string length, counting spaces in example values
  */
 function formatParam(
   option: ParamOption,
   styles: ConcreteStyles,
   style: Style,
   result: TerminalString,
-) {
+): number {
   if ('example' in option && option.example !== undefined) {
     formatValue(option, option.example, result, styles, style, false);
-  } else {
-    const paramStyle = option.styles?.param ?? styles.param;
-    const param =
-      'paramName' in option && option.paramName
-        ? option.paramName.includes('<')
-          ? option.paramName
-          : `<${option.paramName}>`
-        : `<${option.type}>`;
-    result.addAndRevert(paramStyle, param, style);
+    const variadic = Array.isArray(option.example) && isArray(option) && isVariadic(option);
+    return result.length + (variadic ? option.example.length - 1 : 0);
   }
+  const paramStyle = option.styles?.param ?? styles.param;
+  const param =
+    'paramName' in option && option.paramName
+      ? option.paramName.includes('<')
+        ? option.paramName
+        : `<${option.paramName}>`
+      : `<${option.type}>`;
+  result.addAndRevert(paramStyle, param, style);
+  return param.length;
 }
 
 /**

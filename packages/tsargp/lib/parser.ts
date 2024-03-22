@@ -195,7 +195,7 @@ export class ArgumentParser<T extends Options = Options> {
       await Promise.all(promises);
       return warnings.length
         ? new WarnMessage(
-            ...warnings.map((msg, i) => (i < warnings.length - 1 ? msg[0].addBreaks(1) : msg[0])),
+            ...warnings.map((msg, i) => (i < warnings.length - 1 ? msg[0].addBreak() : msg[0])),
           )
         : null;
     } catch (err) {

@@ -115,14 +115,14 @@ export class TerminalString {
 
   /**
    * Creates a terminal string.
-   * @param start The starting column for this string (negative values are replaced by zero)
+   * @param indent The starting column for this string (negative values are replaced by zero)
    * @param breaks The initial number of line feeds (non-positive values are ignored)
    */
   constructor(
-    public start: number = 0,
+    public indent: number = 0,
     breaks = 0,
   ) {
-    this.addBreaks(breaks);
+    this.addBreak(breaks);
   }
 
   /**
@@ -204,7 +204,7 @@ export class TerminalString {
    * @param count The number of line breaks to insert (non-positive values are ignored)
    * @returns The terminal string instance
    */
-  addBreaks(count: number): this {
+  addBreak(count = 1): this {
     return count > 0 ? this.addText('\n'.repeat(count), 0) : this;
   }
 
@@ -249,7 +249,7 @@ export class TerminalString {
     paragraphs.forEach((para, i) => {
       this.splitParagraph(para, format);
       if (i < paragraphs.length - 1) {
-        this.addBreaks(2);
+        this.addBreak(2);
       }
     });
     return this;
@@ -267,7 +267,7 @@ export class TerminalString {
         this.splitItem(item, format);
       } else {
         if (this.count > count) {
-          this.addBreaks(1);
+          this.addBreak();
         }
         this.addWord(item);
       }
@@ -331,7 +331,7 @@ export class TerminalString {
     const firstIsBreak = this.strings[0].startsWith('\n');
     column = Math.max(0, column);
     width = Math.max(0, width);
-    let start = Math.max(0, this.start);
+    let start = Math.max(0, this.indent);
     let indent = '';
     if (!width) {
       indent = ' '.repeat(start);
