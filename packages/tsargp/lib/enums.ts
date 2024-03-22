@@ -142,6 +142,14 @@ export const enum ErrorItem {
    * Raised by the parser when a conditional option requirement is not satisfied.
    */
   optionRequiredIf,
+  /**
+   * Raised by the validator when an option has a duplicate letter.
+   */
+  duplicateOptionLetter,
+  /**
+   * Raised by the parser when a variadic array option is specified in the middle of an option cluster.
+   */
+  variadicOptionInCluster,
 }
 
 /**

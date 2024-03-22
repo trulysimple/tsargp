@@ -113,6 +113,8 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.arrayOptionLimit]: 'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
     [ErrorItem.optionRequiredIf]: 'Option %o is required if %t.',
+    [ErrorItem.duplicateOptionLetter]: 'Duplicate option letter %o.',
+    [ErrorItem.variadicOptionInCluster]: 'Variadic array option %o must be the last in a cluster.',
   },
 };
 
@@ -213,6 +215,7 @@ export type ConcreteStyles = ConcreteError['styles'];
  */
 export class OptionValidator {
   readonly names = new Map<string, string>();
+  readonly letters = new Map<string, string>();
   readonly positional: Positional | undefined;
 
   /**
@@ -272,6 +275,14 @@ export class OptionValidator {
     if (!option.preferredName) {
       option.preferredName = names.find((name): name is string => !!name);
     }
+    if ('clusterLetters' in option && option.clusterLetters) {
+      for (const letter of option.clusterLetters) {
+        if (validate && this.letters.has(letter)) {
+          throw this.error(ErrorItem.duplicateOptionLetter, { o: prefix + letter });
+        }
+        this.letters.set(letter, key);
+      }
+    }
   }
 
   /**
@@ -284,6 +295,7 @@ export class OptionValidator {
   validate(prefix = '', visited = new Set<Options>()) {
     let positional = false; // to check for duplicate positional options
     this.names.clear(); // to check for duplicate option names
+    this.letters.clear(); // to check for duplicate option letters
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);

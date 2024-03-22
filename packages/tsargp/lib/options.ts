@@ -351,17 +351,17 @@ export type WithParseDelimited<T> = {
 /**
  * Defines attributes for an option that accepts delimited-value parameters.
  */
-export type WithDelimited = {
+export type WithSeparator = {
   /**
    * The parameter value separator. If specified, the option accepts a single parameter.
    */
   readonly separator?: string | RegExp;
   /**
-   * @deprecated mutually exclusive with {@link WithDelimited.separator}
+   * @deprecated mutually exclusive with {@link WithSeparator.separator}
    */
   readonly parse?: never;
   /**
-   * @deprecated mutually exclusive with {@link WithDelimited.separator}
+   * @deprecated mutually exclusive with {@link WithSeparator.separator}
    */
   readonly parseDelimited?: never;
 };
@@ -497,14 +497,18 @@ export type WithValue<T> = (WithDefault<T> | WithRequired) & {
 };
 
 /**
- * Defines attributes common to all options that accept environment variables.
+ * Defines attributes common to all valued options except function and command options.
  */
-export type WithEnvVar = {
+export type WithMisc = {
   /**
    * The name of an environment variable to read from, if the option is not specified in the
    * command-line.
    */
   readonly envVar?: string;
+  /**
+   * The letters used for clustering in short-option style (e.g., 'fF').
+   */
+  readonly clusterLetters?: string;
 };
 
 /**
@@ -512,7 +516,7 @@ export type WithEnvVar = {
  */
 export type BooleanOption = WithType<'boolean'> &
   WithParam &
-  WithEnvVar &
+  WithMisc &
   WithValue<boolean> &
   (WithExample<boolean> | WithParamName) &
   WithParse<boolean>;
@@ -522,7 +526,7 @@ export type BooleanOption = WithType<'boolean'> &
  */
 export type StringOption = WithType<'string'> &
   WithParam &
-  WithEnvVar &
+  WithMisc &
   WithValue<string> &
   (WithExample<string> | WithParamName) &
   WithString &
@@ -533,7 +537,7 @@ export type StringOption = WithType<'string'> &
  */
 export type NumberOption = WithType<'number'> &
   WithParam &
-  WithEnvVar &
+  WithMisc &
   WithValue<number> &
   (WithExample<number> | WithParamName) &
   WithNumber &
@@ -544,30 +548,30 @@ export type NumberOption = WithType<'number'> &
  */
 export type StringsOption = WithType<'strings'> &
   WithParam &
-  WithEnvVar &
+  WithMisc &
   WithValue<ReadonlyArray<string>> &
   (WithExample<ReadonlyArray<string>> | WithParamName) &
   WithString &
   WithArray &
-  (WithParse<string> | WithParseDelimited<string> | WithDelimited);
+  (WithParse<string> | WithParseDelimited<string> | WithSeparator);
 
 /**
  * An option that has a number array value (may accept single or multiple parameters).
  */
 export type NumbersOption = WithType<'numbers'> &
   WithParam &
-  WithEnvVar &
+  WithMisc &
   WithValue<ReadonlyArray<number>> &
   (WithExample<ReadonlyArray<number>> | WithParamName) &
   WithNumber &
   WithArray &
-  (WithParse<number> | WithParseDelimited<number> | WithDelimited);
+  (WithParse<number> | WithParseDelimited<number> | WithSeparator);
 
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
 export type FlagOption = WithType<'flag'> &
-  WithEnvVar &
+  WithMisc &
   WithValue<boolean> & {
     /**
      * The names used for negation (e.g., '--no-flag').
@@ -605,6 +609,10 @@ export type CommandOption = WithType<'command'> &
      * The command options or a callback that returns the options (for use with recursive commands).
      */
     readonly options: Options | (() => Options);
+    /**
+     * True if the first argument is expected to be an option cluster (i.e., short-option style).
+     */
+    readonly shortStyle?: true;
   };
 
 /**

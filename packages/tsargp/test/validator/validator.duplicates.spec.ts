@@ -122,5 +122,17 @@ describe('OptionValidator', () => {
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Option numbers has duplicate enum 1\./);
     });
+
+    it('should throw an error on flag option with duplicate letters', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          clusterLetters: 'aba',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate option letter a\./);
+    });
   });
 });
