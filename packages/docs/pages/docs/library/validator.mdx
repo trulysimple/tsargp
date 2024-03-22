@@ -224,6 +224,10 @@ kinds of error messages that may be raised by the library:
   array option's limit constraint
 - `deprecatedOption` - warning saved by the parser when a deprecated option is specified on the
   command-line
+- `optionRequiredIf` - raised by the parser when a conditional option requirement is not satisfied
+- `duplicateOptionLetter` - raised by the validator when an option has a duplicate cluster letter
+- `variadicOptionInCluster` - raised by the parser when a variadic array option is specified in the
+  middle of an option cluster
 
 ### Error phrases
 
@@ -258,6 +262,9 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `numberOptionRange` - `'Invalid parameter to %o: %n1. Value must be in the range %n2.'{:ts}`
 - `arrayOptionLimit` - `'Option %o has too many values (%n1). Should have at most %n2.'{:ts}`
 - `deprecatedOption` - `'Option %o is deprecated and may be removed in future releases.'{:ts}`
+- `optionRequiredIf` - `'Option %o is required if %t.'{:ts}`
+- `duplicateOptionLetter` - `'Duplicate option letter %o.'{:ts}`
+- `variadicOptionInCluster` - `'Variadic array option %o must be the last in a cluster.'{:ts}`
 
 These phrases will be formatted according to [text formatting](styles.mdx#text-splitting) rules.
 
@@ -284,7 +291,7 @@ description of the corresponding value.
 | parseErrorWithSimilar     | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
 | unknownOption             | `%o` = the unknown option name                                                  |
 | unknownOptionWithSimilar  | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
-| optionRequires            | `%o` = the specified option name; `%t` = the option requirements                |
+| optionRequires            | `%o` = the specified option name; `%t` = the option's requirements              |
 | missingRequiredOption     | `%o` = the option's preferred name                                              |
 | missingParameter          | `%o` = the specified option name                                                |
 | missingPackageJson        |                                                                                 |
@@ -309,3 +316,6 @@ description of the corresponding value.
 | numberOptionRange         | `%o` = the option key or name; `%n1` = the specified value; `%n2` = the range   |
 | arrayOptionLimit          | `%o` = the option key or name; `%n1` = the value count; `%n2` = the count limit |
 | deprecatedOption          | `%o` = the specified option name                                                |
+| optionRequiredIf          | `%o` = the specified option name; `%t` = the option's requirements              |
+| duplicateOptionLetter     | `%o` = the option letter                                                        |
+| variadicOptionInCluster   | `%o` = the specified option letter                                              |

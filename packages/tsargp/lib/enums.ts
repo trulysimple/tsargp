@@ -143,7 +143,7 @@ export const enum ErrorItem {
    */
   optionRequiredIf,
   /**
-   * Raised by the validator when an option has a duplicate letter.
+   * Raised by the validator when an option has a duplicate cluster letter.
    */
   duplicateOptionLetter,
   /**

@@ -13,7 +13,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse([], { shortStyle: true })).not.toThrow();
+      expect(parser.parse([], { shortStyle: true })).toEqual({ flag: undefined });
     });
 
     it('should skip the first dash in a cluster argument', () => {
@@ -25,7 +25,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-f'], { shortStyle: true })).not.toThrow();
+      expect(parser.parse(['-f'], { shortStyle: true })).toEqual({ flag: true });
     });
 
     it('should throw an error on unknown option letter', () => {
@@ -49,19 +49,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['b'], { shortStyle: true })).not.toThrow();
-    });
-
-    it('should parse a flag option in a cluster argument', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f'],
-          clusterLetters: 'f',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(parser.parse(['f'], { shortStyle: true })).toEqual({ flag: true });
+      expect(parser.parse(['b'], { shortStyle: true })).toEqual({ boolean: undefined });
     });
 
     it('should parse a boolean option in a cluster argument', () => {
