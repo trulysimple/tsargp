@@ -243,7 +243,8 @@ export class OptionValidator {
    * @param option The option definition
    * @param validate True if performing validation
    * @param prefix The command prefix, if any
-   * @throws On empty positional marker, option with no name, invalid option name or duplicate name
+   * @throws On empty positional marker, option with no name, invalid option name, duplicate name or
+   * duplicate cluster letter
    */
   private registerNames(key: string, option: Option, validate = false, prefix = '') {
     const names = option.names ? option.names.slice() : [];
