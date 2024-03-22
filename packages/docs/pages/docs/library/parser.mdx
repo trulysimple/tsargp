@@ -99,6 +99,11 @@ The `compIndex` property is the completion index of a raw command line. When sup
 methods with a command-line string, this value instructs the parser to perform bash completion when
 parsing the argument that overlaps this position in the string.
 
+### Short-option style
+
+The `shortStyle` property indicates whether the first argument is expected to be an option cluster.
+This must be used in conjunction with the [cluster letters](options.mdx#cluster-letters) attribute.
+
 ## Asynchronous parsing
 
 To understand how the parser supports asynchronous operations, we need to review the kinds of

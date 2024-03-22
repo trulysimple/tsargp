@@ -122,5 +122,34 @@ describe('OptionValidator', () => {
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Option numbers has duplicate enum 1\./);
     });
+
+    it('should throw an error on duplicate cluster letter in the same option', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          clusterLetters: 'aba',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate option letter a\./);
+    });
+
+    it('should throw an error on duplicate cluster letter across different options', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['-f1'],
+          clusterLetters: 'f',
+        },
+        flag2: {
+          type: 'flag',
+          names: ['-f2'],
+          clusterLetters: 'f',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(/Duplicate option letter f\./);
+    });
   });
 });

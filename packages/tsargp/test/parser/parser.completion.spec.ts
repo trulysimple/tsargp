@@ -470,6 +470,19 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse('cmd -ns ', { compIndex: 8 })).toThrow(/^-ns$/);
       expect(() => parser.parse('cmd -ns=', { compIndex: 8 })).toThrow(/^$/);
     });
+
+    it('should throw the default completion when completing a cluster argument', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          clusterLetters: 'f',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse('cmd --', { shortStyle: true, compIndex: 5 })).toThrow(/^$/);
+      expect(() => parser.parse('cmd ff', { shortStyle: true, compIndex: 5 })).toThrow(/^$/);
+    });
   });
 
   describe('parseAsync', () => {

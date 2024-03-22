@@ -210,17 +210,6 @@ If they were defined in the `requiredIf` attribute, they would mean:
   During requirement evaluation, values are compared _after_ being normalized.
 </Callout>
 
-#### Environment variable
-
-The `envVar` attribute, if present, specifies the name of an environment variable from which the
-option value will be read, in case the option is not specified on the command-line. Explicitly _not_
-available for [function options](#function-option) and [command options](#command-option).
-
-<Callout type="info">
-  If the environemnt variable for an option is found, the option is counted as if it were specified
-  on the command-line, which has implications for the evaluation of other option's requirements.
-</Callout>
-
 ### Parameter attributes
 
 All non-niladic option types share a set of attributes, which are described below.
@@ -377,6 +366,59 @@ The `limit` attribute, if present, indicates the maximum allowed number of array
 parameter that causes the option value to _exceed_ the given limit (after normalization) will cause
 an error to be thrown.
 
+### Miscellaneous attributes
+
+Some attributes are shared by all valued option types except [function options](#function-option)
+and [command options](#command-option). They are described below.
+
+#### Environment variable
+
+The `envVar` attribute, if present, specifies the name of an environment variable from which the
+option value will be read, in case the option is not specified on the command-line.
+
+<Callout type="info">
+  If the environemnt variable for an option is found, the option is counted as if it were specified
+  on the command-line, which has implications for the evaluation of other option's requirements.
+</Callout>
+
+#### Cluster letters
+
+The `clusterLetters` attribute, if present, specifies letters (or Unicode characters) that can be
+used to cluster options in the first command-line argument. This is also known as [_short-option_
+style]. This feature can be enabled via the parser's [`shortStyle`](parser.mdx#short-option-style)
+configuration property.
+
+[_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html
+
+Here is an example that illustrates how it works. Suppose we have the following options:
+
+- flag option, with name `'--flag'{:ts}` and letters `'fF'{:ts}`
+- string option, with name `'--str'{:ts}` and letters `'sS'{:ts}`
+- number option, with name `'--num'{:ts}` and letters `'nN'{:ts}`
+
+Given these options, the following invocations would be equivalent:
+
+```sh
+my_cli fsn 'my string' 123
+my_cli -fsn 'my string' 123
+my_cli fSN 'my string' 123
+my_cli -Fsn 'my string' 123
+```
+
+They would all be transformed to their "canonical" form, i.e.:
+
+```sh
+my_cli --flag --str 'my string' --num 123
+```
+
+Notes about this feature:
+
+- the order of the options in the cluster are preserved when converting to the canonical form
+- variadic array options are supported, but must be the last option in a cluster argument
+- if a single dash is specified as the first character in a cluster argument, it is ignored
+- if `Tab`-completion is performed in a cluster argument, the default completion is thrown
+- positional options with no names are skipped in a cluster argument
+
 ## Niladic options
 
 Niladic options do not expect any parameter on the command-line. With the notable exception of the
@@ -442,8 +484,7 @@ value. You can use it to perform many kinds of useful things, such as:
   - e.g., if `--verbose` is set, add more help items to the [help format](#help-format) (or replace
     it altogether)
 
-In addition to the set of [value attributes](#value-attributes) (minus the environemnt variable),
-it has the following attributes.
+In addition to the set of [value attributes](#value-attributes), it has the following attributes.
 
 #### Execute callback
 
@@ -488,12 +529,12 @@ attributes and parses the remaining arguments.
   _recursive_ ones. This is explained in detail in the [commands guide](../guides/commands.mdx).
 </Callout>
 
-In addition to the set of [value attributes](#value-attributes) (minus the environemnt variable),
-it has the following required attributes.
+In addition to the set of [value attributes](#value-attributes), it has the following attributes.
 
 #### Command callback
 
-The `cmd` attribute is the callback function that should be executed. It accepts two parameters:
+The `cmd` attribute is the callback function that should be executed. It is required and accepts two
+parameters:
 
 - `values` - the values parsed for the parent command
 - `cmdValues` - the values parsed for the command
@@ -512,15 +553,21 @@ Notes about this callback:
 
 #### Command options | callback
 
-The `options` attribute is the set of option definitions for the command. You may also specify a
-(non-asynchronous) callback that returns the option definitions (this allows the implementation of
-[recursive commands](../guides/commands.mdx)).
+The `options` attribute is the set of option definitions for the command, or a (non-asynchronous)
+callback that returns the option definitions (this allows the implementation of
+[recursive commands](../guides/commands.mdx)). This attribute is required.
 
 <Callout type="warning">
   All incoming arguments will be parsed using the option definitions from this attribute, not those
   in which the option was declared. Hence, you should make it clear in the help message that all
   arguments pertaining to the command must be specified _after_ it.
 </Callout>
+
+#### Short-option style
+
+The `shortStyle` property indicates whether the first command argument is expected to be an option
+cluster. This must be used in conjunction with the [cluster letters](options.mdx#cluster-letters)
+of its options.
 
 ### Flag option
 
@@ -535,8 +582,8 @@ parameter.
   `-f` or a positional argument?).
 </Callout>
 
-In addition to the set of [value attributes](#value-attributes), it has the following optional
-attribute.
+In addition to the set of [value attributes](#value-attributes) and
+[miscellaneous attributes](#miscellaneous-attributes), it has the following optional attribute.
 
 #### Negation names
 
@@ -548,29 +595,46 @@ flag that has been previously specified must be reset by a supplementary list of
 
 ### Boolean option
 
-The **boolean** option has the set of [parameter attributes](#parameter-attributes) for a
-`boolean{:ts}` data type, as well as the set of [value attributes](#value-attributes).
+The **boolean** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `boolean{:ts}` data type
+- [value attributes](#value-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### String option
 
-The **string** option has the set of [parameter attributes](#parameter-attributes) for a
-`string{:ts}` data type, as well as the sets of [value attributes](#value-attributes) and
-[string attributes](#string-attributes).
+The **string** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `string{:ts}` data type
+- [value attributes](#value-attributes)
+- [string attributes](#string-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### Number option
 
-The **number** option has the set of [parameter attributes](#parameter-attributes) for a
-`number{:ts}` data type, as well as the sets of [value attributes](#value-attributes) and
-[number attributes](#number-attributes).
+The **number** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `number{:ts}` data type
+- [value attributes](#value-attributes)
+- [number attributes](#number-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### Strings option
 
-The **strings** option has the set of [parameter attributes](#parameter-attributes) for a
-`string[]{:ts}` data type, as well as the sets of [value attributes](#value-attributes),
-[string attributes](#string-attributes) and [array attributes](#array-attributes).
+The **strings** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `string[]{:ts}` data type
+- [value attributes](#value-attributes)
+- [string attributes](#string-attributes)
+- [array attributes](#array-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### Numbers option
 
-The **numbers** option has the set of [parameter attributes](#parameter-attributes) for a
-`number[]{:ts}` data type, as well as the sets of [value attributes](#value-attributes),
-[number attributes](#number-attributes) and [array attributes](#array-attributes).
+The **numbers** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `number[]{:ts}` data type
+- [value attributes](#value-attributes)
+- [number attributes](#number-attributes)
+- [array attributes](#array-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)

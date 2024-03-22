@@ -3,7 +3,7 @@ import { type Options, OptionValidator } from '../../lib';
 import '../utils.spec';
 
 describe('OptionValidator', () => {
-  describe('constructor', () => {
+  describe('validate', () => {
     it('should ignore empty option names', () => {
       const options = {
         string: {
@@ -11,11 +11,10 @@ describe('OptionValidator', () => {
           names: ['', 'name', ''],
         },
       } as const satisfies Options;
-      expect(() => new OptionValidator(options)).not.toThrow();
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
     });
-  });
 
-  describe('validate', () => {
     it('should accept a positional option with no name', () => {
       const options = {
         string: {
@@ -70,6 +69,18 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
+    });
+
+    it('should accept an option with cluster letters', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          clusterLetters: 'abc',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
     });
   });
 });

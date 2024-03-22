@@ -1037,8 +1037,8 @@ function formatParam(
     'paramName' in option && option.paramName
       ? option.paramName.includes('<')
         ? option.paramName
-        : `<${option.paramName}>` + ellipsis
-      : `<${option.type}>` + ellipsis;
+        : `<${option.paramName}>${ellipsis}`
+      : `<${option.type}>${ellipsis}`;
   result.addAndRevert(paramStyle, param, style);
   return param.length;
 }

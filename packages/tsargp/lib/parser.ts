@@ -71,6 +71,10 @@ export type ParseConfig = {
    * The completion index of a raw command line.
    */
   readonly compIndex?: number;
+  /**
+   * True if the first argument is expected to be an option cluster (i.e., short-option style).
+   */
+  readonly shortStyle?: true;
 };
 
 /**
@@ -219,6 +223,7 @@ class ParserLoop {
    * @param args The command-line arguments
    * @param completing True if performing completion
    * @param progName The program name, if any
+   * @param shortStyle True if the first argument is expected to be an option cluster
    */
   constructor(
     private readonly validator: OptionValidator,
@@ -226,6 +231,7 @@ class ParserLoop {
     private readonly args: Array<string>,
     private readonly completing: boolean,
     private readonly progName?: string,
+    shortStyle = false,
   ) {
     if (!completing && progName && process?.title) {
       process.title += ' ' + progName;
@@ -237,6 +243,9 @@ class ParserLoop {
           values[key] = undefined;
         }
       }
+    }
+    if (shortStyle) {
+      parseCluster(validator, args);
     }
   }
 
@@ -405,8 +414,14 @@ class ParserLoop {
     const values: OptionValues = {};
     const options = typeof option.options === 'function' ? option.options() : option.options;
     const validator = new OptionValidator(options, this.validator.config);
-    const args = this.args.slice(index + 1);
-    const loop = new ParserLoop(validator, values, args, this.completing, name).loop();
+    const loop = new ParserLoop(
+      validator,
+      values,
+      this.args.slice(index + 1),
+      this.completing,
+      name,
+      option.shortStyle,
+    ).loop();
     this.promises.push(...loop.promises);
     if (!this.completing) {
       const result = option.cmd(this.values, values);
@@ -605,6 +620,41 @@ class ParserLoop {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
+ * Parses the first argument which is expected to be an option cluster.
+ * @param validator The option validator
+ * @param args The command-line arguments
+ */
+function parseCluster(validator: OptionValidator, args: Array<string>) {
+  const cluster = args.shift();
+  if (!cluster) {
+    return;
+  }
+  for (let j = 0, i = 0; j < cluster.length; ++j) {
+    const letter = cluster[j];
+    if (letter === '-' && j == 0) {
+      continue; // skip the first dash in the cluster
+    }
+    if (letter === '\0') {
+      throw new CompletionMessage();
+    }
+    const key = validator.letters.get(letter);
+    if (!key) {
+      throw validator.error(ErrorItem.unknownOption, { o: letter });
+    }
+    const option = validator.options[key];
+    if (j < cluster.length - 1 && isArray(option) && isVariadic(option)) {
+      throw validator.error(ErrorItem.variadicOptionInCluster, { o: letter });
+    }
+    const name = option.names?.find((name) => name);
+    if (!name) {
+      continue; // skip options with no names
+    }
+    args.splice(i, 0, name);
+    i += isNiladic(option) ? 1 : 2;
+  }
+}
+
+/**
  * Checks if the environment variable of an option is present, and reads its value.
  * @param validator The option validator
  * @param values The options' values to parse into
@@ -659,7 +709,7 @@ function createLoop(
     }
   }
   const completing = (config.compIndex ?? -1) >= 0;
-  return new ParserLoop(validator, values, args, completing, progName);
+  return new ParserLoop(validator, values, args, completing, progName, config.shortStyle);
 }
 
 /**
