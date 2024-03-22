@@ -1,5 +1,13 @@
 # @trulysimple/tsargp-docs
 
+## 0.2.0-dev.4
+
+### Minor Changes
+
+- [#61](https://github.com/trulysimple/tsargp/pull/61) [`0a9ce4e`](https://github.com/trulysimple/tsargp/commit/0a9ce4e7f0e8a85e5641236282aac96609d584df) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new alignment settings for option parameters and description in the help message. Added a section in the Styles page for the new right-alignment feature of the wrapping procedure.
+
+- [#66](https://github.com/trulysimple/tsargp/pull/66) [`77b6bf0`](https://github.com/trulysimple/tsargp/commit/77b6bf03b222868d37b26716bd14f9834ab4293f) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `shortStyle` configuration property. A new section called `Miscellaneous attributes` was added to the Options page, under which the `clusterLetters` attribute was documented. The `envVar` attribute was moved to this section.
+
 ## 0.2.0-dev.3
 
 ### Minor Changes
