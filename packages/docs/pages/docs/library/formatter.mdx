@@ -162,17 +162,16 @@ columns. It has the following set of optional properties:
   `true{:ts}`, defaults to `2{:ts}`)
 - `paramAbsolute` - whether the indentation level for the option parameter should be relative to the
   beginning of the line instead of the end of the option names (defaults to `false{:ts}`)
-- `descrAbsolute` - whether the indentation level for the option description should be relative to the
-  beginning of the line instead of the end of the option parameter (defaults to `false{:ts}`)
+- `descrAbsolute` - whether the indentation level for the option description should be relative to
+  the beginning of the line instead of the end of the option parameter (defaults to `false{:ts}`)
 
 ### Text alignment
 
 The `align` property specifies the `Alignment` of help entry columns. It has the following set of
 optional properties:
 
-- `names` - alignment for the names column (defaults to `'justified'{:ts}`)
-
-Possible values for each of these settings are `'left'{:ts}`, `'right'{:ts}` or `'justified'{:ts}`.
+- `names` - alignment for the option names (can be one of `'left'{:ts}`, `'right'{:ts}` or
+  `'justified'{:ts}`, defaults to `'justified'{:ts}`)
 
 <Callout type="info">
   In the case of `names`, justified means that each name receives a "slot" in the names column, and

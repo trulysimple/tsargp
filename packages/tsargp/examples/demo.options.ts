@@ -156,7 +156,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     group: 'String options',
     regex: /^\d+$/,
     default: '123456789',
-    paramName: 'my string',
+    paramName: 'my str',
   },
   /**
    * A number option that has a range constraint.
@@ -168,7 +168,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     group: 'Number options',
     range: [-Infinity, 0],
     default: -1.23,
-    paramName: 'my number',
+    paramName: 'my num',
   },
   /**
    * A string option that has an enumeration constraint.

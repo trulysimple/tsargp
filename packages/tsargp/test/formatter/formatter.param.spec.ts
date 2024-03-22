@@ -95,6 +95,36 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -n, --number  123  A number option\n');
     });
 
+    it('should handle a variadic strings option with an example value', () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss', '--strings'],
+          desc: 'A strings option.',
+          example: ['one', 'two'],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -ss, --strings  'one' 'two'  A strings option. Accepts multiple parameters.\n`,
+      );
+    });
+
+    it('should handle a variadic numbers option with an example value', () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns', '--numbers'],
+          desc: 'A numbers option.',
+          example: [1, 2],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -ns, --numbers  1 2  A numbers option. Accepts multiple parameters.\n`,
+      );
+    });
+
     it('should handle a delimited strings option with an example value', () => {
       const options = {
         strings: {
