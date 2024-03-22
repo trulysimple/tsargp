@@ -231,5 +231,23 @@ describe('HelpFormatter', () => {
       const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
       expect(message.wrap()).toEqual('  -f, --flag\n     --flag2\n');
     });
+
+    it('should align option parameters to the right boundary', () => {
+      const options = {
+        numbers1: {
+          type: 'numbers',
+          names: ['-ns1'],
+          example: [1, 2],
+        },
+        numbers2: {
+          type: 'numbers',
+          names: ['-ns2'],
+          example: [1],
+        },
+      } as const satisfies Options;
+      const config: HelpConfig = { align: { param: 'right' }, items: [] };
+      const message = new HelpFormatter(new OptionValidator(options), config).formatHelp();
+      expect(message.wrap()).toEqual('  -ns1  1 2\n  -ns2    1\n');
+    });
   });
 });
