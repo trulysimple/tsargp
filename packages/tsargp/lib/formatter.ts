@@ -1026,18 +1026,20 @@ function formatParam(
   style: Style,
   result: TerminalString,
 ): number {
+  const variadic = isArray(option) && isVariadic(option);
   if ('example' in option && option.example !== undefined) {
     formatValue(option, option.example, result, styles, style, false);
-    const variadic = Array.isArray(option.example) && isArray(option) && isVariadic(option);
-    return result.length + (variadic ? option.example.length - 1 : 0);
+    const variadicArr = variadic && Array.isArray(option.example);
+    return result.length + (variadicArr ? option.example.length - 1 : 0);
   }
+  const ellipsis = variadic ? '...' : '';
   const paramStyle = option.styles?.param ?? styles.param;
   const param =
     'paramName' in option && option.paramName
       ? option.paramName.includes('<')
         ? option.paramName
-        : `<${option.paramName}>`
-      : `<${option.type}>`;
+        : `<${option.paramName}>` + ellipsis
+      : `<${option.type}>` + ellipsis;
   result.addAndRevert(paramStyle, param, style);
   return param.length;
 }

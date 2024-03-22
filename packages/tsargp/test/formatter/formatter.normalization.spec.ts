@@ -205,18 +205,19 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a variadic numbers option with ceil rounding', () => {
+    it('should handle a delimited numbers option with ceil rounding', () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
+          separator: ',',
           round: 'ceil',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Values will be rounded up.\n`,
+        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded up.\n`,
       );
     });
 
@@ -236,18 +237,19 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a variadic numbers option with nearest rounding', () => {
+    it('should handle a delimited numbers option with nearest rounding', () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
+          separator: ',',
           round: 'round',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Values will be rounded to the nearest integer.\n`,
+        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded to the nearest integer.\n`,
       );
     });
   });

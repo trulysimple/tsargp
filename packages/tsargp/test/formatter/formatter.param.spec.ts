@@ -95,6 +95,21 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -n, --number  123  A number option\n');
     });
 
+    it('should handle a variadic strings option with a parameter name', () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss', '--strings'],
+          desc: 'A strings option.',
+          paramName: 'param',
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -ss, --strings  <param>...  A strings option. Accepts multiple parameters.\n`,
+      );
+    });
+
     it('should handle a variadic strings option with an example value', () => {
       const options = {
         strings: {
@@ -107,6 +122,21 @@ describe('HelpFormatter', () => {
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  'one' 'two'  A strings option. Accepts multiple parameters.\n`,
+      );
+    });
+
+    it('should handle a variadic numbers option with a parameter name', () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns', '--numbers'],
+          desc: 'A numbers option.',
+          paramName: 'param',
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -ns, --numbers  <param>...  A numbers option. Accepts multiple parameters.\n`,
       );
     });
 

@@ -235,8 +235,9 @@ message [parameter column](formatter.mdx#parameter-column). Mutually exclusive w
 
 The `paramName` attribute, if present, replaces the option type in the help message
 [parameter column](formatter.mdx#parameter-column). If it contains an opening angle bracket
-`'<'{:ts}`, it is printed as-is; otherwise it is enclosed in angle brackets (e.g., `<param_name>`).
-Mutually exclusive with [example value](#example-value).
+`'<'{:ts}`, it is printed as-is; otherwise, it is enclosed in angle brackets (e.g., `<param_name>`)
+and possibly appended with an ellipsis `...{:ts}` (in the case of variadic array options). Mutually
+exclusive with [example value](#example-value).
 
 #### Positional | marker
 
