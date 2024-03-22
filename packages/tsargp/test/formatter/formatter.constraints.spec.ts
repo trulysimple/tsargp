@@ -107,7 +107,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Value count is limited to 2.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Value count is limited to 2.\n`,
       );
     });
 
@@ -122,7 +122,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Value count is limited to 2.\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Value count is limited to 2.\n`,
       );
     });
 
@@ -137,7 +137,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Values must be one of {'one', 'two'}.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values must be one of {'one', 'two'}.\n`,
       );
     });
 
@@ -152,7 +152,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Values must be one of {1, 2}.\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Values must be one of {1, 2}.\n`,
       );
     });
   });

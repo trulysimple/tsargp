@@ -209,7 +209,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Defaults to ['one', 'two'].\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Defaults to ['one', 'two'].\n`,
       );
     });
 
@@ -224,7 +224,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -ss, --strings  <strings>  A strings option. Accepts multiple parameters. Defaults to <() => ["one", "two"]>.\n',
+        '  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Defaults to <() => ["one", "two"]>.\n',
       );
     });
 
@@ -239,7 +239,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toMatch(
-        `  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Defaults to [1, 2].\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Defaults to [1, 2].\n`,
       );
     });
 
@@ -254,7 +254,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -ns, --numbers  <numbers>  A numbers option. Accepts multiple parameters. Defaults to <() => [1, 2]>.\n',
+        '  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Defaults to <() => [1, 2]>.\n',
       );
     });
   });
