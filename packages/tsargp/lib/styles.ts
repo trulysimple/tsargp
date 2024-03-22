@@ -316,58 +316,59 @@ export class TerminalString {
    */
   wrapToWidth(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
     /** @ignore */
-    function shortenLine() {
+    function shorten() {
       while (result.length && column > start) {
         const last = result[result.length - 1];
         if (last.length > column - start) {
-          result[result.length - 1] = last.slice(0, start - column);
+          result[result.length - 1] = last.slice(0, start - column); // cut the last string
           break;
         }
         column -= last.length;
-        result.length--;
+        result.length--; // pop the last string
+      }
+    }
+    /** @ignore */
+    function align() {
+      if (needToAlign && j < result.length && column < width) {
+        const rem = width - column; // remaining columns until right boundary
+        const pad = emitStyles ? sequence(cs.cuf, rem) : ' '.repeat(rem);
+        result.splice(j, 0, pad); // insert padding at the indentation boundary
+        column = width;
+      }
+    }
+    /** @ignore */
+    function adjust() {
+      const pad = !largestFits
+        ? '\n'
+        : emitStyles
+          ? sequence(cs.cha, start + 1)
+          : column < start
+            ? ' '.repeat(start - column)
+            : '';
+      if (pad) {
+        result.push(pad);
+      } else {
+        shorten(); // adjust backwards: shorten the current line
       }
     }
     if (!this.count) {
       return column;
     }
-    /** @ignore */
-    function align() {
-      if (rightAlign && j < result.length && column < width) {
-        result.splice(j, 0, sequence(cs.cuf, width - column));
-        column = width;
-      }
-    }
-    const firstIsBreak = this.strings[0].startsWith('\n');
-    const rightAlign = width && this.rightAlign;
     column = Math.max(0, column);
     width = Math.max(0, width);
     let start = Math.max(0, this.indent);
-    let indent = '';
-    if (!width) {
-      indent = ' '.repeat(start);
-      if (!firstIsBreak) {
-        if (column < start) {
-          result.push(' '.repeat(start - column));
-        } else {
-          shortenLine();
-        }
-      }
-    } else if (start) {
-      if (width >= start + Math.max(...this.lengths)) {
-        indent = sequence(cs.cha, start + 1);
-        if (!firstIsBreak && column != start) {
-          result.push(indent);
-        }
-      } else {
-        if (!firstIsBreak && column) {
-          result.push('\n');
-        }
-        start = 0;
-      }
-    } else if (!firstIsBreak && column) {
-      result.push(sequence(cs.cha, 1));
+
+    const needToAlign = width && this.rightAlign;
+    const largestFits = !width || width >= start + Math.max(...this.lengths);
+    if (!largestFits) {
+      start = 0; // wrap to the first column instead
     }
-    column = start;
+    const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
+    if (column != start && !this.strings[0].startsWith('\n')) {
+      adjust();
+      column = start;
+    }
+
     let j = result.length; // save index for right-alignment
     for (let i = 0; i < this.count; ++i) {
       let str = this.strings[i];
