@@ -1,5 +1,17 @@
 # tsargp
 
+## 0.3.0-dev.4
+
+### Minor Changes
+
+- [#61](https://github.com/trulysimple/tsargp/pull/61) [`0a9ce4e`](https://github.com/trulysimple/tsargp/commit/0a9ce4e7f0e8a85e5641236282aac96609d584df) Thanks [@disog](https://github.com/disog)! - Added text alignment settings for option parameter and description in the help message. Added a `rightAlign` property to terminal strings, that makes the wrapping procedure align text to the terminal's right boundary.
+
+- [#66](https://github.com/trulysimple/tsargp/pull/66) [`77b6bf0`](https://github.com/trulysimple/tsargp/commit/77b6bf03b222868d37b26716bd14f9834ab4293f) Thanks [@disog](https://github.com/disog)! - Added the `clusterLetters` attribute to valued options, to support the so called "short-options" style. Added the `shortStyle` configuration property to the parser configuration, to indicate that the first command-line argument is expected to be an option cluster. These two must be used in conjunction.
+
+### Patch Changes
+
+- [#64](https://github.com/trulysimple/tsargp/pull/64) [`94ddf59`](https://github.com/trulysimple/tsargp/commit/94ddf59ec36ccd231f3ea5adbd8024093ba26573) Thanks [@disog](https://github.com/disog)! - Refactored the `HelpConfig` to reuse the same object for configuring the help columns. Improved the wrapping procedure to emit all control sequences when `emitStyles` is true.
+
 ## 0.3.0-dev.3
 
 ### Minor Changes
