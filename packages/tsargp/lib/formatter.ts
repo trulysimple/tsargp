@@ -223,8 +223,8 @@ export type HelpSections = Array<HelpSection>;
  * The default column configuration.
  */
 const defaultColumn: ConcreteColumn = {
-  indent: 2,
   align: 'left',
+  indent: 2,
   breaks: 0,
   hidden: false,
 };
@@ -652,8 +652,7 @@ function formatNameSlots(
       if (str) {
         str.addClosing(',');
       }
-      str = new TerminalString(indent, breaks);
-      str.addAndRevert(namesStyle, name, defStyle);
+      str = new TerminalString(indent, breaks).addAndRevert(namesStyle, name, defStyle);
       result.push(str);
       breaks = 0; // break only on the first name
     } else {
