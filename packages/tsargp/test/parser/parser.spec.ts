@@ -80,7 +80,7 @@ describe('ArgumentParser', () => {
               { type: 'usage', title: 'usage  heading' },
               { type: 'groups', noWrap: true },
             ],
-            format: { indent: { names: 0 } },
+            format: { names: { indent: 0 } },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);

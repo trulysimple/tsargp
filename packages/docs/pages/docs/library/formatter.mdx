@@ -47,7 +47,7 @@ containing a piece of information, as described below.
 This column contains the options' names separated by commas. The names are listed in the same order
 specified in the [names](options.mdx#names--preferred-name) attribute.
 
-Depending on the [alignment](#text-alignment) configuration, each option name may reserve a "slot"
+Depending on the [alignment](#help-columns) configuration, each option name may reserve a "slot"
 in the respective index in this column, and the length of a name slot will be the length of the
 largest name in that slot, among all options.
 
@@ -151,55 +151,23 @@ In addition to the validator instance, the formatter constructor accepts a `Help
 can be used to customize the message format. This configuration will apply to all help entries. It
 contains a collection of optional properties, as described below.
 
-### Indentation level
+### Help columns
 
-The `indent` property specifies the indentation levels (in number of terminal columns) of help entry
-columns. It has the following set of optional properties:
+The `names`, `param` and `descr` properties specify settings for each help column. They are objects
+with the following optional properties:
 
-- `names` - level of indentation for the option names (non-negative, defaults to `2{:ts}`)
-- `param` - level of indentation for the option parameter (non-negative if `paramAbsolute` is
-  `true{:ts}`, defaults to `2{:ts}`)
-- `descr` - level of indentation for the option description (non-negative if `descrAbsolute` is
-  `true{:ts}`, defaults to `2{:ts}`)
-- `paramAbsolute` - whether the indentation level for the option parameter should be relative to the
-  beginning of the line instead of the end of the option names (defaults to `false{:ts}`)
-- `descrAbsolute` - whether the indentation level for the option description should be relative to
-  the beginning of the line instead of the end of the option parameter (defaults to `false{:ts}`)
+- `align` - text alignment for the column (may be one of `'left'{:ts}` or `'right'{:ts}`, defaults
+  to `'left'{:ts}`)
+- `indent` - level of indentation for the column (non-negative if `absolute` is `true{:ts}`,
+  defaults to `2{:ts}`)
+- `breaks` - number of line breaks to insert before each entry in the column (defaults to `0{:ts}`)
+- `hidden` - whether the column should be hidden (defaults to `false{:ts}`)
+- `absolute` - whether the indentation level should be relative to the beginning of the line instead
+  of the end of the previous column (not available for the names column, defaults to `false{:ts}`)
 
-### Text alignment
-
-The `align` property specifies the `Alignment` of help entry columns. It has the following set of
-optional properties:
-
-- `names` - alignment for the option names (can be one of `'left'{:ts}`, `'right'{:ts}` or
-  `'justified'{:ts}`, defaults to `'justified'{:ts}`)
-- `param` - alignment for the option parameter (can be one of `'left'{:ts}` or `'right'{:ts}`,
-  defaults to `'left'{:ts}`)
-- `descr` - alignment for the option description (can be one of `'left'{:ts}` or `'right'{:ts}`,
-  defaults to `'left'{:ts}`)
-
-<Callout type="info">
-  In the case of `names`, justified means that each name receives a "slot" in the names column, and
-  the name is left-aligned within that slot. See [names column](#names-column) for more information.
-</Callout>
-
-### Line breaks
-
-The `breaks` property specifies the number of line breaks to insert before help entry columns. It
-has the following set of optional properties:
-
-- `names` - line breaks to insert before the option names (defaults to `0{:ts}`)
-- `param` - line breaks to insert before the option parameter (defaults to `0{:ts}`)
-- `descr` - line breaks to insert before the option description (defaults to `0{:ts}`)
-
-### Hidden columns
-
-The `hidden` property can be used to select help entry columns that should be omitted. It has the
-following set of optional properties:
-
-- `names` - whether option names should be omitted (defaults to `false{:ts}`)
-- `param` - whether option parameters should be omitted (defaults to `false{:ts}`)
-- `descr` - whether option descriptions should be omitted (defaults to `false{:ts}`)
+The `names.align` property supports an additional value `'slot'{:ts}`, which means that each name
+receives a "slot" in the column, and the name is left-aligned within that slot. See
+[names column](#names-column) for more information.
 
 ### Help items
 

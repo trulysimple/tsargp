@@ -29,101 +29,60 @@ import { assert, splitPhrase } from './utils';
 export type Alignment = 'left' | 'right';
 
 /**
+ * Defines attributes common to all help columns.
+ * @template A The type of text alignment
+ */
+export type WithColumn<A = Alignment> = {
+  /**
+   * The text alignment for this column. (Defaults to 'left')
+   */
+  readonly align?: A;
+  /**
+   * The indentation level for this column. (Defaults to 2)
+   */
+  readonly indent?: number;
+  /**
+   * The number of line breaks to insert before each entry in this column. (Defaults to 0)
+   */
+  readonly breaks?: number;
+  /**
+   * Whether the column should be hidden. (Defaults to false)
+   */
+  readonly hidden?: boolean;
+};
+
+/**
+ * Defines attributes for columns that may be preceded by other columns.
+ */
+export type WithAbsolute = {
+  /**
+   * Whether the indentation level should be relative to the beginning of the line instead of the
+   * end of the previous column. (Defaults to false)
+   */
+  readonly absolute?: boolean;
+};
+
+/**
  * The help format configuration.
  */
 export type HelpConfig = {
   /**
-   * The indentation level for each help entry column.
+   * The settings for the names column.
    */
-  readonly indent?: {
-    /**
-     * The indentation level for the names column. (Defaults to 2)
-     */
-    readonly names?: number;
-    /**
-     * The indentation level for the parameter column. (Defaults to 2)
-     */
-    readonly param?: number;
-    /**
-     * The indentation level for the description column. (Defaults to 2)
-     */
-    readonly descr?: number;
-    /**
-     * True if the indentation level for the parameter column should be relative to the beginning
-     * of the line instead of the end of the names column. (Defaults to false)
-     */
-    readonly paramAbsolute?: boolean;
-    /**
-     * True if the indentation level for the description column should be relative to the beginning
-     * of the line instead of the end of the parameter column. (Defaults to false)
-     */
-    readonly descrAbsolute?: boolean;
-  };
-
+  readonly names?: WithColumn<Alignment | 'slot'>;
   /**
-   * The alignment settings for each help entry column.
+   * The settings for the parameter column.
    */
-  readonly align?: {
-    /**
-     * The alignment of the names column. (Defaults to 'justified')
-     *
-     * Justified here means that each name receives a "slot" in the names column, and the name is
-     * left-aligned within that slot.
-     */
-    readonly names?: Alignment | 'justified';
-    /**
-     * The alignment of the parameter column. (Defaults to 'left')
-     */
-    readonly param?: Alignment;
-    /**
-     * The alignment of the description column. (Defaults to 'left')
-     */
-    readonly descr?: Alignment;
-  };
-
+  readonly param?: WithColumn & WithAbsolute;
   /**
-   * The number of line breaks to insert before each help entry column.
+   * The settings for the description column.
    */
-  readonly breaks?: {
-    /**
-     * The number of line breaks to insert before the names column. (Defaults to 0)
-     */
-    readonly names?: number;
-    /**
-     * The number of line breaks to insert before the parameter column. (Defaults to 0)
-     */
-    readonly param?: number;
-    /**
-     * The number of line breaks to insert before the description column. (Defaults to 0)
-     */
-    readonly descr?: number;
-  };
-
-  /**
-   * Select individual entry columns that should not be displayed.
-   * This does not apply to the default usage text.
-   */
-  readonly hidden?: {
-    /**
-     * True if the names column should be hidden. (Defaults to false)
-     */
-    readonly names?: boolean;
-    /**
-     * True if the parameter column should be hidden. (Defaults to false)
-     */
-    readonly param?: boolean;
-    /**
-     * True if the description column should be hidden. (Defaults to false)
-     */
-    readonly descr?: boolean;
-  };
-
+  readonly descr?: WithColumn & WithAbsolute;
   /**
    * The order of items to be shown in the option description.
    * @see HelpItem
    */
   readonly items?: ReadonlyArray<HelpItem>;
-
   /**
    * The phrases to be used for each kind of description item.
    *
@@ -134,6 +93,11 @@ export type HelpConfig = {
    */
   readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
 };
+
+/**
+ * A concrete version of the help column settings.
+ */
+type ConcreteColumn = Concrete<WithColumn>;
 
 /**
  * A concrete version of the format configuration.
@@ -150,7 +114,7 @@ type HelpEntry = {
 };
 
 /**
- * Defines common attributes for a help section.
+ * Defines attributes common to all help sections.
  */
 export type WithKind<T extends string> = {
   /**
@@ -256,31 +220,22 @@ export type HelpSections = Array<HelpSection>;
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
+ * The default column configuration.
+ */
+const defaultColumn: ConcreteColumn = {
+  indent: 2,
+  align: 'left',
+  breaks: 0,
+  hidden: false,
+};
+
+/**
  * The default configuration used by the formatter.
  */
 const defaultConfig: ConcreteFormat = {
-  indent: {
-    names: 2,
-    param: 2,
-    descr: 2,
-    paramAbsolute: false,
-    descrAbsolute: false,
-  },
-  align: {
-    names: 'justified',
-    param: 'left',
-    descr: 'left',
-  },
-  breaks: {
-    names: 0,
-    param: 0,
-    descr: 0,
-  },
-  hidden: {
-    names: false,
-    param: false,
-    descr: false,
-  },
+  names: defaultColumn,
+  param: { ...defaultColumn, absolute: false },
+  descr: { ...defaultColumn, absolute: false },
   items: [
     HelpItem.synopsis,
     HelpItem.negation,
@@ -379,9 +334,9 @@ export class HelpFormatter {
     this.options = validator.options;
     this.styles = validator.config.styles;
     this.config = mergeConfig(config);
-    this.nameWidths = this.config.hidden.names
+    this.nameWidths = this.config.names.hidden
       ? 0
-      : this.config.align.names === 'justified'
+      : this.config.names.align === 'slot'
         ? getNameWidths(this.options)
         : getMaxNamesWidth(this.options);
     for (const key in this.options) {
@@ -390,13 +345,7 @@ export class HelpFormatter {
         this.formatOption(option);
       }
     }
-    adjustEntries(
-      this.groups,
-      this.config.indent,
-      this.config.align.param,
-      this.nameWidths,
-      this.paramWidth,
-    );
+    adjustEntries(this.groups, this.config, this.nameWidths, this.paramWidth);
   }
 
   /**
@@ -422,18 +371,11 @@ export class HelpFormatter {
    * @returns A terminal string with the formatted names
    */
   private formatNames(option: Option): Array<TerminalString> {
-    if (this.config.hidden.names || !option.names) {
+    if (this.config.names.hidden || !option.names) {
       return [];
     }
-    return formatNameSlots(
-      option.names,
-      this.nameWidths,
-      option.styles?.names ?? this.styles.option,
-      this.styles.text,
-      this.config.align.names,
-      this.config.indent.names,
-      this.config.breaks.names,
-    );
+    const style = option.styles?.names ?? this.styles.option;
+    return formatNameSlots(this.config, option.names, this.nameWidths, style, this.styles.text);
   }
 
   /**
@@ -442,10 +384,10 @@ export class HelpFormatter {
    * @returns A terminal string with the formatted option parameter
    */
   private formatParam(option: Option): TerminalString {
-    if (this.config.hidden.param || isNiladic(option)) {
+    if (this.config.param.hidden || isNiladic(option)) {
       return new TerminalString();
     }
-    const result = new TerminalString(0, this.config.breaks.param);
+    const result = new TerminalString(0, this.config.param.breaks);
     const len = formatParam(option, this.styles, this.styles.text, result);
     this.paramWidth = Math.max(this.paramWidth, len);
     result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
@@ -459,14 +401,14 @@ export class HelpFormatter {
    * @returns A terminal string with the formatted option description
    */
   private formatDescription(option: Option): TerminalString {
-    if (this.config.hidden.descr || !this.config.items.length) {
+    if (this.config.descr.hidden || !this.config.items.length) {
       return new TerminalString(0, 1);
     }
     const descrStyle = option.styles?.descr ?? this.styles.text;
     const result = new TerminalString(
       0,
-      this.config.breaks.descr,
-      this.config.align.descr === 'right',
+      this.config.descr.breaks,
+      this.config.descr.align === 'right',
     ).addSequence(descrStyle);
     const count = result.count;
     for (const item of this.config.items) {
@@ -584,10 +526,9 @@ export class HelpFormatter {
  */
 function mergeConfig(config: HelpConfig): ConcreteFormat {
   return {
-    indent: { ...defaultConfig.indent, ...config.indent },
-    align: { ...defaultConfig.align, ...config.align },
-    breaks: { ...defaultConfig.breaks, ...config.breaks },
-    hidden: { ...defaultConfig.hidden, ...config.hidden },
+    names: { ...defaultConfig.names, ...config.names },
+    param: { ...defaultConfig.param, ...config.param },
+    descr: { ...defaultConfig.descr, ...config.descr },
     items: config.items ?? defaultConfig.items,
     phrases: { ...defaultConfig.phrases, ...config.phrases },
   };
@@ -640,31 +581,29 @@ function getMaxNamesWidth(options: Options): number {
 /**
  * Updates help entries to start at the appropriate terminal column.
  * @param groups The option groups
- * @param indent The indentation settings
- * @param paramAlign The parameter alignment
+ * @param config The format configuration
  * @param namesWidth The width (or widths) of the names column
  * @param paramWidth The width of the param column
  */
 function adjustEntries(
   groups: Map<string, Array<HelpEntry>>,
-  indent: ConcreteFormat['indent'],
-  paramAlign: Alignment,
+  config: ConcreteFormat,
   namesWidth: Array<number> | number,
   paramWidth: number,
 ) {
   if (typeof namesWidth !== 'number') {
     namesWidth = namesWidth.length ? namesWidth.reduce((acc, len) => acc + len + 2, -2) : 0;
   }
-  const namesIndent = Math.max(0, indent.names);
-  const paramIndent = indent.paramAbsolute
-    ? Math.max(0, indent.param)
-    : namesIndent + namesWidth + indent.param;
-  const descrIndent = indent.descrAbsolute
-    ? Math.max(0, indent.descr)
-    : paramIndent + paramWidth + indent.descr;
+  const namesIndent = Math.max(0, config.names.indent);
+  const paramIndent = config.param.absolute
+    ? Math.max(0, config.param.indent)
+    : namesIndent + namesWidth + config.param.indent;
+  const descrIndent = config.descr.absolute
+    ? Math.max(0, config.descr.indent)
+    : paramIndent + paramWidth + config.descr.indent;
   for (const entries of groups.values()) {
     for (const { param, descr } of entries) {
-      param.indent = paramIndent + (paramAlign === 'left' ? 0 : paramWidth - param.indent);
+      param.indent = paramIndent + (config.param.align === 'left' ? 0 : paramWidth - param.indent);
       descr.indent = descrIndent;
     }
   }
@@ -672,26 +611,22 @@ function adjustEntries(
 
 /**
  * Formats a list of names to be printed on the terminal.
+ * @param config The format configuration
  * @param names The list of option names
  * @param nameWidths The name slot widths
  * @param namesStyle The style to apply
  * @param defStyle The default style
- * @param align The text alignment
- * @param indent The indentation level (negative values are replaced by zero)
- * @param breaks The number of line breaks (non-positive values are ignored)
  * @returns The resulting strings
  */
 function formatNameSlots(
+  config: ConcreteFormat,
   names: ReadonlyArray<string | null>,
   nameWidths: Array<number> | number,
   namesStyle: Style,
   defStyle: Style,
-  align: Alignment | 'justified',
-  indent: number,
-  breaks: number,
 ): Array<TerminalString> {
   if (typeof nameWidths === 'number') {
-    const result = new TerminalString(indent, breaks);
+    const result = new TerminalString(config.names.indent, config.names.breaks);
     let len = 0;
     for (const name of names) {
       if (name) {
@@ -703,20 +638,22 @@ function formatNameSlots(
         result.addAndRevert(namesStyle, name, defStyle);
       }
     }
-    if (align === 'right') {
+    if (config.names.align === 'right') {
       result.indent += nameWidths - len;
     }
     return [result];
   }
   const result = new Array<TerminalString>();
   let str: TerminalString | undefined;
-  indent = Math.max(0, indent);
+  let indent = Math.max(0, config.names.indent);
+  let breaks = config.names.breaks;
   names.forEach((name, i) => {
     if (name) {
       if (str) {
         str.addClosing(',');
       }
-      str = new TerminalString(indent, breaks).addAndRevert(namesStyle, name, defStyle);
+      str = new TerminalString(indent, breaks);
+      str.addAndRevert(namesStyle, name, defStyle);
       result.push(str);
       breaks = 0; // break only on the first name
     } else {

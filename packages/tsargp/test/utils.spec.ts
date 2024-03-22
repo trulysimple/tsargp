@@ -50,6 +50,11 @@ async function toResolve(
   expect.extend({ toEqual, toResolve });
   overrides.stderrCols = 0;
   overrides.stdoutCols = 0;
+  resetEnv();
+}
+
+/** @ignore */
+export function resetEnv() {
   for (const name of ['FORCE_COLOR', 'NO_COLOR', 'TERM', 'COMP_LINE', 'COMP_POINT']) {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete process.env[name];
