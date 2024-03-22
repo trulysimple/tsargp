@@ -71,7 +71,8 @@ This column contains either:
 ### Description column
 
 The last column contains the option description and is composed of [help items](#help-items), which
-are explained later in this page.
+are explained later in this page. This column may be configured to be
+[right-aligned](#text-alignment).
 
 ## Help sections
 
@@ -172,6 +173,10 @@ optional properties:
 
 - `names` - alignment for the option names (can be one of `'left'{:ts}`, `'right'{:ts}` or
   `'justified'{:ts}`, defaults to `'justified'{:ts}`)
+- `param` - alignment for the option parameter (can be one of `'left'{:ts}` or `'right'{:ts}`,
+  defaults to `'left'{:ts}`)
+- `descr` - alignment for the option description (can be one of `'left'{:ts}` or `'right'{:ts}`,
+  defaults to `'left'{:ts}`)
 
 <Callout type="info">
   In the case of `names`, justified means that each name receives a "slot" in the names column, and

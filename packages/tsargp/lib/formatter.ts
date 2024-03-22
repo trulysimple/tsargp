@@ -71,6 +71,14 @@ export type HelpConfig = {
      * left-aligned within that slot.
      */
     readonly names?: Alignment | 'justified';
+    /**
+     * The alignment of the parameter column. (Defaults to 'left')
+     */
+    readonly param?: Alignment;
+    /**
+     * The alignment of the description column. (Defaults to 'left')
+     */
+    readonly descr?: Alignment;
   };
 
   /**
@@ -260,6 +268,8 @@ const defaultConfig: ConcreteFormat = {
   },
   align: {
     names: 'justified',
+    param: 'left',
+    descr: 'left',
   },
   breaks: {
     names: 0,
@@ -380,7 +390,13 @@ export class HelpFormatter {
         this.formatOption(option);
       }
     }
-    adjustEntries(this.groups, this.config.indent, this.nameWidths, this.paramWidth);
+    adjustEntries(
+      this.groups,
+      this.config.indent,
+      this.config.align.param,
+      this.nameWidths,
+      this.paramWidth,
+    );
   }
 
   /**
@@ -432,6 +448,7 @@ export class HelpFormatter {
     const result = new TerminalString(0, this.config.breaks.param);
     const len = formatParam(option, this.styles, this.styles.text, result);
     this.paramWidth = Math.max(this.paramWidth, len);
+    result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
     return result;
   }
 
@@ -446,7 +463,11 @@ export class HelpFormatter {
       return new TerminalString(0, 1);
     }
     const descrStyle = option.styles?.descr ?? this.styles.text;
-    const result = new TerminalString(0, this.config.breaks.descr).addSequence(descrStyle);
+    const result = new TerminalString(
+      0,
+      this.config.breaks.descr,
+      this.config.align.descr === 'right',
+    ).addSequence(descrStyle);
     const count = result.count;
     for (const item of this.config.items) {
       const phrase = this.config.phrases[item];
@@ -620,12 +641,14 @@ function getMaxNamesWidth(options: Options): number {
  * Updates help entries to start at the appropriate terminal column.
  * @param groups The option groups
  * @param indent The indentation settings
+ * @param paramAlign The parameter alignment
  * @param namesWidth The width (or widths) of the names column
  * @param paramWidth The width of the param column
  */
 function adjustEntries(
   groups: Map<string, Array<HelpEntry>>,
   indent: ConcreteFormat['indent'],
+  paramAlign: Alignment,
   namesWidth: Array<number> | number,
   paramWidth: number,
 ) {
@@ -641,7 +664,7 @@ function adjustEntries(
     : paramIndent + paramWidth + indent.descr;
   for (const entries of groups.values()) {
     for (const { param, descr } of entries) {
-      param.indent = paramIndent;
+      param.indent = paramIndent + (paramAlign === 'left' ? 0 : paramWidth - param.indent);
       descr.indent = descrIndent;
     }
   }

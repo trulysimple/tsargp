@@ -117,10 +117,12 @@ export class TerminalString {
    * Creates a terminal string.
    * @param indent The starting column for this string (negative values are replaced by zero)
    * @param breaks The initial number of line feeds (non-positive values are ignored)
+   * @param rightAlign True if the string should be right-aligned to the terminal width
    */
   constructor(
     public indent: number = 0,
     breaks = 0,
+    public rightAlign = false,
   ) {
     this.addBreak(breaks);
   }
@@ -328,7 +330,15 @@ export class TerminalString {
     if (!this.count) {
       return column;
     }
+    /** @ignore */
+    function align() {
+      if (rightAlign && j < result.length && column < width) {
+        result.splice(j, 0, sequence(cs.cuf, width - column));
+        column = width;
+      }
+    }
     const firstIsBreak = this.strings[0].startsWith('\n');
+    const rightAlign = width && this.rightAlign;
     column = Math.max(0, column);
     width = Math.max(0, width);
     let start = Math.max(0, this.indent);
@@ -358,15 +368,17 @@ export class TerminalString {
       result.push(sequence(cs.cha, 1));
     }
     column = start;
+    let j = result.length; // save index for right-alignment
     for (let i = 0; i < this.count; ++i) {
       let str = this.strings[i];
       if (str.startsWith('\n')) {
-        result.push(str);
+        align();
+        j = result.push(str); // save index for right-alignment
         column = 0;
         continue;
       }
       if (!column && indent) {
-        result.push(indent);
+        j = result.push(indent); // save index for right-alignment
         column = start;
       }
       const len = this.lengths[i];
@@ -386,10 +398,12 @@ export class TerminalString {
         result.push(' ' + str);
         column += 1 + len;
       } else {
-        result.push('\n' + indent + str);
+        align();
+        j = result.push('\n' + indent, str) - 1; // save index for right-alignment
         column = start + len;
       }
     }
+    align();
     return column;
   }
 }

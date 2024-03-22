@@ -185,6 +185,12 @@ terminal column. When wrapping text to a desired width, it tries to respect this
 the desired width does not accommodate the text while respecting its indentation level, the text is
 instead wrapped relative to the beginning of each line.
 
+#### Text alignment
+
+A terminal string optionally has a flag that indicates whether it should be aligned to the
+terminal's right boundary when being wrapped. This feature is used by the formatter in the help's
+[description column](formatter.mdx#description-column).
+
 ## Terminal messages
 
 The `TerminalMessage` is a base class that wraps a list of terminal strings. It provides a `wrap`

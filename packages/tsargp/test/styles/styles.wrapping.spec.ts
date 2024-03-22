@@ -86,19 +86,19 @@ describe('TerminalString', () => {
       it('should wrap relative to the beginning when the largest word does not fit the width (1)', () => {
         const result = new Array<string>();
         new TerminalString(1).splitText('abc largest').wrapToWidth(result, 0, 5, false);
-        expect(result).toEqual(['abc', '\nlargest']);
+        expect(result).toEqual(['abc', '\n', 'largest']);
       });
 
       it('should wrap relative to the beginning when the largest word does not fit the width (2)', () => {
         const result = new Array<string>();
         new TerminalString(1).splitText('abc largest').wrapToWidth(result, 1, 5, false);
-        expect(result).toEqual(['\n', 'abc', '\nlargest']);
+        expect(result).toEqual(['\n', 'abc', '\n', 'largest']);
       });
 
       it('should wrap relative to the beginning when the largest word does not fit the width (3)', () => {
         const result = new Array<string>();
         new TerminalString(1).addBreak().splitText('abc largest').wrapToWidth(result, 1, 5, false);
-        expect(result).toEqual(['\n', 'abc', '\nlargest']);
+        expect(result).toEqual(['\n', 'abc', '\n', 'largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (1)', () => {
@@ -122,7 +122,7 @@ describe('TerminalString', () => {
       it('should wrap with a move sequence when the largest word fits the width (4)', () => {
         const result = new Array<string>();
         new TerminalString(1).splitText('abc largest').wrapToWidth(result, 1, 10, false);
-        expect(result).toEqual(['abc', `\n${seq(cs.cha, 2)}largest`]);
+        expect(result).toEqual(['abc', `\n${seq(cs.cha, 2)}`, 'largest']);
       });
 
       it('should wrap with a move sequence when the largest word fits the width (5)', () => {
@@ -175,6 +175,20 @@ describe('TerminalString', () => {
         const result = new Array<string>();
         new TerminalString().splitText('⚠️ abc').wrapToWidth(result, 0, 10, false);
         expect(result).toEqual(['⚠️', ' abc']);
+      });
+    });
+
+    describe('when right-aligned', () => {
+      it('should align when breaking the line', () => {
+        const result = new Array<string>();
+        new TerminalString(0, 0, true).addWord('abc').addBreak().wrapToWidth(result, 0, 10, false);
+        expect(result).toEqual([seq(cs.cuf, 7), 'abc', '\n']);
+      });
+
+      it('should align when wrapping the line', () => {
+        const result = new Array<string>();
+        new TerminalString(0, 0, true).splitText('type script').wrapToWidth(result, 0, 10, false);
+        expect(result).toEqual([seq(cs.cuf, 6), 'type', '\n', seq(cs.cuf, 4), 'script']);
       });
     });
   });
