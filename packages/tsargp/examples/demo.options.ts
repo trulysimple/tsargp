@@ -98,6 +98,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
         noWrap: true,
       },
     ],
+    useFilters: true,
   },
   /**
    * A version option that throws the package version.
