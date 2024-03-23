@@ -114,7 +114,7 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
     [ErrorItem.optionRequiredIf]: 'Option %o is required if %t.',
     [ErrorItem.duplicateOptionLetter]: 'Duplicate option letter %o.',
-    [ErrorItem.variadicOptionInCluster]: 'Variadic array option %o must be the last in a cluster.',
+    [ErrorItem.invalidOptionInCluster]: 'Option %o must be the last in a cluster.',
   },
 };
 

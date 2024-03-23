@@ -102,7 +102,9 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Can be clusterd with 'fF'.\n`);
+      expect(message.wrap()).toEqual(
+        `  -f, --flag    A flag option. Can be clustered with 'fF'.\n`,
+      );
     });
 
     it('should handle a boolean option with an environment variable', () => {

@@ -210,6 +210,44 @@ If they were defined in the `requiredIf` attribute, they would mean:
   During requirement evaluation, values are compared _after_ being normalized.
 </Callout>
 
+#### Cluster letters
+
+The `clusterLetters` attribute, if present, specifies letters (or Unicode characters) that can be
+used to cluster options in the first command-line argument. This is also known as [_short-option_
+style]. This feature can be enabled via the parser's [`shortStyle`](parser.mdx#short-option-style)
+configuration property.
+
+[_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html
+
+Here is an example that illustrates how it works. Suppose we have the following options:
+
+- flag option, with name `'--flag'{:ts}` and letters `'fF'{:ts}`
+- string option, with name `'--str'{:ts}` and letters `'sS'{:ts}`
+- number option, with name `'--num'{:ts}` and letters `'nN'{:ts}`
+
+Given these options, the following invocations would be equivalent:
+
+```sh
+my_cli fsn 'my string' 123
+my_cli -fsn 'my string' 123
+my_cli fSN 'my string' 123
+my_cli -Fsn 'my string' 123
+```
+
+They would all be transformed to their "canonical" form, i.e.:
+
+```sh
+my_cli --flag --str 'my string' --num 123
+```
+
+Notes about this feature:
+
+- the order of the options in the cluster are preserved when converting to the canonical form
+- variadic array options are supported, but must be the last option in a cluster argument
+- if a single dash is specified as the first character in a cluster argument, it is ignored
+- if `Tab`-completion is performed in a cluster argument, the default completion is thrown
+- positional options with no names are skipped in a cluster argument
+
 ### Parameter attributes
 
 All non-niladic option types share a set of attributes, which are described below.
@@ -380,44 +418,6 @@ option value will be read, in case the option is not specified on the command-li
   If the environemnt variable for an option is found, the option is counted as if it were specified
   on the command-line, which has implications for the evaluation of other option's requirements.
 </Callout>
-
-#### Cluster letters
-
-The `clusterLetters` attribute, if present, specifies letters (or Unicode characters) that can be
-used to cluster options in the first command-line argument. This is also known as [_short-option_
-style]. This feature can be enabled via the parser's [`shortStyle`](parser.mdx#short-option-style)
-configuration property.
-
-[_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html
-
-Here is an example that illustrates how it works. Suppose we have the following options:
-
-- flag option, with name `'--flag'{:ts}` and letters `'fF'{:ts}`
-- string option, with name `'--str'{:ts}` and letters `'sS'{:ts}`
-- number option, with name `'--num'{:ts}` and letters `'nN'{:ts}`
-
-Given these options, the following invocations would be equivalent:
-
-```sh
-my_cli fsn 'my string' 123
-my_cli -fsn 'my string' 123
-my_cli fSN 'my string' 123
-my_cli -Fsn 'my string' 123
-```
-
-They would all be transformed to their "canonical" form, i.e.:
-
-```sh
-my_cli --flag --str 'my string' --num 123
-```
-
-Notes about this feature:
-
-- the order of the options in the cluster are preserved when converting to the canonical form
-- variadic array options are supported, but must be the last option in a cluster argument
-- if a single dash is specified as the first character in a cluster argument, it is ignored
-- if `Tab`-completion is performed in a cluster argument, the default completion is thrown
-- positional options with no names are skipped in a cluster argument
 
 ## Niladic options
 

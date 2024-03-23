@@ -494,6 +494,10 @@ export type WithValue<T> = (WithDefault<T> | WithRequired) & {
    * The option requirements.
    */
   readonly requires?: Requires;
+  /**
+   * The letters used for clustering in short-option style (e.g., 'fF').
+   */
+  readonly clusterLetters?: string;
 };
 
 /**
@@ -505,10 +509,6 @@ export type WithMisc = {
    * command-line.
    */
   readonly envVar?: string;
-  /**
-   * The letters used for clustering in short-option style (e.g., 'fF').
-   */
-  readonly clusterLetters?: string;
 };
 
 /**

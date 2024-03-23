@@ -6,13 +6,16 @@ import react from 'eslint-plugin-react';
 import hooks from 'eslint-plugin-react-hooks';
 import next from '@next/eslint-plugin-next';
 import jsdoc from 'eslint-plugin-jsdoc';
-import cspellConfigs from '@cspell/eslint-plugin/configs';
+import cspell from '@cspell/eslint-plugin';
 import globals from 'globals';
 
 export default [
   js.configs.recommended,
   jsdoc.configs['flat/recommended-typescript-error'],
-  cspellConfigs.recommended,
+  {
+    plugins: { '@cspell': cspell },
+    rules: { '@cspell/spellchecker': 'error' },
+  },
   {
     files: ['**/*.ts'],
     languageOptions: {

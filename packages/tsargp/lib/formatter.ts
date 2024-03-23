@@ -282,7 +282,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.link]: 'Refer to %s for details.',
     [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
     [HelpItem.requiredIf]: 'Required if %s.',
-    [HelpItem.clusterLetters]: 'Can be clusterd with %s.',
+    [HelpItem.clusterLetters]: 'Can be clustered with %s.',
   },
 };
 
@@ -510,7 +510,7 @@ export class HelpFormatter {
    * @param progName The program name, if any
    * @returns The formatted help message
    */
-  formatSections(sections: HelpSections = [], progName = ''): HelpMessage {
+  formatSections(sections: HelpSections, progName = ''): HelpMessage {
     const help = new HelpMessage();
     for (const section of sections) {
       formatSection(this.options, this.groups, this.styles, section, progName, help);

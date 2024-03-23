@@ -112,13 +112,21 @@ describe('ArgumentParser', () => {
       expect(parser.parse(['n', '1', '2'], { shortStyle: true })).toEqual({ numbers: [1, 2] });
     });
 
-    it('should throw an error on variadic strings option in the middle of a cluster argument', () => {
+    it('should parse a function option in a cluster argument', () => {
       const options = {
-        flag: {
-          type: 'flag',
+        function: {
+          type: 'function',
           names: ['-f'],
           clusterLetters: 'f',
+          exec: () => true,
         },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(parser.parse(['f'], { shortStyle: true })).toEqual({ function: true });
+    });
+
+    it('should throw an error on variadic strings option in the middle of a cluster argument', () => {
+      const options = {
         strings: {
           type: 'strings',
           names: ['-ss'],
@@ -126,18 +134,13 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['sf'], { shortStyle: true })).toThrow(
-        'Variadic array option s must be the last in a cluster.',
+      expect(() => parser.parse(['sx'], { shortStyle: true })).toThrow(
+        'Option s must be the last in a cluster.',
       );
     });
 
     it('should throw an error on variadic numbers option in the middle of a cluster argument', () => {
       const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f'],
-          clusterLetters: 'f',
-        },
         numbers: {
           type: 'numbers',
           names: ['-ns'],
@@ -145,8 +148,24 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['nf'], { shortStyle: true })).toThrow(
-        'Variadic array option n must be the last in a cluster.',
+      expect(() => parser.parse(['nx'], { shortStyle: true })).toThrow(
+        'Option n must be the last in a cluster.',
+      );
+    });
+
+    it('should throw an error on command option in the middle of a cluster argument', () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {},
+          cmd() {},
+          clusterLetters: 'c',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse(['cx'], { shortStyle: true })).toThrow(
+        'Option c must be the last in a cluster.',
       );
     });
 
@@ -174,10 +193,11 @@ describe('ArgumentParser', () => {
           },
           cmd: (_, values) => values,
           shortStyle: true,
+          clusterLetters: 'c',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-c', 'fsn', '1', '2'])).toEqual({
+      expect(parser.parse(['c', 'fsn', '1', '2'], { shortStyle: true })).toEqual({
         command: {
           flag: true,
           string: '1',

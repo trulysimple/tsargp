@@ -6,7 +6,7 @@ import '../utils.spec'; // initialize globals
 describe('HelpFormatter', () => {
   describe('formatSections', () => {
     it('should handle no sections', () => {
-      const message = new HelpFormatter(new OptionValidator({})).formatSections();
+      const message = new HelpFormatter(new OptionValidator({})).formatSections([]);
       expect(message.wrap()).toEqual('');
     });
 

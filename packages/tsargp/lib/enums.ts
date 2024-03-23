@@ -147,10 +147,10 @@ export const enum ErrorItem {
    */
   duplicateOptionLetter,
   /**
-   * Raised by the parser when a variadic array option is specified in the middle of a cluster
-   * argument.
+   * Raised by the parser when either a variadic array option or a command option is specified in
+   * the middle of a cluster argument.
    */
-  variadicOptionInCluster,
+  invalidOptionInCluster,
 }
 
 /**

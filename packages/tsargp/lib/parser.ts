@@ -642,8 +642,11 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
       throw validator.error(ErrorItem.unknownOption, { o: letter });
     }
     const option = validator.options[key];
-    if (j < cluster.length - 1 && isArray(option) && isVariadic(option)) {
-      throw validator.error(ErrorItem.variadicOptionInCluster, { o: letter });
+    if (
+      j < cluster.length - 1 &&
+      (option.type === 'command' || (isArray(option) && isVariadic(option)))
+    ) {
+      throw validator.error(ErrorItem.invalidOptionInCluster, { o: letter });
     }
     const name = option.names?.find((name) => name);
     if (!name) {
