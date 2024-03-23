@@ -585,6 +585,11 @@ export type FunctionOption = WithType<'function'> &
      * True to break the parsing loop.
      */
     readonly break?: true;
+    /**
+     * An output parameter that indicates the number of remaining arguments to skip. This only works
+     * if the execute callback is synchronous. This should not be used during bash completion.
+     */
+    skipCount?: number;
   };
 
 /**
