@@ -86,33 +86,37 @@ export const defaultConfig: ConcreteError = {
       '%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.',
     [ErrorItem.unknownOption]: 'Unknown option %o.',
     [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1. Similar names are %o2.',
-    [ErrorItem.optionRequires]: 'Option %o requires %t.',
+    [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %t.',
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
     [ErrorItem.missingPackageJson]: 'Could not find a "package.json" file.',
-    [ErrorItem.positionalInlineValue]: 'Positional marker %o does not accept inline values.',
-    [ErrorItem.optionInlineValue]: 'Option %o does not accept inline values.',
+    [ErrorItem.disallowedInlineValue]: 'Option %o does not accept inline values.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o contains empty positional marker.',
-    [ErrorItem.optionWithNoName]: 'Non-positional option %o has no name.',
+    [ErrorItem.unnamedOption]: 'Non-positional option %o has no name.',
     [ErrorItem.invalidOptionName]: 'Invalid option name %o.',
-    [ErrorItem.optionEmptyVersion]: 'Option %o contains empty version.',
-    [ErrorItem.optionRequiresItself]: 'Option %o requires itself.',
+    [ErrorItem.emptyVersionDefinition]: 'Option %o contains empty version.',
+    [ErrorItem.invalidSelfRequirement]: 'Option %o requires itself.',
     [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
     [ErrorItem.invalidRequiredOption]: 'Non-valued option %o in requirement.',
-    [ErrorItem.optionZeroEnum]: 'Option %o has zero enum values.',
+    [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Duplicate option name %o.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o.',
     [ErrorItem.duplicateStringOptionEnum]: 'Option %o has duplicate enum %s.',
     [ErrorItem.duplicateNumberOptionEnum]: 'Option %o has duplicate enum %n.',
-    [ErrorItem.optionValueIncompatible]:
+    [ErrorItem.incompatibleRequiredValue]:
       'Option %o has incompatible value %p. Should be of type %s.',
-    [ErrorItem.stringOptionEnums]: 'Invalid parameter to %o: %s1. Possible values are %s2.',
-    [ErrorItem.stringOptionRegex]: 'Invalid parameter to %o: %s. Value must match the regex %r.',
-    [ErrorItem.numberOptionEnums]: 'Invalid parameter to %o: %n1. Possible values are %n2.',
-    [ErrorItem.numberOptionRange]: 'Invalid parameter to %o: %n1. Value must be in the range %n2.',
-    [ErrorItem.arrayOptionLimit]: 'Option %o has too many values (%n1). Should have at most %n2.',
+    [ErrorItem.stringEnumsConstraintViolation]:
+      'Invalid parameter to %o: %s1. Possible values are %s2.',
+    [ErrorItem.regexConstraintViolation]:
+      'Invalid parameter to %o: %s. Value must match the regex %r.',
+    [ErrorItem.numberEnumsConstraintViolation]:
+      'Invalid parameter to %o: %n1. Possible values are %n2.',
+    [ErrorItem.rangeConstraintViolation]:
+      'Invalid parameter to %o: %n1. Value must be in the range %n2.',
+    [ErrorItem.limitConstraintViolation]:
+      'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
-    [ErrorItem.optionRequiredIf]: 'Option %o is required if %t.',
+    [ErrorItem.unsatisfiedCondRequirement]: 'Option %o is required if %t.',
     [ErrorItem.duplicateOptionLetter]: 'Duplicate option letter %o.',
     [ErrorItem.invalidOptionInCluster]: 'Option %o must be the last in a cluster.',
   },
@@ -259,7 +263,7 @@ export class OptionValidator {
         names.push(option.positional);
       }
     } else if (validate && !names.find((name) => name)) {
-      throw this.error(ErrorItem.optionWithNoName, { o: prefix + key });
+      throw this.error(ErrorItem.unnamedOption, { o: prefix + key });
     }
     for (const name of names) {
       if (!name) {
@@ -321,7 +325,7 @@ export class OptionValidator {
         this.validateRequirements(prefix, key, option.requiredIf);
       }
       if (option.type === 'version' && option.version === '') {
-        throw this.error(ErrorItem.optionEmptyVersion, { o: prefix + key });
+        throw this.error(ErrorItem.emptyVersionDefinition, { o: prefix + key });
       }
       if (option.type === 'command') {
         const options = typeof option.options === 'function' ? option.options() : option.options;
@@ -371,7 +375,7 @@ export class OptionValidator {
     requiredValue?: RequiresVal[string],
   ) {
     if (requiredKey === key) {
-      throw this.error(ErrorItem.optionRequiresItself, { o: prefix + requiredKey });
+      throw this.error(ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
     }
     if (!(requiredKey in this.options)) {
       throw this.error(ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
@@ -394,7 +398,7 @@ export class OptionValidator {
   private validateEnums(key: string, option: ParamOption) {
     if ('enums' in option && option.enums) {
       if (!option.enums.length) {
-        throw this.error(ErrorItem.optionZeroEnum, { o: key });
+        throw this.error(ErrorItem.emptyEnumsDefinition, { o: key });
       }
       const set = new Set<string | number>(option.enums);
       if (set.size !== option.enums.length) {
@@ -419,7 +423,7 @@ export class OptionValidator {
    */
   private assertType<T>(value: unknown, key: string, type: string): asserts value is T {
     if (typeof value !== type) {
-      throw this.error(ErrorItem.optionValueIncompatible, { o: key, p: value, s: type });
+      throw this.error(ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
     }
   }
 
@@ -512,10 +516,14 @@ export class OptionValidator {
       value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
     }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      throw this.error(ErrorItem.stringOptionEnums, { o: name, s1: value, s2: option.enums });
+      throw this.error(ErrorItem.stringEnumsConstraintViolation, {
+        o: name,
+        s1: value,
+        s2: option.enums,
+      });
     }
     if ('regex' in option && option.regex && !option.regex.test(value)) {
-      throw this.error(ErrorItem.stringOptionRegex, { o: name, s: value, r: option.regex });
+      throw this.error(ErrorItem.regexConstraintViolation, { o: name, s: value, r: option.regex });
     }
     return value;
   }
@@ -537,14 +545,22 @@ export class OptionValidator {
       value = Math[option.round](value);
     }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      throw this.error(ErrorItem.numberOptionEnums, { o: name, n1: value, n2: option.enums });
+      throw this.error(ErrorItem.numberEnumsConstraintViolation, {
+        o: name,
+        n1: value,
+        n2: option.enums,
+      });
     }
     if (
       'range' in option &&
       option.range &&
       !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
     ) {
-      throw this.error(ErrorItem.numberOptionRange, { o: name, n1: value, n2: option.range });
+      throw this.error(ErrorItem.rangeConstraintViolation, {
+        o: name,
+        n1: value,
+        n2: option.range,
+      });
     }
     return value;
   }
@@ -568,7 +584,7 @@ export class OptionValidator {
       value.push(...unique);
     }
     if (option.limit !== undefined && value.length > option.limit) {
-      throw this.error(ErrorItem.arrayOptionLimit, {
+      throw this.error(ErrorItem.limitConstraintViolation, {
         o: name,
         n1: value.length,
         n2: option.limit,

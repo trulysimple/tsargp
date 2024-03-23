@@ -31,36 +31,37 @@ message that may include the option's key.
 
 Option names are subject to the restrictions listed below:
 
-- **Option with no name** - If the option is not a positional one (i.e., it does not accept
-  positional arguments), then it must contain at least one _non-empty_ name.
+- **Option with no name** - If the option is not positional (i.e., it does not accept positional
+  arguments), then it must contain at least one _non-empty_ name.
 - **Invalid option name** - An option name must not contain whitespace or the equals sign
   `'='{:ts}`, since this character can be used as option-value separator on the command-line. Any
   other character (including Unicode code points) is allowed.
 - **Duplicate option name** - An option should not have duplicate names, and there cannot be two
   options with the same name.
-- **Duplicate cluster letter** - An option should not have duplicate cluster letters, and there
-  cannot be two options with the same cluster letter.
+- **Duplicate cluster letter** - An option should not have duplicate [cluster
+  letters](options.mdx#cluster-letters), and there cannot be two options with the same cluster
+  letter.
 
 <Callout type="info">
-  In any of these, empty strings and `null{:ts}`s are ignored. Flag options' [negation
-  names](options.mdx#negation-names) and the [positional marker](options.mdx#positional--marker) are
-  included in the validation.
+  In any of the name restrictions, empty strings and `null{:ts}`s are ignored. Flag options'
+  [negation names](options.mdx#negation-names) and the [positional
+  marker](options.mdx#positional--marker) are included in the validation.
 </Callout>
 
 ### Enums validation
 
 Enumerated values are subject to the restrictions listed below:
 
-- **Zero enum values** - There may not be an option with zero enumerated values. The enumeration
+- **Zero enum values** - There cannot be an option with zero enumerated values. The enumeration
   array should have _non-zero_ length.
-- **Duplicate enum value** - There may not be an option with duplicate enumerated values. The
+- **Duplicate enum value** - There cannot be an option with duplicate enumerated values. The
   enumeration array should _not_ contain duplicate elements.
 
 ### Value validation
 
-Non-niladic options may define a default value and an example value. If present, these attributes
-are subject to the same set of constraints as that of the command-line arguments, which is listed
-below:
+Valued options may define a default value, while non-niladic options may define an example value. If
+present, these attributes are subject to the same set of constraints as that of the command-line
+arguments, which are listed below:
 
 - **Enums constraint violation** - If the [enums](options.mdx#enumeration) attribute is present,
   then default and example values must equal one of the enumerated values after being normalized.
@@ -90,10 +91,10 @@ the restrictions listed below:
   _unknown_ option.
 - **Invalid required option** - An option must not declare a requirement that references a
   _non-valued_ option.
-- **Incompatible required value data type** - Since a requirement may be an object with values of
-  any kind, the data type of these values must be validated at run-time. An option must not declare
-  a requirement that includes an option key referencing a _non-niladic_ option, if it includes a
-  required value that does _not_ conform to the data type expected by that option.
+- **Incompatible required value** - Since a requirement may be an object with values of any kind,
+  the data type of these values must be validated at run-time. Thus, an option must not declare a
+  requirement that references a valued option, if it requires a value that does _not_ conform to
+  the data type expected by that option.
 - **Constraint violationn** - If an option declares a requirement that includes a required value,
   then that value is subject to the same set of constraints as that of the command-line arguments,
   so it must satisfy the restrictions listed in [value validation](#value-validation).
@@ -106,13 +107,13 @@ the restrictions listed below:
 ### Positional validation
 
 Options declared with the [positional](options.mdx#positional--marker) attribute are subject to the
-restrictions listed below.
+restrictions listed below:
 
-- **Duplicate positional optionn** - Since positional arguments have no name, they must pertain to
+- **Duplicate positional option** - Since positional arguments have no name, they must pertain to
   exactly one option. Hence, there cannot be _two_ options with the positional attribute in the same
   set of option definitions.
-- **Empty positional markern** - If an option is declared with a positional marker, this marker
-  cannot be the _empty_ string.
+- **Empty positional marker** - If an option defines a positional marker, it cannot be the _empty_
+  string.
 
 ### Version validation
 
@@ -140,8 +141,8 @@ optional properties:
 - `text` - The style of general text (defaults to `tf.clear`)
 
 <Callout type="default">
-  You can also set these styles to the empty string, in case your user&apos;s terminal does not
-  support control sequences.
+  You can also set these styles to the empty string, if you know that your user&apos;s terminal does
+  not support control sequences.
 </Callout>
 
 ### Error items
@@ -154,25 +155,24 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `unknownOption` - raised by the parser when an option name is not found
 - `unknownOptionWithSimilar` - raised by the parser when an option name is not found, and there are
   option name suggestions
-- `optionRequires` - raised by the parser when an option requirement is not satisfied
+- `unsatisfiedRequirement` - raised by the parser when an option requirement is not satisfied
 - `missingRequiredOption` - raised by the parser when an option that is always required was not
   specified
 - `missingParameter` - raised by the parser when an option parameter is expected but was not
   specified
 - `missingPackageJson` - raised by the parser when it fails to find a "package.json" file when
   resolving the version
-- `positionalInlineValue` - raised by the parser when a positional marker is specified with an
-  inline value
-- `optionInlineValue` - raised by the parser when a niladic option is specified with an inline value
+- `disallowedInlineValue` - raised by the parser when wither a niladic option or a positional marker
+  is specified with an inline value
 - `emptyPositionalMarker` - raised by the validator when a positional option has an empty positional
   marker
-- `optionWithNoName` - raised by the validator when a non-positional option has no name
+- `unnamedOption` - raised by the validator when a non-positional option has no name
 - `invalidOptionName` - raised by the validator when an option has an invalid name
-- `optionEmptyVersion` - raised by the validator when a version option has an empty version string
-- `optionRequiresItself` - raised by the validator when an option requires itself
+- `emptyVersionDefinition` - raised by the validator when a version option has an empty version string
+- `invalidSelfRequirement` - raised by the validator when an option requires itself
 - `unknownRequiredOption` - raised by the validator when an option requires an unknown option
 - `invalidRequiredOption` - raised by the validator when an option requires a non-valued option
-- `optionZeroEnum` - raised by the validator when an option has a zero-length enumeration array
+- `emptyEnumsDefinition` - raised by the validator when an option has a zero-length enumeration array
 - `duplicateOptionName` - raised by the validator when an option has a duplicate name
 - `duplicatePositionalOption` - raised by the validator when there are two or more positional
   options
@@ -180,21 +180,21 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
   duplicate values
 - `duplicateNumberOptionEnum` - raised by the validator when a number enumeration constraint has
   duplicate values
-- `optionValueIncompatible` - raised by the validator when an option is required with a value of
+- `incompatibleRequiredValue` - raised by the validator when an option is required with a value of
   incompatible data type
-- `stringOptionEnums` - raised by either the parser or validator when a value fails to satisfy a
-  string option's enumeration constraint
-- `stringOptionRegex` - raised by either the parser or validator when a value fails to satisfy a
-  string option's regex constraint
-- `numberOptionEnums` - raised by either the parser or validator when a value fails to satisfy a
-  number option's enumeration constraint
-- `numberOptionRange` - raised by either the parser or validator when a value fails to satisfy a
-  number option's range constraint
-- `arrayOptionLimit` - raised by either the parser or validator when a value fails to satisfy an
-  array option's limit constraint
+- `stringEnumsConstraintViolation` - raised by either the parser or validator when a value fails to
+  satisfy a string option's enumeration constraint
+- `regexConstraintViolation` - raised by either the parser or validator when a value fails to
+  satisfy a string option's regex constraint
+- `numberEnumsConstraintViolation` - raised by either the parser or validator when a value fails to
+  satisfy a number option's enumeration constraint
+- `rangeConstraintViolation` - raised by either the parser or validator when a value fails to
+  satisfy a number option's range constraint
+- `limitConstraintViolation` - raised by either the parser or validator when a value fails to
+  satisfy an array option's limit constraint
 - `deprecatedOption` - warning saved by the parser when a deprecated option is specified on the
   command-line
-- `optionRequiredIf` - raised by the parser when a conditional option requirement is not satisfied
+- `unsatisfiedCondRequirement` - raised by the parser when a conditional option requirement is not satisfied
 - `duplicateOptionLetter` - raised by the validator when an option has a duplicate cluster letter
 - `invalidOptionInCluster` - raised by the parser when either a variadic array option or a command
   option is specified in the middle of a cluster argument
@@ -207,32 +207,31 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `parseErrorWithSimilar` - `'%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.'{:ts}`
 - `unknownOption` - `'Unknown option %o.'{:ts}`
 - `unknownOptionWithSimilar` - `'Unknown option %o1. Similar names are %o2.'{:ts}`
-- `optionRequires` - `'Option %o requires %t.'{:ts}`
+- `unsatisfiedRequirement` - `'Option %o requires %t.'{:ts}`
 - `missingRequiredOption` - `'Option %o is required.'{:ts}`
 - `missingParameter` - `'Missing parameter to %o.'{:ts}`
 - `missingPackageJson` - `'Could not find a "package.json" file.'{:ts}`
-- `positionalInlineValue` - `'Positional marker %o does not accept inline values.'{:ts}`
-- `optionInlineValue` - `'Option %o does not accept inline values.'{:ts}`
+- `disallowedInlineValue` - `'Option %o does not accept inline values.'{:ts}`
 - `emptyPositionalMarker` - `'Option %o contains empty positional marker.'{:ts}`
-- `optionWithNoName` - `'Non-positional option %o has no name.'{:ts}`
+- `unnamedOption` - `'Non-positional option %o has no name.'{:ts}`
 - `invalidOptionName` - `'Invalid option name %o.'{:ts}`
-- `optionEmptyVersion` - `'Option %o contains empty version.'{:ts}`
-- `optionRequiresItself` - `'Option %o requires itself.'{:ts}`
+- `emptyVersionDefinition` - `'Option %o contains empty version.'{:ts}`
+- `invalidSelfRequirement` - `'Option %o requires itself.'{:ts}`
 - `unknownRequiredOption` - `'Unknown option %o in requirement.'{:ts}`
 - `invalidRequiredOption` - `'Non-valued option %o in requirement.'{:ts}`
-- `optionZeroEnum` - `'Option %o has zero enum values.'{:ts}`
+- `emptyEnumsDefinition` - `'Option %o has zero enum values.'{:ts}`
 - `duplicateOptionName` - `'Duplicate option name %o.'{:ts}`
 - `duplicatePositionalOption` - `'Duplicate positional option %o.'{:ts}`
 - `duplicateStringOptionEnum` - `'Option %o has duplicate enum %s.'{:ts}`
 - `duplicateNumberOptionEnum` - `'Option %o has duplicate enum %n.'{:ts}`
-- `optionValueIncompatible` - `'Option %o has incompatible value %p. Should be of type %s.'{:ts}`
-- `stringOptionEnums` - `'Invalid parameter to %o: %s1. Possible values are %s2.'{:ts}`
-- `stringOptionRegex` - `'Invalid parameter to %o: %s. Value must match the regex %r.'{:ts}`
-- `numberOptionEnums` - `'Invalid parameter to %o: %n1. Possible values are %n2.'{:ts}`
-- `numberOptionRange` - `'Invalid parameter to %o: %n1. Value must be in the range %n2.'{:ts}`
-- `arrayOptionLimit` - `'Option %o has too many values (%n1). Should have at most %n2.'{:ts}`
+- `incompatibleRequiredValue` - `'Option %o has incompatible value %p. Should be of type %s.'{:ts}`
+- `stringEnumsConstraintViolation` - `'Invalid parameter to %o: %s1. Possible values are %s2.'{:ts}`
+- `regexConstraintViolation` - `'Invalid parameter to %o: %s. Value must match the regex %r.'{:ts}`
+- `numberEnumsConstraintViolation` - `'Invalid parameter to %o: %n1. Possible values are %n2.'{:ts}`
+- `rangeConstraintViolation` - `'Invalid parameter to %o: %n1. Value must be in the range %n2.'{:ts}`
+- `limitConstraintViolation` - `'Option %o has too many values (%n1). Should have at most %n2.'{:ts}`
 - `deprecatedOption` - `'Option %o is deprecated and may be removed in future releases.'{:ts}`
-- `optionRequiredIf` - `'Option %o is required if %t.'{:ts}`
+- `unsatisfiedCondRequirement` - `'Option %o is required if %t.'{:ts}`
 - `duplicateOptionLetter` - `'Duplicate option letter %o.'{:ts}`
 - `invalidOptionInCluster` - `'Option %o must be the last in a cluster.'{:ts}`
 
@@ -255,37 +254,36 @@ Specifiers may end with a single digit that represents a specific value in the e
 following table lists the available specifiers for each kind of error message, along with a
 description of the corresponding value.
 
-| Error                     | Specifiers                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------- |
-| parseError                | `%t` = the previous error message; `%o` = the unknown option name               |
-| parseErrorWithSimilar     | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
-| unknownOption             | `%o` = the unknown option name                                                  |
-| unknownOptionWithSimilar  | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
-| optionRequires            | `%o` = the specified option name; `%t` = the option's requirements              |
-| missingRequiredOption     | `%o` = the option's preferred name                                              |
-| missingParameter          | `%o` = the specified option name                                                |
-| missingPackageJson        |                                                                                 |
-| positionalInlineValue     | `%o` = the positional marker                                                    |
-| optionInlineValue         | `%o` = the specified option name                                                |
-| emptyPositionalMarker     | `%o` = the option key                                                           |
-| optionWithNoName          | `%o` = the option key                                                           |
-| invalidOptionName         | `%o` = the option name                                                          |
-| optionEmptyVersion        | `%o` = the option key                                                           |
-| optionRequiresItself      | `%o` = the option key                                                           |
-| unknownRequiredOption     | `%o` = the required option key                                                  |
-| invalidRequiredOption     | `%o` = the required option key                                                  |
-| optionZeroEnum            | `%o` = the option key                                                           |
-| duplicateOptionName       | `%o` = the option name                                                          |
-| duplicatePositionalOption | `%o` = the option key                                                           |
-| duplicateStringOptionEnum | `%o` = the option key; `%s` = the duplicate enum value                          |
-| duplicateNumberOptionEnum | `%o` = the option key; `%n` = the duplicate enum value                          |
-| optionValueIncompatible   | `%o` = the option key; `%p` = the incompatible value; `%s` = the expected type  |
-| stringOptionEnums         | `%o` = the option key or name; `%s1` = the specified value; `%s2` = the enums   |
-| stringOptionRegex         | `%o` = the option key or name; `%s` = the specified value; `%r` = the regex     |
-| numberOptionEnums         | `%o` = the option key or name; `%n1` = the specified value; `%n2` = the enums   |
-| numberOptionRange         | `%o` = the option key or name; `%n1` = the specified value; `%n2` = the range   |
-| arrayOptionLimit          | `%o` = the option key or name; `%n1` = the value count; `%n2` = the count limit |
-| deprecatedOption          | `%o` = the specified option name                                                |
-| optionRequiredIf          | `%o` = the specified option name; `%t` = the option's requirements              |
-| duplicateOptionLetter     | `%o` = the option letter                                                        |
-| invalidOptionInCluster    | `%o` = the specified option letter                                              |
+| Error                          | Specifiers                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| parseError                     | `%t` = the previous error message; `%o` = the unknown option name               |
+| parseErrorWithSimilar          | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
+| unknownOption                  | `%o` = the unknown option name                                                  |
+| unknownOptionWithSimilar       | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
+| unsatisfiedRequirement         | `%o` = the specified option name; `%t` = the option's requirements              |
+| missingRequiredOption          | `%o` = the option's preferred name                                              |
+| missingParameter               | `%o` = the specified option name                                                |
+| missingPackageJson             |                                                                                 |
+| disallowedInlineValue          | `%o` = the specified option name or positional marker                           |
+| emptyPositionalMarker          | `%o` = the option key                                                           |
+| unnamedOption                  | `%o` = the option key                                                           |
+| invalidOptionName              | `%o` = the option name                                                          |
+| emptyVersionDefinition         | `%o` = the option key                                                           |
+| invalidSelfRequirement         | `%o` = the option key                                                           |
+| unknownRequiredOption          | `%o` = the required option key                                                  |
+| invalidRequiredOption          | `%o` = the required option key                                                  |
+| emptyEnumsDefinition           | `%o` = the option key                                                           |
+| duplicateOptionName            | `%o` = the option name                                                          |
+| duplicatePositionalOption      | `%o` = the option key                                                           |
+| duplicateStringOptionEnum      | `%o` = the option key; `%s` = the duplicate enum value                          |
+| duplicateNumberOptionEnum      | `%o` = the option key; `%n` = the duplicate enum value                          |
+| incompatibleRequiredValue      | `%o` = the option key; `%p` = the incompatible value; `%s` = the expected type  |
+| stringEnumsConstraintViolation | `%o` = the option key or name; `%s1` = the specified value; `%s2` = the enums   |
+| regexConstraintViolation       | `%o` = the option key or name; `%s` = the specified value; `%r` = the regex     |
+| numberEnumsConstraintViolation | `%o` = the option key or name; `%n1` = the specified value; `%n2` = the enums   |
+| rangeConstraintViolation       | `%o` = the option key or name; `%n1` = the specified value; `%n2` = the range   |
+| limitConstraintViolation       | `%o` = the option key or name; `%n1` = the value count; `%n2` = the count limit |
+| deprecatedOption               | `%o` = the specified option name                                                |
+| unsatisfiedCondRequirement     | `%o` = the specified option name; `%t` = the option's requirements              |
+| duplicateOptionLetter          | `%o` = the option letter                                                        |
+| invalidOptionInCluster         | `%o` = the specified option letter                                              |

@@ -16,7 +16,7 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse([])).toThrow(/Option is required\./);
     });
 
-    it('should throw an error on boolean option with missing parameter after positional marker', () => {
+    it('should throw an error missing parameter after positional marker', () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -29,7 +29,7 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
     });
 
-    it('should throw an error on boolean option with positional marker specified with value', () => {
+    it('should throw an error on positional marker specified with value', () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -38,12 +38,8 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
-      expect(() => parser.parse(['--=a'])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
+      expect(() => parser.parse(['--='])).toThrow(/Option -- does not accept inline values\./);
+      expect(() => parser.parse(['--=a'])).toThrow(/Option -- does not accept inline values\./);
     });
 
     it('should handle a boolean option with positional arguments', () => {
@@ -114,23 +110,6 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
     });
 
-    it('should throw an error on string option with positional marker specified with value', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          positional: '--',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
-      expect(() => parser.parse(['--=a'])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
-    });
-
     it('should handle a string option with positional arguments', () => {
       const options = {
         flag: {
@@ -199,23 +178,6 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
     });
 
-    it('should throw an error on number option with positional marker specified with value', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          positional: '--',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
-      expect(() => parser.parse(['--=a'])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
-    });
-
     it('should handle a number option with positional arguments', () => {
       const options = {
         flag: {
@@ -266,23 +228,6 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
-    });
-
-    it('should throw an error on strings option with positional marker specified with value', () => {
-      const options = {
-        strings: {
-          type: 'strings',
-          names: ['-ss'],
-          positional: '--',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
-      expect(() => parser.parse(['--=a'])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
     });
 
     it('should handle a strings option with positional arguments', () => {
@@ -336,23 +281,6 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
-    });
-
-    it('should throw an error on numbers option with positional marker specified with value', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          positional: '--',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
-      expect(() => parser.parse(['--=a'])).toThrow(
-        /Positional marker -- does not accept inline values\./,
-      );
     });
 
     it('should handle a numbers option with positional arguments', () => {

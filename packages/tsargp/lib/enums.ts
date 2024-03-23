@@ -36,7 +36,7 @@ export const enum ErrorItem {
   /**
    * Raised by the parser when an option requirement is not satisfied.
    */
-  optionRequires,
+  unsatisfiedRequirement,
   /**
    * Raised by the parser when an option that is always required was not specified.
    */
@@ -50,13 +50,10 @@ export const enum ErrorItem {
    */
   missingPackageJson,
   /**
-   * Raised by the parser when a positional marker is specified with an inline value.
+   * Raised by the parser when wither a niladic option or a positional marker is specified with an
+   * inline value.
    */
-  positionalInlineValue,
-  /**
-   * Raised by the parser when a niladic option is specified with an inline value.
-   */
-  optionInlineValue,
+  disallowedInlineValue,
   /**
    * Raised by the validator when a positional option has an empty positional marker.
    */
@@ -64,7 +61,7 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when a non-positional option has no name.
    */
-  optionWithNoName,
+  unnamedOption,
   /**
    * Raised by the validator when an option has an invalid name.
    */
@@ -72,11 +69,11 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when a version option has an empty version string.
    */
-  optionEmptyVersion,
+  emptyVersionDefinition,
   /**
    * Raised by the validator when an option requires itself.
    */
-  optionRequiresItself,
+  invalidSelfRequirement,
   /**
    * Raised by the validator when an option requires an unknown option.
    */
@@ -88,7 +85,7 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when an option has a zero-length enumeration array.
    */
-  optionZeroEnum,
+  emptyEnumsDefinition,
   /**
    * Raised by the validator when an option has a duplicate name.
    */
@@ -108,32 +105,32 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when an option is required with a value of incompatible data type.
    */
-  optionValueIncompatible,
+  incompatibleRequiredValue,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a string option's
    * enumeration constraint.
    */
-  stringOptionEnums,
+  stringEnumsConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a string option's
    * regex constraint.
    */
-  stringOptionRegex,
+  regexConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a number option's
    * enumeration constraint.
    */
-  numberOptionEnums,
+  numberEnumsConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a number option's
    * range constraint.
    */
-  numberOptionRange,
+  rangeConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy an array option's
    * limit constraint.
    */
-  arrayOptionLimit,
+  limitConstraintViolation,
   /**
    * Warning saved by the parser when a deprecated option is specified on the command-line.
    */
@@ -141,7 +138,7 @@ export const enum ErrorItem {
   /**
    * Raised by the parser when a conditional option requirement is not satisfied.
    */
-  optionRequiredIf,
+  unsatisfiedCondRequirement,
   /**
    * Raised by the validator when an option has a duplicate cluster letter.
    */

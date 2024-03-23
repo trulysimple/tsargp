@@ -293,7 +293,7 @@ class ParserLoop {
           // assert(value !== undefined);
           throw new CompletionMessage();
         } else if (!this.completing && value !== undefined) {
-          throw this.validator.error(ErrorItem.optionInlineValue, { o: name });
+          throw this.validator.error(ErrorItem.disallowedInlineValue, { o: name });
         } else if (this.handleNiladic(key, option, name, i)) {
           return this;
         }
@@ -512,7 +512,7 @@ class ParserLoop {
         if ('requiredIf' in option && option.requiredIf) {
           const error = new TerminalString();
           if (!this.checkRequires(option.requiredIf, error, true, true)) {
-            throw this.validator.error(ErrorItem.optionRequiredIf, { o: name, t: error });
+            throw this.validator.error(ErrorItem.unsatisfiedCondRequirement, { o: name, t: error });
           }
         }
         if ('default' in option) {
@@ -526,7 +526,7 @@ class ParserLoop {
         const error = new TerminalString();
         if (!this.checkRequires(option.requires, error, false, false)) {
           const name = option.preferredName ?? '';
-          throw this.validator.error(ErrorItem.optionRequires, { o: name, t: error });
+          throw this.validator.error(ErrorItem.unsatisfiedRequirement, { o: name, t: error });
         }
       }
     }
@@ -740,7 +740,7 @@ function parseOption(
         throw new CompletionMessage();
       }
       if (value !== undefined) {
-        throw validator.error(ErrorItem.positionalInlineValue, { o: name });
+        throw validator.error(ErrorItem.disallowedInlineValue, { o: name });
       }
       return [ArgKind.marker, validator.positional, undefined];
     }
