@@ -949,17 +949,16 @@ function parseArray<T extends string | number>(
   } else {
     const vals = option.separator ? value.split(option.separator) : [value];
     if (option.parse) {
-      const parse = option.parse;
-      const res = vals.map((val) => parse(values, name, val));
       let prevSync: Array<T> = [];
-      for (const val of res) {
-        if (val instanceof Promise) {
+      for (const val of vals) {
+        const res = option.parse(values, name, val);
+        if (res instanceof Promise) {
           const copy = prevSync; // save the reference for the closure
           const prev = previous; // save the reference for the closure
-          previous = val.then(async (val) => append([...copy, val as T])(await prev));
+          previous = res.then(async (val) => append([...copy, val as T])(await prev));
           prevSync = []; // reset for incoming values
         } else {
-          prevSync.push(val as T);
+          prevSync.push(res as T);
         }
       }
       result =

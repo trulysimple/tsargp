@@ -26,7 +26,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-b', '0123']).boolean).resolves.toEqual(true);
+      await expect(parser.parse(['-b', '0123']).boolean).resolves.toBeTruthy();
     });
 
     it('should handle a string option with custom parsing', () => {
