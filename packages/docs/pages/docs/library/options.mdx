@@ -6,7 +6,7 @@ import { Callout } from 'nextra/components';
 
 # Options
 
-Any command-line interface is composed of commands and options (sometimes called _flags_). Options
+Any command-line interface is composed of commands and options (also known as _flags_). Options
 allow the calling application or user to configure the command that will run. **tsargp** offers a
 selection of option types that should suit most applications. In the next sections, we present the
 available types and describe them in detail.
@@ -51,11 +51,8 @@ All options share a set of attributes in addition to their type, which are descr
 
 The `names` attribute lists the option names as they may appear on the command-line (e.g. `-h` or
 `--help`). Names must not contain whitespace or the equals sign `'='{:ts}`, since this character may
-be used as option-value separator.
-
-Empty strings or `null{:ts}`s can be specified in order to skip the respective "slot" in the help
-message [names column](formatter.mdx#names-column). However, if the option is not positional (i.e.,
-it does not accept positional arguments), then it must contain at least one valid name.
+be used as an option-value separator. If the option is not positional (i.e., it does not accept
+positional arguments), then it must contain at least one valid name.
 
 The `preferredName` attribute, if present, is displayed in error and help messages in cases where a
 name is not available (e.g., when evaluating option requirements or processing positional arguments).
@@ -64,21 +61,21 @@ will be used.
 
 #### Synopsis & deprecated
 
-The `desc` attribute is the option synopsis. The `deprecated` attribute is just syntactic
-sugar for the option deprecation reason. Both attributes are formatted in the help message according
-to [text formatting](styles.mdx#text-splitting) rules.
+The `desc` attribute is the option synopsis. The `deprecated` attribute specifies the option
+deprecation reason. Both attributes are formatted in the help message according to [text
+formatting](styles.mdx#text-splitting) rules.
 
 <Callout type="info">
-  Since the library was designed to avoid using the `console`, it does _not_ log warnings when it
-  encounters deprecated options on the command-line. For this purpose, you may want to use a custom
-  parsing callback (more on that later), although it is only available for non-niladic options.
+  Deprecated options specified on the command-line generate a [warning
+  message](styles.mdx#warning-message), which you may want to process by calling the parser's
+  [`doParse`](parser.mdx#getting-warnings) or [`tryParse`](parser.mdx#avoiding-trycatch) methods.
 </Callout>
 
 #### Group & hide
 
 The `group` attribute is the name of a group under which the option should appear in the help
-message, whereas the `hide` attribute indicates to the formatter that the option should _not_ be
-displayed in the help message.
+message. The `hide` attribute indicates to the formatter that the option should _not_ be displayed
+in the help message.
 
 <Callout type="default">
   You can assign a unique group to the [positional option](#positional--marker) (if there is one)
@@ -87,8 +84,8 @@ displayed in the help message.
 
 #### Display styles
 
-The `styles` attribute can be used to customize the styling of the help message entry for the
-option. It has the following optional properties:
+The `styles` attribute can be used to customize the [styling](styles.mdx#styling-attributes) of the
+help message entry for the option. It has the following optional properties:
 
 - `names` - the style of the option names
 - `param` - the style of the option paramater
@@ -260,11 +257,9 @@ message [parameter column](formatter.mdx#parameter-column). Mutually exclusive w
 
 #### Parameter name
 
-The `paramName` attribute, if present, replaces the option type in the help message
-[parameter column](formatter.mdx#parameter-column). If it contains an opening angle bracket
-`'<'{:ts}`, it is printed as-is; otherwise, it is enclosed in angle brackets (e.g., `<param_name>`)
-and possibly appended with an ellipsis `...{:ts}` (in the case of variadic array options). Mutually
-exclusive with [example value](#example-value).
+The `paramName` attribute, if present, specifies a parameter name that replaces the option type in
+the help message [parameter column](formatter.mdx#parameter-column). Mutually exclusive with
+[example value](#example-value).
 
 #### Positional | marker
 

@@ -25,15 +25,30 @@ export default {
 } as const satisfies Options;
 ```
 
-You can also provide a usage message and a footer:
+You can also provide an introduction, usage and footer:
 
 ```ts
 import { type Options, style, fg } from 'tsargp';
 export default {
   help: {
     // ...
-    usage: 'A command-line interface for <purpose>.',
-    footer: `Refer to ${style(fg.brightBlack)}<website>${style(fg.default)} for support.`,
+    sections: [
+      {
+        type: 'text',
+        text: 'A command-line interface for <purpose>.',
+      },
+      {
+        type: 'usage',
+      },
+      {
+        type: 'groups',
+        style: style(tf.underlined), // underlined option group headings
+      },
+      {
+        type: 'text',
+        text: `Refer to ${style(fg.brightBlack)}<website>${style(fg.default)} for support.`,
+      },
+    ],
   },
 } as const satisfies Options;
 ```
@@ -46,15 +61,14 @@ export default {
   help: {
     // ...
     format: {
-      indent: { names: 4 }, // indent option names by 4 spaces
-      breaks: { descr: 1 }, // line feed before option descriptions
-      hidden: { param: true }, // hide option parameter/examples
+      names: { indent: 4 }, // indent option names by 4 spaces
+      descr: { breaks: 1 }, // line feed before option descriptions
+      param: { hidden: true }, // hide option parameter/examples
       items: [HelpItem.synopsis, HelpItem.required, HelpItem.deprecated],
       phrases: {
         [HelpItem.synopsis]: '💡 %s', // option synopsis with emoji
       },
     },
-    headingStyle: style(tf.underlined), // underlined group headings
     styles: {
       descr: style(tf.italic), // italic description for this option
     },
@@ -108,7 +122,7 @@ const helpOpts = {
     enums: ['cmd1', 'cmd2'], // the names of nested commands
     preferredName: 'command name', // appears in error messages
     positional: true,
-    required: true, // error if called with no argument
+    required: true, // error if called without a command name
   },
 } as const satisfies Options;
 ```
@@ -116,7 +130,8 @@ const helpOpts = {
 Now we can define the main command options:
 
 ```ts
-import { type Options, type OptionValues, ArgumentParser } from 'tsargp';
+import type { Options, OptionValues } from 'tsargp';
+import { ArgumentParser } from 'tsargp';
 export default {
   cmd1: {
     type: 'command',
@@ -150,7 +165,7 @@ will be quick (so there's no point in updating the process title). It's there ju
 completeness.
 
 <Callout type="info">
-  Keep in mind that, when bash completion is in effect, command callbacks [are not
+  Keep in mind that, when bash completion is in effect, the command callback [is not
   called](../library/options.mdx#command-callback). Thus, if the callback _does_ get executed, you
   need not worry about the `compIndex` configuration for the delegated `parse` call.
 </Callout>

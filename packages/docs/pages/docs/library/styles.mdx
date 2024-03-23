@@ -13,9 +13,15 @@ can be used to customize the display of text in a terminal.
 
 The `style` function accepts a list of styling attributes and creates a `Style` that can be used in
 any part of the API that expects this type, or it can be embedded directly in text attributes, such
-as the [synopsis and deprecation reason](options.mdx#synopsis--deprecated), the
-[usage and footer](options.mdx#usage--footer), or the [error phrases](validator.mdx#error-phrases)
-and [help phrases](formatter.mdx#help-phrases).
+as the [synopsis and deprecation reason](options.mdx#synopsis--deprecated), [help section
+texts](formatter.mdx#help-sections), [error phrases](validator.mdx#error-phrases) and [help
+phrases](formatter.mdx#help-phrases).
+
+Styles are cumulative, i.e., they can be combined with previous styles depending on the kind of
+styling attribute. For instance, if the style of an option's description is `tf.bold` and the
+style of number values is `fg.yellow`, then any number value that appears in the option
+description (except those embedded in text attributes) is rendered in bold intensity with yellow
+foreground color.
 
 In the next sections we present the various styling attributes available.
 
@@ -129,23 +135,26 @@ splitting.
 #### Format specifiers
 
 Format specifiers can be extracted from the text and processed by a formatting callback. This is
-used in two places in the library:
+used in different places in the library:
 
 - by the parser to produce error messages based on configured
   [error phrases](validator.mdx#error-phrases)
 - by the formatter to assemble help items from configured [help phrases](formatter.mdx#help-phrases)
+- by the formatter to create group headings from configured [heading
+  phrases](formatter.mdx#groups-section)
 
 This particular feature is only available in _phrases_, not in text attributes of option definitions.
 
 #### Inline styles
 
-Text can contain inline styles. This applies to phrases as well as text attributes, such as the
-option synopsis or the deprecation reason, which the formatter splits into words before adding to
-the option description.
+Text can contain inline styles. This applies as well to phrases as to text attributes, which the
+formatter splits into words before adding to the option description.
 
-The terminal string instance will try its best to preserve styles while splitting text. However,
+When splitting text, the terminal string instance will try its best to preserve styles. However,
 if some corner case that is not currently covered by the unit tests happen to you, please submit a
 [bug report].
+
+[bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
 
 #### Paragraphs and lists
 
@@ -174,20 +183,26 @@ Another paragraph
 ### Text wrapping
 
 Text is wrapped according to a configured _width_: the number of terminal columns by which to limit
-each line of text. When a width of zero or `undefined{:ts}` is provided (which may happen if the
-output is being redirected), the terminal string instance will avoid wrapping and will suppress
-control sequences that would otherwise be used to render text in a terminal.
+each line of text.
+
+When a width of zero or `undefined{:ts}` is provided (which may happen if the output is being
+redirected), the terminal string instance will avoid wrapping and will suppress control sequences
+that would otherwise be used to render text in a terminal.
+
+The following features are supported in text wrapping.
 
 #### Indentation level
 
 A terminal string optionally has an indentation level: the starting column respective to the first
-terminal column. When wrapping text to a desired width, it tries to respect this setting, but if
-the desired width does not accommodate the text while respecting its indentation level, the text is
-instead wrapped relative to the beginning of each line.
+terminal column.
+
+When wrapping text to a desired width, the terminal string instance will try to respect this
+setting, but if the desired width does not accommodate the text while respecting its indentation
+level, the text is instead wrapped relative to the beginning of each line.
 
 #### Text alignment
 
-A terminal string optionally has a flag that indicates whether it should be aligned to the
+A terminal string optionally has a flag that indicates whether the text should be aligned to the
 terminal's right boundary when being wrapped. This feature is used by the formatter in the help's
 [description column](formatter.mdx#description-column).
 
@@ -205,31 +220,30 @@ The default value of `emitStyles` depends on a few environment variables:
 - `NO_COLOR` - force _omission_ of styles regardless of the terminal width
 - `TERM` - set to `'dumb'{:ts}` to achieve the same behavior as `NO_COLOR`
 
-<Callout type="warning">
-  Generally, you should not alter the returned string after being wrapped, as this will mess the
-  disposition of text in the terminal. If you do need to, you can _prepend_ additional text ending
-  with a line feed character `'\n'{:ts}`, or _append_ text starting with a line feed, as this will
-  preserve the disposition of wrapped text.
-  
+Generally, you should not alter the returned string after being wrapped, as this will mess the
+disposition of text in the terminal. If you do need to, you can _prepend_ additional text ending
+with a line feed character `'\n'{:ts}`, or _append_ text starting with a line feed, as this will
+preserve the disposition of wrapped text.
+
+<Callout type="default">
   Alternatively, you can retrieve the underlying terminal string instances from the list and
   manipulate them before converting the message to string.
 </Callout>
 
-In addition, this class overrides the `toString` method and provides a `message` property, both of
-which can be used to obtain a string wrapped with a default terminal width. This default depends on
-the kind of message: in the case of `TerminalMessage`, it is `process.stdout.columns{:ts}` (the
-width of the standard _output_ stream). Therefore, this kind of message should be printed with
-`console.log` or equivalent, unless you are calling `wrap` directly.
+### Default width
+
+In addition to the `wrap` mtehod, this class overrides the `toString` method and provides a
+`message` property, both of which can be used to obtain a string wrapped with a default terminal
+width.
+
+The default width depends on the kind of message: in the case of `TerminalMessage`, it is
+`process.stdout.columns{:ts}` (the width of the standard _output_ stream). Therefore, this kind of
+message should be printed with `console.log` or equivalent, unless you are calling `wrap` directly.
 
 <Callout type="info">
   When redirecting the output of a command to a file, the associated stream will not have the 
   `columns` property. Hence, if `stdout` is being redirected, the default value used by the above
   procedure will be `undefined{:ts}` (thus disabling wrapping and, possibly, omitting styles).
-</Callout>
-
-<Callout type="default">
-  Messages are produced by the library as instances of one of the classes described below. So you
-  can check what kind of message a captured error is through `instanceof{:ts}`.
 </Callout>
 
 ### Help message
@@ -260,4 +274,7 @@ The `VersionMessage` class currently derives from `String`, so it has no wrappin
 be remodeled in future versions of the library to accommodate new features. It should be printed
 with `console.log` or equivalent.
 
-[bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
+<Callout type="default">
+  Messages produced by the library are instances of one of the classes described above. So you
+  can check the kind of a captured message through `instanceof{:ts}`.
+</Callout>

@@ -11,9 +11,18 @@ instantiated with a [validator](validator.mdx) instance and provides methods to 
 
 ## Help message
 
-The help message is a list of [terminal strings](styles.mdx#terminal-strings) that may contain
-control sequences and can be printed in a terminal. There are different ways of obtaining help
-messages, as described below.
+Internally, the help message is a list of [terminal strings](styles.mdx#terminal-strings) that may
+contain control sequences and can be printed in a terminal. Visually, it can be divided into the
+following pieces of content:
+
+- section - a group of text lines, like the section of a document
+- entry - the lines corresponding to an option definition
+- item - a single bit of information in an option's description
+- group - a set of entries corresponding to an option group
+- column - a horizontal division (as formed by a vertical ruler) across all entries of all groups
+
+There are
+different ways of obtaining help messages, as described below.
 
 ### Default help
 
@@ -45,11 +54,12 @@ containing a piece of information, as described below.
 ### Names column
 
 This column contains the options' names separated by commas. The names are listed in the same order
-specified in the [names](options.mdx#names--preferred-name) attribute.
+as was specified in the [names](options.mdx#names--preferred-name) attribute.
 
 Depending on the [alignment](#help-columns) configuration, each option name may reserve a "slot"
-in the respective index in this column, and the length of a name slot will be the length of the
-largest name in that slot, among all options.
+in the respective potision in this column. The length of a name slot will be the length of the
+largest name in that slot, among all options. Empty strings or `null{:ts}`s can be specified in
+order to skip a slot.
 
 For example, if an option's names are `'-f'{:ts}`, `'-ff'{:ts}`, `''{:ts}` and `'--flag'{:ts}`, the
 resulting entry might be formatted as:
@@ -62,17 +72,19 @@ Note how the empty string produced whitespace between its neighbors, and the com
 
 ### Parameter column
 
-This column contains either:
+This column contains either the option's type (formatted as `<type>`), the
+[example value](options.mdx#example-value) or the [parameter name](options.mdx#parameter-name).
 
-- the option [example value](options.mdx#example-value), if present
-- the option [parameter name](options.mdx#parameter-name), if present
-- the option type (the default), formatted as `<type>`
+If a parameter name is specified and contains an opening angle bracket `'<'{:ts}`, it is printed
+as-is; otherwise, it is enclosed in angle brackets (e.g., `<param_name>`).
+
+Except for example values, the parameter is appended with an ellipsis `...{:ts}` if the option is a
+variadic array option.
 
 ### Description column
 
 The last column contains the option description and is composed of [help items](#help-items), which
-are explained later in this page. This column may be configured to be
-[right-aligned](#help-columns).
+are explained later in this page.
 
 ## Help sections
 
@@ -80,8 +92,8 @@ Sections are a convenient way to organize the help content. There are three kind
 text, usage and groups. They are explained below.
 
 <Callout type="info">
-  In what follows, the `text` and `title` properties can contain inline styles and may be formatted
-  according to [text formatting](styles.mdx#text-splitting) rules, unless `noWrap` is set.
+  In what follows, text properties can contain inline styles and may be formatted according to [text
+  formatting](styles.mdx#text-splitting) rules, unless `noWrap` is set.
 </Callout>
 
 <Callout type="warning">
@@ -148,8 +160,8 @@ properties:
 ## Help format
 
 In addition to the validator instance, the formatter constructor accepts a `HelpConfig` object that
-can be used to customize the message format. This configuration will apply to all help entries. It
-contains a collection of optional properties, as described below.
+can be used to customize the message format. This configuration will apply to all help entries. Its
+properties are optional and are described below.
 
 ### Help columns
 
@@ -168,6 +180,40 @@ with the following optional properties:
 The `names.align` property supports an additional value `'slot'{:ts}`, which means that each name
 receives a "slot" in the column, and the name is left-aligned within that slot. See
 [names column](#names-column) for more information.
+
+An example can better illustrate the effect of some of these settings. Suppose we have the following
+configuration:
+
+```ts
+{
+  names: {
+    align: 'slot',  // assign a slot to each option name
+  },
+  param: {
+    breaks: 1,    // break option parameters
+    indent: -10,  // recede 10 terminal columns from the end of the names column
+  },
+  descr: {
+    align: 'right', // align option descriptions to the right
+    breaks: 1,      // break option descriptions
+    indent: 20,     // indent 20 terminal columns
+    absolute: true, // from the beginning of the line
+  }
+}
+```
+
+The following is an extract of a help message produced with these settings:
+
+```ansi
+  [95m-ne[0m,   [95m--numberEnum[0m
+            [33m1[0m
+                             [0mA number option. Values must be one of {[33m1[0m, [33m2[0m}.[0m
+  [95m-ns[0m,   [95m--numbers[0m
+            [90m<numbers>...[0m
+                      [0mA numbers option. Accepts multiple parameters. Values
+                     will be rounded to the nearest integer. Values must be
+                            in the range [[33m0[0m, [33mInfinity[0m]. Defaults to [[33m1[0m, [33m2[0m].[0m
+```
 
 ### Help items
 
@@ -201,10 +247,12 @@ The default is to print all items in the order listed above.
 
 ### Help phrases
 
-The `phrases` property specifies phrases to be used for each kind of help item. If an item has a
-value, the `%s` specifier can be used to indicate where in the phrase to place the value. If an item
-has multiple alternatives, such as `HelpItem.case`, different texts can separated with `'|'{:ts}`
-and grouped in parentheses, as can be seen in the default values listed below:
+The `phrases` property specifies custom phrases to be used for each kind of help item. If an item
+has a value, the `%s` specifier can be used to indicate where in the phrase to place the value. If
+an item has multiple alternatives, such as `HelpItem.case`, different texts can separated with
+`'|'{:ts}` and grouped in parentheses.
+
+The the default values are listed below:
 
 - `synopsis` - `'%s'{:ts}`
 - `negation` - `'Can be negated with %s.'{:ts}`
@@ -246,12 +294,4 @@ with) an option's [display styles](options.mdx#display-styles), if present.
 <Callout type="default">
   Whitespace around help entries is not styled. For that purpose, you may need to tweak your
   terminal settings.
-</Callout>
-
-<Callout type="info">
-  Styles are cumulative, i.e., they can be combined with previous styles depending on the kind of
-  styling attribute. For instance, if the style of option description is `tf.bold` and the style of
-  number values is `fg.yellow`, then any number value that appears in the option description (except
-  those embedded in [text attributes](styles.mdx#text-splitting)) is rendered in bold intensity with
-  yellow foreground color.
 </Callout>

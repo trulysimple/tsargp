@@ -24,7 +24,12 @@ const binaryOpts = {
   /**
    * A numbers option that receives at most two positional arguments.
    */
-  numbers: { ...multiOpts.numbers, limit: 2 },
+  numbers: {
+    ...multiOpts.numbers,
+    limit: 2,
+    required: true,
+    default: undefined, // override this setting
+  },
 } as const satisfies Options;
 
 /**
@@ -62,7 +67,7 @@ const subOpts = {
     cmd(_, cmdValues): number {
       const vals = cmdValues as OptionValues<typeof binaryOpts & typeof mainOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
-      const [a, b] = vals.numbers;
+      const [a, b] = vals.numbers ?? [];
       return a === undefined ? NaN : b === undefined ? a - other : a - b;
     },
   },
@@ -103,7 +108,7 @@ const divOpts = {
     cmd(_, cmdValues): number {
       const vals = cmdValues as OptionValues<typeof binaryOpts & typeof mainOpts>;
       const other = vals.add ?? vals.sub ?? vals.mult ?? vals.div ?? NaN;
-      const [a, b] = vals.numbers;
+      const [a, b] = vals.numbers ?? [];
       return a === undefined ? NaN : b === undefined ? a / other : a / b;
     },
   },
