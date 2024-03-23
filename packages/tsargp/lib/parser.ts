@@ -646,7 +646,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
       j < cluster.length - 1 &&
       (option.type === 'command' || (isArray(option) && isVariadic(option)))
     ) {
-      throw validator.error(ErrorItem.invalidOptionInCluster, { o: letter });
+      throw validator.error(ErrorItem.invalidClusterOption, { o: letter });
     }
     const name = option.names?.find((name) => name);
     if (!name) {
@@ -694,7 +694,7 @@ function checkEnvVar(
  * @param values The options' values to parse into
  * @param command The raw command line or command-line arguments
  * @param config The parse configuration
- * @returns The parser loop instance.
+ * @returns The parser loop instance
  */
 function createLoop(
   validator: OptionValidator,

@@ -12,7 +12,7 @@
 
 ### Minor Changes
 
-- [#53](https://github.com/trulysimple/tsargp/pull/53) [`df5d7a4`](https://github.com/trulysimple/tsargp/commit/df5d7a49fb7b97affcf87d63f02f558251cca787) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new `formatFull` method, as well as the new configuration properties: `sections`, `styles` amd `misc`. Updated the help option section in the Options page, to reflect the changes to this option's attributes.
+- [#53](https://github.com/trulysimple/tsargp/pull/53) [`df5d7a4`](https://github.com/trulysimple/tsargp/commit/df5d7a49fb7b97affcf87d63f02f558251cca787) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new `formatSections` method, as well as the new configuration properties: `sections`, `styles` amd `misc`. Updated the help option section in the Options page, to reflect the changes to this option's attributes.
 
 ### Patch Changes
 

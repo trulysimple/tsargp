@@ -1,15 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type {
-  Option,
-  Options,
-  Requires,
-  ValuedOption,
-  RequiresVal,
-  ArrayOption,
-  ParamOption,
-} from './options';
+import type { Option, Options, Requires, ValuedOption, RequiresVal, ParamOption } from './options';
 import type { Style } from './styles';
 import type { Concrete } from './utils';
 import type { ConcreteStyles, FormatFunction, OptionValidator } from './validator';
@@ -184,7 +176,7 @@ export type WithFilter = {
 /**
  * Defines attributes for a help section with phrase.
  */
-export type HelpPhrase = {
+export type WithPhrase = {
   /**
    * A custom phrase for group headings.
    */
@@ -204,7 +196,7 @@ export type HelpUsage = WithKind<'usage'> & WithTitle & WithWrap & WithIndent & 
 /**
  * A help groups section.
  */
-export type HelpGroups = WithKind<'groups'> & WithTitle & WithWrap & HelpPhrase & WithFilter;
+export type HelpGroups = WithKind<'groups'> & WithTitle & WithWrap & WithPhrase & WithFilter;
 
 /**
  * A help section.
@@ -418,10 +410,10 @@ export class HelpFormatter {
       const phrase = this.config.phrases[item];
       this.format[item](option, phrase, this.styles, descrStyle, result);
     }
-    if (result.count > count) {
-      return result.addSequence(style(tf.clear)).addBreak(); // add ending breaks after styles
+    if (result.count == count) {
+      return new TerminalString(0, 1); // this string does not contain any word
     }
-    return new TerminalString(0, 1);
+    return result.addSequence(style(tf.clear)).addBreak(); // add ending breaks after styles
   }
 
   /**
@@ -472,7 +464,7 @@ export class HelpFormatter {
 
   /**
    * Formats a help message for the default option group.
-   * Options are rendered in the same order as declared in the option definitions.
+   * Options are rendered in the same order as was declared in the option definitions.
    * @returns The formatted help message
    */
   formatHelp(): HelpMessage {
@@ -481,9 +473,9 @@ export class HelpFormatter {
 
   /**
    * Formats a help message for an option group.
-   * Options are rendered in the same order as declared in the option definitions.
+   * Options are rendered in the same order as was declared in the option definitions.
    * @param name The group name (defaults to the default group)
-   * @returns The formatted help message, if found
+   * @returns The formatted help message, if the group exists
    */
   formatGroup(name = ''): HelpMessage | undefined {
     const entries = this.groups.get(name);
@@ -492,7 +484,7 @@ export class HelpFormatter {
 
   /**
    * Formats help messages for all option groups.
-   * Options are rendered in the same order as declared in the option definitions.
+   * Options are rendered in the same order as was declared in the option definitions.
    * @returns The formatted help messages
    */
   formatGroups(): Map<string, HelpMessage> {
@@ -505,7 +497,7 @@ export class HelpFormatter {
 
   /**
    * Formats a complete help message with sections.
-   * Options are rendered in the same order as declared in the option definitions.
+   * Options are rendered in the same order as was declared in the option definitions.
    * @param sections The help sections
    * @param progName The program name, if any
    * @returns The formatted help message
@@ -696,40 +688,18 @@ function formatValue(
     default:
       if (isArray(option) && Array.isArray(value)) {
         const formatFn = option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
-        formatArray(option, value, result, styles, formatFn, style, inDesc);
+        if (inDesc) {
+          formatArray(value, style, result, styles, formatFn, ['[', ']'], ',');
+        } else if ('separator' in option && option.separator) {
+          const sep = option.separator;
+          const text = value.join(typeof sep === 'string' ? sep : sep.source);
+          formatFunctions.s(text, styles, style, result);
+        } else {
+          formatArray(value, style, result, styles, formatFn);
+        }
       } else if (value !== undefined) {
         formatFunctions.p(value, styles, style, result);
       }
-  }
-}
-
-/**
- * Formats a list of values to be printed on the terminal.
- * @param option The option definition
- * @param value The array values
- * @param result The resulting string
- * @param styles The set of styles
- * @param formatFn The function to convert a value to string
- * @param style The default style
- * @param inDesc True if in the description
- */
-function formatArray(
-  option: ArrayOption,
-  value: ReadonlyArray<string> | ReadonlyArray<number>,
-  result: TerminalString,
-  styles: ConcreteStyles,
-  formatFn: FormatFunction,
-  style: Style,
-  inDesc: boolean,
-) {
-  if (inDesc) {
-    formatArray2(value, style, result, styles, formatFn, ['[', ']'], ',');
-  } else if ('separator' in option && option.separator) {
-    const sep = option.separator;
-    const text = value.join(typeof sep === 'string' ? sep : sep.source);
-    formatFunctions.s(text, styles, style, result);
-  } else {
-    formatArray2(value, style, result, styles, formatFn);
   }
 }
 
@@ -743,7 +713,7 @@ function formatArray(
  * @param brackets An optional pair of brackets to surround the values
  * @param separator An optional separator to delimit the values
  */
-function formatArray2(
+function formatArray(
   values: ReadonlyArray<string> | ReadonlyArray<number>,
   style: Style,
   result: TerminalString,
@@ -781,7 +751,7 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
 
 /**
  * Formats a help section to be included in the full help message.
- * Options are rendered in the same order as declared in the option definitions.
+ * Options are rendered in the same order as was declared in the option definitions.
  * @param options The option definitions
  * @param groups The option groups
  * @param styles The set of styles
@@ -849,7 +819,7 @@ function formatUsageSection(
 
 /**
  * Formats a groups section to be included in the full help message.
- * Options are rendered in the same order as declared in the option definitions.
+ * Options are rendered in the same order as was declared in the option definitions.
  * @param groups The option groups
  * @param breaks The number of line breaks
  * @param section The help section
@@ -913,7 +883,7 @@ function formatText(
 
 /**
  * Formats a usage text to be included in a help section.
- * Options are rendered in the same order as declared in the option definitions.
+ * Options are rendered in the same order as was declared in the option definitions.
  * @param options The option definitions
  * @param styles The set of styles
  * @param defStyle The default style
@@ -947,7 +917,7 @@ function formatUsage(
 }
 
 /**
- * Formats an option to be included in the the default usage.
+ * Formats an option to be included in the the usage text.
  * @param option The option definition
  * @param styles The set of styles
  * @param style The default style
@@ -973,7 +943,7 @@ function formatUsageOption(
 }
 
 /**
- * Formats an option's names to be included in the default usage.
+ * Formats an option's names to be included in the usage text.
  * @param option The option definition
  * @param styles The set of styles
  * @param style The default style
@@ -1016,7 +986,7 @@ function formatUsageNames(
 }
 
 /**
- * Formats an option's parameter to be included in the description or the default usage.
+ * Formats an option's parameter to be included in the description or the usage text.
  * @param option The option definition
  * @param styles The set of styles
  * @param style The default style
@@ -1278,7 +1248,7 @@ function formatEnums(
     const formatFn =
       option.type === 'string' || option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
     result.splitText(phrase, () => {
-      formatArray2(enums, style, result, styles, formatFn, ['{', '}'], ',');
+      formatArray(enums, style, result, styles, formatFn, ['{', '}'], ',');
     });
   }
 }
@@ -1324,7 +1294,7 @@ function formatRange(
   if ('range' in option && option.range) {
     const range = option.range;
     result.splitText(phrase, () => {
-      formatArray2(range, style, result, styles, formatFunctions.n, ['[', ']'], ',');
+      formatArray(range, style, result, styles, formatFunctions.n, ['[', ']'], ',');
     });
   }
 }

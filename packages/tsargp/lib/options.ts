@@ -688,7 +688,9 @@ type DefaultDataType<T extends ValuedOption> =
   T extends { default: (...args: any) => infer R }
     ? Writable<R>
     : T extends { default: infer D }
-      ? Writable<D>
+      ? D extends undefined
+        ? never
+        : Writable<D>
       : T extends { required: true }
         ? never
         : undefined;

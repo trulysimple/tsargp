@@ -28,7 +28,7 @@ describe('ArgumentParser', () => {
       expect(parser.parse(['-f'], { shortStyle: true })).toEqual({ flag: true });
     });
 
-    it('should throw an error on unknown option letter', () => {
+    it('should throw an error on unknown option in cluster', () => {
       const options = {
         flag: {
           type: 'flag',

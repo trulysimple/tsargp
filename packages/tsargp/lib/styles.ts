@@ -90,24 +90,24 @@ export class TerminalString {
   private merge = false;
 
   /**
-   * The list of strings that have been appended.
+   * The list of internal strings that have been appended.
    */
   readonly strings = new Array<string>();
 
   /**
-   * The lengths of the strings, ignoring control characters and sequences.
+   * The lengths of the internal strings, ignoring control characters and sequences.
    */
   readonly lengths = new Array<number>();
 
   /**
-   * @returns The sum of the lengths of all strings, ignoring control characters and sequences
+   * @returns The combined length of all internal strings, ignoring control characters and sequences
    */
   get length(): number {
     return this.lengths.reduce((acc, len) => acc + len, 0);
   }
 
   /**
-   * @returns The number of strings
+   * @returns The number of internal strings
    */
   get count(): number {
     return this.strings.length;
@@ -142,7 +142,7 @@ export class TerminalString {
   }
 
   /**
-   * Appends another terminal string to the strings.
+   * Appends another terminal string to the list.
    * @param other The other terminal string
    * @returns The terminal string instance
    */
@@ -193,7 +193,7 @@ export class TerminalString {
   }
 
   /**
-   * Appends a word to the list of strings.
+   * Appends a word to the list.
    * @param word The word to be appended. Should not contain control characters or sequences.
    * @returns The terminal string instance
    */
@@ -202,7 +202,7 @@ export class TerminalString {
   }
 
   /**
-   * Appends line breaks to the list of strings.
+   * Appends line breaks to the list.
    * @param count The number of line breaks to insert (non-positive values are ignored)
    * @returns The terminal string instance
    */
@@ -211,7 +211,7 @@ export class TerminalString {
   }
 
   /**
-   * Appends a sequence to the list of strings.
+   * Appends a sequence to the list.
    * @param seq The sequence to insert
    * @returns The terminal string instance
    */
@@ -220,7 +220,7 @@ export class TerminalString {
   }
 
   /**
-   * Appends a text that may contain control characters or sequences to the list of strings.
+   * Appends a text that may contain control characters or sequences to the list.
    * @param text The text to be appended
    * @param length The length of the text without control characters or sequences
    * @returns The terminal string instance
@@ -241,7 +241,7 @@ export class TerminalString {
   }
 
   /**
-   * Splits a text into words and style sequences, and appends them to the list of strings.
+   * Splits a text into words and style sequences, and appends them to the list.
    * @param text The text to be split
    * @param format An optional callback to process format specifiers
    * @returns The terminal string instance
@@ -258,7 +258,7 @@ export class TerminalString {
   }
 
   /**
-   * Splits a paragraph into words and style sequences, and appends them to the list of strings.
+   * Splits a paragraph into words and style sequences, and appends them to the list.
    * @param para The paragraph to be split
    * @param format An optional callback to process format specifiers
    */
@@ -277,7 +277,7 @@ export class TerminalString {
   }
 
   /**
-   * Splits a list item into words and style sequences, and appends them to the list of strings.
+   * Splits a list item into words and style sequences, and appends them to the list.
    * @param item The list item to be split
    * @param format An optional callback to process format specifiers
    */
@@ -307,7 +307,7 @@ export class TerminalString {
   }
 
   /**
-   * Wraps the strings to fit in a terminal width.
+   * Wraps the internal strings to fit in a terminal width.
    * @param result The resulting strings to append to
    * @param column The current terminal column
    * @param width The desired terminal width (or zero to avoid wrapping)

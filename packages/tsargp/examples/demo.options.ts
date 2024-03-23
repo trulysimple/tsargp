@@ -48,7 +48,7 @@ const helpOpts = {
     enums: ['hello'],
     preferredName: 'command name',
     positional: true,
-    required: true, // error if called with no argument
+    required: true, // error if called without a command name
   },
 } as const satisfies Options;
 

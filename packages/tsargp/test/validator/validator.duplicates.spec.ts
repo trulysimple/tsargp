@@ -132,7 +132,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate option letter a\./);
+      expect(() => validator.validate()).toThrow(/Duplicate cluster letter a\./);
     });
 
     it('should throw an error on duplicate cluster letter across different options', () => {
@@ -149,7 +149,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate option letter f\./);
+      expect(() => validator.validate()).toThrow(/Duplicate cluster letter f\./);
     });
   });
 });

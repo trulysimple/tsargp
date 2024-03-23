@@ -142,12 +142,12 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when an option has a duplicate cluster letter.
    */
-  duplicateOptionLetter,
+  duplicateClusterLetter,
   /**
    * Raised by the parser when either a variadic array option or a command option is specified in
    * the middle of a cluster argument.
    */
-  invalidOptionInCluster,
+  invalidClusterOption,
 }
 
 /**

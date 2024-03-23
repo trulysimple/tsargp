@@ -117,8 +117,8 @@ export const defaultConfig: ConcreteError = {
       'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
     [ErrorItem.unsatisfiedCondRequirement]: 'Option %o is required if %t.',
-    [ErrorItem.duplicateOptionLetter]: 'Duplicate option letter %o.',
-    [ErrorItem.invalidOptionInCluster]: 'Option %o must be the last in a cluster.',
+    [ErrorItem.duplicateClusterLetter]: 'Duplicate cluster letter %o.',
+    [ErrorItem.invalidClusterOption]: 'Option %o must be the last in a cluster.',
   },
 };
 
@@ -283,7 +283,7 @@ export class OptionValidator {
     if ('clusterLetters' in option && option.clusterLetters) {
       for (const letter of option.clusterLetters) {
         if (validate && this.letters.has(letter)) {
-          throw this.error(ErrorItem.duplicateOptionLetter, { o: prefix + letter });
+          throw this.error(ErrorItem.duplicateClusterLetter, { o: prefix + letter });
         }
         this.letters.set(letter, key);
       }
@@ -300,7 +300,7 @@ export class OptionValidator {
   validate(prefix = '', visited = new Set<Options>()) {
     let positional = false; // to check for duplicate positional options
     this.names.clear(); // to check for duplicate option names
-    this.letters.clear(); // to check for duplicate option letters
+    this.letters.clear(); // to check for duplicate cluster letters
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);
