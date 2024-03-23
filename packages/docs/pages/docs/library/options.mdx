@@ -108,15 +108,14 @@ options. Mutually exclusive with [default value](#default-value--callback) and
 
 #### Default value | callback
 
-The `default` attribute, if present, specifies the default option value or a callback that returns
-the default value. This value is set as the option's value at the end of the parsing loop _if_ the
-option was specified neither on the command-line nor as an
-[environment variable](#environment-variable). Mutually exclusive with
-[always required](#always-required).
+The `default` attribute, if present, specifies the option's default value or a callback that returns
+the default value. This value is used at the end of the parsing loop _if_ the option was specified
+neither on the command-line nor as an [environment variable](#environment-variable). Mutually
+exclusive with [always required](#always-required).
 
 <Callout type="default">
   [Function options](#function-option) and [command options](#command-option) accept any kind of
-  value as the default. In the case of object types, it's useful to specify a custom `toString`
+  value as the default. In the case of object values, it's useful to specify a custom `toString`
   method to render it in the help message, e.g.:
   ```ts
   toString() {
@@ -126,8 +125,8 @@ option was specified neither on the command-line nor as an
 </Callout>
 
 If the value is not known beforehand (e.g., if it depends on the values of other options), you may
-want to use a callback to inspect parsed values and determine the default value based on those
-values. It accepts one parameter:
+want to use a callback to inspect parsed values and determine the default based on those values. It
+accepts one parameter:
 
 - `values` - the parsed values
 
@@ -209,8 +208,8 @@ If they were defined in the `requiredIf` attribute, they would mean:
 
 #### Cluster letters
 
-The `clusterLetters` attribute, if present, specifies letters (or Unicode characters) that can be
-used to cluster options in the first command-line argument. This is also known as [_short-option_
+The `clusterLetters` attribute, if present, specifies letters (or any Unicode characters) that can
+be used to cluster options in the first command-line argument. This is also known as [_short-option_
 style]. This feature can be enabled via the parser's [`shortStyle`](parser.mdx#short-option-style)
 configuration property.
 
@@ -240,7 +239,7 @@ my_cli --flag --str 'my string' --num 123
 Notes about this feature:
 
 - the order of the options in the cluster are preserved when converting to the canonical form
-- variadic array options are supported, but must be the last option in a cluster argument
+- variadic array options and command options are supported, but must be the last option in a cluster
 - if a single dash is specified as the first character in a cluster argument, it is ignored
 - if `Tab`-completion is performed in a cluster argument, the default completion is thrown
 - positional options with no names are skipped in a cluster argument
@@ -252,14 +251,12 @@ All non-niladic option types share a set of attributes, which are described belo
 #### Example value
 
 The `example` attribute, if present, specifies a value that replaces the option type in the help
-message [parameter column](formatter.mdx#parameter-column). Mutually exclusive with
-[parameter name](#parameter-name).
+message. Mutually exclusive with [parameter name](#parameter-name).
 
 #### Parameter name
 
 The `paramName` attribute, if present, specifies a parameter name that replaces the option type in
-the help message [parameter column](formatter.mdx#parameter-column). Mutually exclusive with
-[example value](#example-value).
+the help message. Mutually exclusive with [example value](#example-value).
 
 #### Positional | marker
 
@@ -267,8 +264,8 @@ The `positional` attribute, if present, indicates that the option accepts _posit
 There may be at most _one_ option with this setting.
 
 If set to `true{:ts}`, then any argument not recognized as an option name will be considered
-positional. If set to a string, then this string acts as positional marker. In this case, all
-arguments that appear _beyond_ the marker will be considered positional.
+positional. If set to a string, then it acts as positional marker, and all arguments that appear
+_beyond_ the marker will be considered positional.
 
 When using this attribute, we recommend also setting [preferred name](#names--preferred-name) to
 some explanatory name.
@@ -358,9 +355,11 @@ Array-valued option types share a set of attributes, as described below.
 #### Separator
 
 The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
-specified, the option will accept a single parameter and not multiple parameters (we say that it is
-_delimited_, rather than being _variadic_). It can be a string or a regular expression. Mutually
-exclusive with [parse callback](#parse-callback) and [parse delimited](#parse-delimited).
+specified, the option will accept a single parameter and not multiple parameters[^2]. It can be
+either a string or a regular expression. Mutually exclusive with [parse callback](#parse-callback)
+and [parse delimited](#parse-delimited).
+
+[^2]: we say that it is _delimited_, rather than _variadic_.
 
 #### Parse delimited
 
@@ -379,8 +378,6 @@ Notes about this callback:
 - if asynchronous, and is called, then the resulting option value will be a promise
 - mutually exclusive with [separator](#separator) and [parse callback](#parse-callback)
 
-[^2]: we say that it is _delimited_, rather than _variadic_.
-
 #### Remove duplicates
 
 The `unique` attribute, if present, indicates that duplicate elements will be removed from the
@@ -390,8 +387,9 @@ constraint.
 #### Append values
 
 The `append` attribute, if present, indicates that the option allows appending elements to its
-value if specified multiple times on the command-line. Both the [unique](#unique) normalization and
-the [count limit](#count-limit) constraint (if enabled) are applied after appendage.
+value if specified multiple times on the command-line. Both the [remove
+duplicates](#remove-duplicates) normalization and the [count limit](#count-limit) constraint (if
+enabled) are applied after appendage.
 
 #### Count limit
 
@@ -411,13 +409,13 @@ option value will be read, in case the option is not specified on the command-li
 
 <Callout type="info">
   If the environemnt variable for an option is found, the option is counted as if it were specified
-  on the command-line, which has implications for the evaluation of other option's requirements.
+  on the command-line, which has implications for the evaluation of option requirements.
 </Callout>
 
 ## Niladic options
 
 Niladic options do not expect any parameter on the command-line. With the notable exception of the
-[flag option](#flag-option), these options have _side-effects_, rather than an intrinsic value.
+[flag option](#flag-option), these options may have _side-effects_, rather than an intrinsic value.
 
 <Callout type="info">
   When bash completion is in effect, help and version options are _not_ processed.
@@ -442,22 +440,24 @@ The `sections` attribute specifies [help sections](formatter.mdx#help-sections) 
 the help message. The default is to include two:
 
 - usage section - with `'Usage:'{:ts}` as heading - indented by 2 spaces
-- groups section - with `'Options'{:ts}` as default group heading - appending a colon to headings
+- groups section - with `'Options'{:ts}` as default group heading - appending a colon to group
+  headings
 
 ### Version option
 
 The **version** option is another specialization of the [function option](#function-option) that
 throws a version message. You may specify either of the following attributes.
 
-#### Semantic version
+#### Version info
 
-The `version` attribute is a semantic version or version information. Mutually exclusive with
+The `version` attribute specifies a semantic version or version information. Mutually exclusive with
 [resolve callback](#resolve-callback).
 
 #### Resolve callback
 
-The `resolve` attribute is a resolution function scoped to the module where a `package.json` file
-will be searched and read to extract its `version` field. You should use [`import.meta.resolve`].
+The `resolve` attribute specifies a resolution function scoped to the module where a `package.json`
+file will be searched and read to extract its `version` field. You should use
+[`import.meta.resolve`].
 
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 
@@ -466,12 +466,12 @@ Notes about this callback:
 - for use in non-browser environments only
 - it results in an asynchronous operation, so you should await the result of
   [`parseAsync`](parser.mdx#executing-callbacks)
-- mutually exclusive with [semantic version](#semantic-version)
+- mutually exclusive with [version info](#version-info)
 
 ### Function option
 
 The **function** option executes a generic callback function and saves its result as the option
-value. You can use it to perform many kinds of useful things, such as:
+value. You can use it to perform many kinds of actions, such as:
 
 - reading configuration from a file
 - altering the values of previous options
@@ -483,16 +483,16 @@ In addition to the set of [value attributes](#value-attributes), it has the foll
 
 #### Execute callback
 
-The `exec` attribute is the callback function that should be executed. It is required and accepts
-three parameters:
+The `exec` attribute specifies the callback function that should be executed. It is required and
+accepts three parameters:
 
 - `values` - the values parsed up to the current iteration
-- `comp` - `true{:ts}` if performing completion (but not in the current iteration)
+- `comp` - whether bash completion is in effect (but not in the current iteration)
 - `rest` - the remaining command-line arguments
 
 Notes about this callback:
 
-- it should return the option value or `void{:ts}`
+- it may return the option value or nothing at all
 - if asynchronous, you should await the result of [`parseAsync`](parser.mdx#executing-callbacks)
 - altering the `rest` parameter will have _no_ effect on the original command-line arguments
 
@@ -504,7 +504,7 @@ Notes about this callback:
 
 #### Break loop
 
-The `break` attribute, if present, tells the parser to exit the parsing loop immediately after
+The `break` attribute indicates whether the parser to exit the parsing loop immediately after
 returning from the callback.
 
 <Callout type="warning">
@@ -528,41 +528,41 @@ In addition to the set of [value attributes](#value-attributes), it has the foll
 
 #### Command callback
 
-The `cmd` attribute is the callback function that should be executed. It is required and accepts two
-parameters:
+The `cmd` attribute specifies the callback function that should be executed. It is required and
+accepts two parameters:
 
 - `values` - the values parsed for the parent command
 - `cmdValues` - the values parsed for the command
 
 Notes about this callback:
 
-- it should return the option value or `void{:ts}`
+- it may return the option value or nothing at all
 - if asynchronous, you should await the result of [`parseAsync`](parser.mdx#executing-callbacks)
 - when bash completion is in effect, this callback will _not_ be called
 - if called, the parser will exit the parsing loop immediately upon its return
 
 <Callout type="default">
-  The simplest implementation would just return `cmdValues`. This way, they are stored in the option
-  value and can be handled after the parser returns from the parsing loop.
+  The simplest implementation would just return `cmdValues`. This way, the values can be handled
+  after the parser returns from the parsing loop.
 </Callout>
 
 #### Command options | callback
 
-The `options` attribute is the set of option definitions for the command, or a (non-asynchronous)
-callback that returns the option definitions (this allows the implementation of
+The `options` attribute specifies the set of option definitions for the command, or a
+(non-asynchronous) callback that returns the option definitions (this allows the implementation of
 [recursive commands](../guides/commands.mdx)). This attribute is required.
 
 <Callout type="warning">
   All incoming arguments will be parsed using the option definitions from this attribute, not those
-  in which the option was declared. Hence, you should make it clear in the help message that all
-  arguments pertaining to the command must be specified _after_ it.
+  from the parent command. Hence, you should make it clear in the help message that all arguments
+  pertaining to the command must be specified _after_ it.
 </Callout>
 
 #### Short-option style
 
 The `shortStyle` property indicates whether the first command argument is expected to be an option
 cluster. This must be used in conjunction with the [cluster letters](options.mdx#cluster-letters)
-of its options.
+of the command's options.
 
 ### Flag option
 
@@ -587,6 +587,8 @@ value `false{:ts}` (e.g., _--no-flag_). This is particularly useful in scripting
 flag that has been previously specified must be reset by a supplementary list of arguments.
 
 ## Non-niladic options
+
+Non-niladic options expect one or more parameters on the command-line.
 
 ### Boolean option
 
