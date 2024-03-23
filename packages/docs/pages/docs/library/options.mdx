@@ -442,6 +442,19 @@ the help message. The default is to include two:
 - groups section - with `'Options'{:ts}` as default group heading - appending a colon to group
   headings
 
+#### Use filters
+
+The `useFilters` attribute is an opt-in feature that allows the remaining arguments to be used as
+option filters. For example, the invocation `cli --help flag` would only include in the help message
+those options whose names or synopsis match the regex `/flag/i{:ts}`. There can be as many arguments
+as the user wants.
+
+<Callout type="default">
+  This is inherently different from what a text search utility like `grep` would produce. The
+  library will print the _whole_ help entry of options matching the given patterns, not just the
+  matching lines.
+</Callout>
+
 ### Version option
 
 The **version** option is another specialization of the [function option](#function-option) that
@@ -514,8 +527,8 @@ the callback.
 #### Skip count
 
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
-returns. You may change this value inside a _synchronous_ callback. Otherwise, it should be left
-unchanged. The parser does not alter this value and ignores it during bash completion.
+returns. You may only change this value inside a _synchronous_ callback. Otherwise, it should be
+left unchanged. The parser does not alter this value and ignores it during bash completion.
 
 Here is an example of how it might be used inside the callback:
 

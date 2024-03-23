@@ -324,8 +324,19 @@ export class HelpFormatter {
    * Creates a help message formatter.
    * @param validator The validator instance
    * @param config The format configuration
+   * @param filters The option filters
    */
-  constructor(validator: OptionValidator, config: HelpConfig = {}) {
+  constructor(validator: OptionValidator, config?: HelpConfig, filters?: Array<RegExp>) {
+    /** @ignore */
+    function exclude(option: Option) {
+      return (
+        filters?.length &&
+        !filters.find(
+          (filter) =>
+            option.names?.find((name) => name && name.match(filter)) || option.desc?.match(filter),
+        )
+      );
+    }
     this.options = validator.options;
     this.styles = validator.config.styles;
     this.config = mergeConfig(config);
@@ -336,7 +347,7 @@ export class HelpFormatter {
         : getMaxNamesWidth(this.options);
     for (const key in this.options) {
       const option = this.options[key];
-      if (!option.hide) {
+      if (!option.hide && !exclude(option)) {
         this.formatOption(option);
       }
     }
@@ -479,7 +490,7 @@ export class HelpFormatter {
    */
   formatGroup(name = ''): HelpMessage | undefined {
     const entries = this.groups.get(name);
-    return entries ? formatEntries(entries) : undefined;
+    return entries && formatEntries(entries);
   }
 
   /**
@@ -519,7 +530,7 @@ export class HelpFormatter {
  * @param config The provided configuration
  * @returns The merged configuration
  */
-function mergeConfig(config: HelpConfig): ConcreteFormat {
+function mergeConfig(config: HelpConfig = {}): ConcreteFormat {
   return {
     names: { ...defaultConfig.names, ...config.names },
     param: { ...defaultConfig.param, ...config.param },
@@ -813,7 +824,7 @@ function formatUsageSection(
     indent2 = Math.max(0, indent ?? 0) + progName.length + 1;
     breaks = 0;
   }
-  const filterKeys = filter ? new Set(filter) : undefined;
+  const filterKeys = filter && new Set(filter);
   result.push(formatUsage(options, styles, styles.text, indent2, breaks, filterKeys, exclude));
 }
 
@@ -832,7 +843,7 @@ function formatGroupsSection(
   result: HelpMessage,
 ) {
   const { phrase, title, noWrap, filter, exclude, style: sty } = section;
-  const filterGroups = filter ? new Set(filter) : undefined;
+  const filterGroups = filter && new Set(filter);
   for (const [group, entries] of groups.entries()) {
     if ((filterGroups?.has(group) ?? !exclude) != !!exclude) {
       const title2 = group || title;

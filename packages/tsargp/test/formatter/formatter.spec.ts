@@ -9,6 +9,47 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('');
     });
 
+    it('should filter options with a single regular expression', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+        },
+        flag2: {
+          type: 'flag',
+          desc: 'A flag option',
+        },
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const config = { descr: { absolute: true } };
+      const message = new HelpFormatter(validator, config, [/flag/]).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag\n  A flag option\n');
+    });
+
+    it('should filter options with multiple regular expressions', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+        },
+        flag2: {
+          type: 'flag',
+          desc: 'A flag option',
+        },
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const message = new HelpFormatter(validator, {}, [/^-f/, /^-b/]).formatHelp();
+      expect(message.wrap()).toEqual('  -f, --flag\n  -b, --boolean  <boolean>\n');
+    });
+
     it('should handle a function option', () => {
       const options = {
         function: {

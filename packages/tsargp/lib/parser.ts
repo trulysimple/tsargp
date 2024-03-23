@@ -355,7 +355,7 @@ class ParserLoop {
       case 'command':
         return this.handleCommand(key, option, name, index);
       default:
-        return this.handleSpecial(option);
+        return this.handleSpecial(option, index);
     }
   }
 
@@ -444,14 +444,17 @@ class ParserLoop {
   /**
    * Handles a special option.
    * @param option The option definition
+   * @param index The current argument index
    * @returns True if the parsing loop should be broken
    */
-  private handleSpecial(option: SpecialOption): boolean {
+  private handleSpecial(option: SpecialOption, index: number): boolean {
     if (this.completing) {
       return false; // skip special options during completion
     }
     if (option.type === 'help') {
-      const formatter = new HelpFormatter(this.validator, option.format);
+      const filters =
+        option.useFilters && this.args.slice(index + 1).map((arg) => RegExp(arg, 'i'));
+      const formatter = new HelpFormatter(this.validator, option.format, filters);
       const sections = option.sections ?? [
         { type: 'usage', title: 'Usage:', indent: 2 },
         { type: 'groups', title: 'Options', phrase: '%s:' },

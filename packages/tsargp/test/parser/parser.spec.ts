@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type Options, ArgumentParser, OptionValues, HelpMessage } from '../../lib';
+import { type Options, ArgumentParser, OptionValues } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
@@ -61,13 +61,9 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
-        try {
-          parser.parse(['-h'], { progName: 'prog' });
-        } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(
-            /^Usage:\n\n {2}prog \[-f\] \[-h\]\n\nArgs:\n\n {2}-f\n\nOptions:\n\n {2}-h/,
-          );
-        }
+        expect(() => parser.parse(['-h'], { progName: 'prog' })).toThrow(
+          /^Usage:\n\n {2}prog \[-f\] \[-h\]\n\nArgs:\n\n {2}-f\n\nOptions:\n\n {2}-h$/,
+        );
       });
 
       it('should throw a help message with usage and custom indentation', () => {
@@ -85,13 +81,36 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
-        try {
-          parser.parse(['-h'], { progName: 'prog' });
-        } catch (err) {
-          expect((err as HelpMessage).wrap(0)).toMatch(
-            /^usage heading\n\nprog \[-h\]\n\ngroup {2}heading\n\n-h/,
-          );
-        }
+        expect(() => parser.parse(['-h'], { progName: 'prog' })).toThrow(
+          /^usage heading\n\nprog \[-h\]\n\ngroup {2}heading\n\n-h$/,
+        );
+      });
+
+      it('should throw a help message with filtered options', () => {
+        const options = {
+          flag1: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+          },
+          flag2: {
+            type: 'flag',
+            desc: 'A flag option',
+          },
+          boolean: {
+            type: 'boolean',
+            names: ['-b', '--boolean'],
+          },
+          help: {
+            type: 'help',
+            names: ['-h'],
+            sections: [{ type: 'groups' }],
+            useFilters: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-h', '^-F', '^-B'], { progName: 'prog' })).toThrow(
+          /^ {2}-f, --flag\n {2}-b, --boolean {2}<boolean>$/,
+        );
       });
     });
 
@@ -765,10 +784,8 @@ describe('tryParse', () => {
     await expect(parser.tryParse(values, ['-f1', '-f2'])).resolves.toHaveProperty(
       'message',
       expect.stringMatching(
-        new RegExp(
-          'Option -f1 is deprecated and may be removed in future releases.\n' +
-            'Option -f2 is deprecated and may be removed in future releases.',
-        ),
+        'Option -f1 is deprecated and may be removed in future releases.\n' +
+          'Option -f2 is deprecated and may be removed in future releases.',
       ),
     );
   });

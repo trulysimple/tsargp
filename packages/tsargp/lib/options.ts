@@ -625,6 +625,10 @@ export type HelpOption = WithType<'help'> & {
    * The help sections to be rendered.
    */
   readonly sections?: HelpSections;
+  /**
+   * Opt-in feature: set this to true to allow the remaining arguments to be used as option filters.
+   */
+  readonly useFilters?: true;
 };
 
 /**
