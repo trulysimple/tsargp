@@ -1,4 +1,3 @@
-import type { SyncExpectationResult, AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { describe, expect, it } from 'vitest';
 import {
   overrides,
@@ -9,45 +8,12 @@ import {
   isTrue,
 } from '../lib/utils';
 
-interface CustomMatchers<R = unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toEqual(expected: any): R;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toResolve(expected: any): R;
-}
-
-declare module 'vitest' {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  interface Assertion<T = any> extends CustomMatchers<T> {}
-  interface AsymmetricMatchersContaining extends CustomMatchers {}
-}
-
-/** @ignore */
-function toEqual(this: MatcherState, actual: unknown, expected: unknown): SyncExpectationResult {
-  const pass = this.equals(actual, expected);
-  const message = () => `expected ${actual} to match ${expected}`;
-  return { message, pass, actual, expected };
-}
-
-/** @ignore */
-async function toResolve(
-  this: MatcherState,
-  received: Promise<unknown>,
-  expected: unknown,
-): AsyncExpectationResult {
-  const actual = await received;
-  const pass = this.equals(actual, expected);
-  const message = () => `expected ${actual} to match ${expected}`;
-  return { message, pass, actual, expected };
-}
-
 /*
   Initialization section. Do not do any of the following:
   - wrap this code in an IIFE, default export or vitest's `beforeAll`
   - assign `undefined` to `process.env`, as it will be converted to the string 'undefined'
 */
 {
-  expect.extend({ toEqual, toResolve });
   overrides.stderrCols = 0;
   overrides.stdoutCols = 0;
   resetEnv();

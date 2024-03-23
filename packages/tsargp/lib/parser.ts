@@ -931,52 +931,52 @@ function parseArray<T extends string | number>(
   value: string,
   convertFn: (value: string) => T,
 ) {
+  /** @ignore */
+  function append(vals: Array<T>) {
+    return function (prev: Array<T>) {
+      prev.push(...vals.map((val) => validator.normalize(option, name, val)));
+      return validator.normalize(option, name, prev as ParamValue) as Array<T>;
+    };
+  }
   let result: Array<T> | Promise<Array<T>>;
-  const previous = values[key] as typeof result;
-  if ('parse' in option && option.parse) {
-    const res = option.parse(values, name, value);
-    if (res instanceof Promise) {
-      result = res.then(async (val) => {
-        const prev = await previous;
-        prev.push(validator.normalize(option, name, val) as T);
-        validator.normalize(option, name, prev as ParamValue);
-        return prev;
-      });
-    } else {
-      result = [validator.normalize(option, name, res) as T];
-    }
-  } else if ('parseDelimited' in option && option.parseDelimited) {
+  let previous = values[key] as typeof result;
+  if (option.parseDelimited) {
     const res = option.parseDelimited(values, name, value);
-    if (res instanceof Promise) {
-      result = res.then(async (vals) => {
-        const prev = await previous;
-        prev.push(...vals.map((val) => validator.normalize(option, name, val) as T));
-        validator.normalize(option, name, prev as ParamValue);
-        return prev;
-      });
+    result =
+      res instanceof Promise
+        ? res.then(async (vals) => append(vals as Array<T>)(await previous))
+        : (res as Array<T>);
+  } else {
+    const vals = option.separator ? value.split(option.separator) : [value];
+    if (option.parse) {
+      let prevSync: Array<T> = [];
+      for (const val of vals) {
+        const res = option.parse(values, name, val);
+        if (res instanceof Promise) {
+          const copy = prevSync; // save the reference for the closure
+          const prev = previous; // save the reference for the closure
+          previous = res.then(async (val) => append([...copy, val as T])(await prev));
+          prevSync = []; // reset for incoming values
+        } else {
+          prevSync.push(res as T);
+        }
+      }
+      result =
+        previous instanceof Promise
+          ? prevSync.length
+            ? previous.then(append(prevSync))
+            : previous
+          : prevSync;
     } else {
-      result = res.map((val) => validator.normalize(option, name, val) as T);
+      result = vals.map(convertFn);
     }
-  } else {
-    const vals =
-      'separator' in option && option.separator
-        ? value.split(option.separator).map((val) => convertFn(val))
-        : [convertFn(value)];
-    result = vals.map((val) => validator.normalize(option, name, val));
   }
-  if (result instanceof Promise) {
-    values[key] = result;
-  } else if (previous instanceof Promise) {
-    const res = result;
-    values[key] = previous.then((vals) => {
-      vals.push(...res);
-      validator.normalize(option, name, vals as ParamValue);
-      return vals;
-    });
-  } else {
-    previous.push(...result);
-    values[key] = validator.normalize(option, name, previous as ParamValue);
-  }
+  values[key] =
+    result instanceof Promise
+      ? result
+      : previous instanceof Promise
+        ? previous.then(append(result))
+        : append(result)(previous);
 }
 
 /**
@@ -1092,25 +1092,8 @@ function parseValue(
  * @param option The option definition
  */
 function resetValue(values: OptionValues, key: string, option: ArrayOption) {
-  type ArrayVal =
-    | Array<string>
-    | Array<number>
-    | Promise<Array<string>>
-    | Promise<Array<number>>
-    | undefined;
-  const previous = values[key] as ArrayVal;
-  if (!previous) {
+  if (!option.append || values[key] === undefined) {
     values[key] = [];
-  } else if (!option.append) {
-    if (previous instanceof Promise) {
-      const promise = previous.then((val) => {
-        val.length = 0;
-        return val;
-      });
-      values[key] = promise;
-    } else {
-      previous.length = 0;
-    }
   }
 }
 

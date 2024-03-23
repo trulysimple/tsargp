@@ -322,10 +322,6 @@ export type WithParse<T> = {
   /**
    * @deprecated mutually exclusive with {@link WithParse.parse}
    */
-  readonly separator?: never;
-  /**
-   * @deprecated mutually exclusive with {@link WithParse.parse}
-   */
   readonly parseDelimited?: never;
 };
 
@@ -356,10 +352,6 @@ export type WithSeparator = {
    * The parameter value separator. If specified, the option accepts a single parameter.
    */
   readonly separator?: string | RegExp;
-  /**
-   * @deprecated mutually exclusive with {@link WithSeparator.separator}
-   */
-  readonly parse?: never;
   /**
    * @deprecated mutually exclusive with {@link WithSeparator.separator}
    */
@@ -553,7 +545,7 @@ export type StringsOption = WithType<'strings'> &
   (WithExample<ReadonlyArray<string>> | WithParamName) &
   WithString &
   WithArray &
-  (WithParse<string> | WithParseDelimited<string> | WithSeparator);
+  ((WithParse<string> & WithSeparator) | WithParseDelimited<string>);
 
 /**
  * An option that has a number array value (may accept single or multiple parameters).
@@ -565,7 +557,7 @@ export type NumbersOption = WithType<'numbers'> &
   (WithExample<ReadonlyArray<number>> | WithParamName) &
   WithNumber &
   WithArray &
-  (WithParse<number> | WithParseDelimited<number> | WithSeparator);
+  ((WithParse<number> & WithSeparator) | WithParseDelimited<number>);
 
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).

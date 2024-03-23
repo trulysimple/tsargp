@@ -17,7 +17,7 @@ describe('ArgumentParser', () => {
       expect(options.boolean.parse).toHaveBeenCalledWith(expect.anything(), '-b', '0123');
     });
 
-    it('should handle a boolean option with async custom parsing', () => {
+    it('should handle a boolean option with async custom parsing', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -26,7 +26,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-b', '0123'])).toEqual({ boolean: expect.toResolve(true) });
+      await expect(parser.parse(['-b', '0123']).boolean).resolves.toBeTruthy();
     });
 
     it('should handle a string option with custom parsing', () => {
@@ -43,7 +43,7 @@ describe('ArgumentParser', () => {
       expect(options.string.parse).toHaveBeenCalledWith(expect.anything(), '-s', 'abcde');
     });
 
-    it('should handle a string option with async custom parsing', () => {
+    it('should handle a string option with async custom parsing', async () => {
       const options = {
         string: {
           type: 'string',
@@ -53,7 +53,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-s', 'abcde'])).toEqual({ string: expect.toResolve('CDE') });
+      await expect(parser.parse(['-s', 'abcde']).string).resolves.toEqual('CDE');
     });
 
     it('should handle a number option with custom parsing', () => {
@@ -70,7 +70,7 @@ describe('ArgumentParser', () => {
       expect(options.number.parse).toHaveBeenCalledWith(expect.anything(), '-n', '1.2');
     });
 
-    it('should handle a number option with async custom parsing', () => {
+    it('should handle a number option with async custom parsing', async () => {
       const options = {
         number: {
           type: 'number',
@@ -80,47 +80,42 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-n', '1.2'])).toEqual({ number: expect.toResolve(4) });
+      await expect(parser.parse(['-n', '1.2']).number).resolves.toEqual(4);
     });
 
-    it('should handle a strings option with custom parsing', () => {
+    it('should handle a strings option with mixed-async custom parsing', async () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss'],
           case: 'upper',
           unique: true,
-          parse: vi.fn().mockImplementation((_0, _1, value): string | Promise<string> => {
-            const res = value.slice(2);
-            return value.startsWith('a') ? res : Promise.resolve(res);
+          parse: vi.fn().mockImplementation((_0, _1, value: string) => {
+            return value === 'sync' ? value : Promise.resolve(value);
           }),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(parser.parse(['-ss'])).toEqual({ strings: [] });
       expect(options.strings.parse).not.toHaveBeenCalled();
-
-      expect(parser.parse(['-ss', 'abcd', 'abCD'])).toEqual({ strings: ['CD'] });
-      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'abcd');
-      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'abCD');
+      expect(parser.parse(['-ss', 'sync', 'sync'])).toEqual({ strings: ['SYNC'] });
+      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'sync');
       expect(options.strings.parse).toHaveBeenCalledTimes(2);
 
-      expect(parser.parse(['-ss', 'abcd', '12CD'])).toEqual({
-        strings: expect.toResolve(['CD']),
-      });
-      expect(parser.parse(['-ss', '12CD', 'abcd'])).toEqual({
-        strings: expect.toResolve(['CD']),
-      });
-      expect(parser.parse(['-ss', '12CD', '34cd'])).toEqual({
-        strings: expect.toResolve(['CD']),
-      });
-      expect(parser.parse(['-ss', 'abcd', '-ss'])).toEqual({ strings: [] });
-      expect(parser.parse(['-ss', '12CD', '-ss'])).toEqual({
-        strings: expect.toResolve([]),
-      });
+      await expect(parser.parse(['-ss', 'sync', 'async']).strings).resolves.toEqual([
+        'SYNC',
+        'ASYNC',
+      ]);
+      await expect(parser.parse(['-ss', 'async', 'sync']).strings).resolves.toEqual([
+        'ASYNC',
+        'SYNC',
+      ]);
+      await expect(parser.parse(['-ss', 'async', 'async']).strings).resolves.toEqual(['ASYNC']);
+      expect(parser.parse(['-ss', 'sync', '-ss'])).toEqual({ strings: [] });
+      expect(parser.parse(['-ss', 'async', '-ss'])).toEqual({ strings: [] });
     });
 
-    it('should handle a strings option with custom delimited parsing', () => {
+    it('should handle a strings option with mixed-async custom parsing in conjunction with a separator', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -128,37 +123,79 @@ describe('ArgumentParser', () => {
           case: 'upper',
           append: true,
           unique: true,
-          parseDelimited: (_0, _1, value): Array<string> | Promise<Array<string>> => {
-            const res = value.split(',').flatMap((val) => val.split('|'));
-            return value.startsWith('a') ? res : Promise.resolve(res);
+          separator: ',',
+          parse: vi.fn().mockImplementation((_0, _1, value: string) => {
+            return value === 'sync' ? value : Promise.resolve(value);
+          }),
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(parser.parse(['-ss', 'sync,sync'])).toEqual({ strings: ['SYNC'] });
+      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'sync');
+      expect(options.strings.parse).toHaveBeenCalledTimes(2);
+
+      await expect(parser.parse(['-ss', 'sync,async']).strings).resolves.toEqual(['SYNC', 'ASYNC']);
+      await expect(parser.parse(['-ss', 'async,sync']).strings).resolves.toEqual(['ASYNC', 'SYNC']);
+      await expect(parser.parse(['-ss', 'async,async']).strings).resolves.toEqual(['ASYNC']);
+      await expect(parser.parse(['-ss', 'async', '-ss', 'sync,sync']).strings).resolves.toEqual([
+        'ASYNC',
+        'SYNC',
+      ]);
+      await expect(parser.parse(['-ss', 'async', '-ss', 'sync,async']).strings).resolves.toEqual([
+        'ASYNC',
+        'SYNC',
+      ]);
+      await expect(parser.parse(['-ss', 'async', '-ss', 'async,sync']).strings).resolves.toEqual([
+        'ASYNC',
+        'SYNC',
+      ]);
+      await expect(parser.parse(['-ss', 'async', '-ss', 'async,async']).strings).resolves.toEqual([
+        'ASYNC',
+      ]);
+      await expect(parser.parse(['-ss', 'async', '-ss', 'sync,last']).strings).resolves.toEqual([
+        'ASYNC',
+        'SYNC',
+        'LAST', // order is preserved
+      ]);
+    });
+
+    it('should handle a strings option with mixed-async custom delimited parsing', async () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          case: 'upper',
+          append: true,
+          unique: true,
+          parseDelimited: (_0, _1, value: string) => {
+            const res = value.split(',');
+            return value.startsWith('sync') ? res : Promise.resolve(res);
           },
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to -ss\./);
-      expect(parser.parse(['-ss', 'a,b|B', '-ss', 'a,B|b'])).toEqual({
-        strings: ['A', 'B'],
-      });
-      expect(parser.parse(['-ss', 'a,b|B', '-ss', 'c,d|D'])).toEqual({
-        strings: expect.toResolve(['A', 'B', 'C', 'D']),
-      });
-      expect(parser.parse(['-ss', 'c,d|D', '-ss', 'a,b|B'])).toEqual({
-        strings: expect.toResolve(['C', 'D', 'A', 'B']),
-      });
-      expect(parser.parse(['-ss', 'c,d|D', '-ss', 'C|D'])).toEqual({
-        strings: expect.toResolve(['C', 'D']),
-      });
+      expect(parser.parse(['-ss', 'sync,sync', '-ss', 'sync,sync'])).toEqual({ strings: ['SYNC'] });
+      await expect(
+        parser.parse(['-ss', 'sync,sync', '-ss', 'async,async']).strings,
+      ).resolves.toEqual(['SYNC', 'ASYNC']);
+      await expect(
+        parser.parse(['-ss', 'async,async', '-ss', 'sync,sync']).strings,
+      ).resolves.toEqual(['ASYNC', 'SYNC']);
+      await expect(
+        parser.parse(['-ss', 'async,async', '-ss', 'async,async']).strings,
+      ).resolves.toEqual(['ASYNC']);
     });
 
-    it('should handle a numbers option with custom parsing', () => {
+    it('should handle a numbers option with mixed-async custom parsing', async () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns'],
           round: 'ceil',
           unique: true,
-          parse: vi.fn().mockImplementation((_0, _1, value): number | Promise<number> => {
-            const res = Number(value) + 2;
+          parse: vi.fn().mockImplementation((_0, _1, value) => {
+            const res = Number(value);
             return value.startsWith('1') ? res : Promise.resolve(res);
           }),
         },
@@ -166,28 +203,54 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       expect(parser.parse(['-ns'])).toEqual({ numbers: [] });
       expect(options.numbers.parse).not.toHaveBeenCalled();
-
-      expect(parser.parse(['-ns', '1.2', '1.7'])).toEqual({ numbers: [4] });
+      expect(parser.parse(['-ns', '1.2', '1.7'])).toEqual({ numbers: [2] });
       expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.2');
       expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.7');
       expect(options.numbers.parse).toHaveBeenCalledTimes(2);
 
-      expect(parser.parse(['-ns', '1.2', '2.2'])).toEqual({
-        numbers: expect.toResolve([4, 5]),
-      });
-      expect(parser.parse(['-ns', '2.2', '1.2'])).toEqual({
-        numbers: expect.toResolve([5, 4]),
-      });
-      expect(parser.parse(['-ns', '2.2', '2.7'])).toEqual({
-        numbers: expect.toResolve([5]),
-      });
+      await expect(parser.parse(['-ns', '1.2', '2.2']).numbers).resolves.toEqual([2, 3]);
+      await expect(parser.parse(['-ns', '2.2', '1.2']).numbers).resolves.toEqual([3, 2]);
+      await expect(parser.parse(['-ns', '2.2', '2.7']).numbers).resolves.toEqual([3]);
       expect(parser.parse(['-ns', '1.2', '-ns'])).toEqual({ numbers: [] });
-      expect(parser.parse(['-ns', '2.2', '-ns'])).toEqual({
-        numbers: expect.toResolve([]),
-      });
+      expect(parser.parse(['-ns', '2.2', '-ns'])).toEqual({ numbers: [] });
     });
 
-    it('should handle a numbers option with custom delimited parsing', () => {
+    it('should handle a numbers option with mixed-async custom parsing in conjunction with a separator', async () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          round: 'ceil',
+          append: true,
+          unique: true,
+          separator: ',',
+          parse: vi.fn().mockImplementation((_0, _1, value) => {
+            const res = Number(value);
+            return value.startsWith('1') ? res : Promise.resolve(res);
+          }),
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(parser.parse(['-ns', '1.2,1.7'])).toEqual({ numbers: [2] });
+      expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.2');
+      expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.7');
+      expect(options.numbers.parse).toHaveBeenCalledTimes(2);
+
+      await expect(parser.parse(['-ns', '1.2,2.2']).numbers).resolves.toEqual([2, 3]);
+      await expect(parser.parse(['-ns', '2.2,1.2']).numbers).resolves.toEqual([3, 2]);
+      await expect(parser.parse(['-ns', '2.2,2.7']).numbers).resolves.toEqual([3]);
+      await expect(parser.parse(['-ns', '2.2', '-ns', '1.2,1.2']).numbers).resolves.toEqual([3, 2]);
+      await expect(parser.parse(['-ns', '2.2', '-ns', '1.2,2.7']).numbers).resolves.toEqual([3, 2]);
+      await expect(parser.parse(['-ns', '2.2', '-ns', '2.7,1.2']).numbers).resolves.toEqual([3, 2]);
+      await expect(parser.parse(['-ns', '2.2', '-ns', '2.7,2.8']).numbers).resolves.toEqual([3]);
+      await expect(parser.parse(['-ns', '2.2', '-ns', '1.2,3.3']).numbers).resolves.toEqual([
+        3,
+        2,
+        4, // order is preserved
+      ]);
+    });
+
+    it('should handle a numbers option with mixed-async custom delimited parsing', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -196,26 +259,23 @@ describe('ArgumentParser', () => {
           append: true,
           unique: true,
           parseDelimited: (_0, _1, value): Array<number> | Promise<Array<number>> => {
-            const res = value.split(',').flatMap((val) => val.split('|').map((val) => Number(val)));
+            const res = value.split(',').map((val) => Number(val));
             return value.startsWith('1') ? res : Promise.resolve(res);
           },
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to -ns\./);
-      expect(parser.parse(['-ns', '1.1,2.2|2.3'])).toEqual({ numbers: [2, 3] });
-      expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '11|12'])).toEqual({
-        numbers: [2, 3, 11, 12],
-      });
-      expect(parser.parse(['-ns', '1.1,2.2|2.3', '-ns', '21|22'])).toEqual({
-        numbers: expect.toResolve([2, 3, 21, 22]),
-      });
-      expect(parser.parse(['-ns', '21|22', '-ns', '1.1,2.2|2.3'])).toEqual({
-        numbers: expect.toResolve([21, 22, 2, 3]),
-      });
-      expect(parser.parse(['-ns', '21|22', '-ns', '20.2|21.2'])).toEqual({
-        numbers: expect.toResolve([21, 22]),
-      });
+      expect(parser.parse(['-ns', '1.1,1.2', '-ns', '1.1,1.2'])).toEqual({ numbers: [2] });
+      await expect(parser.parse(['-ns', '1.1,1.2', '-ns', '2.1,2.2']).numbers).resolves.toEqual([
+        2, 3,
+      ]);
+      await expect(parser.parse(['-ns', '2.1,2.2', '-ns', '1.1,1.2']).numbers).resolves.toEqual([
+        3, 2,
+      ]);
+      await expect(parser.parse(['-ns', '2.1,2.2', '-ns', '2.1,2.2']).numbers).resolves.toEqual([
+        3,
+      ]);
     });
   });
 });
