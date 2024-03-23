@@ -111,6 +111,45 @@ describe('ArgumentParser', () => {
     });
 
     describe('function', () => {
+      it('should skip a certain number of remaining arguments', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f1'],
+          },
+          function: {
+            type: 'function',
+            names: ['-f2'],
+            exec() {
+              this.skipCount = 1;
+            },
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(parser.parse(['-f2', 'skipped', '-f1'])).toEqual({
+          flag: true,
+          function: undefined,
+        });
+      });
+
+      it('should not skip any argument when the skip count is negative', () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f1'],
+          },
+          function: {
+            type: 'function',
+            names: ['-f2'],
+            exec() {
+              this.skipCount = -1;
+            },
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-f2', 'arg', '-f1'])).toThrow('Unknown option arg.');
+      });
+
       it('should throw an error on function option specified with value', () => {
         const options = {
           function: {

@@ -33,6 +33,20 @@ describe('ArgumentParser', () => {
       expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
     });
 
+    it('should ignore the skip count of a function option during completion', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          exec() {
+            this.skipCount = 1;
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse('cmd -f ', { compIndex: 7 })).toThrow(/^-f$/);
+    });
+
     it('should handle the completion of a help option', () => {
       const options = {
         help: {

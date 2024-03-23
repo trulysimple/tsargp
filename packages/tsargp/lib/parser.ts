@@ -373,6 +373,9 @@ class ParserLoop {
     }
     try {
       const result = option.exec(this.values, this.completing, this.args.slice(index + 1));
+      if (!this.completing && option.skipCount) {
+        this.args.splice(index + 1, Math.max(0, option.skipCount));
+      }
       if (result instanceof Promise) {
         this.promises.push(
           result.then(

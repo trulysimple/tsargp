@@ -502,14 +502,32 @@ Notes about this callback:
 
 #### Break loop
 
-The `break` attribute indicates whether the parser should exit the parsing loop immediately after
-returning from the callback.
+The `break` attribute indicates whether the parser should exit the parsing loop after returning from
+the callback.
 
 <Callout type="warning">
   When setting this attribute, the requirements of all options specified up to the current iteration
   (including the function option) will be verified. Hence, you should make it clear in the help
   message that any option required by the affected one must be specified _before_ it.
 </Callout>
+
+#### Skip count
+
+The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
+returns. You may change this value inside a _synchronous_ callback. Otherwise, it should be left
+unchanged. The parser does not alter this value and ignores it during bash completion.
+
+Here is an example of how it might be used inside the callback:
+
+```ts
+{
+  // other attributes...
+  exec(_, _, rest: Array<string>) {
+    this.skipCount = 1;
+    return JSON.parse(rest[0]);
+  },
+}
+```
 
 ### Command option
 
@@ -542,6 +560,12 @@ Notes about this callback:
 <Callout type="default">
   The simplest implementation would just return `cmdValues`. This way, the values can be handled
   after the parser returns from the parsing loop.
+</Callout>
+
+<Callout type="info">
+  Please note that the library does not offer a direct way for a command to access the parsed values
+  of ancestor commands (except its immediate parent) during parsing. However, this can be achieved
+  by waiting until the parser returns from the parsing loop before acting upon the option values.
 </Callout>
 
 #### Command options | callback
