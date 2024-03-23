@@ -1,5 +1,29 @@
 # @trulysimple/tsargp-docs
 
+## 0.2.0
+
+### Minor Changes
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `requiredIf` attribute for valued options. An example was added in the respective section to explain the difference between this attribute and the traditional `requires`.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added a new section called "Terminal messages" in the Styles page to describe the various kinds of messages produced by the library. Updated the Parser page to document the new parsing methods that can be used to check for these messages. Also updated the Validator page to document the new `deprecatedOption` warning.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added a new guide page called "Help", to describe how to implement different help mechanisms for a CLI application.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new alignment settings for option parameters and description in the help message. Added a section in the Styles page for the new right-alignment feature of the wrapping procedure.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new `formatSections` method, as well as the new configuration properties: `sections`, `styles` amd `misc`. Updated the help option section in the Options page, to reflect the changes to this option's attributes.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `shortStyle` configuration property. A new section called `Miscellaneous attributes` was added to the Options page, under which the `clusterLetters` attribute was documented. The `envVar` attribute was moved to this section.
+
+### Patch Changes
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added missing source links in the API documentation generated with TypeDoc.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `progName` field of the parse configuration, as well as add a new section to explain how the process title is updated by the parser.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - The documentation was updated to include the new `envVar` attribute, as well as to group attributes that are shared by valued options into a new section called "Value attributes".
+
 ## 0.2.0-dev.4
 
 ### Minor Changes

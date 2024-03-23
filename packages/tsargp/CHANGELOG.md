@@ -1,5 +1,43 @@
 # tsargp
 
+## 0.3.0
+
+### Minor Changes
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added a new `envVar` attribute to options that have a value, to read the value from an environment variable. Also, function and command options now have the ability to define `default` values.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added text alignment settings for option parameter and description in the help message. Added a `rightAlign` property to terminal strings, that makes the wrapping procedure align text to the terminal's right boundary.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added a help format configuration named `align`, that can be used to select the alignment of option names in the help message.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - A new attribute called `requiredIf` was added to valued options, to indicate the option's conditional requirements. Similarly, a new enumerator was added to `HelpItem` to print this attribute in the help message. Both the parser and the formatter were updated to handle conditional option requirements.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added the `formatSections` method to the help formatter, that implements sections in the help message. Added the following properties to `HelpConfig`: `sections`, `styles` amd `misc`. Removed some attributes from the help option which are not needed anymore. (We will _not_ go through a deprecation process, since the library is under active development and not currently used by other packages.)
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added new classes to represent the various kinds of messages that the parser may return or throw from the parsing procedure, namely: help, version, error, warning and completion words. Accordingly, new methods were added to the parser class, that you can use to check for these messages. Here is a list of what was introduced in this change:
+
+  - `TerminalMessage` - base class for other message types
+  - `WarnMessage` - represents a warning message (e.g., for a deprecated option)
+  - `CompletionMessage` - the list of completion words
+  - `VersionMessage` - the version (currently, it's just a string)
+  - `ArgumentParser.doParse` - the most flexible method to parse arguments
+  - `ArgumentParser.tryParse` - a convenience method that catches any error before returning
+
+  Removed the `OpaqueArgumentParser` and `CastToOptionValues` as they are not needed anymore. Instead,
+  you can use `ArgumentParser` or `OptionValues` with no template argument.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Added the `clusterLetters` attribute to valued options, to support the so called "short-options" style. Added the `shortStyle` configuration property to the parser configuration, to indicate that the first command-line argument is expected to be an option cluster. These two must be used in conjunction.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - `ParseConfig` has a new field called `progName` which specifies the program name used to update the process title. It defaults to the basename of the executing script (if no command is provided), or to the command name, in case a raw command-line string is provided.
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - The demo example now has a `help` command that prints the help of another nested command (currently, only `hello`).
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - The package was refactored to remove unneeded exports, which reduced the footprint of the minified module.
+
+### Patch Changes
+
+- [#67](https://github.com/trulysimple/tsargp/pull/67) [`a2ee717`](https://github.com/trulysimple/tsargp/commit/a2ee717470f550e93cb9a0653df41aafceff5748) Thanks [@disog](https://github.com/disog)! - Refactored the `HelpConfig` to reuse the same object for configuring the help columns. Improved the wrapping procedure to emit all control sequences when `emitStyles` is true.
+
 ## 0.3.0-dev.4
 
 ### Minor Changes
