@@ -514,7 +514,7 @@ the callback.
 #### Skip count
 
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
-returns. You may change this value inside a _synchronous_ callback. Otherwise, you should leave it
+returns. You may change this value inside a _synchronous_ callback. Otherwise, it should be left
 unchanged. The parser does not alter this value and ignores it during bash completion.
 
 Here is an example of how it might be used inside the callback:
@@ -522,7 +522,7 @@ Here is an example of how it might be used inside the callback:
 ```ts
 {
   // other attributes...
-  exec(_, _, rest: string[]) {
+  exec(_, _, rest: Array<string>) {
     this.skipCount = 1;
     return JSON.parse(rest[0]);
   },

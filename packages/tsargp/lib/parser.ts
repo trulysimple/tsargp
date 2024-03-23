@@ -376,7 +376,6 @@ class ParserLoop {
       if (!this.completing && option.skipCount) {
         this.args.splice(index + 1, Math.max(0, option.skipCount));
       }
-      JSON.parse;
       if (result instanceof Promise) {
         this.promises.push(
           result.then(
