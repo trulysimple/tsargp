@@ -586,8 +586,9 @@ export type FunctionOption = WithType<'function'> &
      */
     readonly break?: true;
     /**
-     * An output parameter that indicates the number of remaining arguments to skip. This only works
-     * if the execute callback is synchronous. This should not be used during bash completion.
+     * The number of remaining arguments to skip. You may change this value inside a synchronous
+     * callback. Otherwise, you should leave it unchanged. The parser does not alter this value.
+     * During bash completion, it is ignored.
      */
     skipCount?: number;
   };

@@ -513,11 +513,11 @@ the callback.
 
 #### Skip count
 
-The `skipCount` attribute is an output parameter that indicates the number of remaining arguments to
-skip, after the callback returns. This only works if the callback is synchronous, and should not be
-used during bash completion.
+The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
+returns. You may change this value inside a _synchronous_ callback. Otherwise, you should leave it
+unchanged. The parser does not alter this value and ignores it during bash completion.
 
-Here is an example of how it might be used:
+Here is an example of how it might be used inside the callback:
 
 ```ts
 {
