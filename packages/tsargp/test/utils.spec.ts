@@ -1,9 +1,17 @@
-import type { AsyncExpectationResult, MatcherState } from '@vitest/expect';
+import type { SyncExpectationResult, AsyncExpectationResult, MatcherState } from '@vitest/expect';
 import { describe, expect, it } from 'vitest';
-import { type ConcreteError, defaultConfig } from '../lib';
-import { checkRequiredArray, gestaltSimilarity, getArgs, splitPhrase } from '../lib/utils';
+import {
+  overrides,
+  checkRequiredArray,
+  gestaltSimilarity,
+  getArgs,
+  splitPhrase,
+  isTrue,
+} from '../lib/utils';
 
 interface CustomMatchers<R = unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  toEqual(expected: any): R;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toResolve(expected: any): R;
 }
@@ -12,6 +20,13 @@ declare module 'vitest' {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   interface Assertion<T = any> extends CustomMatchers<T> {}
   interface AsymmetricMatchersContaining extends CustomMatchers {}
+}
+
+/** @ignore */
+function toEqual(this: MatcherState, actual: unknown, expected: unknown): SyncExpectationResult {
+  const pass = this.equals(actual, expected);
+  const message = () => `expected ${actual} to match ${expected}`;
+  return { message, pass, actual, expected };
 }
 
 /** @ignore */
@@ -26,21 +41,25 @@ async function toResolve(
   return { message, pass, actual, expected };
 }
 
-expect.extend({ toResolve });
+/*
+  Initialization section. Do not do any of the following:
+  - wrap this code in an IIFE, default export or vitest's `beforeAll`
+  - assign `undefined` to `process.env`, as it will be converted to the string 'undefined'
+*/
+{
+  expect.extend({ toEqual, toResolve });
+  overrides.stderrCols = 0;
+  overrides.stdoutCols = 0;
+  resetEnv();
+}
 
-export const errorConfig: ConcreteError = {
-  styles: {
-    boolean: '',
-    string: '',
-    number: '',
-    regex: '',
-    option: '',
-    param: '',
-    url: '',
-    text: '',
-  },
-  phrases: defaultConfig.phrases,
-};
+/** @ignore */
+export function resetEnv() {
+  for (const name of ['FORCE_COLOR', 'NO_COLOR', 'TERM', 'COMP_LINE', 'COMP_POINT']) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete process.env[name];
+  }
+}
 
 describe('getArgs', () => {
   describe('with no completion index', () => {
@@ -185,5 +204,28 @@ describe('splitPhrase', () => {
 
   it('should handle a phrase with groups with empty alternatives', () => {
     expect(splitPhrase('(|) is fun')).toEqual([' is fun', ' is fun']);
+  });
+});
+
+describe('isTrue', () => {
+  it('should return false on zero', () => {
+    expect(isTrue('')).toBeFalsy();
+    expect(isTrue('0')).toBeFalsy();
+    expect(isTrue(' 0 ')).toBeFalsy();
+    expect(isTrue('0.0')).toBeFalsy();
+  });
+
+  it('should return false on false', () => {
+    expect(isTrue('false')).toBeFalsy();
+    expect(isTrue(' false ')).toBeFalsy();
+    expect(isTrue('FalsE')).toBeFalsy();
+    expect(isTrue(' FalsE ')).toBeFalsy();
+  });
+
+  it('should return true on any other string', () => {
+    expect(isTrue('1')).toBeTruthy();
+    expect(isTrue(' 1 ')).toBeTruthy();
+    expect(isTrue('a')).toBeTruthy();
+    expect(isTrue(' A ')).toBeTruthy();
   });
 });

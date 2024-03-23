@@ -1,0 +1,36 @@
+{
+  "mode": "exit",
+  "tag": "dev",
+  "initialVersions": {
+    "@trulysimple/tsargp-docs": "0.1.45",
+    "tsargp": "0.2.5"
+  },
+  "changesets": [
+    "big-ants-refuse",
+    "breezy-oranges-approve",
+    "clever-years-smoke",
+    "cool-dots-complain",
+    "good-ways-type",
+    "gorgeous-singers-hope",
+    "healthy-seals-suffer",
+    "little-dingos-fix",
+    "metal-rings-tease",
+    "nasty-mirrors-teach",
+    "orange-carpets-laugh",
+    "poor-trainers-drive",
+    "purple-trains-matter",
+    "quiet-spies-clean",
+    "real-dryers-joke",
+    "red-panthers-cough",
+    "rotten-fishes-cross",
+    "shaggy-cobras-wait",
+    "short-guests-warn",
+    "six-camels-jam",
+    "sweet-pianos-rule",
+    "tricky-planets-pay",
+    "yellow-spies-fix",
+    "young-deers-play",
+    "young-houses-remember",
+    "young-plants-push"
+  ]
+}

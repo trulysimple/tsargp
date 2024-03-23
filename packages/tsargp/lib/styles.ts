@@ -1,37 +1,11 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import { mv, mt, ed, sc, st, mg, ms, tf, fg, bg, ul } from './enums';
+import type { Alias, Enumerate } from './utils';
+import { cs, tf, fg, bg, ul } from './enums';
+import { overrides } from './utils';
 
-export type {
-  FgColor,
-  BgColor,
-  UlColor,
-  StyleAttr,
-  Move,
-  MoveTo,
-  Edit,
-  Scroll,
-  Style,
-  Margin,
-  Sequence,
-  FormatCallback,
-};
-
-export {
-  TerminalString,
-  ErrorMessage,
-  HelpMessage,
-  foreground as fg8,
-  background as bg8,
-  underline as ul8,
-  move,
-  moveTo,
-  edit,
-  scroll,
-  style,
-  margin,
-};
+export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -53,106 +27,58 @@ const regex = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * A control sequence introducer command. It is divided into subgroups for convenience.
- */
-type Command = mv | mt | ed | sc | st | mg | ms;
-
-/**
- * A generic control sequence introducer string.
+ * A control sequence introducer.
  * @template P The type of the sequence parameter
  * @template C The type of the sequence command
  */
-type CSI<P extends string | number, C extends Command> = `\x9b${P}${C}`;
+export type CSI<P extends string, C extends cs> = `\x9b${P}${C}`;
 
 /**
- * A single-parameter cursor movement sequence.
+ * A control sequence.
  */
-type Move = CSI<number, mv>;
+export type Sequence = CSI<string, cs> | '';
 
 /**
- * A two-parameter cursor movement sequence.
+ * A select graphics rendition sequence.
  */
-type MoveTo = CSI<`${number};${number}`, mt>;
-
-/**
- * A single-parameter edit sequence.
- */
-type Edit = CSI<number, ed>;
-
-/**
- * A single-parameter scroll sequence.
- */
-type Scroll = CSI<number, sc>;
-
-/**
- * A multi-parameter text style sequence.
- */
-type Style = CSI<string, st> | '';
-
-/**
- * A two-parameter margin sequence.
- */
-type Margin = CSI<`${number};${number}`, mg>;
-
-/**
- * A miscellaneous sequence. For completeness only, but not currently used.
- */
-type Misc =
-  | CSI<string, ms.sm | ms.rm>
-  | CSI<number, ms.dsr | ms.scs>
-  | CSI<'', ms.str | ms.scp | ms.rcp>;
-
-/**
- * A control sequence introducer sequence.
- * @see https://xtermjs.org/docs/api/vtfeatures/#csi
- */
-type Sequence = Move | MoveTo | Edit | Scroll | Style | Margin | Misc;
-
-/**
- * A helper type to enumerate numbers.
- * @template N The type of last enumerated number
- */
-type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['length'] extends N
-  ? Acc[number]
-  : Enumerate<N, [...Acc, Acc['length']]>;
+export type Style = CSI<string, cs.sgr> | '';
 
 /**
  * An 8-bit decimal number.
  */
-type Decimal = Enumerate<256>;
-
-/**
- * A helper type to alias another type while eliding type resolution in IntelliSense.
- * @template T The type to be aliased
- */
-type Alias<T> = T extends T ? T : T;
+export type Decimal = Alias<Enumerate<256>>;
 
 /**
  * An 8-bit foreground color.
  */
-type FgColor = Alias<`38;5;${Decimal}`>;
+export type FgColor = [38, 5, Decimal];
 
 /**
  * An 8-bit background color.
  */
-type BgColor = Alias<`48;5;${Decimal}`>;
+export type BgColor = [48, 5, Decimal];
 
 /**
  * An 8-bit underline color.
  */
-type UlColor = Alias<`58;5;${Decimal}`>;
+export type UlColor = [58, 5, Decimal];
 
 /**
  * A text styling attribute.
  */
-type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
+export type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
 
 /**
  * A callback that processes a format specifier when splitting text.
  * @param this The terminal string to append to
  * @param spec The format specifier (e.g., '%s')
  */
-type FormatCallback = (this: TerminalString, spec: string) => void;
+export type FormatCallback = (this: TerminalString, spec: string) => void;
+
+/**
+ * A message that can be printed on a terminal.
+ */
+export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage | CompletionMessage;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -160,34 +86,63 @@ type FormatCallback = (this: TerminalString, spec: string) => void;
 /**
  * Implements concatenation of strings that can be printed on a terminal.
  */
-class TerminalString {
+export class TerminalString {
   private merge = false;
 
   /**
-   * The list of strings that have been appended.
+   * The list of internal strings that have been appended.
    */
   readonly strings = new Array<string>();
 
   /**
-   * The lengths of the strings, ignoring control characters and sequences.
+   * The lengths of the internal strings, ignoring control characters and sequences.
    */
   readonly lengths = new Array<number>();
 
   /**
-   * @returns The sum of the lengths of all strings, ignoring control characters and sequences.
+   * @returns The combined length of all internal strings, ignoring control characters and sequences
    */
   get length(): number {
     return this.lengths.reduce((acc, len) => acc + len, 0);
   }
 
   /**
-   * Creates a terminal string.
-   * @param start The starting column for this string
+   * @returns The number of internal strings
    */
-  constructor(public start: number = 0) {}
+  get count(): number {
+    return this.strings.length;
+  }
 
   /**
-   * Appends another terminal string to the strings.
+   * Creates a terminal string.
+   * @param indent The starting column for this string (negative values are replaced by zero)
+   * @param breaks The initial number of line feeds (non-positive values are ignored)
+   * @param rightAlign True if the string should be right-aligned to the terminal width
+   */
+  constructor(
+    public indent: number = 0,
+    breaks = 0,
+    public rightAlign = false,
+  ) {
+    this.addBreak(breaks);
+  }
+
+  /**
+   * Removes strings from the end of the list.
+   * @param count The number of strings
+   * @returns The terminal string instance
+   */
+  pop(count = 1): this {
+    if (count > 0) {
+      const len = Math.max(0, this.count - count);
+      this.strings.length = len;
+      this.lengths.length = len;
+    }
+    return this;
+  }
+
+  /**
+   * Appends another terminal string to the list.
    * @param other The other terminal string
    * @returns The terminal string instance
    */
@@ -238,7 +193,7 @@ class TerminalString {
   }
 
   /**
-   * Appends a word to the list of strings.
+   * Appends a word to the list.
    * @param word The word to be appended. Should not contain control characters or sequences.
    * @returns The terminal string instance
    */
@@ -247,16 +202,16 @@ class TerminalString {
   }
 
   /**
-   * Appends line breaks to the list of strings.
-   * @param count The number of line breaks to insert
+   * Appends line breaks to the list.
+   * @param count The number of line breaks to insert (non-positive values are ignored)
    * @returns The terminal string instance
    */
-  addBreaks(count: number): this {
+  addBreak(count = 1): this {
     return count > 0 ? this.addText('\n'.repeat(count), 0) : this;
   }
 
   /**
-   * Appends a sequence to the list of strings.
+   * Appends a sequence to the list.
    * @param seq The sequence to insert
    * @returns The terminal string instance
    */
@@ -265,14 +220,14 @@ class TerminalString {
   }
 
   /**
-   * Appends a text that may contain control characters or sequences to the list of strings.
+   * Appends a text that may contain control characters or sequences to the list.
    * @param text The text to be appended
    * @param length The length of the text without control characters or sequences
    * @returns The terminal string instance
    */
   private addText(text: string, length: number): this {
     if (text) {
-      const count = this.strings.length;
+      const count = this.count;
       if (count && this.merge) {
         this.strings[count - 1] += text;
         this.lengths[count - 1] += length;
@@ -286,7 +241,7 @@ class TerminalString {
   }
 
   /**
-   * Splits a text into words and style sequences, and appends them to the list of strings.
+   * Splits a text into words and style sequences, and appends them to the list.
    * @param text The text to be split
    * @param format An optional callback to process format specifiers
    * @returns The terminal string instance
@@ -296,25 +251,25 @@ class TerminalString {
     paragraphs.forEach((para, i) => {
       this.splitParagraph(para, format);
       if (i < paragraphs.length - 1) {
-        this.addBreaks(2);
+        this.addBreak(2);
       }
     });
     return this;
   }
 
   /**
-   * Splits a paragraph into words and style sequences, and appends them to the list of strings.
+   * Splits a paragraph into words and style sequences, and appends them to the list.
    * @param para The paragraph to be split
    * @param format An optional callback to process format specifiers
    */
   private splitParagraph(para: string, format?: FormatCallback) {
-    const count = this.strings.length;
+    const count = this.count;
     para.split(regex.item).forEach((item, i) => {
       if (i % 2 == 0) {
         this.splitItem(item, format);
       } else {
-        if (this.strings.length > count) {
-          this.addBreaks(1);
+        if (this.count > count) {
+          this.addBreak();
         }
         this.addWord(item);
       }
@@ -322,7 +277,7 @@ class TerminalString {
   }
 
   /**
-   * Splits a list item into words and style sequences, and appends them to the list of strings.
+   * Splits a list item into words and style sequences, and appends them to the list.
    * @param item The list item to be split
    * @param format An optional callback to process format specifiers
    */
@@ -352,7 +307,7 @@ class TerminalString {
   }
 
   /**
-   * Wraps the strings to fit in a terminal width.
+   * Wraps the internal strings to fit in a terminal width.
    * @param result The resulting strings to append to
    * @param column The current terminal column
    * @param width The desired terminal width (or zero to avoid wrapping)
@@ -361,57 +316,70 @@ class TerminalString {
    */
   wrapToWidth(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
     /** @ignore */
-    function shortenLine() {
+    function shorten() {
       while (result.length && column > start) {
         const last = result[result.length - 1];
         if (last.length > column - start) {
-          result[result.length - 1] = last.slice(0, start - column);
+          result[result.length - 1] = last.slice(0, start - column); // cut the last string
           break;
         }
         column -= last.length;
-        result.length--;
+        result.length--; // pop the last string
       }
     }
-    if (!this.strings.length) {
+    /** @ignore */
+    function align() {
+      if (needToAlign && j < result.length && column < width) {
+        const rem = width - column; // remaining columns until right boundary
+        const pad = emitStyles ? sequence(cs.cuf, rem) : ' '.repeat(rem);
+        result.splice(j, 0, pad); // insert padding at the indentation boundary
+        column = width;
+      }
+    }
+    /** @ignore */
+    function adjust() {
+      const pad = !largestFits
+        ? '\n'
+        : emitStyles
+          ? sequence(cs.cha, start + 1)
+          : column < start
+            ? ' '.repeat(start - column)
+            : '';
+      if (pad) {
+        result.push(pad);
+      } else {
+        shorten(); // adjust backwards: shorten the current line
+      }
+    }
+    if (!this.count) {
       return column;
     }
-    const firstIsBreak = this.strings[0].startsWith('\n');
-    let indent = '';
-    let start = this.start;
-    if (!width) {
-      indent = ' '.repeat(start);
-      if (!firstIsBreak) {
-        if (column < start) {
-          result.push(' '.repeat(start - column));
-        } else {
-          shortenLine();
-        }
-      }
-    } else if (start) {
-      if (width >= start + Math.max(...this.lengths)) {
-        indent = move(start + 1, mv.cha);
-        if (!firstIsBreak && column != start) {
-          result.push(indent);
-        }
-      } else {
-        if (!firstIsBreak && column) {
-          result.push('\n');
-        }
-        start = 0;
-      }
-    } else if (!firstIsBreak && column) {
-      result.push(move(1, mv.cha));
+    column = Math.max(0, column);
+    width = Math.max(0, width);
+    let start = Math.max(0, this.indent);
+
+    const needToAlign = width && this.rightAlign;
+    const largestFits = !width || width >= start + Math.max(...this.lengths);
+    if (!largestFits) {
+      start = 0; // wrap to the first column instead
     }
-    column = start;
-    for (let i = 0; i < this.strings.length; ++i) {
+    const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
+    if (column != start && !this.strings[0].startsWith('\n')) {
+      adjust();
+      column = start;
+    }
+
+    let j = result.length; // save index for right-alignment
+    for (let i = 0; i < this.count; ++i) {
       let str = this.strings[i];
       if (str.startsWith('\n')) {
-        result.push(str);
+        align();
+        j = result.push(str); // save index for right-alignment
         column = 0;
         continue;
       }
       if (!column && indent) {
-        result.push(indent);
+        j = result.push(indent); // save index for right-alignment
         column = start;
       }
       const len = this.lengths[i];
@@ -431,76 +399,132 @@ class TerminalString {
         result.push(' ' + str);
         column += 1 + len;
       } else {
-        result.push('\n' + indent + str);
+        align();
+        j = result.push('\n' + indent, str) - 1; // save index for right-alignment
         column = start + len;
       }
     }
+    align();
     return column;
   }
 }
 
 /**
- * An error message.
+ * A terminal message. Used as base for other message classes.
  */
-class ErrorMessage extends Error {
-  /**
-   * Creates an error message
-   * @param str The terminal string
-   */
-  constructor(readonly str: TerminalString) {
-    super();
-  }
-
-  /**
-   * @returns The message to be printed on a terminal
-   */
-  get message(): string {
-    return this.wrap();
-  }
-
-  /**
-   * Wraps the error message to a specified width.
-   * @param width The terminal width (or zero to avoid wrapping)
-   * @param emitStyles True if styles should be emitted
-   * @returns The message to be printed on a terminal
-   */
-  wrap(width = process.stderr.columns ?? 0, emitStyles = !omitStyles(width)): string {
-    const result = new Array<string>();
-    this.str.wrapToWidth(result, 0, width, emitStyles);
-    if (emitStyles) {
-      result.push(style(tf.clear));
-    }
-    return result.join('');
-  }
-}
-
-/**
- * A help message.
- */
-class HelpMessage extends Array<TerminalString> {
-  /**
-   * @returns the message to be printed on a terminal
-   */
-  override toString(): string {
-    return this.wrap();
-  }
-
+export class TerminalMessage extends Array<TerminalString> {
   /**
    * Wraps the help message to a specified width.
    * @param width The terminal width (or zero to avoid wrapping)
    * @param emitStyles True if styles should be emitted
    * @returns The message to be printed on a terminal
    */
-  wrap(width = process.stdout.columns ?? 0, emitStyles = !omitStyles(width)): string {
+  wrap(width = 0, emitStyles = !omitStyles(width)): string {
     const result = new Array<string>();
     let column = 0;
     for (const str of this) {
       column = str.wrapToWidth(result, column, width, emitStyles);
     }
     if (emitStyles) {
-      result.push(style(tf.clear));
+      result.push(sgr(tf.clear));
     }
     return result.join('');
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.wrap(overrides.stdoutCols ?? process?.stdout?.columns);
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
+/**
+ * A help message.
+ */
+export class HelpMessage extends TerminalMessage {}
+
+/**
+ * A warning message.
+ */
+export class WarnMessage extends TerminalMessage {
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.wrap(overrides.stderrCols ?? process?.stderr?.columns);
+  }
+}
+
+/**
+ * An error message.
+ */
+export class ErrorMessage extends Error {
+  /**
+   * The terminal message.
+   */
+  readonly msg: TerminalMessage;
+
+  /**
+   * Creates an error message
+   * @param str The terminal string
+   */
+  constructor(str: TerminalString) {
+    super(); // do not wrap the message now. wait until it is actually needed
+    this.msg = new WarnMessage(str);
+  }
+
+  /**
+   * We have to override this, since the message cannot be transformed after being wrapped.
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.msg.toString();
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
+/**
+ * A completion message.
+ */
+export class CompletionMessage extends Array<string> {
+  /**
+   * @returns The wrapped message
+   */
+  override toString(): string {
+    return this.join('\n');
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
+
+/**
+ * A version message.
+ */
+export class VersionMessage extends String {
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
   }
 }
 
@@ -514,61 +538,20 @@ class HelpMessage extends Array<TerminalString> {
  */
 function omitStyles(width: number): boolean {
   return (
-    !process.env['FORCE_COLOR'] &&
-    (!width || !!process.env['NO_COLOR'] || process.env['TERM'] === 'dumb')
+    !process?.env['FORCE_COLOR'] &&
+    (!width || !!process?.env['NO_COLOR'] || process?.env['TERM'] === 'dumb')
   );
 }
 
 /**
- * Creates a CSI sequence.
- * @template P The type of the sequence parameter
- * @template C The type of the sequence command
- * @param param The sequence parameter
+ * Creates a control sequence.
+ * @template T The type of the sequence command
  * @param cmd The sequence command
- * @returns The CSI sequence
+ * @param params The sequence parameters
+ * @returns The control sequence
  */
-function csi<P extends string | number, C extends Command>(param: P, cmd: C): CSI<P, C> {
-  return `\x9b${param}${cmd}`;
-}
-
-/**
- * Creates a move sequence.
- * @param times The move parameter
- * @param cmd The move command
- * @returns The move sequence
- */
-function move(times: number, cmd: mv): Move {
-  return csi(times, cmd);
-}
-
-/**
- * Creates a move-to sequence.
- * @param x The horizontal position
- * @param y The vertical position
- * @returns The move-to sequence
- */
-function moveTo(x: number, y: number): MoveTo {
-  return csi(`${x};${y}`, mt.cup);
-}
-
-/**
- * Creates an edit sequence.
- * @param times The edit parameter
- * @param cmd The edit command
- * @returns The edit sequence
- */
-function edit(times: number, cmd: ed): Edit {
-  return csi(times, cmd);
-}
-
-/**
- * Creates a scroll sequence.
- * @param times The scroll parameter
- * @param cmd The scroll command
- * @returns The scroll sequence
- */
-function scroll(times: number, cmd: sc): Scroll {
-  return csi(times, cmd);
+function sequence<T extends cs>(cmd: T, ...params: Array<number>): CSI<string, T> {
+  return `\x9b${params.join(';')}${cmd}`;
 }
 
 /**
@@ -576,18 +559,8 @@ function scroll(times: number, cmd: sc): Scroll {
  * @param attrs The text styling attributes
  * @returns The SGR sequence
  */
-function style(...attrs: Array<StyleAttr>): Style {
-  return csi(attrs.join(';'), st.sgr);
-}
-
-/**
- * Creates a margin sequence.
- * @param x The top margin
- * @param y The bottom margin
- * @returns The margin sequence
- */
-function margin(x: number, y: number): Margin {
-  return csi(`${x};${y}`, mg.tbm);
+function sgr(...attrs: Array<StyleAttr>): Style {
+  return sequence(cs.sgr, ...attrs.flat());
 }
 
 /**
@@ -596,7 +569,7 @@ function margin(x: number, y: number): Margin {
  * @returns The foreground color
  */
 function foreground(color: Decimal): FgColor {
-  return `38;5;${color}`;
+  return [38, 5, color];
 }
 
 /**
@@ -605,7 +578,7 @@ function foreground(color: Decimal): FgColor {
  * @returns The background color
  */
 function background(color: Decimal): BgColor {
-  return `48;5;${color}`;
+  return [48, 5, color];
 }
 
 /**
@@ -614,5 +587,5 @@ function background(color: Decimal): BgColor {
  * @returns The underline color
  */
 function underline(color: Decimal): UlColor {
-  return `58;5;${color}`;
+  return [58, 5, color];
 }

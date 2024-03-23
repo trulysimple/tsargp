@@ -1,5 +1,5 @@
 import type { Options, OptionValues } from 'tsargp';
-import { fg, style, req, tf, fg8 } from 'tsargp';
+import { fg, style, req, tf, fg8, ArgumentParser } from 'tsargp';
 
 /**
  * The hello option definitions.
@@ -39,9 +39,35 @@ const helloOpts = {
 } as const satisfies Options;
 
 /**
+ * The helpCmd option definitions.
+ */
+const helpOpts = {
+  name: {
+    type: 'string',
+    desc: 'The name of the nested command.',
+    enums: ['hello'],
+    preferredName: 'command name',
+    positional: true,
+    required: true, // error if called without a command name
+  },
+} as const satisfies Options;
+
+/**
  * The main option definitions.
  */
 export default {
+  /**
+   * A command option that throws the help message of a nested command.
+   */
+  helpCmd: {
+    type: 'command',
+    names: ['help'],
+    desc: 'Prints the help of a nested command.',
+    options: helpOpts,
+    cmd() {
+      new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
+    },
+  },
   /**
    * A help option that throws the help message of the main command.
    */
@@ -49,20 +75,29 @@ export default {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'A help option. Prints this help message.',
-    usage: `
-    ${style(tf.clear, tf.bold)}Argument parser for TypeScript.
+    sections: [
+      {
+        type: 'text',
+        text: `${style(tf.bold)}Argument parser for TypeScript.`,
+      },
+      {
+        type: 'groups',
+        phrase: '%s:',
+      },
+      {
+        type: 'usage',
+        title: 'Usage:',
+        indent: 2,
+      },
+      {
+        type: 'text',
+        text: `MIT License.
+Copyright (c) 2024 ${style(tf.bold, tf.italic)}TrulySimple${style(tf.clear)}
 
-    ${style(tf.clear, fg.yellow)}tsargp
-    ${style(fg.default)}--help
-    ${style(fg.green)}# print help
-    ${style(fg.default)}`,
-    footer: `
-    MIT License.
-    Copyright (c) 2024
-    ${style(tf.bold, tf.italic)}TrulySimple${style(tf.clear)}
-
-    Report a bug:
-    ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
+Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
+        noWrap: true,
+      },
+    ],
   },
   /**
    * A version option that throws the package version.
@@ -121,7 +156,7 @@ export default {
     group: 'String options',
     regex: /^\d+$/,
     default: '123456789',
-    paramName: 'my string',
+    paramName: 'my str',
   },
   /**
    * A number option that has a range constraint.
@@ -133,7 +168,7 @@ export default {
     group: 'Number options',
     range: [-Infinity, 0],
     default: -1.23,
-    paramName: 'my number',
+    paramName: 'my num',
   },
   /**
    * A string option that has an enumeration constraint.

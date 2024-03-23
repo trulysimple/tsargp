@@ -1,16 +1,8 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Exports - NOTE: some enumerations are abbreviated for ease of use in client code.
 //--------------------------------------------------------------------------------------------------
 export {
-  ErrorItem,
-  HelpItem,
-  MoveCommand as mv,
-  MoveToCommand as mt,
-  EditCommand as ed,
-  ScrollCommand as sc,
-  StyleCommand as st,
-  MarginCommand as mg,
-  MiscCommand as ms,
+  ControlSequence as cs,
   TypeFace as tf,
   Foreground as fg,
   Background as bg,
@@ -18,13 +10,12 @@ export {
 };
 
 //--------------------------------------------------------------------------------------------------
-// Constants
+// Constants - NOTE: please add new enumerators at the _end_ of the enumeration.
 //--------------------------------------------------------------------------------------------------
 /**
  * The kind of items that can be thrown as error messages.
  */
-// Internal note: this needs to be defined before `defaultConfig`, otherwise bun chokes.
-const enum ErrorItem {
+export const enum ErrorItem {
   /**
    * Raised by the parser when an option parameter fails to be parsed.
    */
@@ -45,7 +36,7 @@ const enum ErrorItem {
   /**
    * Raised by the parser when an option requirement is not satisfied.
    */
-  optionRequires,
+  unsatisfiedRequirement,
   /**
    * Raised by the parser when an option that is always required was not specified.
    */
@@ -59,13 +50,10 @@ const enum ErrorItem {
    */
   missingPackageJson,
   /**
-   * Raised by the parser when a positional marker is specified with an inline value.
+   * Raised by the parser when wither a niladic option or a positional marker is specified with an
+   * inline value.
    */
-  positionalInlineValue,
-  /**
-   * Raised by the parser when a niladic option is specified with an inline value.
-   */
-  optionInlineValue,
+  disallowedInlineValue,
   /**
    * Raised by the validator when a positional option has an empty positional marker.
    */
@@ -73,7 +61,7 @@ const enum ErrorItem {
   /**
    * Raised by the validator when a non-positional option has no name.
    */
-  optionWithNoName,
+  unnamedOption,
   /**
    * Raised by the validator when an option has an invalid name.
    */
@@ -81,23 +69,23 @@ const enum ErrorItem {
   /**
    * Raised by the validator when a version option has an empty version string.
    */
-  optionEmptyVersion,
+  emptyVersionDefinition,
   /**
    * Raised by the validator when an option requires itself.
    */
-  optionRequiresItself,
+  invalidSelfRequirement,
   /**
    * Raised by the validator when an option requires an unknown option.
    */
   unknownRequiredOption,
   /**
-   * Raised by the validator when an option requires a niladic option with a value.
+   * Raised by the validator when an option requires a non-valued option.
    */
-  niladicOptionRequiredValue,
+  invalidRequiredOption,
   /**
    * Raised by the validator when an option has a zero-length enumeration array.
    */
-  optionZeroEnum,
+  emptyEnumsDefinition,
   /**
    * Raised by the validator when an option has a duplicate name.
    */
@@ -117,38 +105,55 @@ const enum ErrorItem {
   /**
    * Raised by the validator when an option is required with a value of incompatible data type.
    */
-  optionValueIncompatible,
+  incompatibleRequiredValue,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a string option's
    * enumeration constraint.
    */
-  stringOptionEnums,
+  stringEnumsConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a string option's
    * regex constraint.
    */
-  stringOptionRegex,
+  regexConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a number option's
    * enumeration constraint.
    */
-  numberOptionEnums,
+  numberEnumsConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy a number option's
    * range constraint.
    */
-  numberOptionRange,
+  rangeConstraintViolation,
   /**
    * Raised by either the parser or validator when a value fails to satisfy an array option's
    * limit constraint.
    */
-  arrayOptionLimit,
+  limitConstraintViolation,
+  /**
+   * Warning saved by the parser when a deprecated option is specified on the command-line.
+   */
+  deprecatedOption,
+  /**
+   * Raised by the parser when a conditional option requirement is not satisfied.
+   */
+  unsatisfiedCondRequirement,
+  /**
+   * Raised by the validator when an option has a duplicate cluster letter.
+   */
+  duplicateClusterLetter,
+  /**
+   * Raised by the parser when either a variadic array option or a command option is specified in
+   * the middle of a cluster argument.
+   */
+  invalidClusterOption,
 }
 
 /**
  * The kind of items that can be shown in the option description.
  */
-const enum HelpItem {
+export const enum HelpItem {
   /**
    * The option synopsis.
    */
@@ -206,7 +211,7 @@ const enum HelpItem {
    */
   limit,
   /**
-   * The option requirements, if any.
+   * The option's requirements, if any.
    */
   requires,
   /**
@@ -225,12 +230,25 @@ const enum HelpItem {
    * The external resource reference, if any.
    */
   link,
+  /**
+   * The option's environment variable, if any.
+   */
+  envVar,
+  /**
+   * The option's conditional requirements, if any.
+   */
+  requiredIf,
+  /**
+   * The option's cluster letters, if any.
+   */
+  clusterLetters,
 }
 
 /**
- * A single-parameter cursor movement command.
+ * A control sequence introducer command.
+ * @see https://xtermjs.org/docs/api/vtfeatures/#csi
  */
-const enum MoveCommand {
+const enum ControlSequence {
   /**
    * Cursor Up. Move cursor Ps times up (default=1).
    */
@@ -275,22 +293,10 @@ const enum MoveCommand {
    * Vertical Position Relative. Move cursor Ps times down (default=1).
    */
   vpr = 'e',
-}
-
-/**
- * A two-parameter cursor movement command.
- */
-const enum MoveToCommand {
   /**
    * Cursor Position. Set cursor to position [Ps, Ps] (default = [1, 1]).
    */
   cup = 'H',
-}
-
-/**
- * A single-parameter edit command.
- */
-const enum EditCommand {
   /**
    * Erase In Display. Erase various parts of the viewport.
    */
@@ -335,12 +341,6 @@ const enum EditCommand {
    * Delete Columns. Delete Ps columns at cursor position.
    */
   dcl = "'~",
-}
-
-/**
- * A single-parameter scroll command.
- */
-const enum ScrollCommand {
   /**
    * Scroll Left. Scroll viewport Ps times to the left.
    */
@@ -357,33 +357,15 @@ const enum ScrollCommand {
    * Scroll Down. Scroll Ps lines down (default=1).
    */
   sd = 'T',
-}
-
-/**
- * A multi-parameter text style command.
- */
-const enum StyleCommand {
   /**
    * Select Graphic Rendition. Set/Reset various text attributes.
    */
   sgr = 'm',
-}
-
-/**
- * A two-parameter margin command.
- */
-const enum MarginCommand {
   /**
    * Set Top and Bottom Margins. Set top and bottom margins of the viewport [top;bottom] (default =
    * viewport size).
    */
   tbm = 'r',
-}
-
-/**
- * A miscellaneous command.
- */
-const enum MiscCommand {
   /**
    * Set Mode. Set various terminal modes.
    */

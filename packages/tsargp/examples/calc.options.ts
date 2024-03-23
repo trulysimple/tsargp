@@ -24,7 +24,12 @@ const binaryOpts = {
   /**
    * A numbers option that receives at most two positional arguments.
    */
-  numbers: { ...multiOpts.numbers, limit: 2 },
+  numbers: {
+    ...multiOpts.numbers,
+    limit: 2,
+    required: true,
+    default: undefined, // override this setting
+  },
 } as const satisfies Options;
 
 /**

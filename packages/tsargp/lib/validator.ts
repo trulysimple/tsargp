@@ -1,8 +1,7 @@
 //--------------------------------------------------------------------------------------------------
-// Imports and Exports
+// Imports
 //--------------------------------------------------------------------------------------------------
 import type {
-  URL,
   Option,
   Options,
   Requires,
@@ -14,32 +13,24 @@ import type {
   NumbersOption,
   ArrayOption,
   ParamValue,
+  ValuedOption,
 } from './options';
 import type { Style } from './styles';
+import type { Concrete, URL } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
-import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray } from './options';
-import { style, TerminalString, ErrorMessage } from './styles';
+import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued } from './options';
+import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
 import { assert } from './utils';
-
-export type {
-  Positional,
-  Concrete,
-  ErrorStyles,
-  ErrorConfig,
-  ConcreteStyles,
-  ConcreteError,
-  FormatFunction,
-};
-export { OptionValidator, defaultConfig, formatFunctions };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
  * The error formatting functions.
+ * @internal
  */
-const formatFunctions = {
+export const formatFunctions = {
   /**
    * The boolean formatting function.
    */
@@ -76,8 +67,9 @@ const formatFunctions = {
 
 /**
  * The default error messages configuration.
+ * @internal
  */
-const defaultConfig: ConcreteError = {
+export const defaultConfig: ConcreteError = {
   styles: {
     boolean: style(fg.yellow),
     string: style(fg.green),
@@ -94,31 +86,39 @@ const defaultConfig: ConcreteError = {
       '%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.',
     [ErrorItem.unknownOption]: 'Unknown option %o.',
     [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1. Similar names are %o2.',
-    [ErrorItem.optionRequires]: 'Option %o requires %t.',
+    [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %t.',
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
     [ErrorItem.missingPackageJson]: 'Could not find a "package.json" file.',
-    [ErrorItem.positionalInlineValue]: 'Positional marker %o does not accept inline values.',
-    [ErrorItem.optionInlineValue]: 'Option %o does not accept inline values.',
+    [ErrorItem.disallowedInlineValue]: 'Option %o does not accept inline values.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o contains empty positional marker.',
-    [ErrorItem.optionWithNoName]: 'Non-positional option %o has no name.',
+    [ErrorItem.unnamedOption]: 'Non-positional option %o has no name.',
     [ErrorItem.invalidOptionName]: 'Invalid option name %o.',
-    [ErrorItem.optionEmptyVersion]: 'Option %o contains empty version.',
-    [ErrorItem.optionRequiresItself]: 'Option %o requires itself.',
-    [ErrorItem.unknownRequiredOption]: 'Unknown required option %o.',
-    [ErrorItem.niladicOptionRequiredValue]: 'Required option %o does not accept values.',
-    [ErrorItem.optionZeroEnum]: 'Option %o has zero enum values.',
+    [ErrorItem.emptyVersionDefinition]: 'Option %o contains empty version.',
+    [ErrorItem.invalidSelfRequirement]: 'Option %o requires itself.',
+    [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
+    [ErrorItem.invalidRequiredOption]: 'Non-valued option %o in requirement.',
+    [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Duplicate option name %o.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o.',
     [ErrorItem.duplicateStringOptionEnum]: 'Option %o has duplicate enum %s.',
     [ErrorItem.duplicateNumberOptionEnum]: 'Option %o has duplicate enum %n.',
-    [ErrorItem.optionValueIncompatible]:
+    [ErrorItem.incompatibleRequiredValue]:
       'Option %o has incompatible value %p. Should be of type %s.',
-    [ErrorItem.stringOptionEnums]: 'Invalid parameter to %o: %s1. Possible values are %s2.',
-    [ErrorItem.stringOptionRegex]: 'Invalid parameter to %o: %s. Value must match the regex %r.',
-    [ErrorItem.numberOptionEnums]: 'Invalid parameter to %o: %n1. Possible values are %n2.',
-    [ErrorItem.numberOptionRange]: 'Invalid parameter to %o: %n1. Value must be in the range %n2.',
-    [ErrorItem.arrayOptionLimit]: 'Option %o has too many values (%n1). Should have at most %n2.',
+    [ErrorItem.stringEnumsConstraintViolation]:
+      'Invalid parameter to %o: %s1. Possible values are %s2.',
+    [ErrorItem.regexConstraintViolation]:
+      'Invalid parameter to %o: %s. Value must match the regex %r.',
+    [ErrorItem.numberEnumsConstraintViolation]:
+      'Invalid parameter to %o: %n1. Possible values are %n2.',
+    [ErrorItem.rangeConstraintViolation]:
+      'Invalid parameter to %o: %n1. Value must be in the range %n2.',
+    [ErrorItem.limitConstraintViolation]:
+      'Option %o has too many values (%n1). Should have at most %n2.',
+    [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
+    [ErrorItem.unsatisfiedCondRequirement]: 'Option %o is required if %t.',
+    [ErrorItem.duplicateClusterLetter]: 'Duplicate cluster letter %o.',
+    [ErrorItem.invalidClusterOption]: 'Option %o must be the last in a cluster.',
   },
 };
 
@@ -126,9 +126,10 @@ const defaultConfig: ConcreteError = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * Information regarding a positional option. Used internally.
+ * Information regarding a positional option.
+ * @internal
  */
-type Positional = {
+export type Positional = {
   key: string;
   name: string;
   option: Option;
@@ -137,8 +138,9 @@ type Positional = {
 
 /**
  * A set of formatting functions for error messages.
+ * @internal
  */
-type FormatFunction = (
+export type FormatFunction = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any,
   styles: ConcreteStyles,
@@ -149,7 +151,7 @@ type FormatFunction = (
 /**
  * A set of styles for displaying text on the terminal.
  */
-type ErrorStyles = {
+export type ErrorStyles = {
   /**
    * The style of boolean values.
    */
@@ -185,9 +187,9 @@ type ErrorStyles = {
 };
 
 /**
- * The error messages configuration.
+ * The error message configuration.
  */
-type ErrorConfig = {
+export type ErrorConfig = {
   /**
    * The error message styles
    */
@@ -199,25 +201,15 @@ type ErrorConfig = {
 };
 
 /**
- * A concrete version of the error messages configuration.
+ * A concrete version of the error message configuration.
  */
-type ConcreteError = Concrete<ErrorConfig>;
+export type ConcreteError = Concrete<ErrorConfig>;
 
 /**
  * A concrete version of the error message styles.
+ * @internal
  */
-type ConcreteStyles = ConcreteError['styles'];
-
-/**
- * A helper type to remove optionality from types and properties.
- * @template T The source type
- */
-type Concrete<T> = Exclude<
-  {
-    [K in keyof T]-?: Concrete<T[K]>;
-  },
-  undefined
->;
+export type ConcreteStyles = ConcreteError['styles'];
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -225,16 +217,15 @@ type Concrete<T> = Exclude<
 /**
  * Implements a compilation of option definitions.
  */
-class OptionValidator {
+export class OptionValidator {
   readonly names = new Map<string, string>();
-  readonly required = new Array<string>();
+  readonly letters = new Map<string, string>();
   readonly positional: Positional | undefined;
 
   /**
    * Creates an option validator based on a set of option definitions.
    * @param options The option definitions
-   * @param config The error messages configuration
-   * @throws On duplicate option names and duplicate positional options
+   * @param config The error message configuration
    */
   constructor(
     readonly options: Options,
@@ -244,14 +235,8 @@ class OptionValidator {
       const option = this.options[key];
       this.registerNames(key, option);
       if ('positional' in option && option.positional) {
-        if (this.positional) {
-          throw this.error(ErrorItem.duplicatePositionalOption, { o: key });
-        }
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name: option.preferredName ?? '', option, marker };
-      }
-      if ('required' in option && option.required) {
-        this.required.push(key);
       }
     }
   }
@@ -261,128 +246,159 @@ class OptionValidator {
    * @param key The option key
    * @param option The option definition
    * @param validate True if performing validation
-   * @throws On no name, invalid name, duplicate name or empty positional marker
+   * @param prefix The command prefix, if any
+   * @throws On empty positional marker, option with no name, invalid option name, duplicate name or
+   * duplicate cluster letter
    */
-  private registerNames(key: string, option: Option, validate = false) {
+  private registerNames(key: string, option: Option, validate = false, prefix = '') {
     const names = option.names ? option.names.slice() : [];
     if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames);
     }
     if ('positional' in option) {
       if (validate && option.positional === '') {
-        throw this.error(ErrorItem.emptyPositionalMarker, { o: key });
+        throw this.error(ErrorItem.emptyPositionalMarker, { o: prefix + key });
       }
       if (typeof option.positional === 'string') {
         names.push(option.positional);
       }
     } else if (validate && !names.find((name) => name)) {
-      throw this.error(ErrorItem.optionWithNoName, { o: key });
+      throw this.error(ErrorItem.unnamedOption, { o: prefix + key });
     }
     for (const name of names) {
       if (!name) {
         continue;
       }
-      if (!validate) {
-        if (this.names.has(name)) {
-          throw this.error(ErrorItem.duplicateOptionName, { o: name });
-        }
-        this.names.set(name, key);
-      } else if (name.match(/[\s=]+/)) {
+      if (validate && name.match(/[\s=]+/)) {
         throw this.error(ErrorItem.invalidOptionName, { o: name });
       }
+      if (validate && this.names.has(name)) {
+        throw this.error(ErrorItem.duplicateOptionName, { o: name });
+      }
+      this.names.set(name, key);
     }
     if (!option.preferredName) {
       option.preferredName = names.find((name): name is string => !!name);
     }
+    if ('clusterLetters' in option && option.clusterLetters) {
+      for (const letter of option.clusterLetters) {
+        if (validate && this.letters.has(letter)) {
+          throw this.error(ErrorItem.duplicateClusterLetter, { o: prefix + letter });
+        }
+        this.letters.set(letter, key);
+      }
+    }
   }
 
   /**
-   * Validates all options' definitions
-   * @throws On options with no name, invalid name, empty positional marker, invalid enum values,
-   * invalid default value, invalid example value, invalid requirements, invalid required values,
-   * version option with empty version and module-resolve function
+   * Validates all options' definitions, including command options recursively.
+   * @param prefix The command prefix, if any
+   * @param visited The set of visited option definitions
+   * @throws On duplicate positional option, invalid enum values, invalid default value or invalid
+   * example value
    */
-  validate() {
+  validate(prefix = '', visited = new Set<Options>()) {
+    let positional = false; // to check for duplicate positional options
+    this.names.clear(); // to check for duplicate option names
+    this.letters.clear(); // to check for duplicate cluster letters
     for (const key in this.options) {
       const option = this.options[key];
-      this.registerNames(key, option, true);
+      this.registerNames(key, option, true, prefix);
       if (!isNiladic(option)) {
-        this.validateEnums(key, option);
-        if (typeof option.default !== 'function') {
-          this.validateValue(key, option, option.default);
+        if (option.positional) {
+          if (positional) {
+            throw this.error(ErrorItem.duplicatePositionalOption, { o: prefix + key });
+          }
+          positional = true;
         }
-        this.validateValue(key, option, option.example);
+        this.validateEnums(prefix + key, option);
+        if (typeof option.default !== 'function') {
+          this.validateValue(prefix + key, option, option.default);
+        }
+        this.validateValue(prefix + key, option, option.example);
       }
       // no need to verify flag option default value
-      if (option.requires) {
-        this.validateRequirements(key, option.requires);
+      if ('requires' in option && option.requires) {
+        this.validateRequirements(prefix, key, option.requires);
+      }
+      if ('requiredIf' in option && option.requiredIf) {
+        this.validateRequirements(prefix, key, option.requiredIf);
       }
       if (option.type === 'version' && option.version === '') {
-        throw this.error(ErrorItem.optionEmptyVersion, { o: key });
+        throw this.error(ErrorItem.emptyVersionDefinition, { o: prefix + key });
+      }
+      if (option.type === 'command') {
+        const options = typeof option.options === 'function' ? option.options() : option.options;
+        if (!visited.has(options)) {
+          visited.add(options);
+          new OptionValidator(options, this.config).validate(prefix + key + '.', visited);
+        }
       }
     }
   }
 
   /**
    * Validates an option's requirements.
+   * @param prefix The command prefix
    * @param key The option key
    * @param requires The option requirements
-   * @throws On invalid requirements or invalid required values
    */
-  private validateRequirements(key: string, requires: Requires) {
+  private validateRequirements(prefix: string, key: string, requires: Requires) {
     if (typeof requires === 'string') {
-      this.validateRequirement(key, requires);
+      this.validateRequirement(prefix, key, requires);
     } else if (requires instanceof RequiresNot) {
-      this.validateRequirements(key, requires.item);
+      this.validateRequirements(prefix, key, requires.item);
     } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
       for (const item of requires.items) {
-        this.validateRequirements(key, item);
+        this.validateRequirements(prefix, key, item);
       }
-    } else {
+    } else if (typeof requires === 'object') {
       for (const requiredKey in requires) {
-        this.validateRequirement(key, requiredKey, requires[requiredKey]);
+        this.validateRequirement(prefix, key, requiredKey, requires[requiredKey]);
       }
     }
   }
 
   /**
    * Validates an option requirement.
-   * @param key The requiring option key
+   * @param prefix The command prefix
+   * @param key The option key
    * @param requiredKey The required option key
    * @param requiredValue The required value, if any
-   * @throws On option requiring itself, unknown required option, niladic option required with value
-   * or invalid required values for non-niladic options
+   * @throws On option requiring itself, unknown required option, invalid required option or
+   * incompatible required values
    */
   private validateRequirement(
+    prefix: string,
     key: string,
     requiredKey: string,
     requiredValue?: RequiresVal[string],
   ) {
     if (requiredKey === key) {
-      throw this.error(ErrorItem.optionRequiresItself, { o: requiredKey });
+      throw this.error(ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
     }
     if (!(requiredKey in this.options)) {
-      throw this.error(ErrorItem.unknownRequiredOption, { o: requiredKey });
+      throw this.error(ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
+    }
+    const option = this.options[requiredKey];
+    if (!isValued(option)) {
+      throw this.error(ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
     }
     if (requiredValue !== undefined && requiredValue !== null) {
-      const option = this.options[requiredKey];
-      if (isNiladic(option)) {
-        throw this.error(ErrorItem.niladicOptionRequiredValue, { o: requiredKey });
-      }
-      this.validateValue(requiredKey, option, requiredValue);
+      this.validateValue(prefix + requiredKey, option, requiredValue);
     }
   }
 
   /**
    * Checks the sanity of the option's enumerated values.
-   * @param key The option key
+   * @param key The option key (plus the prefix, if any)
    * @param option The option definition
    * @throws On zero or duplicate enumerated values or values not satisfying specified constraints
    */
   private validateEnums(key: string, option: ParamOption) {
     if ('enums' in option && option.enums) {
       if (!option.enums.length) {
-        throw this.error(ErrorItem.optionZeroEnum, { o: key });
+        throw this.error(ErrorItem.emptyEnumsDefinition, { o: key });
       }
       const set = new Set<string | number>(option.enums);
       if (set.size !== option.enums.length) {
@@ -401,29 +417,29 @@ class OptionValidator {
   /**
    * Asserts that an option value conforms to a type.
    * @param value The option value
-   * @param key The option key
+   * @param key The option key (plus the prefix, if any)
    * @param type The data type name
    * @throws On value not conforming to the given type
    */
   private assertType<T>(value: unknown, key: string, type: string): asserts value is T {
     if (typeof value !== type) {
-      throw this.error(ErrorItem.optionValueIncompatible, { o: key, p: value, s: type });
+      throw this.error(ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
     }
   }
 
   /**
    * Checks the sanity of the option's value (default, example or required).
-   * @param key The option key
+   * @param key The option key (plus the prefix, if any)
    * @param option The option definition
    * @param value The option value
-   * @returns Nothing
    * @throws On value not satisfying specified constraints
    */
-  private validateValue(key: string, option: ParamOption, value: ParamOption['example']) {
+  private validateValue(key: string, option: ValuedOption, value: unknown) {
     if (value === undefined) {
       return;
     }
     switch (option.type) {
+      case 'flag':
       case 'boolean':
         this.assertType<boolean>(value, key, 'boolean');
         break;
@@ -436,7 +452,7 @@ class OptionValidator {
         this.normalizeNumber(option, key, value);
         break;
       case 'strings': {
-        this.assertType<object>(value, key, 'object');
+        this.assertType<Array<string>>(value, key, 'object');
         const normalized = value.map((val) => {
           this.assertType<string>(val, key, 'string');
           return this.normalizeString(option, key, val);
@@ -445,17 +461,13 @@ class OptionValidator {
         break;
       }
       case 'numbers': {
-        this.assertType<object>(value, key, 'object');
+        this.assertType<Array<number>>(value, key, 'object');
         const normalized = value.map((val) => {
           this.assertType<number>(val, key, 'number');
           return this.normalizeNumber(option, key, val);
         });
         this.normalizeArray(option, key, normalized);
         break;
-      }
-      default: {
-        const _exhaustiveCheck: never = option;
-        return _exhaustiveCheck;
       }
     }
   }
@@ -504,10 +516,14 @@ class OptionValidator {
       value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
     }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      throw this.error(ErrorItem.stringOptionEnums, { o: name, s1: value, s2: option.enums });
+      throw this.error(ErrorItem.stringEnumsConstraintViolation, {
+        o: name,
+        s1: value,
+        s2: option.enums,
+      });
     }
     if ('regex' in option && option.regex && !option.regex.test(value)) {
-      throw this.error(ErrorItem.stringOptionRegex, { o: name, s: value, r: option.regex });
+      throw this.error(ErrorItem.regexConstraintViolation, { o: name, s: value, r: option.regex });
     }
     return value;
   }
@@ -529,14 +545,22 @@ class OptionValidator {
       value = Math[option.round](value);
     }
     if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      throw this.error(ErrorItem.numberOptionEnums, { o: name, n1: value, n2: option.enums });
+      throw this.error(ErrorItem.numberEnumsConstraintViolation, {
+        o: name,
+        n1: value,
+        n2: option.enums,
+      });
     }
     if (
       'range' in option &&
       option.range &&
       !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
     ) {
-      throw this.error(ErrorItem.numberOptionRange, { o: name, n1: value, n2: option.range });
+      throw this.error(ErrorItem.rangeConstraintViolation, {
+        o: name,
+        n1: value,
+        n2: option.range,
+      });
     }
     return value;
   }
@@ -560,7 +584,7 @@ class OptionValidator {
       value.push(...unique);
     }
     if (option.limit !== undefined && value.length > option.limit) {
-      throw this.error(ErrorItem.arrayOptionLimit, {
+      throw this.error(ErrorItem.limitConstraintViolation, {
         o: name,
         n1: value.length,
         n2: option.limit,
@@ -570,45 +594,70 @@ class OptionValidator {
   }
 
   /**
+   * Creates a warning with a formatted message.
+   * @param kind The kind of warning message
+   * @param args The warning arguments
+   * @returns The formatted warning
+   */
+  warn(kind: ErrorItem, args?: Record<string, unknown>): WarnMessage {
+    return new WarnMessage(formatMessage(this.config, kind, args));
+  }
+
+  /**
    * Creates an error with a formatted message.
    * @param kind The kind of error message
    * @param args The error arguments
    * @returns The formatted error
    */
   error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
-    const str = new TerminalString().addSequence(this.config.styles.text);
-    const phrase = this.config.phrases[kind];
-    if (args) {
-      str.splitText(phrase, (spec) => {
-        const arg = spec.slice(1);
-        const fmt = arg[0];
-        if (fmt in formatFunctions && arg in args) {
-          const value = args[arg];
-          const format = (formatFunctions as Record<string, FormatFunction>)[fmt];
-          if (Array.isArray(value)) {
-            str.addOpening('[');
-            value.forEach((val, i) => {
-              format(val, this.config.styles, this.config.styles.text, str);
-              if (i < value.length - 1) {
-                str.addClosing(',');
-              }
-            });
-            str.addClosing(']');
-          } else {
-            format(value, this.config.styles, this.config.styles.text, str);
-          }
-        }
-      });
-    } else {
-      str.splitText(phrase);
-    }
-    return new ErrorMessage(str);
+    return new ErrorMessage(formatMessage(this.config, kind, args));
   }
 }
 
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Creates a terminal string with a formatted message.
+ * @param config The error message configuration
+ * @param kind The kind of error message
+ * @param args The error arguments
+ * @returns The terminal string
+ */
+function formatMessage(
+  config: ConcreteError,
+  kind: ErrorItem,
+  args?: Record<string, unknown>,
+): TerminalString {
+  const result = new TerminalString().addSequence(config.styles.text);
+  const phrase = config.phrases[kind];
+  if (args) {
+    result.splitText(phrase, (spec) => {
+      const arg = spec.slice(1);
+      const fmt = arg[0];
+      if (fmt in formatFunctions && arg in args) {
+        const value = args[arg];
+        const format = (formatFunctions as Record<string, FormatFunction>)[fmt];
+        if (Array.isArray(value)) {
+          result.addOpening('[');
+          value.forEach((val, i) => {
+            format(val, config.styles, config.styles.text, result);
+            if (i < value.length - 1) {
+              result.addClosing(',');
+            }
+          });
+          result.addClosing(']');
+        } else {
+          format(value, config.styles, config.styles.text, result);
+        }
+      }
+    });
+  } else {
+    result.splitText(phrase);
+  }
+  return result;
+}
+
 /**
  * Formats a boolean value to be printed on the terminal.
  * @param value The boolean value

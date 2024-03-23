@@ -1,6 +1,12 @@
-# docs
+# tsargp docs
 
-Documentation for tsargp.
+Documentation for [tsargp](https://www.npmjs.com/package/tsargp).
+
+## Usage
+
+Serve docs from `node_modules/@trulysimple/tsargp-docs/dist` with an HTTP server.
+
+## Build
 
 ```sh
 curl -fsSL https://bun.sh/install | bash

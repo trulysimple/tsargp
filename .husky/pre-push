@@ -4,7 +4,7 @@ if echo "$local_branch" | grep -Eq '^(changeset-release\/)?(main|dev|next)$'; th
   exit 0
 fi
 
-if ! echo "$local_branch" | grep -Eq '^issues\/[0-9]+$'
+if ! echo "$local_branch" | grep -Eq '^(issues|refactor)\/[0-9]+$'
 then
   echo "Please read our contributing guide before submitting a PR:
 [90mhttps://github.com/trulysimple/.github/blob/main/CONTRIBUTING.md[0m"

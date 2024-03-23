@@ -1,0 +1,171 @@
+---
+title: Help - Guides - Docs
+---
+
+import { Callout } from 'nextra/components';
+
+# Help
+
+In this guide, we will be creating a command-line interface that provides different help mechanisms.
+
+## Help option
+
+The most straightforward way to provide help for your CLI is by declaring a
+[help option](../library/options.mdx#help-option). In its simplest form, it has the following
+definition:
+
+```ts
+import { type Options } from 'tsargp';
+export default {
+  help: {
+    type: 'help',
+    names: ['--help'],
+    desc: 'Prints this help message.',
+  },
+} as const satisfies Options;
+```
+
+You can also provide an introduction, usage and footer:
+
+```ts
+import { type Options, style, fg } from 'tsargp';
+export default {
+  help: {
+    // ...
+    sections: [
+      {
+        type: 'text',
+        text: 'A command-line interface for <purpose>.',
+      },
+      {
+        type: 'usage',
+      },
+      {
+        type: 'groups',
+        style: style(tf.underlined), // underlined option group headings
+      },
+      {
+        type: 'text',
+        text: `Refer to ${style(fg.brightBlack)}<website>${style(fg.default)} for support.`,
+      },
+    ],
+  },
+} as const satisfies Options;
+```
+
+You may want to customize the help message format, e.g.:
+
+```ts
+import { type Options, HelpItem, style, tf } from 'tsargp';
+export default {
+  help: {
+    // ...
+    format: {
+      names: { indent: 4 }, // indent option names by 4 spaces
+      descr: { breaks: 1 }, // line feed before option descriptions
+      param: { hidden: true }, // hide option parameter/examples
+      items: [HelpItem.synopsis, HelpItem.required, HelpItem.deprecated],
+      phrases: {
+        [HelpItem.synopsis]: '💡 %s', // option synopsis with emoji
+      },
+    },
+    styles: {
+      descr: style(tf.italic), // italic description for this option
+    },
+  },
+} as const satisfies Options;
+```
+
+Which, when invoked with `--help`, would render something like:
+
+```ansi
+A command-line interface for <purpose>.
+
+[4mOptions:[0m
+
+    [95m-h[0m, [95m--help[0m
+                [3m💡 Prints this help message.[0m
+
+Refer to [90m<website>[39m for support.
+```
+
+## Help command
+
+Another way to offer help is by defining a "help" command. This method still uses the help option
+from the previous example, but increments it by providing a new syntax to obtain help for _nested_
+commands. For example, to present help for a nested command called `cmd`, the following invocations
+would be equivalent:
+
+```sh
+./my_cli help cmd
+./my_cli cmd --help
+```
+
+To achieve this, we have to define a [command option](../library/options.mdx#command-option). We can
+start with the definitions for the nested commands' options:
+
+```ts
+import type { Options } from 'tsargp';
+
+const cmd1Opts = {
+  // option definitions for cmd1, including its 'help'...
+} as const satisfies Options;
+
+const cmd2Opts = {
+  // option definitions for cmd2, including its 'help'...
+} as const satisfies Options;
+
+const helpOpts = {
+  name: {
+    type: 'string',
+    desc: 'The name of the nested command.',
+    enums: ['cmd1', 'cmd2'], // the names of nested commands
+    preferredName: 'command name', // appears in error messages
+    positional: true,
+    required: true, // error if called without a command name
+  },
+} as const satisfies Options;
+```
+
+Now we can define the main command options:
+
+```ts
+import type { Options, OptionValues } from 'tsargp';
+import { ArgumentParser } from 'tsargp';
+export default {
+  cmd1: {
+    type: 'command',
+    names: ['cmd1'],
+    options: cmd1Opts,
+    // ...
+  },
+  cmd2: {
+    type: 'command',
+    names: ['cmd2'],
+    options: cmd2Opts,
+    // ...
+  },
+  help: {
+    type: 'command',
+    names: ['help'],
+    desc: 'Prints the help message of a nested command.',
+    options: helpOpts,
+    cmd(_, cmdValues) {
+      const vals = cmdValues as OptionValues<typeof helpOpts>;
+      const opts = vals.name === 'cmd1' ? cmd1Opts : cmd2Opts;
+      // this will throw the help message
+      new ArgumentParser(opts).parse(['--help'], { progName: vals.name });
+    },
+  },
+} as const satisfies Options;
+```
+
+The `progName` configuration parameter is not strictly necessary, since in this case the operation
+will be quick (so there's no point in updating the process title). It's there just for the sake of
+completeness.
+
+<Callout type="info">
+  Keep in mind that, when bash completion is in effect, the command callback [is not
+  called](../library/options.mdx#command-callback). Thus, if the callback _does_ get executed, you
+  need not worry about the `compIndex` configuration for the delegated `parse` call.
+</Callout>

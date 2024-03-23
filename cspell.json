@@ -3,6 +3,7 @@
   "version": "0.2",
   "language": "en",
   "dictionaries": ["cpp", "typescript"],
+  "words": ["uncategorized"],
   "ignoreWords": [
     "Sogari",
     "lockb",
@@ -18,11 +19,20 @@
     "svgr",
     "oclif",
     "codemirror",
-    "CODEOWNERS"
+    "CODEOWNERS",
+    "IIFE"
   ],
   "ignoreRegExpList": ["gh-username", "ga-measurement-id"],
-  "ignorePaths": ["*.lockb", ".prettierignore", "CODEOWNERS"],
+  "ignorePaths": [
+    "*.lockb",
+    ".prettierignore",
+    "CODEOWNERS",
+    "pre.json",
+    ".git",
+    "*.{js,ts,jsx,tsx,mdx}"
+  ],
   "useGitignore": true,
+  "enableGlobDot": true,
   "patterns": [
     {
       "name": "gh-username",

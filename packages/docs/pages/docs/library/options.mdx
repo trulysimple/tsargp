@@ -6,7 +6,7 @@ import { Callout } from 'nextra/components';
 
 # Options
 
-Any command-line interface is composed of commands and options (sometimes called _flags_). Options
+Any command-line interface is composed of commands and options (also known as _flags_). Options
 allow the calling application or user to configure the command that will run. **tsargp** offers a
 selection of option types that should suit most applications. In the next sections, we present the
 available types and describe them in detail.
@@ -51,11 +51,8 @@ All options share a set of attributes in addition to their type, which are descr
 
 The `names` attribute lists the option names as they may appear on the command-line (e.g. `-h` or
 `--help`). Names must not contain whitespace or the equals sign `'='{:ts}`, since this character may
-be used as option-value separator.
-
-Empty strings or `null{:ts}`s can be specified in order to skip the respective "slot" in the help
-message [names column](formatter.mdx#names-column). However, if the option is not positional (i.e.,
-it does not accept positional arguments), then it must contain at least one valid name.
+be used as an option-value separator. If the option is not positional (i.e., it does not accept
+positional arguments), then it must contain at least one valid name.
 
 The `preferredName` attribute, if present, is displayed in error and help messages in cases where a
 name is not available (e.g., when evaluating option requirements or processing positional arguments).
@@ -64,21 +61,21 @@ will be used.
 
 #### Synopsis & deprecated
 
-The `desc` attribute is the option synopsis. The `deprecated` attribute is just syntactic
-sugar for the option deprecation reason. Both attributes are formatted in the help message according
-to [text formatting](styles.mdx#text-splitting) rules.
+The `desc` attribute is the option synopsis. The `deprecated` attribute specifies the option
+deprecation reason. Both attributes are formatted in the help message according to [text
+formatting](styles.mdx#text-splitting) rules.
 
 <Callout type="info">
-  Since the library was designed to avoid using the `console`, it does _not_ log warnings when it
-  encounters deprecated options on the command-line. For this purpose, you may want to use a custom
-  parsing callback (more on that later), although it is only available for non-niladic options.
+  Deprecated options specified on the command-line generate a [warning
+  message](styles.mdx#warning-message), which you may want to process by calling the parser's
+  [`doParse`](parser.mdx#getting-warnings) or [`tryParse`](parser.mdx#avoiding-trycatch) methods.
 </Callout>
 
 #### Group & hide
 
 The `group` attribute is the name of a group under which the option should appear in the help
-message, whereas the `hide` attribute indicates to the formatter that the option should _not_ be
-displayed in the help message.
+message. The `hide` attribute indicates to the formatter that the option should _not_ be displayed
+in the help message.
 
 <Callout type="default">
   You can assign a unique group to the [positional option](#positional--marker) (if there is one)
@@ -87,25 +84,70 @@ displayed in the help message.
 
 #### Display styles
 
-The `styles` attribute can be used to customize the styling of the help message entry for the
-option. It has the following optional properties:
+The `styles` attribute can be used to customize the [styling](styles.mdx#styling-attributes) of the
+help message entry for the option. It has the following optional properties:
 
 - `names` - the style of the option names
 - `param` - the style of the option paramater
 - `descr` - the style of the option description
 
-#### Requirements
+#### External reference
 
-The `requires` attribute, if present, specifies the option requirements, which can be either:
+The `link` attribute is the URL of an external resource or media, that is included in the help
+message if specified.
+
+### Value attributes
+
+All option types that may have a value share a set of attributes, which are described below.
+
+#### Always required
+
+The `required` attribute indicates that the option is _always_ required, regardless of other
+options. Mutually exclusive with [default value](#default-value--callback) and
+[conditional requirements](#conditional-requirements).
+
+#### Default value | callback
+
+The `default` attribute, if present, specifies the option's default value or a callback that returns
+the default value. This value is used at the end of the parsing loop _if_ the option was specified
+neither on the command-line nor as an [environment variable](#environment-variable). Mutually
+exclusive with [always required](#always-required).
+
+<Callout type="default">
+  [Function options](#function-option) and [command options](#command-option) accept any kind of
+  value as the default. In the case of object values, it's useful to specify a custom `toString`
+  method to render it in the help message, e.g.:
+  ```ts
+  toString() {
+    return JSON.stringify(this);
+  }
+  ```
+</Callout>
+
+If the value is not known beforehand (e.g., if it depends on the values of other options), you may
+want to use a callback to inspect parsed values and determine the default based on those values. It
+accepts one parameter:
+
+- `values` - the parsed values
+
+Notes about this callback:
+
+- if asynchronous, and is called, then the resulting option value will be a promise
+- it may be configured with a custom `toString` method to render it in the help message
+
+#### Forward requirements
+
+The `requires` attribute, if present, specifies requirements that must be satisfied _if_ the option
+is specified on the command-line. It can be either:
 
 - an option key;
-- an object that maps option keys to required values; or
-- a requirement expression
+- an object that maps option keys to required values;
+- a requirement expression; or
+- a requirement callback
 
-If set, then these requirements will be verified whenever the option is specified on the
-command-line. If it is an option key, then the referenced option must also be present on the
-command-line. If an object, then every referenced option should be present and have the
-corresponding value. If an expression, then it is evaluated as follows:
+In the case of an option key, the referenced option must also be present on the command-line.
+In the case of an object, every referenced option must have the corresponding value.
+In the case of an expression, it is evaluated as follows:
 
 - `req.all` - an expression that is satisfied only when _all_ items are satisfied
 - `req.one` - an expression that is satisfied when _at least one_ item is satisfied
@@ -116,44 +158,105 @@ corresponding value. If an expression, then it is evaluated as follows:
   and `null{:ts}` values to signify required _absence_.
 </Callout>
 
-#### External reference
+You can also specify a callback, which accepts the following parameter:
 
-The `link` attribute is the URL of an external resource or media, that is included in the help
-message if specified.
+- `values` - the parsed values
+
+Notes about this callback:
+
+- it should return `true{:ts}` if the requirements were satisfied, or `false{:ts}` otherwise
+- it cannot be asynchronous, since it must be evaluated within the parsing loop
+- it may be configured with a custom `toString` method to render it in error and help messages
+
+<Callout type="info">
+  You cannot reference options from a [nested command](#command-option) (parent or child) in a
+  requirement. Option keys must always refer to options in the same set of option definitions.
+</Callout>
+
+#### Conditional requirements
+
+The `requiredIf` attribute, if present, specifies conditional requirements. They behave like the
+reverse of the previous attribute: they indicate requirements that must be satisfied for the
+affected option to be _considered_ required. Mutually exclusive with
+[always required](#always-required).
+
+An example might help elucidate this distinction. Suppose we have these requirements:
+
+```ts
+req.all(
+  'option1',
+  req.one({ option2: null }, req.not({ option3: [2] })),
+  (values) => values['option1'] === values['option3'],
+);
+```
+
+If they were defined in the `requires` attribute, they would mean:
+
+> _If this option is specified (either on the command-line or in an environment variable), then the
+> following must hold true: `option1` must be present AND (`option2` must be absent OR `option3`
+> must have a value different than `[2]`) AND `option1` must have the same value as `option3`._
+
+If they were defined in the `requiredIf` attribute, they would mean:
+
+> _If `option1` is present AND (`option2` is absent OR `option3` has a value different than `[2]`)
+> AND `option1` has the same value as `option3`, then this option is considered required and must be
+> specified (either on the command-line or in an environment variable)._
+
+<Callout type="info">
+  During requirement evaluation, values are compared _after_ being normalized.
+</Callout>
+
+#### Cluster letters
+
+The `clusterLetters` attribute, if present, specifies letters (or any Unicode characters) that can
+be used to cluster options in the first command-line argument. This is also known as [_short-option_
+style]. This feature can be enabled via the parser's [`shortStyle`](parser.mdx#short-option-style)
+configuration property.
+
+[_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html
+
+Here is an example that illustrates how it works. Suppose we have the following options:
+
+- flag option, with name `'--flag'{:ts}` and letters `'fF'{:ts}`
+- string option, with name `'--str'{:ts}` and letters `'sS'{:ts}`
+- number option, with name `'--num'{:ts}` and letters `'nN'{:ts}`
+
+Given these options, the following invocations would be equivalent:
+
+```sh
+my_cli fsn 'my string' 123
+my_cli -fsn 'my string' 123
+my_cli fSN 'my string' 123
+my_cli -Fsn 'my string' 123
+```
+
+They would all be transformed to their "canonical" form, i.e.:
+
+```sh
+my_cli --flag --str 'my string' --num 123
+```
+
+Notes about this feature:
+
+- the order of the options in the cluster are preserved when converting to the canonical form
+- variadic array options and command options are supported, but must be the last option in a cluster
+- if a single dash is specified as the first character in a cluster argument, it is ignored
+- if `Tab`-completion is performed in a cluster argument, the default completion is thrown
+- positional options with no names are skipped in a cluster argument
 
 ### Parameter attributes
 
 All non-niladic option types share a set of attributes, which are described below.
 
-#### Required
-
-The `required` attribute indicates that the option is _always_ required, independently of other
-options. Mutually exclusive with [default value](#default-value--callback).
-
-#### Default value | callback
-
-The `default` attribute, if present, specifies either the default option value or a callback that
-returns the default value. This value is set as the option's value at the end of the parsing loop
-_if_ the option was not specified on the command-line. Mutually exclusive with [required](#required).
-
-If the value is not known beforehand (e.g., if it depends on the values of other options), you may
-want to use a callback to inspect parsed values and determine the default value based on those
-values. This callback accepts one parameter:
-
-- `values` - the parsed values
-
 #### Example value
 
 The `example` attribute, if present, specifies a value that replaces the option type in the help
-message [parameter column](formatter.mdx#parameter-column). Mutually exclusive with
-[parameter name](#parameter-name).
+message. Mutually exclusive with [parameter name](#parameter-name).
 
 #### Parameter name
 
-The `paramName` attribute, if present, replaces the option type in the help message
-[parameter column](formatter.mdx#parameter-column). If it contains an opening angle bracket
-`'<'{:ts}`, it is printed as-is; otherwise it is enclosed in angle brackets (e.g., `<param_name>`).
-Mutually exclusive with [example value](#example-value).
+The `paramName` attribute, if present, specifies a parameter name that replaces the option type in
+the help message. Mutually exclusive with [example value](#example-value).
 
 #### Positional | marker
 
@@ -161,8 +264,8 @@ The `positional` attribute, if present, indicates that the option accepts _posit
 There may be at most _one_ option with this setting.
 
 If set to `true{:ts}`, then any argument not recognized as an option name will be considered
-positional. If set to a string, then this string acts as positional marker. In this case, all
-arguments that appear _beyond_ the marker will be considered positional.
+positional. If set to a string, then it acts as positional marker, and all arguments that appear
+_beyond_ the marker will be considered positional.
 
 When using this attribute, we recommend also setting [preferred name](#names--preferred-name) to
 some explanatory name.
@@ -178,8 +281,10 @@ parameters:
 - `comp` - the word being completed (it may be an empty string)
 - `rest` - the remaining command-line arguments
 
-It should return the list of completion words and should not throw any errors. If asynchronous, you
-should call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
+Notes about this callback:
+
+- it should return the list of completion words and should not throw any errors
+- if asynchronous, you should await the result of [`parseAsync`](parser.mdx#executing-callbacks)
 
 #### Parse callback
 
@@ -190,16 +295,17 @@ parameter. It accepts three parameters:
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
-It should return a value of the data type expected by the option (it should be a single value, not
-an array). If asynchronous, then the data type of the option value in the resulting object will be
-enclosed in a promise. Mutually exclusive with [separator](#separator) and
-[parse delimited](#parse-delimited).
+Notes about this callback:
+
+- it should return a value of the data type expected by the option (this should not be an array)
+- if asynchronous, and is called, then the resulting option value will be a promise
+- mutually exclusive with [separator](#separator) and [parse delimited](#parse-delimited)
 
 #### Enumeration
 
 The `enums` attribute, if present, specifies enumerated values that the option accepts as parameter.
 Any parameter that does not equal one of these values (after normalization) will cause an error to
-be thrown. Explicitly not available for the [boolean option](#boolean-option). Mutually exclusive
+be thrown. Explicitly _not_ available for the [boolean option](#boolean-option). Mutually exclusive
 with [regular expression](#regular-expression) and [numeric range](#numeric-range).
 
 ### String attributes
@@ -249,9 +355,11 @@ Array-valued option types share a set of attributes, as described below.
 #### Separator
 
 The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
-specified, the option will accept a single parameter and not multiple parameters (we say that it is
-_delimited_, rather than being _variadic_). It can be a string or a regular expression. Mutually
-exclusive with [parse callback](#parse-callback) and [parse delimited](#parse-delimited).
+specified, the option will accept a single parameter and not multiple parameters[^2]. It can be
+either a string or a regular expression. Mutually exclusive with [parse callback](#parse-callback)
+and [parse delimited](#parse-delimited).
+
+[^2]: we say that it is _delimited_, rather than _variadic_.
 
 #### Parse delimited
 
@@ -262,11 +370,13 @@ option parameter. It accepts three parameters:
 - `name` - the option name, as was specified on the command-line
 - `value` - the parameter string value
 
-Unlike [parse callback](#parse-callback) that returns a single value, this callback should return an
-array. If specified, the option will accept a single parameter and not multiple parameters (we say
-that it is _delimited_, rather than being _variadic_). If asynchronous, then the data type of the
-option value in the resulting object will be enclosed in a promise. Mutually exclusive with
-[separator](#separator) and [parse callback](#parse-callback).
+Notes about this callback:
+
+- unlike [parse callback](#parse-callback) that returns a single value, this callback should return
+  an array
+- if specified, the option will accept a single parameter and not multiple parameters[^2]
+- if asynchronous, and is called, then the resulting option value will be a promise
+- mutually exclusive with [separator](#separator) and [parse callback](#parse-callback)
 
 #### Remove duplicates
 
@@ -277,8 +387,9 @@ constraint.
 #### Append values
 
 The `append` attribute, if present, indicates that the option allows appending elements to its
-value if specified multiple times on the command-line. Both the [unique](#unique) normalization and
-the [count limit](#count-limit) constraint (if enabled) are applied after appendage.
+value if specified multiple times on the command-line. Both the [remove
+duplicates](#remove-duplicates) normalization and the [count limit](#count-limit) constraint (if
+enabled) are applied after appendage.
 
 #### Count limit
 
@@ -286,92 +397,104 @@ The `limit` attribute, if present, indicates the maximum allowed number of array
 parameter that causes the option value to _exceed_ the given limit (after normalization) will cause
 an error to be thrown.
 
+### Miscellaneous attributes
+
+Some attributes are shared by all valued option types except [function options](#function-option)
+and [command options](#command-option). They are described below.
+
+#### Environment variable
+
+The `envVar` attribute, if present, specifies the name of an environment variable from which the
+option value will be read, in case the option is not specified on the command-line.
+
+<Callout type="info">
+  If the environemnt variable for an option is found, the option is counted as if it were specified
+  on the command-line, which has implications for the evaluation of option requirements.
+</Callout>
+
 ## Niladic options
 
 Niladic options do not expect any parameter on the command-line. With the notable exception of the
-[flag option](#flag-option), these options have _side-effects_, rather than an intrinsic value.
+[flag option](#flag-option), these options may have _side-effects_, rather than an intrinsic value.
 
 <Callout type="info">
-  When bash completion is in effect, help and version options will _not_ be processed.
+  When bash completion is in effect, help and version options are _not_ processed.
 </Callout>
 
 ### Help option
 
 The **help** option is a convenient specialization of the [function option](#function-option) that
-handles the formatting of help messages. Internally, it performs the following actions:
+handles the formatting of help messages. Internally, it instantiates a [formatter](formatter.mdx)
+class with the provided configuration, obtains a formatted message and throws it. The application
+is responsible for catching this message and printing it in a terminal.
 
-1. instantiate a [formatter](formatter.mdx) class with the provided (or default) configuration
-2. get the formatted messages, one for each option group
-3. assemble them into a single message interspersed with group headings
-4. throw the resulting message
+This option has the following optional attributes.
 
-The application should catch the message and print it in a terminal. This option has the following
-optional attributes.
+#### Help format
 
-#### Usage & footer
+The `format` attribute specifies a custom [help format](formatter.mdx#help-format) configuration.
 
-The `usage` attribute describes your CLI usage instructions. It goes before everything else in the
-help message. The `footer` attribute is an afterword that can be used to insert a copyright notice
-or reference to other media. Both attributes can include inline styles and will be formatted
-according to [text formatting](styles.mdx#text-splitting) rules, unless the `noSplit` attribute is
-set.
+#### Help sections
 
-#### Format & heading style
+The `sections` attribute specifies [help sections](formatter.mdx#help-sections) to be rendered in
+the help message. The default is to include two:
 
-The `format` attribute, if present, specifies the [help format](formatter.mdx#help-format)
-configuration. The `headingStyle` attribute, if present, specifies a
-[style](styles.mdx#styling-attributes) to be applied to group headings.
-
-#### No text splitting
-
-The `noSplit` attribute, if present, indicates that the usage, footer and heading texts should _not_
-be split into words. This allows them to have custom indentation and prevents a colon from being
-appended to group headings, but at the expense of losing the text wrapping feature.
+- usage section - with `'Usage:'{:ts}` as heading - indented by 2 spaces
+- groups section - with `'Options'{:ts}` as default group heading - appending a colon to group
+  headings
 
 ### Version option
 
 The **version** option is another specialization of the [function option](#function-option) that
 throws a version message. You may specify either of the following attributes.
 
-#### Semantic version
+#### Version info
 
-The `version` attribute is a semantic version or version information. Mutually exclusive with
+The `version` attribute specifies a semantic version or version information. Mutually exclusive with
 [resolve callback](#resolve-callback).
 
 #### Resolve callback
 
-The `resolve` attribute is a resolution function scoped to the module where a `package.json` file
-will be searched and read to extract its `version` field. For use in non-browser environments only.
-You should use [`import.meta.resolve`] as value. This results in an asynchronous operation, so you
-should call [`parseAsync`](parser.mdx#executing-callbacks) and await its result. Mutually exclusive
-with [semantic version](#semantic-version).
+The `resolve` attribute specifies a resolution function scoped to the module where a `package.json`
+file will be searched and read to extract its `version` field. You should use
+[`import.meta.resolve`].
 
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
+
+Notes about this callback:
+
+- for use in non-browser environments only
+- it results in an asynchronous operation, so you should await the result of
+  [`parseAsync`](parser.mdx#executing-callbacks)
+- mutually exclusive with [version info](#version-info)
 
 ### Function option
 
 The **function** option executes a generic callback function and saves its result as the option
-value. You can use it to perform many kinds of useful things, such as:
+value. You can use it to perform many kinds of actions, such as:
 
 - reading configuration from a file
 - altering the values of previous options
 - altering the option definitions in response to an option value
-  - e.g., if `--verbose` is set, add more help items to the [help format](#format--heading-style)
-    (or replace it altogether)
+  - e.g., if `--verbose` is set, add more help items to the [help format](#help-format) (or replace
+    it altogether)
 
-The following attributes can be specified.
+In addition to the set of [value attributes](#value-attributes), it has the following attributes.
 
 #### Execute callback
 
-The `exec` attribute is the callback function that should be executed. It is required and accepts
-three parameters:
+The `exec` attribute specifies the callback function that should be executed. It is required and
+accepts three parameters:
 
 - `values` - the values parsed up to the current iteration
-- `comp` - `true{:ts}` if performing completion (but not in the current iteration)
+- `comp` - whether bash completion is in effect (but not in the current iteration)
 - `rest` - the remaining command-line arguments
 
-It should return the option value or `void{:ts}`. It can be asynchronous, in which case you should
-call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
+Notes about this callback:
+
+- it may return the option value or nothing at all
+- if asynchronous, you should await the result of [`parseAsync`](parser.mdx#executing-callbacks)
+- altering the `rest` parameter will have _no_ effect on the original command-line arguments
 
 <Callout type="default">
   Inside this callback, you may check whether an option has been specified before it by comparing
@@ -379,13 +502,9 @@ call [`parseAsync`](parser.mdx#executing-callbacks) and await its result.
   parsing loop.
 </Callout>
 
-<Callout type="warning">
-  Altering the `rest` parameter will have _no_ effect on the original command-line arguments.
-</Callout>
-
 #### Break loop
 
-The `break` attribute, if present, tells the parser to exit the parsing loop immediately after
+The `break` attribute indicates whether the parser to exit the parsing loop immediately after
 returning from the callback.
 
 <Callout type="warning">
@@ -398,57 +517,68 @@ returning from the callback.
 
 The **command** option is yet another specialization of the [function option](#function-option) that
 handles the execution of a "nested" command. It lets you specify the command's options in one of its
-attributes and parses the remaining arguments for you.
+attributes and parses the remaining arguments.
 
 <Callout type="default">
   As you might have guessed, this option allows the definition of hierarchical commands, including
   _recursive_ ones. This is explained in detail in the [commands guide](../guides/commands.mdx).
 </Callout>
 
+In addition to the set of [value attributes](#value-attributes), it has the following attributes.
+
 #### Command callback
 
-The `cmd` attribute is the callback function that should be executed. It is required and accepts
-two parameters:
+The `cmd` attribute specifies the callback function that should be executed. It is required and
+accepts two parameters:
 
 - `values` - the values parsed for the parent command
 - `cmdValues` - the values parsed for the command
 
-It should return the option value or `void{:ts}`. It can be asynchronous, in which case you should
-call [`parseAsync`](parser.mdx#executing-callbacks) and await its result. The simplest
-implementation would just return `cmdValues`. This way, they are stored in the option value and
-can be handled after the parser returns from the parsing loop.
+Notes about this callback:
 
-<Callout type="info">
-  When bash completion is in effect, this callback will _not_ be called. Otherwise, the parser will
-  exit the parsing loop immediately upon its return.
+- it may return the option value or nothing at all
+- if asynchronous, you should await the result of [`parseAsync`](parser.mdx#executing-callbacks)
+- when bash completion is in effect, this callback will _not_ be called
+- if called, the parser will exit the parsing loop immediately upon its return
+
+<Callout type="default">
+  The simplest implementation would just return `cmdValues`. This way, the values can be handled
+  after the parser returns from the parsing loop.
 </Callout>
 
 #### Command options | callback
 
-The `options` attribute is the set of option definitions for the command, and is required. You may
-also specify a (non-asynchronous) callback that returns the option definitions (this allows the
-implementation of [recursive commands](../guides/commands.mdx)).
+The `options` attribute specifies the set of option definitions for the command, or a
+(non-asynchronous) callback that returns the option definitions (this allows the implementation of
+[recursive commands](../guides/commands.mdx)). This attribute is required.
 
 <Callout type="warning">
   All incoming arguments will be parsed using the option definitions from this attribute, not those
-  in which the option was declared. Hence, you should make it clear in the help message that all
-  arguments pertaining to the command must be specified _after_ it.
+  from the parent command. Hence, you should make it clear in the help message that all arguments
+  pertaining to the command must be specified _after_ it.
 </Callout>
+
+#### Short-option style
+
+The `shortStyle` property indicates whether the first command argument is expected to be an option
+cluster. This must be used in conjunction with the [cluster letters](options.mdx#cluster-letters)
+of the command's options.
 
 ### Flag option
 
 The **flag** option is unique in the sense that it is both niladic and has an intrinsic value
 (boolean). It differs from the [boolean option](#boolean-option) in that it does _not_ expect a
-parameter, although it may have the [required](#required) or the
-[default value](#default-value--callback) attribute for a `boolean{:ts}` data type, as well as the
-following (optional) attribute.
+parameter.
 
 <Callout type="info">
   We could have reused the boolean option for this purpose and made the parameter optional, but it
-  would complicate the parser implementation. One benefit of this limitation is that it avoids
-  ambiguity about whether arguments are positional or not (e.g., in `-f 1`, would `1` be a parameter
-  to `-f` or a positional argument?).
+  would complicate the parser implementation. One benefit of this "limitation" is that it avoids
+  ambiguity of whether arguments are positional or not (e.g., in `-f 1`, would `1` be a parameter to
+  `-f` or a positional argument?).
 </Callout>
+
+In addition to the set of [value attributes](#value-attributes) and
+[miscellaneous attributes](#miscellaneous-attributes), it has the following optional attribute.
 
 #### Negation names
 
@@ -458,29 +588,50 @@ flag that has been previously specified must be reset by a supplementary list of
 
 ## Non-niladic options
 
+Non-niladic options expect one or more parameters on the command-line.
+
 ### Boolean option
 
-The **boolean** option has the same set of [parameter attributes](#parameter-attributes) for a
-`boolean{:ts}` data type.
+The **boolean** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `boolean{:ts}` data type
+- [value attributes](#value-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### String option
 
-The **string** option has the set of [parameter attributes](#parameter-attributes) for a
-`string{:ts}` data type, as well as the set of [string attributes](#string-attributes).
+The **string** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `string{:ts}` data type
+- [value attributes](#value-attributes)
+- [string attributes](#string-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### Number option
 
-The **number** option has the set of [parameter attributes](#parameter-attributes) for a
-`number{:ts}` data type, as well as the set of [number attributes](#number-attributes).
+The **number** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `number{:ts}` data type
+- [value attributes](#value-attributes)
+- [number attributes](#number-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### Strings option
 
-The **strings** option has the set of [parameter attributes](#parameter-attributes) for a
-`string[]{:ts}` data type, as well as the sets of [string attributes](#string-attributes) and
-[array attributes](#array-attributes).
+The **strings** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `string[]{:ts}` data type
+- [value attributes](#value-attributes)
+- [string attributes](#string-attributes)
+- [array attributes](#array-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
 
 ### Numbers option
 
-The **numbers** option has the set of [parameter attributes](#parameter-attributes) for a
-`number[]{:ts}` data type, as well as the sets of [number attributes](#number-attributes) and
-[array attributes](#array-attributes).
+The **numbers** option has these sets of attributes:
+
+- [parameter attributes](#parameter-attributes) for a `number[]{:ts}` data type
+- [value attributes](#value-attributes)
+- [number attributes](#number-attributes)
+- [array attributes](#array-attributes)
+- [miscellaneous attributes](#miscellaneous-attributes)
