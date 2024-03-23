@@ -299,7 +299,7 @@ Notes about this callback:
 
 - it should return a value of the data type expected by the option (this should not be an array)
 - if asynchronous, and is called, then the resulting option value will be a promise
-- mutually exclusive with [separator](#separator) and [parse delimited](#parse-delimited)
+- mutually exclusive with [parse delimited](#parse-delimited)
 
 #### Enumeration
 
@@ -356,8 +356,7 @@ Array-valued option types share a set of attributes, as described below.
 
 The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
 specified, the option will accept a single parameter and not multiple parameters[^2]. It can be
-either a string or a regular expression. Mutually exclusive with [parse callback](#parse-callback)
-and [parse delimited](#parse-delimited).
+either a string or a regular expression. Mutually exclusive with [parse delimited](#parse-delimited).
 
 [^2]: we say that it is _delimited_, rather than _variadic_.
 
@@ -388,8 +387,8 @@ constraint.
 
 The `append` attribute, if present, indicates that the option allows appending elements to its
 value if specified multiple times on the command-line. Both the [remove
-duplicates](#remove-duplicates) normalization and the [count limit](#count-limit) constraint (if
-enabled) are applied after appendage.
+duplicates](#remove-duplicates) normalization and the [count limit](#count-limit) constraint, if
+enabled, are applied after appendage.
 
 #### Count limit
 
@@ -476,8 +475,7 @@ value. You can use it to perform many kinds of actions, such as:
 - reading configuration from a file
 - altering the values of previous options
 - altering the option definitions in response to an option value
-  - e.g., if `--verbose` is set, add more help items to the [help format](#help-format) (or replace
-    it altogether)
+  - e.g., if `--verbose` is set, add more help items to the [help format](#help-format)
 
 In addition to the set of [value attributes](#value-attributes), it has the following attributes.
 
@@ -504,7 +502,7 @@ Notes about this callback:
 
 #### Break loop
 
-The `break` attribute indicates whether the parser to exit the parsing loop immediately after
+The `break` attribute indicates whether the parser should exit the parsing loop immediately after
 returning from the callback.
 
 <Callout type="warning">

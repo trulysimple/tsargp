@@ -156,14 +156,19 @@ They are handled in following manner:
 - The fourth case is handled by chaining the existing promise with a callback that appends the
   normalized elements to the previous value.
 
-Note that, for array-valued options, once a promise is returned from a parsing callback there's no
-turning back to a non-promise.
+Notice that, for array-valued options, once a promise is returned from a parsing callback, there's
+no turning back to a non-promise. It's equally important to note that the order of elements in the
+array is preserved, i.e., it reflects the order in which the parameters were parsed. This is true
+even if the [remove duplicates](options.mdx#remove-duplicates) attribute was set (this is due to the
+nature of JavaScript's [Set] type).
+
+[Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 
 <Callout type="info">
   A special case occurs when a variadic array option is specified on the command-line without
   parameters. In that case, the parser must initialize the option value to an empty array. This
   means that, even if an option declares an async parsing callback in its definition, the parser
-  might exit the loop before calling the callback, thus leaving the value as an empty array
+  might exit the loop without calling the callback, thus leaving the value as an empty array
   (non-promise). This is not a problem, since the `await` expression can be called on a non-promise.
 </Callout>
 
@@ -177,7 +182,7 @@ The complete, resolve, execute and command callbacks are the ones that may cause
 accumulate promises that will be returned by the `parseAsync` or `parseInto` methods, which then
 need to be awaited in order to await their resolution.
 
-In the case of the complete and resolve callbacks, once awaited, the promise throws a string that
+In the case of the complete and resolve callbacks, once awaited, the promise throws a message that
 should be caught and printed on a terminal. They are the version or the completion words,
 respectively.
 
@@ -231,21 +236,21 @@ an empty string):
    - If the option has [enumerated values](options.mdx#enumeration), those values are converted to
      string, filtered by the prefix _comp_, and then returned; else
    - If it is a variadic array option, and the parameter was specified neither with a positional
-     marker nor as an [inline parameters](#inline-parameters), the available option names are
+     marker nor as an [inline parameter](#inline-parameters), the available option names are
      filtered by the prefix _comp_ and returned; else
-   - No words are returned, and the default bash completion (if enabled with `-o`) is attempted.
+   - No words are returned, and the default bash completion (if enabled with `-o`) will be attempted
 
-During completion, help and version options are skipped, while others are processed as usual. This
-means that a completion callback can inspect the values parsed before it, in order to make better
-suggestions based on those values.
+During completion, help and version options and the [command callback](options.mdx#command-callback)
+are skipped, while others are processed as usual. This means that a completion callback can inspect
+the values parsed before it, in order to make better suggestions based on those values.
 
 ## Requirements checking
 
 Generally, option requirements are evaluated after all arguments have been parsed. During this
 analysis, an option's value is checked against any value required by other options, _except_ if the
-option value is a promise (this may happen if the option was declared with an asynchronous
-[parsing callback](#parsing-callbacks)). This is because the parser cannot await a promise's
-resolution before returning from the parsing loop.
+option value is a promise (this may happen if the value was parsed by an asynchronous [parsing
+callback](#parsing-callbacks)). This is because the parser cannot await a promise's resolution
+before returning from the parsing loop.
 
 This check may also be performed in two more situations:
 
@@ -299,7 +304,7 @@ main script and any nested commands. For example, if the command-line is:
 
 The process title would be updated in the following way:
 
-1. `node` - this the starting title, before any update
+1. `node` - this the starting title, before any updates
 2. `node myscript.js` - the title at the beginning of the parsing loop
 3. `node myscript.js cmd1` - the title at the start of the `cmd1` command
 4. `node myscript.js cmd1 cmd2` - the title at the start of the `cmd2` command
