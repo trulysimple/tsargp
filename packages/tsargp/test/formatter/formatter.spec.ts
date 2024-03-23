@@ -22,7 +22,6 @@ describe('HelpFormatter', () => {
         boolean: {
           type: 'boolean',
           names: ['-b', '--boolean'],
-          desc: 'A boolean option',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -45,17 +44,9 @@ describe('HelpFormatter', () => {
           type: 'boolean',
           names: ['-b', '--boolean'],
         },
-        help: {
-          type: 'help',
-          names: ['-h'],
-          format: { descr: { absolute: true } },
-          sections: [{ type: 'groups' }],
-          useFilters: true,
-        },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const config = { descr: { absolute: true } };
-      const message = new HelpFormatter(validator, config, [/^-f/, /^-b/]).formatHelp();
+      const message = new HelpFormatter(validator, {}, [/^-f/, /^-b/]).formatHelp();
       expect(message.wrap()).toEqual('  -f, --flag\n  -b, --boolean  <boolean>\n');
     });
 

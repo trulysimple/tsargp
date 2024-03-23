@@ -103,7 +103,6 @@ describe('ArgumentParser', () => {
           help: {
             type: 'help',
             names: ['-h'],
-            format: { descr: { absolute: true } },
             sections: [{ type: 'groups' }],
             useFilters: true,
           },
