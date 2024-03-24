@@ -225,7 +225,7 @@ export class TerminalString {
    * @param length The length of the text without control characters or sequences
    * @returns The terminal string instance
    */
-  private addText(text: string, length: number): this {
+  addText(text: string, length: number): this {
     if (text) {
       const count = this.count;
       if (count && this.merge) {
@@ -249,61 +249,12 @@ export class TerminalString {
   splitText(text: string, format?: FormatCallback): this {
     const paragraphs = text.split(regex.para);
     paragraphs.forEach((para, i) => {
-      this.splitParagraph(para, format);
+      splitParagraph(this, para, format);
       if (i < paragraphs.length - 1) {
         this.addBreak(2);
       }
     });
     return this;
-  }
-
-  /**
-   * Splits a paragraph into words and style sequences, and appends them to the list.
-   * @param para The paragraph to be split
-   * @param format An optional callback to process format specifiers
-   */
-  private splitParagraph(para: string, format?: FormatCallback) {
-    const count = this.count;
-    para.split(regex.item).forEach((item, i) => {
-      if (i % 2 == 0) {
-        this.splitItem(item, format);
-      } else {
-        if (this.count > count) {
-          this.addBreak();
-        }
-        this.addWord(item);
-      }
-    });
-  }
-
-  /**
-   * Splits a list item into words and style sequences, and appends them to the list.
-   * @param item The list item to be split
-   * @param format An optional callback to process format specifiers
-   */
-  private splitItem(item: string, format?: FormatCallback) {
-    const boundFormat = format?.bind(this);
-    const words = item.split(regex.word);
-    for (const word of words) {
-      if (!word) {
-        continue;
-      }
-      if (boundFormat) {
-        const parts = word.split(regex.spec);
-        if (parts.length > 1) {
-          this.addOpening(parts[0]);
-          for (let i = 1; i < parts.length; i += 2) {
-            boundFormat(parts[i]);
-            this.addClosing(parts[i + 1]).setMerge();
-          }
-          this.setMerge(false);
-          continue;
-        }
-      }
-      const styles = word.match(regex.styles) ?? [];
-      const length = styles.reduce((acc, str) => acc + str.length, 0);
-      this.addText(word, word.length - length);
-    }
   }
 
   /**
@@ -531,6 +482,57 @@ export class VersionMessage extends String {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Splits a paragraph into words and style sequences, and appends them to the list.
+ * @param result The resulting string
+ * @param para The paragraph to be split
+ * @param format An optional callback to process format specifiers
+ */
+function splitParagraph(result: TerminalString, para: string, format?: FormatCallback) {
+  const count = result.count;
+  para.split(regex.item).forEach((item, i) => {
+    if (i % 2 == 0) {
+      splitItem(result, item, format);
+    } else {
+      if (result.count > count) {
+        result.addBreak();
+      }
+      result.addWord(item);
+    }
+  });
+}
+
+/**
+ * Splits a list item into words and style sequences, and appends them to the list.
+ * @param result The resulting string
+ * @param item The list item to be split
+ * @param format An optional callback to process format specifiers
+ */
+function splitItem(result: TerminalString, item: string, format?: FormatCallback) {
+  const boundFormat = format?.bind(result);
+  const words = item.split(regex.word);
+  for (const word of words) {
+    if (!word) {
+      continue;
+    }
+    if (boundFormat) {
+      const parts = word.split(regex.spec);
+      if (parts.length > 1) {
+        result.addOpening(parts[0]);
+        for (let i = 1; i < parts.length; i += 2) {
+          boundFormat(parts[i]);
+          result.addClosing(parts[i + 1]).setMerge();
+        }
+        result.setMerge(false);
+        continue;
+      }
+    }
+    const styles = word.match(regex.styles) ?? [];
+    const length = styles.reduce((acc, str) => acc + str.length, 0);
+    result.addText(word, word.length - length);
+  }
+}
+
 /**
  * @param width The terminal width (in number of columns)
  * @returns True if styles should be omitted from terminal strings
