@@ -297,9 +297,9 @@ export class OptionValidator {
    * @throws On duplicate positional option
    */
   validate(prefix = '', visited = new Set<Options>()) {
+    let positional = false; // to check for duplicate positional options
     this.names.clear(); // to check for duplicate option names
     this.letters.clear(); // to check for duplicate cluster letters
-    let positional = false; // to check for duplicate positional options
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);
@@ -327,8 +327,8 @@ export class OptionValidator {
     const searchName = norm(name);
     return [...this.names.keys()]
       .reduce((acc, name2) => {
+        // skip the original name
         if (name2 != name) {
-          // skip the original name
           const sim = gestaltSimilarity(searchName, norm(name2));
           if (sim >= threshold) {
             acc.push([name2, sim]);

@@ -117,9 +117,9 @@ export class ArgumentParser<T extends Options = Options> {
   /**
    * Validates the option definitions. This should only be called during development and in unit
    * tests, but should be skipped in production.
-   * @returns The parser instance.
+   * @returns The parser instance
    */
-  validate() {
+  validate(): this {
     this.validator.validate();
     return this;
   }
