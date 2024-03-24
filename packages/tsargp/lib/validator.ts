@@ -16,12 +16,12 @@ import type {
   ValuedOption,
 } from './options';
 import type { Style } from './styles';
-import type { Concrete, URL } from './utils';
+import type { Concrete, NamingRules, URL } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
 import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued } from './options';
-import { style, TerminalString, ErrorMessage } from './styles';
-import { assert, gestaltSimilarity } from './utils';
+import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
+import { assert, gestaltSimilarity, matchNamingRules } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -120,6 +120,30 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.duplicateClusterLetter]: 'Option %o has duplicate cluster letter %s.',
     [ErrorItem.invalidClusterOption]: 'Option letter %o must be the last in a cluster.',
     [ErrorItem.invalidClusterLetter]: 'Option %o has invalid cluster letter %s.',
+    [ErrorItem.tooSimilarOptionNames]: '[%o] Option name %s1 has too similar names %s2.',
+    [ErrorItem.mixedNamingConvention]: '[%o] Name slot %n has mixed naming conventions %s.',
+  },
+};
+
+/**
+ * The naming convention rules.
+ * @internal
+ */
+const namingConventions: NamingRules = {
+  cases: {
+    lowercase: (name, lower, upper) => name == lower && name != upper,
+    UPPERCASE: (name, lower, upper) => name != lower && name == upper,
+    Capitalized: (name, lower, upper) => name[0] != lower[0] && name != upper,
+  },
+  dashes: {
+    noDash: (name) => name[0] != '-',
+    '-singleDash': (name) => name[0] == '-' && name[1] != '-',
+    '--doubleDash': (name) => name[0] == '-' && name[1] == '-',
+  },
+  delimiters: {
+    'kebab-case': (name) => !!name.match(/[^-]+-[^-]+/),
+    snake_case: (name) => !!name.match(/[^_]+_[^_]+/),
+    'colon:case': (name) => !!name.match(/[^:]+:[^:]+/),
   },
 };
 
@@ -298,16 +322,19 @@ export class OptionValidator {
    * Validates all options' definitions, including command options recursively.
    * @param prefix The command prefix, if any
    * @param visited The set of visited option definitions
+   * @returns A list of validation warnings
    * @throws On duplicate positional option
    */
-  validate(prefix = '', visited = new Set<Options>()) {
+  validate(prefix = '', visited = new Set<Options>()): WarnMessage {
+    const result = new WarnMessage();
+    this.validateNames(prefix, result); // validate names before clearing them
     this.names.clear(); // to check for duplicate option names
     this.letters.clear(); // to check for duplicate cluster letters
     let positional = ''; // to check for duplicate positional options
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);
-      validateOption(this.options, this.config, prefix, key, option, visited);
+      validateOption(this.options, this.config, prefix, key, option, visited, result);
       if ('positional' in option && option.positional) {
         if (positional) {
           throw this.error(ErrorItem.duplicatePositionalOption, {
@@ -318,6 +345,41 @@ export class OptionValidator {
         positional = key;
       }
     }
+    return result;
+  }
+
+  /**
+   * Validates the option names against a set of rules.
+   * @param prefix The command prefix, if any
+   * @param result The list of warnings to append to
+   */
+  private validateNames(prefix: string, result: WarnMessage) {
+    const visited = new Set<string>();
+    for (const name of this.names.keys()) {
+      if (visited.has(name)) {
+        continue;
+      }
+      const similar = this.findSimilarNames(name, 0.8);
+      if (similar.length) {
+        result.push(
+          this.format(ErrorItem.tooSimilarOptionNames, { o: prefix, s1: name, s2: similar }),
+        );
+        for (const similarName of similar) {
+          visited.add(similarName);
+        }
+      }
+    }
+    getNamesInEachSlot(this.options).forEach((slot, i) => {
+      const match = matchNamingRules(slot, namingConventions);
+      for (const key in match) {
+        const entries = Object.entries(match[key]).map(([rule, name]) => rule + ': ' + name);
+        if (entries.length > 1) {
+          result.push(
+            this.format(ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: entries }),
+          );
+        }
+      }
+    });
   }
 
   /**
@@ -467,6 +529,27 @@ function formatMessage(
 }
 
 /**
+ * Collects the option names into lists according to their slot.
+ * @param options The option definitions
+ * @returns The names in each name slot
+ */
+function getNamesInEachSlot(options: Options): Array<Array<string>> {
+  const result = new Array<Array<string>>();
+  for (const key in options) {
+    options[key].names?.forEach((name, i) => {
+      if (name) {
+        if (result[i]) {
+          result[i].push(name);
+        } else {
+          result[i] = [name];
+        }
+      }
+    });
+  }
+  return result;
+}
+
+/**
  * Validates an option's requirements.
  * @param options The option definitions
  * @param config The error message configuration
@@ -474,6 +557,7 @@ function formatMessage(
  * @param key The option key
  * @param option The option definition
  * @param visited The set of visited option definitions
+ * @param result The list of warnings to append to
  * @throws On invalid enums definition, invalid default value or invalid example value
  */
 function validateOption(
@@ -483,6 +567,7 @@ function validateOption(
   key: string,
   option: Option,
   visited: Set<Options>,
+  result: WarnMessage,
 ) {
   if (!isNiladic(option)) {
     validateEnums(config, prefix + key, option);
@@ -505,7 +590,8 @@ function validateOption(
     const options = typeof option.options === 'function' ? option.options() : option.options;
     if (!visited.has(options)) {
       visited.add(options);
-      new OptionValidator(options, config).validate(prefix + key + '.', visited);
+      const validator = new OptionValidator(options, config);
+      result.push(...validator.validate(prefix + key + '.', visited));
     }
   }
 }

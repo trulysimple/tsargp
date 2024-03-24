@@ -61,6 +61,40 @@ export type Writable<T> = { -readonly [P in keyof T]: Writable<T[P]> };
  */
 export interface URL extends _URL {}
 
+/**
+ * A naming rule to match a name.
+ * @param name The original name
+ * @param lower The lowercase version of name
+ * @param upper The uppercase version of name
+ * @returns True if the name was matched
+ * @internal
+ */
+export type NamingRule = (name: string, lower: string, upper: string) => boolean;
+
+/**
+ * A set of naming rules.
+ * @internal
+ */
+export type NamingRuleSet = Readonly<Record<string, NamingRule>>;
+
+/**
+ * A collection of naming rule sets.
+ * @internal
+ */
+export type NamingRules = Readonly<Record<string, NamingRuleSet>>;
+
+/**
+ * The result of matching names against naming rules.
+ * It includes the first match in each rule set.
+ * Please do not use {@link Record} here.
+ * @internal
+ */
+export type NamingMatch<T extends NamingRules> = Resolve<{
+  -readonly [key1 in keyof T]: {
+    -readonly [key2 in keyof T[key1]]: string;
+  };
+}>;
+
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
@@ -243,4 +277,35 @@ export function assert(_condition: unknown): asserts _condition {}
  */
 export function isTrue(str: string): boolean {
   return !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
+}
+
+/**
+ * Match names against naming rules.
+ * @param names The list of names
+ * @param rules The sets of rules
+ * @returns The matching result
+ * @internal
+ */
+export function matchNamingRules<T extends NamingRules>(
+  names: Array<string>,
+  rules: T,
+): NamingMatch<T> {
+  const result: Record<string, Record<string, string>> = {};
+  for (const key in rules) {
+    result[key] = {};
+  }
+  for (const name of names) {
+    const lower = name.toLowerCase();
+    const upper = name.toUpperCase();
+    for (const key1 in rules) {
+      const rule = rules[key1];
+      const res = result[key1];
+      for (const key2 in rule) {
+        if (!res[key2] && rule[key2](name, lower, upper)) {
+          res[key2] = name;
+        }
+      }
+    }
+  }
+  return result as NamingMatch<T>;
 }

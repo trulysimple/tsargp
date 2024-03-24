@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   overrides,
   checkRequiredArray,
@@ -6,6 +6,8 @@ import {
   getArgs,
   splitPhrase,
   isTrue,
+  matchNamingRules,
+  type NamingRules,
 } from '../lib/utils';
 
 /*
@@ -193,5 +195,31 @@ describe('isTrue', () => {
     expect(isTrue(' 1 ')).toBeTruthy();
     expect(isTrue('a')).toBeTruthy();
     expect(isTrue(' A ')).toBeTruthy();
+  });
+});
+
+describe('matchNamingRules', () => {
+  it('should match the first name against each rule', () => {
+    const rules = {
+      ruleset: {
+        rule1: vi.fn().mockImplementation((name) => name.startsWith('Match')),
+        rule2: vi.fn().mockImplementation(() => false),
+      },
+    } as const satisfies NamingRules;
+    const match = matchNamingRules(['Match1', 'Non-match', 'Match2'], rules);
+    expect(match).toEqual({ ruleset: { rule1: 'Match1' } });
+    expect(rules.ruleset.rule1).toHaveBeenCalledWith('Match1', 'match1', 'MATCH1');
+    expect(rules.ruleset.rule1).not.toHaveBeenCalledWith(
+      'Non-match',
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(rules.ruleset.rule1).not.toHaveBeenCalledWith(
+      'Match2',
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(rules.ruleset.rule1).toHaveBeenCalledTimes(1);
+    expect(rules.ruleset.rule2).toHaveBeenCalledTimes(3);
   });
 });

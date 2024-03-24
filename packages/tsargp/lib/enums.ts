@@ -152,6 +152,15 @@ export const enum ErrorItem {
    * Raised by the validator when an option has an invalid cluster letter.
    */
   invalidClusterLetter,
+  /**
+   * Warning produced by the validator when an option name is too similar to other names.
+   */
+  tooSimilarOptionNames,
+  /**
+   * Warning produced by the validator when a name slot contains names with different naming
+   * conventions.
+   */
+  mixedNamingConvention,
 }
 
 /**
