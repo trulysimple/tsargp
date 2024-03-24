@@ -132,7 +132,7 @@ export const enum ErrorItem {
    */
   limitConstraintViolation,
   /**
-   * Warning saved by the parser when a deprecated option is specified on the command-line.
+   * Warning produced by the parser when a deprecated option is specified on the command-line.
    */
   deprecatedOption,
   /**

@@ -551,11 +551,7 @@ function getNameWidths(options: Options): Array<number> {
     const option = options[key];
     if (!option.hide && option.names) {
       option.names.forEach((name, i) => {
-        if (i == result.length) {
-          result.push(name?.length ?? 0);
-        } else if (name && name.length > result[i]) {
-          result[i] = name.length;
-        }
+        result[i] = Math.max(result[i] ?? 0, name?.length ?? 0);
       });
     }
   }
@@ -968,7 +964,7 @@ function formatUsageNames(
 ) {
   const names = option.names?.filter((name): name is string => !!name);
   if (names?.length) {
-    if ('negationNames' in option && option.negationNames) {
+    if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames.filter((name) => name));
     }
     const positional = 'positional' in option && option.positional;
@@ -1063,7 +1059,7 @@ function formatNegation(
   style: Style,
   result: TerminalString,
 ) {
-  if ('negationNames' in option && option.negationNames) {
+  if (option.type === 'flag' && option.negationNames) {
     const names = option.negationNames.filter((name) => name);
     result.splitText(phrase, () => {
       names.forEach((name, i) => {

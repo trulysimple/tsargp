@@ -3,13 +3,16 @@ import { type Options, ArgumentParser, OptionValues } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
-  describe('parse', () => {
-    it('should handle empty command', () => {
-      expect(new ArgumentParser({}).validate().parse('')).toEqual({});
+  describe('validate', () => {
+    it('should validate', () => {
+      expect(() => new ArgumentParser({}).validate()).not.toThrow();
     });
+  });
 
-    it('should handle zero arguments', () => {
-      expect(new ArgumentParser({}).validate().parse([])).toEqual({});
+  describe('parse', () => {
+    it('should handle no arguments', () => {
+      expect(new ArgumentParser({}).parse('')).toEqual({});
+      expect(new ArgumentParser({}).parse([])).toEqual({});
     });
 
     it('should throw an error on unknown option name specified in arguments', () => {
