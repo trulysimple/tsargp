@@ -40,7 +40,12 @@ class PlayCommand extends Command<PlayProps> {
   private init() {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
-    this.parser = new ArgumentParser(options).validate();
+    const parser = new ArgumentParser(options);
+    const warnings = parser.validate();
+    if (warnings.length) {
+      this.println(warnings.wrap(this.state.width));
+    }
+    this.parser = parser;
   }
 
   override run(line: string, compIndex?: number) {
