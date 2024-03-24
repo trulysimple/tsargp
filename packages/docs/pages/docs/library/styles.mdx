@@ -13,9 +13,7 @@ can be used to customize the display of text in a terminal.
 
 The `style` function accepts a list of styling attributes and creates a `Style` that can be used in
 any part of the API that expects this type, or it can be embedded directly in text attributes, such
-as the [synopsis and deprecation reason](options.mdx#synopsis--deprecated), [help section
-texts](formatter.mdx#help-sections), [error phrases](validator.mdx#error-phrases) and [help
-phrases](formatter.mdx#help-phrases).
+as the [synopsis and deprecation reason], [help section texts], [error phrases] and [help phrases].
 
 Styles are cumulative, i.e., they can be combined with previous styles depending on the kind of
 styling attribute. For instance, if the style of an option's description is `tf.bold` and the
@@ -44,7 +42,7 @@ The `tf` enumeration declares text type faces that can be combined together. Her
 - `inverse` - reverse video or inverse (flips foreground and background color)
 - `invisible` - invisible, concealed or hidden
 - `crossedOut` - crossed-out or strikethrough
-- `primary` - primary (default) font
+- `primaryFont` - primary font
 - `alternative1` - alternative font 1
 - `alternative2` - alternative font 2
 - `alternative3` - alternative font 3
@@ -54,10 +52,10 @@ The `tf` enumeration declares text type faces that can be combined together. Her
 - `alternative7` - alternative font 7
 - `alternative8` - alternative font 8
 - `alternative9` - alternative font 9
-- `gothic` - black-letter font (Fraktur/Gothic)
+- `fraktur` - black-letter font
 - `doublyUnderlined` - doubly underlined
 - `notBoldOrFaint` - normal intensity (neither bold nor faint)
-- `notItalic` - regular face (neither italic nor black-letter)
+- `notItalicNorFraktur` - regular face (neither italic nor black-letter)
 - `notUnderlined` - not underlined
 - `notBlinking` - steady (not blinking)
 - `proportionalSpacing` - proportional spacing
@@ -114,14 +112,12 @@ In addition to predefined colors, there are three utility functions to get custo
 - `bg8` - creates a background color from an 8-bit decimal value
 - `ul8` - creates an underline color from an 8-bit decimal value
 
-[SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
-
 ## Terminal strings
 
 The `TerminalString` class is an internal component that handles the construction of strings that
-can be printed in a terminal. It has methods to split and append strings, with or without control
-sequences, and is used both by the [parser](parser.mdx) (to create error and warning messages) and
-by the [formatter](formatter.mdx) (to build help messages).
+can be printed in a terminal. It has methods to split, append and wrap strings, with or without
+control sequences, and is used both by the [parser] (to create error and warning messages) and by
+the [formatter] (to build help messages).
 
 The main logic implemented in this class is divided into _splitting_ and _wrapping_, as is explained
 below.
@@ -129,19 +125,16 @@ below.
 ### Text splitting
 
 Text is split on paragraph, list item and word boundaries using a combination of simple regular
-expressions that do _not_ take quotes into account. The following features are supported in text
-splitting.
+expressions. The following features are supported in text splitting.
 
 #### Format specifiers
 
 Format specifiers can be extracted from the text and processed by a formatting callback. This is
 used in different places in the library:
 
-- by the parser to produce error messages based on configured
-  [error phrases](validator.mdx#error-phrases)
-- by the formatter to assemble help items from configured [help phrases](formatter.mdx#help-phrases)
-- by the formatter to create group headings from configured [heading
-  phrases](formatter.mdx#groups-section)
+- by the parser to produce error messages based on configured [error phrases]
+- by the formatter to assemble help items from configured [help phrases]
+- by the formatter to create group headings from configured [heading phrases]
 
 This particular feature is only available in _phrases_, not in text attributes of option definitions.
 
@@ -151,10 +144,8 @@ Text can contain inline styles. This applies as well to phrases as to text attri
 formatter splits into words before adding to the option description.
 
 When splitting text, the terminal string instance will try its best to preserve styles. However,
-if some corner case that is not currently covered by the unit tests happen to you, please submit a
-[bug report].
-
-[bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
+if you find some corner case that is not currently covered by the unit tests, please submit a [bug
+report].
 
 #### Paragraphs and lists
 
@@ -204,7 +195,7 @@ level, the text is instead wrapped relative to the beginning of each line.
 
 A terminal string optionally has a flag that indicates whether the text should be aligned to the
 terminal's right boundary when being wrapped. This feature is used by the formatter in the help's
-[description column](formatter.mdx#description-column).
+[description column].
 
 ## Terminal messages
 
@@ -278,3 +269,14 @@ with `console.log` or equivalent.
   Messages produced by the library are instances of one of the classes described above. So you
   can check the kind of a captured message through `instanceof{:ts}`.
 </Callout>
+
+[parser]: parser
+[formatter]: formatter
+[help phrases]: formatter#help-phrases
+[error phrases]: validator#error-phrases
+[heading phrases]: formatter#groups-section
+[help section texts]: formatter#help-sections
+[description column]: formatter#description-column
+[synopsis and deprecation reason]: options#synopsis--deprecated
+[bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
+[SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

@@ -101,8 +101,8 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Duplicate option name %o.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o.',
-    [ErrorItem.duplicateStringOptionEnum]: 'Option %o has duplicate enum %s.',
-    [ErrorItem.duplicateNumberOptionEnum]: 'Option %o has duplicate enum %n.',
+    [ErrorItem.duplicateStringEnum]: 'Option %o has duplicate enum %s.',
+    [ErrorItem.duplicateNumberEnum]: 'Option %o has duplicate enum %n.',
     [ErrorItem.incompatibleRequiredValue]:
       'Option %o has incompatible value %p. Should be of type %s.',
     [ErrorItem.stringEnumsConstraintViolation]:
@@ -405,9 +405,9 @@ export class OptionValidator {
         for (const value of option.enums) {
           if (!set.delete(value)) {
             if (option.type === 'string' || option.type === 'strings') {
-              throw this.error(ErrorItem.duplicateStringOptionEnum, { o: key, s: value });
+              throw this.error(ErrorItem.duplicateStringEnum, { o: key, s: value });
             }
-            throw this.error(ErrorItem.duplicateNumberOptionEnum, { o: key, n: value });
+            throw this.error(ErrorItem.duplicateNumberEnum, { o: key, n: value });
           }
         }
       }

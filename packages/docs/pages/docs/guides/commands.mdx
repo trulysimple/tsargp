@@ -43,8 +43,7 @@ import type { Options, OptionValues } from 'tsargp';
 ```
 
 Then let's define a reusable option definition for the parameters of a multi-argument operation. It
-has a single [numbers option](../library/options.mdx#numbers-option) that receives (unlimited)
-positional arguments:
+has a single [numbers option] that receives (unlimited) positional arguments:
 
 ```ts {4,8}
 const multiOpts = {
@@ -203,3 +202,5 @@ List of commands to try:
 - `calc sub 1` or `calc div 1` - should print `NaN{:ts}`
 - `calc sub 1 2 3` or `calc div 1 2 3` - should print an error message
 - `calc add 1 sub 2 mult 3 div 4 2` - this is the aforementioned example that gives -3
+
+[numbers option]: ../library/options#numbers-option

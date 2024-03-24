@@ -169,7 +169,7 @@ export class TerminalString {
    * @returns The terminal string instance
    */
   addOpening(word: string): this {
-    return this.addWord(word).setMerge();
+    return this.addWord(word).setMerge(!!word);
   }
 
   /**
@@ -291,12 +291,12 @@ export class TerminalString {
       if (boundFormat) {
         const parts = word.split(regex.spec);
         if (parts.length > 1) {
-          this.addWord(parts[0]);
-          for (let i = 1, merge = parts[0] !== ''; i < parts.length; i += 2, merge = true) {
-            this.setMerge(merge);
+          this.addOpening(parts[0]);
+          for (let i = 1; i < parts.length; i += 2) {
             boundFormat(parts[i]);
-            this.addClosing(parts[i + 1]);
+            this.addClosing(parts[i + 1]).setMerge();
           }
+          this.setMerge(false);
           continue;
         }
       }

@@ -65,6 +65,14 @@ describe('TerminalString', () => {
       expect(str.count).toEqual(1);
       expect(str.strings[0]).toEqual('["type');
     });
+
+    it('should not merge previous words if the opening is empty', () => {
+      const str = new TerminalString().addWord('type').addOpening('').addWord('script');
+      expect(str).toHaveLength(10);
+      expect(str.count).toEqual(2);
+      expect(str.strings[0]).toEqual('type');
+      expect(str.strings[1]).toEqual('script');
+    });
   });
 
   describe('addOther', () => {
@@ -98,6 +106,14 @@ describe('TerminalString', () => {
       expect(str.count).toEqual(2);
       expect(str.strings[0]).toEqual('type');
       expect(str.strings[1]).toEqual('\x9b39;49;59m].');
+    });
+
+    it('should not merge next words if the closing is empty', () => {
+      const str = new TerminalString().addWord('type').addClosing('').addWord('script');
+      expect(str).toHaveLength(10);
+      expect(str.count).toEqual(2);
+      expect(str.strings[0]).toEqual('type');
+      expect(str.strings[1]).toEqual('script');
     });
   });
 
@@ -175,6 +191,19 @@ describe('TerminalString', () => {
       expect(str.strings[5]).toEqual('\n');
       expect(str.strings[6]).toEqual('1.');
       expect(str.strings[7]).toEqual('item');
+      expect(format).toHaveBeenCalledTimes(1);
+      expect(format).toHaveBeenCalledWith('%s');
+    });
+
+    it('should not merge previous words with next words', () => {
+      const format = vi.fn();
+      const str = new TerminalString().addWord('type').splitText('%s%s', format).addWord('script');
+      expect(str).toHaveLength(10);
+      expect(str.count).toEqual(2);
+      expect(str.strings[0]).toEqual('type');
+      expect(str.strings[1]).toEqual('script');
+      expect(format).toHaveBeenCalledTimes(2);
+      expect(format).toHaveBeenCalledWith('%s');
     });
   });
 });
