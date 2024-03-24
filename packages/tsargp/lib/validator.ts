@@ -21,7 +21,7 @@ import type { Concrete, URL } from './utils';
 import { tf, fg, ErrorItem } from './enums';
 import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued } from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
-import { assert } from './utils';
+import { assert, gestaltSimilarity } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -294,13 +294,15 @@ export class OptionValidator {
    * Validates all options' definitions, including command options recursively.
    * @param prefix The command prefix, if any
    * @param visited The set of visited option definitions
+   * @returns A list of validation warnings
    * @throws On duplicate positional option, invalid enum values, invalid default value or invalid
    * example value
    */
-  validate(prefix = '', visited = new Set<Options>()) {
-    let positional = false; // to check for duplicate positional options
+  validate(prefix = '', visited = new Set<Options>()): Array<WarnMessage> {
+    const result = new Array<WarnMessage>();
     this.names.clear(); // to check for duplicate option names
     this.letters.clear(); // to check for duplicate cluster letters
+    let positional = false; // to check for duplicate positional options
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);
@@ -331,10 +333,36 @@ export class OptionValidator {
         const options = typeof option.options === 'function' ? option.options() : option.options;
         if (!visited.has(options)) {
           visited.add(options);
-          new OptionValidator(options, this.config).validate(prefix + key + '.', visited);
+          const validator = new OptionValidator(options, this.config);
+          result.push(...validator.validate(prefix + key + '.', visited));
         }
       }
     }
+    return result;
+  }
+
+  /**
+   * Gets a list of option names that are similar to a given name.
+   * @param name The option name
+   * @param threshold The similarity threshold
+   * @returns The list of similar names in decreasing order of similarity
+   */
+  findSimilarNames(name: string, threshold = 0.6): Array<string> {
+    /** @ignore */
+    function norm(name: string) {
+      return name.replace(/\p{P}/gu, '').toLowerCase();
+    }
+    const searchName = norm(name);
+    return [...this.names.keys()]
+      .reduce((acc, name) => {
+        const sim = gestaltSimilarity(searchName, norm(name));
+        if (sim >= threshold) {
+          acc.push([name, sim]);
+        }
+        return acc;
+      }, new Array<[string, number]>())
+      .sort(([, as], [, bs]) => bs - as)
+      .map(([str]) => str);
   }
 
   /**

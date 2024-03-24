@@ -41,7 +41,7 @@ import {
   TerminalString,
 } from './styles';
 import { OptionValidator, defaultConfig, formatFunctions } from './validator';
-import { assert, checkRequiredArray, gestaltSimilarity, getArgs, isTrue } from './utils';
+import { assert, checkRequiredArray, getArgs, isTrue } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -117,11 +117,10 @@ export class ArgumentParser<T extends Options = Options> {
   /**
    * Validates the option definitions. This should only be called during development and in unit
    * tests, but should be skipped in production.
-   * @returns The parser instance
+   * @returns A list of validation warnings
    */
-  validate(): this {
-    this.validator.validate();
-    return this;
+  validate(): Array<WarnMessage> {
+    return this.validator.validate();
   }
 
   /**
@@ -820,7 +819,7 @@ function handleCompletion(option: ParamOption, param?: string) {
  * @param err The previous error message, if any
  */
 function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
-  const similar = findSimilarNames(validator, name);
+  const similar = validator.findSimilarNames(name);
   if (err) {
     if (similar.length) {
       throw validator.error(ErrorItem.parseErrorWithSimilar, {
@@ -835,33 +834,6 @@ function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMess
     throw validator.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
   }
   throw validator.error(ErrorItem.unknownOption, { o: name });
-}
-
-/**
- * Gets a list of option names that are similar to a given name.
- * @param validator The option validator
- * @param name The option name
- * @param threshold The similarity threshold
- * @returns The list of similar names in decreasing order of similarity
- */
-function findSimilarNames(
-  validator: OptionValidator,
-  name: string,
-  threshold = 0.6,
-): Array<string> {
-  const names = [...validator.names.keys()];
-  const searchName = name.replace(/\p{P}/gu, '').toLowerCase();
-  return names
-    .reduce((acc, name) => {
-      const candidateName = name.replace(/\p{P}/gu, '').toLowerCase();
-      const sim = gestaltSimilarity(searchName, candidateName);
-      if (sim >= threshold) {
-        acc.push([name, sim]);
-      }
-      return acc;
-    }, new Array<[string, number]>())
-    .sort(([, as], [, bs]) => bs - as)
-    .map(([str]) => str);
 }
 
 /**

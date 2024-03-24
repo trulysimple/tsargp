@@ -551,11 +551,7 @@ function getNameWidths(options: Options): Array<number> {
     const option = options[key];
     if (!option.hide && option.names) {
       option.names.forEach((name, i) => {
-        if (i == result.length) {
-          result.push(name?.length ?? 0);
-        } else if (name && name.length > result[i]) {
-          result[i] = name.length;
-        }
+        result[i] = Math.max(result[i] ?? 0, name?.length ?? 0);
       });
     }
   }
