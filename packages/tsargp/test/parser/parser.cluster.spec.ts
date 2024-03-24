@@ -37,7 +37,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['f-'], { shortStyle: true })).toThrow('Unknown option -.');
+      expect(() => parser.parse(['f-'], { shortStyle: true })).toThrow(`Unknown option -.`);
     });
 
     it('should skip options with no names in a cluster argument', () => {
@@ -135,7 +135,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['sx'], { shortStyle: true })).toThrow(
-        'Option s must be the last in a cluster.',
+        `Option letter s must be the last in a cluster.`,
       );
     });
 
@@ -149,7 +149,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['nx'], { shortStyle: true })).toThrow(
-        'Option n must be the last in a cluster.',
+        `Option letter n must be the last in a cluster.`,
       );
     });
 
@@ -165,7 +165,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['cx'], { shortStyle: true })).toThrow(
-        'Option c must be the last in a cluster.',
+        `Option letter c must be the last in a cluster.`,
       );
     });
 

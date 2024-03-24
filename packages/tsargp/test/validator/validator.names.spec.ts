@@ -45,7 +45,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Non-positional option flag has no name\./);
+      expect(() => validator.validate()).toThrow(`Non-positional option flag has no name.`);
     });
 
     it('should throw an error on option with invalid name', () => {
@@ -56,7 +56,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
+      expect(() => validator.validate()).toThrow(`Option flag has invalid name 'a = b'.`);
     });
 
     it('should throw an error on flag option with invalid negation name', () => {
@@ -68,19 +68,30 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
+      expect(() => validator.validate()).toThrow(`Option flag has invalid name 'a = b'.`);
     });
 
-    it('should accept an option with cluster letters', () => {
+    it('should throw an error on option with invalid positional marker', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          positional: 'a = b',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option boolean has invalid name 'a = b'.`);
+    });
+
+    it('should throw an error on option with invalid cluster letter', () => {
       const options = {
         flag: {
           type: 'flag',
           names: ['-f'],
-          clusterLetters: 'abc',
+          clusterLetters: 'a = b',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).not.toThrow();
+      expect(() => validator.validate()).toThrow(`Option flag has invalid cluster letter ' '.`);
     });
   });
 });

@@ -19,7 +19,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Requires -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req.\n`);
     });
 
     it('should handle an option that requires the presence of another (2)', () => {
@@ -37,7 +37,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Requires -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req.\n`);
     });
 
     it('should handle an option that requires the absence of another (1)', () => {
@@ -55,7 +55,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Requires no -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires no -req.\n`);
     });
 
     it('should handle an option that requires the absence of another (2)', () => {
@@ -73,7 +73,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Requires no -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires no -req.\n`);
     });
 
     it('should handle an option that requires another option with a specific value', () => {
@@ -167,7 +167,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req.\n`);
     });
 
     it('should handle an option that is required if another is present (2)', () => {
@@ -185,7 +185,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req.\n`);
     });
 
     it('should handle an option that is required if another is absent (1)', () => {
@@ -203,7 +203,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if no -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if no -req.\n`);
     });
 
     it('should handle an option that is required if another is absent (2)', () => {
@@ -221,7 +221,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Required if no -req.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if no -req.\n`);
     });
 
     it('should handle an option that is required if another option has a specific value', () => {

@@ -20,7 +20,7 @@ import type { Concrete, URL } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
 import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued } from './options';
-import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
+import { style, TerminalString, ErrorMessage } from './styles';
 import { assert, gestaltSimilarity } from './utils';
 
 //--------------------------------------------------------------------------------------------------
@@ -81,9 +81,9 @@ export const defaultConfig: ConcreteError = {
     text: style(tf.clear),
   },
   phrases: {
-    [ErrorItem.parseError]: '%t\n\nDid you mean to specify an option name instead of %o?',
+    [ErrorItem.parseError]: 'Did you mean to specify an option name instead of %o?',
     [ErrorItem.parseErrorWithSimilar]:
-      '%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.',
+      'Did you mean to specify an option name instead of %o1? Similar names are %o2.',
     [ErrorItem.unknownOption]: 'Unknown option %o.',
     [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1. Similar names are %o2.',
     [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %t.',
@@ -93,14 +93,14 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.disallowedInlineValue]: 'Option %o does not accept inline values.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o contains empty positional marker.',
     [ErrorItem.unnamedOption]: 'Non-positional option %o has no name.',
-    [ErrorItem.invalidOptionName]: 'Invalid option name %o.',
+    [ErrorItem.invalidOptionName]: 'Option %o has invalid name %s.',
     [ErrorItem.emptyVersionDefinition]: 'Option %o contains empty version.',
     [ErrorItem.invalidSelfRequirement]: 'Option %o requires itself.',
     [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
     [ErrorItem.invalidRequiredOption]: 'Non-valued option %o in requirement.',
     [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
-    [ErrorItem.duplicateOptionName]: 'Duplicate option name %o.',
-    [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o.',
+    [ErrorItem.duplicateOptionName]: 'Option %o has duplicate name %s.',
+    [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o1: previous was %o2.',
     [ErrorItem.duplicateStringEnum]: 'Option %o has duplicate enum %s.',
     [ErrorItem.duplicateNumberEnum]: 'Option %o has duplicate enum %n.',
     [ErrorItem.incompatibleRequiredValue]:
@@ -117,8 +117,9 @@ export const defaultConfig: ConcreteError = {
       'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
     [ErrorItem.unsatisfiedCondRequirement]: 'Option %o is required if %t.',
-    [ErrorItem.duplicateClusterLetter]: 'Duplicate cluster letter %o.',
-    [ErrorItem.invalidClusterOption]: 'Option %o must be the last in a cluster.',
+    [ErrorItem.duplicateClusterLetter]: 'Option %o has duplicate cluster letter %s.',
+    [ErrorItem.invalidClusterOption]: 'Option letter %o must be the last in a cluster.',
+    [ErrorItem.invalidClusterLetter]: 'Option %o has invalid cluster letter %s.',
   },
 };
 
@@ -251,7 +252,7 @@ export class OptionValidator {
    * duplicate cluster letter
    */
   private registerNames(key: string, option: Option, validate = false, prefix = '') {
-    const names = option.names ? option.names.slice() : [];
+    const names = option.names?.slice() ?? [];
     if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames);
     }
@@ -270,10 +271,10 @@ export class OptionValidator {
         continue;
       }
       if (validate && name.match(/[\s=]+/)) {
-        throw this.error(ErrorItem.invalidOptionName, { o: name });
+        throw this.error(ErrorItem.invalidOptionName, { o: prefix + key, s: name });
       }
       if (validate && this.names.has(name)) {
-        throw this.error(ErrorItem.duplicateOptionName, { o: name });
+        throw this.error(ErrorItem.duplicateOptionName, { o: prefix + key, s: name });
       }
       this.names.set(name, key);
     }
@@ -282,8 +283,11 @@ export class OptionValidator {
     }
     if ('clusterLetters' in option && option.clusterLetters) {
       for (const letter of option.clusterLetters) {
+        if (validate && letter.includes(' ')) {
+          throw this.error(ErrorItem.invalidClusterLetter, { o: prefix + key, s: letter });
+        }
         if (validate && this.letters.has(letter)) {
-          throw this.error(ErrorItem.duplicateClusterLetter, { o: prefix + letter });
+          throw this.error(ErrorItem.duplicateClusterLetter, { o: prefix + key, s: letter });
         }
         this.letters.set(letter, key);
       }
@@ -297,18 +301,21 @@ export class OptionValidator {
    * @throws On duplicate positional option
    */
   validate(prefix = '', visited = new Set<Options>()) {
-    let positional = false; // to check for duplicate positional options
     this.names.clear(); // to check for duplicate option names
     this.letters.clear(); // to check for duplicate cluster letters
+    let positional = ''; // to check for duplicate positional options
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);
       validateOption(this.options, this.config, prefix, key, option, visited);
       if ('positional' in option && option.positional) {
         if (positional) {
-          throw this.error(ErrorItem.duplicatePositionalOption, { o: prefix + key });
+          throw this.error(ErrorItem.duplicatePositionalOption, {
+            o1: prefix + key,
+            o2: prefix + positional,
+          });
         }
-        positional = true;
+        positional = key;
       }
     }
   }
@@ -365,13 +372,13 @@ export class OptionValidator {
   }
 
   /**
-   * Creates a warning with a formatted message.
-   * @param kind The kind of warning message
-   * @param args The warning arguments
-   * @returns The formatted warning
+   * Creates a formatted message.
+   * @param kind The kind of error or warning
+   * @param args The message arguments
+   * @returns The formatted message
    */
-  warn(kind: ErrorItem, args?: Record<string, unknown>): WarnMessage {
-    return createWarning(this.config, kind, args);
+  format(kind: ErrorItem, args?: Record<string, unknown>): TerminalString {
+    return format(this.config, kind, args);
   }
 
   /**
@@ -381,7 +388,7 @@ export class OptionValidator {
    * @returns The formatted error
    */
   error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
-    return createError(this.config, kind, args);
+    return new ErrorMessage(this.format(kind, args));
   }
 }
 
@@ -389,18 +396,18 @@ export class OptionValidator {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Creates a warning with a formatted message.
+ * Creates a formatted message.
  * @param config The error message configuration
- * @param kind The kind of error message
- * @param args The warning arguments
- * @returns The formatted warning
+ * @param kind The kind of error or warning
+ * @param args The message arguments
+ * @returns The formatted message
  */
-function createWarning(
+function format(
   config: ConcreteError,
   kind: ErrorItem,
   args?: Record<string, unknown>,
-): WarnMessage {
-  return new WarnMessage(formatMessage(config.styles, config.phrases[kind], args));
+): TerminalString {
+  return formatMessage(config.styles, config.phrases[kind], args);
 }
 
 /**
@@ -410,16 +417,17 @@ function createWarning(
  * @param args The error arguments
  * @returns The formatted error
  */
-function createError(
+function error(
   config: ConcreteError,
   kind: ErrorItem,
   args?: Record<string, unknown>,
 ): ErrorMessage {
-  return new ErrorMessage(formatMessage(config.styles, config.phrases[kind], args));
+  return new ErrorMessage(format(config, kind, args));
 }
 
 /**
  * Creates a terminal string with a formatted message.
+ * The message always ends with a single line break.
  * @param styles The error message styles
  * @param phrase The error phrase
  * @param args The error arguments
@@ -455,7 +463,7 @@ function formatMessage(
   } else {
     result.splitText(phrase);
   }
-  return result;
+  return result.addBreak();
 }
 
 /**
@@ -491,7 +499,7 @@ function validateOption(
     validateRequirements(options, config, prefix, key, option.requiredIf);
   }
   if (option.type === 'version' && option.version === '') {
-    throw createError(config, ErrorItem.emptyVersionDefinition, { o: prefix + key });
+    throw error(config, ErrorItem.emptyVersionDefinition, { o: prefix + key });
   }
   if (option.type === 'command') {
     const options = typeof option.options === 'function' ? option.options() : option.options;
@@ -552,14 +560,14 @@ function validateRequirement(
   requiredValue?: RequiresVal[string],
 ) {
   if (requiredKey === key) {
-    throw createError(config, ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
+    throw error(config, ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
   }
   if (!(requiredKey in options)) {
-    throw createError(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
+    throw error(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
   }
   const option = options[requiredKey];
   if (!isValued(option)) {
-    throw createError(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
+    throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
   if (requiredValue !== undefined && requiredValue !== null) {
     validateValue(config, prefix + requiredKey, option, requiredValue);
@@ -576,16 +584,16 @@ function validateRequirement(
 function validateEnums(config: ConcreteError, key: string, option: ParamOption) {
   if ('enums' in option && option.enums) {
     if (!option.enums.length) {
-      throw createError(config, ErrorItem.emptyEnumsDefinition, { o: key });
+      throw error(config, ErrorItem.emptyEnumsDefinition, { o: key });
     }
     const set = new Set<string | number>(option.enums);
     if (set.size !== option.enums.length) {
       for (const value of option.enums) {
         if (!set.delete(value)) {
           if (option.type === 'string' || option.type === 'strings') {
-            throw createError(config, ErrorItem.duplicateStringEnum, { o: key, s: value });
+            throw error(config, ErrorItem.duplicateStringEnum, { o: key, s: value });
           }
-          throw createError(config, ErrorItem.duplicateNumberEnum, { o: key, n: value });
+          throw error(config, ErrorItem.duplicateNumberEnum, { o: key, n: value });
         }
       }
     }
@@ -604,7 +612,7 @@ function validateValue(config: ConcreteError, key: string, option: ValuedOption,
   /** @ignore */
   function assertType<T>(value: unknown, type: string): asserts value is T {
     if (typeof value !== type) {
-      throw createError(config, ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
+      throw error(config, ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
     }
   }
   if (value === undefined) {
@@ -666,14 +674,14 @@ function normalizeString(
     value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
   }
   if ('enums' in option && option.enums && !option.enums.includes(value)) {
-    throw createError(config, ErrorItem.stringEnumsConstraintViolation, {
+    throw error(config, ErrorItem.stringEnumsConstraintViolation, {
       o: name,
       s1: value,
       s2: option.enums,
     });
   }
   if ('regex' in option && option.regex && !option.regex.test(value)) {
-    throw createError(config, ErrorItem.regexConstraintViolation, {
+    throw error(config, ErrorItem.regexConstraintViolation, {
       o: name,
       s: value,
       r: option.regex,
@@ -701,7 +709,7 @@ function normalizeNumber(
     value = Math[option.round](value);
   }
   if ('enums' in option && option.enums && !option.enums.includes(value)) {
-    throw createError(config, ErrorItem.numberEnumsConstraintViolation, {
+    throw error(config, ErrorItem.numberEnumsConstraintViolation, {
       o: name,
       n1: value,
       n2: option.enums,
@@ -712,7 +720,7 @@ function normalizeNumber(
     option.range &&
     !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
   ) {
-    throw createError(config, ErrorItem.rangeConstraintViolation, {
+    throw error(config, ErrorItem.rangeConstraintViolation, {
       o: name,
       n1: value,
       n2: option.range,
@@ -742,7 +750,7 @@ function normalizeArray<T extends string | number>(
     value.push(...unique);
   }
   if (option.limit !== undefined && value.length > option.limit) {
-    throw createError(config, ErrorItem.limitConstraintViolation, {
+    throw error(config, ErrorItem.limitConstraintViolation, {
       o: name,
       n1: value.length,
       n2: option.limit,

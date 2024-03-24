@@ -19,10 +19,10 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['FLAG'] = '1';
-      expect(() => parser.parse([])).toThrow(/Option -f1 requires -f2\./);
+      expect(() => parser.parse([])).toThrow(`Option -f1 requires -f2.`);
       expect(parser.parse(['-f2'])).toEqual({ flag: true, required: true });
       process.env['FLAG'] = '0';
-      expect(() => parser.parse([])).toThrow(/Option -f1 requires -f2\./);
+      expect(() => parser.parse([])).toThrow(`Option -f1 requires -f2.`);
       expect(parser.parse(['-f2'])).toEqual({ flag: false, required: true });
     });
 
@@ -41,10 +41,10 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['BOOLEAN'] = '1';
-      expect(() => parser.parse([])).toThrow(/Option -b requires -f\./);
+      expect(() => parser.parse([])).toThrow(`Option -b requires -f.`);
       expect(parser.parse(['-f'])).toEqual({ boolean: true, required: true });
       process.env['BOOLEAN'] = '0';
-      expect(() => parser.parse([])).toThrow(/Option -b requires -f\./);
+      expect(() => parser.parse([])).toThrow(`Option -b requires -f.`);
       expect(parser.parse(['-f'])).toEqual({ boolean: false, required: true });
     });
 
@@ -63,7 +63,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['STRING'] = '123';
-      expect(() => parser.parse([])).toThrow(/Option -s requires -f\./);
+      expect(() => parser.parse([])).toThrow(`Option -s requires -f.`);
       expect(parser.parse(['-f'])).toEqual({ string: '123', required: true });
     });
 
@@ -82,7 +82,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['NUMBER'] = '123';
-      expect(() => parser.parse([])).toThrow(/Option -n requires -f\./);
+      expect(() => parser.parse([])).toThrow(`Option -n requires -f.`);
       expect(parser.parse(['-f'])).toEqual({ number: 123, required: true });
     });
 
@@ -103,7 +103,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['STRINGS'] = 'one,two';
-      expect(() => parser.parse([])).toThrow(/Option -ss requires -f\./);
+      expect(() => parser.parse([])).toThrow(`Option -ss requires -f.`);
       expect(parser.parse(['-f'])).toEqual({ strings: ['ONE', 'TWO'], required: true });
     });
 
@@ -124,7 +124,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['NUMBERS'] = '1.1,2.2';
-      expect(() => parser.parse([])).toThrow(/Option -ns requires -f\./);
+      expect(() => parser.parse([])).toThrow(`Option -ns requires -f.`);
       expect(parser.parse(['-f'])).toEqual({ numbers: [1, 2], required: true });
     });
 
@@ -140,7 +140,7 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       process.env['STRING'] = 'abc';
       expect(() => parser.parse([])).toThrow(
-        /Invalid parameter to STRING: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to STRING: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -156,7 +156,7 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       process.env['NUMBER'] = '-3';
       expect(() => parser.parse([])).toThrow(
-        /Invalid parameter to NUMBER: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to NUMBER: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
@@ -173,7 +173,7 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       process.env['STRINGS'] = '123,abc';
       expect(() => parser.parse([])).toThrow(
-        /Invalid parameter to STRINGS: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to STRINGS: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -190,7 +190,7 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       process.env['NUMBERS'] = '1,-3';
       expect(() => parser.parse([])).toThrow(
-        /Invalid parameter to NUMBERS: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to NUMBERS: -3. Value must be in the range [0, Infinity].`,
       );
     });
   });

@@ -14,7 +14,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -b, --boolean  <param>  A boolean option\n');
+      expect(message.wrap()).toEqual(`  -b, --boolean  <param>  A boolean option\n`);
     });
 
     it('should handle a boolean option with a parameter name with angle brackets', () => {
@@ -27,7 +27,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -b, --boolean  <token>=<value>  A boolean option\n');
+      expect(message.wrap()).toEqual(`  -b, --boolean  <token>=<value>  A boolean option\n`);
     });
 
     it('should handle a string option with a parameter name', () => {
@@ -40,7 +40,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -s, --string  <param>  A string option\n');
+      expect(message.wrap()).toEqual(`  -s, --string  <param>  A string option\n`);
     });
 
     it('should handle a string option with a parameter name with angle brackets', () => {
@@ -53,7 +53,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -s, --string  <token>=<value>  A string option\n');
+      expect(message.wrap()).toEqual(`  -s, --string  <token>=<value>  A string option\n`);
     });
 
     it('should handle a boolean option with an example value', () => {
@@ -66,7 +66,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -b, --boolean  true  A boolean option\n');
+      expect(message.wrap()).toEqual(`  -b, --boolean  true  A boolean option\n`);
     });
 
     it('should handle a string option with an example value', () => {
@@ -92,7 +92,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -n, --number  123  A number option\n');
+      expect(message.wrap()).toEqual(`  -n, --number  123  A number option\n`);
     });
 
     it('should handle a variadic strings option with a parameter name', () => {

@@ -30,7 +30,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -s, --string  <string>  A string option. Values must match the regex /\\d+/s.\n',
+        `  -s, --string  <string>  A string option. Values must match the regex /\\d+/s.\n`,
       );
     });
 
@@ -45,7 +45,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values must be one of {1, 2}.\n',
+        `  -n, --number  <number>  A number option. Values must be one of {1, 2}.\n`,
       );
     });
 
@@ -60,7 +60,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values must be in the range [0, Infinity].\n',
+        `  -n, --number  <number>  A number option. Values must be in the range [0, Infinity].\n`,
       );
     });
 

@@ -27,7 +27,7 @@ describe('HelpFormatter', () => {
       const validator = new OptionValidator(options);
       const config = { descr: { absolute: true } };
       const message = new HelpFormatter(validator, config, [/flag/]).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag\n  A flag option\n');
+      expect(message.wrap()).toEqual(`  -f, --flag\n  A flag option\n`);
     });
 
     it('should filter options with multiple regular expressions', () => {
@@ -47,7 +47,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       const message = new HelpFormatter(validator, {}, [/^-f/, /^-b/]).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag\n  -b, --boolean  <boolean>\n');
+      expect(message.wrap()).toEqual(`  -f, --flag\n  -b, --boolean  <boolean>\n`);
     });
 
     it('should handle a function option', () => {
@@ -60,7 +60,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --function    A function option\n');
+      expect(message.wrap()).toEqual(`  -f, --function    A function option\n`);
     });
 
     it('should handle a command option', () => {
@@ -74,7 +74,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --command    A command option\n');
+      expect(message.wrap()).toEqual(`  -f, --command    A command option\n`);
     });
 
     it('should handle a flag option with negation names', () => {
@@ -88,7 +88,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -f, --flag    A flag option. Can be negated with -no-f or --no-flag.\n',
+        `  -f, --flag    A flag option. Can be negated with -no-f or --no-flag.\n`,
       );
     });
 
@@ -102,7 +102,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Always required.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Always required.\n`);
     });
 
     it('should handle a flag option with an external link', () => {
@@ -116,7 +116,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -f, --flag    A flag option. Refer to https://trulysimple.dev/tsargp/docs for details.\n',
+        `  -f, --flag    A flag option. Refer to https://trulysimple.dev/tsargp/docs for details.\n`,
       );
     });
 
@@ -130,7 +130,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option. Deprecated for reason.\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Deprecated for reason.\n`);
     });
 
     it('should handle a flag option with cluster letters', () => {
@@ -159,7 +159,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -b, --boolean  <boolean>  A boolean option. Can be specified through the VAR environment variable.\n',
+        `  -b, --boolean  <boolean>  A boolean option. Can be specified through the VAR environment variable.\n`,
       );
     });
 
@@ -189,7 +189,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Accepts positional parameters that may be preceded by --.\n',
+        `  -n, --number  <number>  A number option. Accepts positional parameters that may be preceded by --.\n`,
       );
     });
 
@@ -241,7 +241,7 @@ describe('HelpFormatter', () => {
       const groups = new HelpFormatter(new OptionValidator(options)).formatGroups();
       const message = groups.get('group');
       assert(message);
-      expect(message.wrap()).toEqual('  -f, --flag    A flag option\n');
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option\n`);
     });
   });
 });

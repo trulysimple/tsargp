@@ -148,6 +148,10 @@ export const enum ErrorItem {
    * the middle of a cluster argument.
    */
   invalidClusterOption,
+  /**
+   * Raised by the validator when an option has an invalid cluster letter.
+   */
+  invalidClusterLetter,
 }
 
 /**

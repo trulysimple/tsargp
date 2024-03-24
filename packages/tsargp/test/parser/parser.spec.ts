@@ -27,12 +27,12 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['boo'])).toThrow(/Unknown option boo\./);
+      expect(() => parser.parse(['boo'])).toThrow(`Unknown option boo.`);
       expect(() => parser.parse(['bool'])).toThrow(
-        /Unknown option bool. Similar names are \[--boolean1, --boolean2\]\./,
+        `Unknown option bool. Similar names are [--boolean1, --boolean2].`,
       );
       expect(() => parser.parse(['bool-ean'])).toThrow(
-        /Unknown option bool-ean. Similar names are \[--boolean1, --boolean2\]\./,
+        `Unknown option bool-ean. Similar names are [--boolean1, --boolean2].`,
       );
     });
 
@@ -46,7 +46,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse([])).toThrow(/Option preferred is required\./);
+      expect(() => parser.parse([])).toThrow(`Option preferred is required.`);
     });
 
     describe('help', () => {
@@ -65,7 +65,7 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
         expect(() => parser.parse(['-h'], { progName: 'prog' })).toThrow(
-          /^Usage:\n\n {2}prog \[-f\] \[-h\]\n\nArgs:\n\n {2}-f\n\nOptions:\n\n {2}-h$/,
+          `Usage:\n\n  prog [-f] [-h]\n\nArgs:\n\n  -f\n\nOptions:\n\n  -h`,
         );
       });
 
@@ -85,7 +85,7 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         expect(parser.parse([])).not.toHaveProperty('help');
         expect(() => parser.parse(['-h'], { progName: 'prog' })).toThrow(
-          /^usage heading\n\nprog \[-h\]\n\ngroup {2}heading\n\n-h$/,
+          `usage heading\n\nprog [-h]\n\ngroup  heading\n\n-h`,
         );
       });
 
@@ -112,7 +112,7 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-h', '^-F', '^-B'], { progName: 'prog' })).toThrow(
-          /^ {2}-f, --flag\n {2}-b, --boolean {2}<boolean>$/,
+          `  -f, --flag\n  -b, --boolean  <boolean>`,
         );
       });
     });
@@ -181,8 +181,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f='])).toThrow(/Option -f does not accept inline values\./);
-        expect(() => parser.parse(['-f=a'])).toThrow(/Option -f does not accept inline values\./);
+        expect(() => parser.parse(['-f='])).toThrow(`Option -f does not accept inline values.`);
+        expect(() => parser.parse(['-f=a'])).toThrow(`Option -f does not accept inline values.`);
         expect(options.function.exec).not.toHaveBeenCalled();
       });
 
@@ -270,8 +270,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-c='])).toThrow(/Option -c does not accept inline values\./);
-        expect(() => parser.parse(['-c=a'])).toThrow(/Option -c does not accept inline values\./);
+        expect(() => parser.parse(['-c='])).toThrow(`Option -c does not accept inline values.`);
+        expect(() => parser.parse(['-c=a'])).toThrow(`Option -c does not accept inline values.`);
         expect(options.command.cmd).not.toHaveBeenCalled();
       });
 
@@ -362,8 +362,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-f='])).toThrow(/Option -f does not accept inline values\./);
-        expect(() => parser.parse(['-f=a'])).toThrow(/Option -f does not accept inline values\./);
+        expect(() => parser.parse(['-f='])).toThrow(`Option -f does not accept inline values.`);
+        expect(() => parser.parse(['-f=a'])).toThrow(`Option -f does not accept inline values.`);
       });
 
       it('should handle a flag option with negation names', () => {
@@ -390,7 +390,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-b'])).toThrow(/Missing parameter to -b\./);
+        expect(() => parser.parse(['-b'])).toThrow(`Missing parameter to -b.`);
       });
 
       it('should handle a boolean option', () => {
@@ -418,7 +418,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-s'])).toThrow(/Missing parameter to -s\./);
+        expect(() => parser.parse(['-s'])).toThrow(`Missing parameter to -s.`);
       });
 
       it('should handle a string option', () => {
@@ -445,7 +445,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-n'])).toThrow(/Missing parameter to -n\./);
+        expect(() => parser.parse(['-n'])).toThrow(`Missing parameter to -n.`);
       });
 
       it('should handle a number option', () => {
@@ -473,14 +473,13 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to -ss\./);
+        expect(() => parser.parse(['-ss'])).toThrow(`Missing parameter to -ss.`);
       });
 
       it('should throw a name suggestion on parse failure from variadic strings option', () => {
-        const regex = new RegExp(
-          `Option -ss has too many values \\(1\\)\\. Should have at most 0\\.\n\n` +
-            `Did you mean to specify an option name instead of ss\\? Similar names are \\[-ss\\]\\.`,
-        );
+        const message =
+          `Option -ss has too many values (1). Should have at most 0.\n` +
+          `Did you mean to specify an option name instead of ss? Similar names are [-ss].\n`;
         const options = {
           strings: {
             type: 'strings',
@@ -490,8 +489,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['ss'])).toThrow(regex);
-        expect(() => parser.parse(['-ss', 'ss'])).toThrow(regex);
+        expect(() => parser.parse(['ss'])).toThrow(message);
+        expect(() => parser.parse(['-ss', 'ss'])).toThrow(message);
       });
 
       it('should handle a strings option that can be specified multiple times', () => {
@@ -545,14 +544,13 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to -ns\./);
+        expect(() => parser.parse(['-ns'])).toThrow(`Missing parameter to -ns.`);
       });
 
       it('should throw a name suggestion on parse failure from variadic numbers option', () => {
-        const regex = new RegExp(
-          `Option -ns has too many values \\(1\\)\\. Should have at most 0\\.\n\n` +
-            `Did you mean to specify an option name instead of ns\\? Similar names are \\[-ns\\]\\.`,
-        );
+        const message =
+          `Option -ns has too many values (1). Should have at most 0.\n` +
+          `Did you mean to specify an option name instead of ns? Similar names are [-ns].\n`;
         const options = {
           numbers: {
             type: 'numbers',
@@ -562,8 +560,8 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        expect(() => parser.parse(['ns'])).toThrow(regex);
-        expect(() => parser.parse(['-ns', 'ns'])).toThrow(regex);
+        expect(() => parser.parse(['ns'])).toThrow(message);
+        expect(() => parser.parse(['-ns', 'ns'])).toThrow(message);
       });
 
       it('should handle a numbers option that can be specified multiple times', () => {
@@ -657,7 +655,7 @@ describe('parseAsync', () => {
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
     await expect(parser.parseAsync(['-v'])).rejects.toThrow(
-      /Could not find a "package.json" file\./,
+      `Could not find a "package.json" file.`,
     );
   });
 
@@ -684,7 +682,7 @@ describe('parseAsync', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    await expect(parser.parseAsync(['-f'])).rejects.toThrow(/^abc$/);
+    await expect(parser.parseAsync(['-f'])).rejects.toThrow('abc');
   });
 
   it('should handle a command option with an asynchronous callback', async () => {
@@ -712,7 +710,7 @@ describe('parseAsync', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    await expect(parser.parseAsync(['-c'])).rejects.toThrow(/^abc$/);
+    await expect(parser.parseAsync(['-c'])).rejects.toThrow('abc');
   });
 });
 
@@ -729,9 +727,8 @@ describe('doParse', () => {
     const parser = new ArgumentParser(options);
     const { warnings } = parser.doParse(values, ['-f', '-f']);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toHaveProperty(
-      'message',
-      expect.stringMatching(/Option -f is deprecated and may be removed in future releases\./),
+    expect(warnings.message).toEqual(
+      `Option -f is deprecated and may be removed in future releases.\n`,
     );
   });
 });
@@ -749,7 +746,7 @@ describe('tryParse', () => {
     const parser = new ArgumentParser(options);
     await expect(parser.tryParse(values, [])).resolves.toHaveProperty(
       'message',
-      expect.stringMatching(/Option -f is required\./),
+      expect.stringMatching('Option -f is required.'),
     );
   });
 
@@ -765,7 +762,7 @@ describe('tryParse', () => {
     const parser = new ArgumentParser(options);
     await expect(parser.tryParse(values, ['-f', '-f'])).resolves.toHaveProperty(
       'message',
-      expect.stringMatching(/Option -f is deprecated and may be removed in future releases\./),
+      expect.stringMatching(`Option -f is deprecated and may be removed in future releases.`),
     );
   });
 
@@ -787,8 +784,8 @@ describe('tryParse', () => {
     await expect(parser.tryParse(values, ['-f1', '-f2'])).resolves.toHaveProperty(
       'message',
       expect.stringMatching(
-        'Option -f1 is deprecated and may be removed in future releases.\n' +
-          'Option -f2 is deprecated and may be removed in future releases.',
+        `Option -f1 is deprecated and may be removed in future releases.\n` +
+          `Option -f2 is deprecated and may be removed in future releases.\n`,
       ),
     );
   });
