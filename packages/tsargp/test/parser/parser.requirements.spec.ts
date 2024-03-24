@@ -103,7 +103,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-f1'])).toThrow(/Option -f1 requires -f2\./);
+      expect(() => parser.parse(['-f1'])).toThrow(`Option -f1 requires -f2.`);
       expect(options.required.exec).not.toHaveBeenCalled();
     });
 
@@ -121,7 +121,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-f1'])).toThrow(/Option -f1 requires -f2\./);
+      expect(() => parser.parse(['-f1'])).toThrow(`Option -f1 requires -f2.`);
       expect(options.required.exec).not.toHaveBeenCalled();
     });
 
@@ -139,7 +139,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-f1'])).toThrow(/Option -f1 requires -f2\./);
+      expect(() => parser.parse(['-f1'])).toThrow(`Option -f1 requires -f2.`);
       expect(options.required.exec).not.toHaveBeenCalled();
     });
 
@@ -158,7 +158,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -f1 requires no -f2\./);
+      expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option -f1 requires no -f2.`);
       expect(options.required.exec).not.toHaveBeenCalled();
     });
 
@@ -177,7 +177,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -f1 requires no -f2\./);
+      expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option -f1 requires no -f2.`);
       expect(options.required.exec).not.toHaveBeenCalled();
     });
 
@@ -196,7 +196,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -f1 requires no -f2\./);
+      expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option -f1 requires no -f2.`);
       expect(options.required.exec).not.toHaveBeenCalled();
     });
 
@@ -217,7 +217,7 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse([])).not.toThrow();
       expect(() => parser.parse(['1'])).not.toThrow();
       expect(() => parser.parse(['-s', 'b', '1'])).not.toThrow();
-      expect(() => parser.parse(['-s', 'a', '1'])).toThrow(/Option -b requires -s != 'a'\./);
+      expect(() => parser.parse(['-s', 'a', '1'])).toThrow(`Option -b requires -s != 'a'.`);
     });
 
     it('should throw an error on forward requirement not satisfied with req.all', () => {
@@ -239,9 +239,9 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse([])).not.toThrow();
-      expect(() => parser.parse(['1'])).toThrow(/Option -b requires -f1\./);
-      expect(() => parser.parse(['-f1', '1'])).toThrow(/Option -b requires -f2\./);
-      expect(() => parser.parse(['-f2', '1'])).toThrow(/Option -b requires -f1\./);
+      expect(() => parser.parse(['1'])).toThrow(`Option -b requires -f1.`);
+      expect(() => parser.parse(['-f1', '1'])).toThrow(`Option -b requires -f2.`);
+      expect(() => parser.parse(['-f2', '1'])).toThrow(`Option -b requires -f1.`);
       expect(() => parser.parse(['-f1', '-f2', '1'])).not.toThrow();
     });
 
@@ -264,7 +264,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse([])).not.toThrow();
-      expect(() => parser.parse(['1'])).toThrow(/Option -b requires \(-f1 or -f2\)\./);
+      expect(() => parser.parse(['1'])).toThrow(`Option -b requires (-f1 or -f2).`);
       expect(() => parser.parse(['-f1', '1'])).not.toThrow();
       expect(() => parser.parse(['-f2', '1'])).not.toThrow();
       expect(() => parser.parse(['-f1', '-f2', '1'])).not.toThrow();
@@ -301,25 +301,25 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse([])).not.toThrow();
-      expect(() => parser.parse(['-f'])).toThrow(/Option -f requires -s\./);
-      expect(() => parser.parse(['-f', '-s', 'a'])).toThrow(/Option -f requires -s = 'abc'\./);
-      expect(() => parser.parse(['-f', '-s', 'abc'])).toThrow(/Option -f requires -n\./);
+      expect(() => parser.parse(['-f'])).toThrow(`Option -f requires -s.`);
+      expect(() => parser.parse(['-f', '-s', 'a'])).toThrow(`Option -f requires -s = 'abc'.`);
+      expect(() => parser.parse(['-f', '-s', 'abc'])).toThrow(`Option -f requires -n.`);
       expect(() => parser.parse(['-f', '-s', 'abc', '-n', '1'])).toThrow(
-        /Option -f requires -n = 123\./,
+        `Option -f requires -n = 123.`,
       );
-      expect(() => parser.parse(['-f', '-n', '123'])).toThrow(/Option -f requires -s\./);
+      expect(() => parser.parse(['-f', '-n', '123'])).toThrow(`Option -f requires -s.`);
       expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123'])).toThrow(
-        /Option -f requires -ss\./,
+        `Option -f requires -ss.`,
       );
       expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a'])).toThrow(
-        /Option -f requires -ss = \['a', 'b'\]\./,
+        `Option -f requires -ss = ['a', 'b'].`,
       );
       expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).toThrow(
-        /Option -f requires -ns\./,
+        `Option -f requires -ns.`,
       );
       expect(() =>
         parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1']),
-      ).toThrow(/Option -f requires -ns = \[1, 2\]\./);
+      ).toThrow(`Option -f requires -ns = [1, 2].`);
       expect(() =>
         parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
       ).not.toThrow();
@@ -364,7 +364,7 @@ describe('ArgumentParser', () => {
       expect(() =>
         parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
       ).toThrow(
-        /Option -f requires \(-s != 'abc' or -n != 123 or -ss != \['a', 'b'\] or -ns != \[1, 2\]\)\./,
+        `Option -f requires (-s != 'abc' or -n != 123 or -ss != ['a', 'b'] or -ns != [1, 2]).`,
       );
     });
   });
@@ -390,8 +390,8 @@ describe('ArgumentParser', () => {
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
     expect(() => parser.parse(['1'])).not.toThrow();
-    expect(() => parser.parse(['-f1', '1'])).toThrow(/Option -b requires <fcn>\./);
-    expect(() => parser.parse(['-f2', '1'])).toThrow(/Option -b requires <fcn>\./);
+    expect(() => parser.parse(['-f1', '1'])).toThrow(`Option -b requires <fcn>.`);
+    expect(() => parser.parse(['-f2', '1'])).toThrow(`Option -b requires <fcn>.`);
     expect(() => parser.parse(['-f1', '-f2', '1'])).not.toThrow();
   });
 
@@ -415,10 +415,10 @@ describe('ArgumentParser', () => {
     options.boolean.requires.item.toString = () => 'fcn';
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
-    expect(() => parser.parse(['1'])).toThrow(/Option -b requires not <fcn>\./);
+    expect(() => parser.parse(['1'])).toThrow(`Option -b requires not <fcn>.`);
     expect(() => parser.parse(['-f1', '1'])).not.toThrow();
     expect(() => parser.parse(['-f2', '1'])).not.toThrow();
-    expect(() => parser.parse(['-f1', '-f2', '1'])).toThrow(/Option -b requires not <fcn>\./);
+    expect(() => parser.parse(['-f1', '-f2', '1'])).toThrow(`Option -b requires not <fcn>.`);
   });
 
   it('should throw an error on option absent despite being required if another is present (1)', () => {
@@ -436,7 +436,7 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse(['-f2'])).toThrow(/Option -f1 is required if -f2\./);
+    expect(() => parser.parse(['-f2'])).toThrow(`Option -f1 is required if -f2.`);
     expect(options.other.exec).not.toHaveBeenCalled();
   });
 
@@ -455,7 +455,7 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse(['-f2'])).toThrow(/Option -f1 is required if -f2\./);
+    expect(() => parser.parse(['-f2'])).toThrow(`Option -f1 is required if -f2.`);
     expect(options.other.exec).not.toHaveBeenCalled();
   });
 
@@ -474,7 +474,7 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse(['-f2'])).toThrow(/Option -f1 is required if -f2\./);
+    expect(() => parser.parse(['-f2'])).toThrow(`Option -f1 is required if -f2.`);
     expect(options.other.exec).not.toHaveBeenCalled();
   });
 
@@ -492,7 +492,7 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse([])).toThrow(/Option -f1 is required if no -f2\./);
+    expect(() => parser.parse([])).toThrow(`Option -f1 is required if no -f2.`);
     expect(options.other.exec).not.toHaveBeenCalled();
   });
 
@@ -510,7 +510,7 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse([])).toThrow(/Option -f1 is required if no -f2\./);
+    expect(() => parser.parse([])).toThrow(`Option -f1 is required if no -f2.`);
     expect(options.other.exec).not.toHaveBeenCalled();
   });
 
@@ -528,7 +528,7 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse([])).toThrow(/Option -f1 is required if no -f2\./);
+    expect(() => parser.parse([])).toThrow(`Option -f1 is required if no -f2.`);
     expect(options.other.exec).not.toHaveBeenCalled();
   });
 
@@ -546,8 +546,8 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse([])).toThrow(/Option -b is required if no -s\./);
-    expect(() => parser.parse(['-s', 'b'])).toThrow(/Option -b is required if -s != 'a'\./);
+    expect(() => parser.parse([])).toThrow(`Option -b is required if no -s.`);
+    expect(() => parser.parse(['-s', 'b'])).toThrow(`Option -b is required if -s != 'a'.`);
     expect(() => parser.parse(['-s', 'a', '1'])).not.toThrow();
   });
 
@@ -572,9 +572,7 @@ describe('ArgumentParser', () => {
     expect(() => parser.parse([])).not.toThrow();
     expect(() => parser.parse(['-f1'])).not.toThrow();
     expect(() => parser.parse(['-f2'])).not.toThrow();
-    expect(() => parser.parse(['-f1', '-f2'])).toThrow(
-      /Option -b is required if \(-f1 and -f2\)\./,
-    );
+    expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option -b is required if (-f1 and -f2).`);
   });
 
   it('should throw an error on conditional requirement not satisfied with req.one', () => {
@@ -596,9 +594,9 @@ describe('ArgumentParser', () => {
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
-    expect(() => parser.parse(['-f1'])).toThrow(/Option -b is required if -f1\./);
-    expect(() => parser.parse(['-f2'])).toThrow(/Option -b is required if -f2\./);
-    expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -b is required if -f1\./);
+    expect(() => parser.parse(['-f1'])).toThrow(`Option -b is required if -f1.`);
+    expect(() => parser.parse(['-f2'])).toThrow(`Option -b is required if -f2.`);
+    expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option -b is required if -f1.`);
   });
 
   it('should throw an error on conditional requirement not satisfied with an expression', () => {
@@ -639,7 +637,7 @@ describe('ArgumentParser', () => {
     expect(() =>
       parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
     ).toThrow(
-      /Option -f is required if \(-s = 'abc' and -n = 123 and -ss = \['a', 'b'\] and -ns = \[1, 2\]\)\./,
+      `Option -f is required if (-s = 'abc' and -n = 123 and -ss = ['a', 'b'] and -ns = [1, 2]).`,
     );
   });
 
@@ -673,24 +671,24 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse([])).toThrow(/Option -f is required if no -s\./);
-    expect(() => parser.parse(['-s', 'a'])).toThrow(/Option -f is required if -s != 'abc'\./);
-    expect(() => parser.parse(['-s', 'abc'])).toThrow(/Option -f is required if no -n\./);
+    expect(() => parser.parse([])).toThrow(`Option -f is required if no -s.`);
+    expect(() => parser.parse(['-s', 'a'])).toThrow(`Option -f is required if -s != 'abc'.`);
+    expect(() => parser.parse(['-s', 'abc'])).toThrow(`Option -f is required if no -n.`);
     expect(() => parser.parse(['-s', 'abc', '-n', '1'])).toThrow(
-      /Option -f is required if -n != 123\./,
+      `Option -f is required if -n != 123.`,
     );
-    expect(() => parser.parse(['-n', '123'])).toThrow(/Option -f is required if no -s\./);
+    expect(() => parser.parse(['-n', '123'])).toThrow(`Option -f is required if no -s.`);
     expect(() => parser.parse(['-s', 'abc', '-n', '123'])).toThrow(
-      /Option -f is required if no -ss\./,
+      `Option -f is required if no -ss.`,
     );
     expect(() => parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a'])).toThrow(
-      /Option -f is required if -ss != \['a', 'b'\]\./,
+      `Option -f is required if -ss != ['a', 'b'].`,
     );
     expect(() => parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).toThrow(
-      /Option -f is required if no -ns\./,
+      `Option -f is required if no -ns.`,
     );
     expect(() => parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1'])).toThrow(
-      /Option -f is required if -ns != \[1, 2\]\./,
+      `Option -f is required if -ns != [1, 2].`,
     );
     expect(() =>
       parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
@@ -716,10 +714,10 @@ describe('ArgumentParser', () => {
     } as const satisfies Options;
     options.boolean.requiredIf.toString = () => 'fcn';
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse([])).toThrow(/Option -b is required if <fcn>\./);
+    expect(() => parser.parse([])).toThrow(`Option -b is required if <fcn>.`);
     expect(() => parser.parse(['-f1'])).not.toThrow();
     expect(() => parser.parse(['-f2'])).not.toThrow();
-    expect(() => parser.parse(['-f1', '-f2'])).toThrow(/Option -b is required if <fcn>\./);
+    expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option -b is required if <fcn>.`);
   });
 
   it('should throw an error on conditional requirement not satisfied with a negated callback', () => {
@@ -742,8 +740,8 @@ describe('ArgumentParser', () => {
     options.boolean.requiredIf.item.toString = () => 'fcn';
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
-    expect(() => parser.parse(['-f1'])).toThrow(/Option -b is required if not <fcn>\./);
-    expect(() => parser.parse(['-f2'])).toThrow(/Option -b is required if not <fcn>\./);
+    expect(() => parser.parse(['-f1'])).toThrow(`Option -b is required if not <fcn>.`);
+    expect(() => parser.parse(['-f2'])).toThrow(`Option -b is required if not <fcn>.`);
     expect(() => parser.parse(['-f1', '-f2'])).not.toThrow();
   });
 });

@@ -6,85 +6,81 @@ describe('OptionValidator', () => {
   describe('validate', () => {
     it('should throw an error on duplicate option name in the same option', () => {
       const options = {
-        duplicate: {
-          type: 'string',
+        flag: {
+          type: 'flag',
           names: ['dup', 'dup'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
+      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
     });
 
     it('should throw an error on duplicate option name across different options', () => {
       const options = {
-        duplicate1: {
-          type: 'string',
+        flag1: {
+          type: 'flag',
           names: ['dup'],
         },
-        duplicate2: {
-          type: 'string',
+        flag2: {
+          type: 'flag',
           names: ['dup'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
+      expect(() => validator.validate()).toThrow(`Option flag2 has duplicate name 'dup'.`);
     });
 
     it('should throw an error on flag option with duplicate negation name', () => {
       const options = {
-        function: {
+        flag: {
           type: 'flag',
           names: ['dup'],
           negationNames: ['dup'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
+      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
     });
 
-    it('should throw an error on option with duplicate positional marker name', () => {
+    it('should throw an error on option with duplicate positional marker', () => {
       const options = {
-        string: {
-          type: 'string',
+        boolean: {
+          type: 'boolean',
           names: ['dup'],
-        },
-        positional: {
-          type: 'number',
-          names: ['-pos'],
           positional: 'dup',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate option name dup\./);
+      expect(() => validator.validate()).toThrow(`Option boolean has duplicate name 'dup'.`);
     });
 
     it('should throw an error on duplicate positional option', () => {
       const options = {
-        positional1: {
-          type: 'string',
-          names: ['-pos1'],
+        boolean1: {
+          type: 'boolean',
           positional: true,
         },
-        positional2: {
-          type: 'number',
-          names: ['-pos2'],
+        boolean2: {
+          type: 'boolean',
           positional: true,
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate positional option positional2\./);
+      expect(() => validator.validate()).toThrow(
+        `Duplicate positional option boolean2: previous was boolean1.`,
+      );
     });
 
     it('should throw an error on string option with duplicate enumerated values', () => {
       const options = {
         string: {
           type: 'string',
-          names: ['-se'],
+          names: ['-s'],
           enums: ['dup', 'dup'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option string has duplicate enum 'dup'\./);
+      expect(() => validator.validate()).toThrow(`Option string has duplicate enum 'dup'.`);
     });
 
     it('should throw an error on number option with duplicate enumeration values', () => {
@@ -96,7 +92,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option number has duplicate enum 1\./);
+      expect(() => validator.validate()).toThrow(`Option number has duplicate enum 1.`);
     });
 
     it('should throw an error on strings option with duplicate enumeration values', () => {
@@ -108,7 +104,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option strings has duplicate enum 'dup'\./);
+      expect(() => validator.validate()).toThrow(`Option strings has duplicate enum 'dup'.`);
     });
 
     it('should throw an error on numbers option with duplicate enumeration values', () => {
@@ -120,7 +116,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option numbers has duplicate enum 1\./);
+      expect(() => validator.validate()).toThrow(`Option numbers has duplicate enum 1.`);
     });
 
     it('should throw an error on duplicate cluster letter in the same option', () => {
@@ -132,7 +128,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate cluster letter a\./);
+      expect(() => validator.validate()).toThrow(`Option flag has duplicate cluster letter 'a'.`);
     });
 
     it('should throw an error on duplicate cluster letter across different options', () => {
@@ -149,7 +145,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Duplicate cluster letter f\./);
+      expect(() => validator.validate()).toThrow(`Option flag2 has duplicate cluster letter 'f'.`);
     });
   });
 });

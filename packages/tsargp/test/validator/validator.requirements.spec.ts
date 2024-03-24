@@ -17,7 +17,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option requires requires itself\./);
+      expect(() => validator.validate()).toThrow(`Option requires requires itself.`);
     });
 
     it('should throw an error on unknown required option', () => {
@@ -33,7 +33,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Unknown option unknown in requirement\./);
+      expect(() => validator.validate()).toThrow(`Unknown option unknown in requirement.`);
     });
 
     it('should throw an error on required help option', () => {
@@ -49,7 +49,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Non-valued option required in requirement\./);
+      expect(() => validator.validate()).toThrow(`Non-valued option required in requirement.`);
     });
 
     it('should throw an error on required version option', () => {
@@ -66,7 +66,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Non-valued option required in requirement\./);
+      expect(() => validator.validate()).toThrow(`Non-valued option required in requirement.`);
     });
 
     it('should allow a flag option required to be present', () => {
@@ -166,7 +166,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <abc>\. Should be of type 'boolean'\./,
+        `Option required has incompatible value <abc>. Should be of type 'boolean'.`,
       );
     });
 
@@ -184,7 +184,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <1>\. Should be of type 'boolean'\./,
+        `Option required has incompatible value <1>. Should be of type 'boolean'.`,
       );
     });
 
@@ -202,7 +202,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <1>\. Should be of type 'string'\./,
+        `Option required has incompatible value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -220,7 +220,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <1>\. Should be of type 'number'\./,
+        `Option required has incompatible value <1>. Should be of type 'number'.`,
       );
     });
 
@@ -238,7 +238,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <1>\. Should be of type 'object'\./,
+        `Option required has incompatible value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -256,7 +256,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <1>\. Should be of type 'string'\./,
+        `Option required has incompatible value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -274,7 +274,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <1>\. Should be of type 'object'\./,
+        `Option required has incompatible value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -292,7 +292,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has incompatible value <1>\. Should be of type 'number'\./,
+        `Option required has incompatible value <1>. Should be of type 'number'.`,
       );
     });
 
@@ -309,7 +309,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option requires requires itself\./);
+      expect(() => validator.validate()).toThrow(`Option requires requires itself.`);
     });
 
     it('should throw an error on option required if an unknown option is present', () => {
@@ -325,7 +325,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Unknown option unknown in requirement\./);
+      expect(() => validator.validate()).toThrow(`Unknown option unknown in requirement.`);
     });
 
     it('should allow an option required if a flag option is present', () => {
@@ -425,7 +425,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <abc>\. Should be of type 'boolean'\./,
+        `Option other has incompatible value <abc>. Should be of type 'boolean'.`,
       );
     });
 
@@ -443,7 +443,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <1>\. Should be of type 'boolean'\./,
+        `Option other has incompatible value <1>. Should be of type 'boolean'.`,
       );
     });
 
@@ -461,7 +461,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <1>\. Should be of type 'string'\./,
+        `Option other has incompatible value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -479,7 +479,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <1>\. Should be of type 'number'\./,
+        `Option other has incompatible value <1>. Should be of type 'number'.`,
       );
     });
 
@@ -497,7 +497,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <1>\. Should be of type 'object'\./,
+        `Option other has incompatible value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -515,7 +515,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <1>\. Should be of type 'string'\./,
+        `Option other has incompatible value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -533,7 +533,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <1>\. Should be of type 'object'\./,
+        `Option other has incompatible value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -551,7 +551,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option other has incompatible value <1>\. Should be of type 'number'\./,
+        `Option other has incompatible value <1>. Should be of type 'number'.`,
       );
     });
   });

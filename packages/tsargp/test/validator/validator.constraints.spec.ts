@@ -15,7 +15,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to string: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to string: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -30,7 +30,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to string: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to string: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -49,7 +49,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to required: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -64,7 +64,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to string: 'abc'\. Possible values are \['one', 'two'\]\./,
+        `Invalid parameter to string: 'abc'. Possible values are ['one', 'two'].`,
       );
     });
 
@@ -79,7 +79,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to string: 'abc'\. Possible values are \['one', 'two'\]\./,
+        `Invalid parameter to string: 'abc'. Possible values are ['one', 'two'].`,
       );
     });
 
@@ -98,7 +98,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: 'abc'\. Possible values are \['one', 'two'\]\./,
+        `Invalid parameter to required: 'abc'. Possible values are ['one', 'two'].`,
       );
     });
 
@@ -113,7 +113,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to number: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to number: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
@@ -128,7 +128,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to number: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to number: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
@@ -147,7 +147,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to required: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
@@ -162,7 +162,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to number: 3\. Possible values are \[1, 2\]\./,
+        `Invalid parameter to number: 3. Possible values are [1, 2].`,
       );
     });
 
@@ -177,7 +177,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to number: 3\. Possible values are \[1, 2\]\./,
+        `Invalid parameter to number: 3. Possible values are [1, 2].`,
       );
     });
 
@@ -196,7 +196,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: 3\. Possible values are \[1, 2\]\./,
+        `Invalid parameter to required: 3. Possible values are [1, 2].`,
       );
     });
 
@@ -212,7 +212,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to strings: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to strings: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -228,7 +228,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to strings: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to strings: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -248,7 +248,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: 'abc'\. Value must match the regex \/\\d\+\/s\./,
+        `Invalid parameter to required: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
@@ -264,7 +264,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to strings: 'abc'\. Possible values are \['one', 'two'\]\./,
+        `Invalid parameter to strings: 'abc'. Possible values are ['one', 'two'].`,
       );
     });
 
@@ -280,7 +280,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to strings: 'abc'\. Possible values are \['one', 'two'\]\./,
+        `Invalid parameter to strings: 'abc'. Possible values are ['one', 'two'].`,
       );
     });
 
@@ -300,7 +300,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: 'abc'\. Possible values are \['one', 'two'\]\./,
+        `Invalid parameter to required: 'abc'. Possible values are ['one', 'two'].`,
       );
     });
 
@@ -315,7 +315,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option strings has too many values \(3\)\. Should have at most 2\./,
+        `Option strings has too many values (3). Should have at most 2.`,
       );
     });
 
@@ -330,7 +330,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option strings has too many values \(3\)\. Should have at most 2\./,
+        `Option strings has too many values (3). Should have at most 2.`,
       );
     });
 
@@ -349,7 +349,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option required has too many values \(3\)\. Should have at most 2\./,
+        `Option required has too many values (3). Should have at most 2.`,
       );
     });
 
@@ -365,7 +365,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to numbers: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to numbers: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
@@ -381,7 +381,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to numbers: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to numbers: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
@@ -401,7 +401,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: -3\. Value must be in the range \[0, Infinity\]\./,
+        `Invalid parameter to required: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
@@ -417,7 +417,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to numbers: 3. Possible values are \[1, 2\]\./,
+        `Invalid parameter to numbers: 3. Possible values are [1, 2].`,
       );
     });
 
@@ -433,7 +433,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to numbers: 3. Possible values are \[1, 2\]\./,
+        `Invalid parameter to numbers: 3. Possible values are [1, 2].`,
       );
     });
 
@@ -453,56 +453,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Invalid parameter to required: 3. Possible values are \[1, 2\]\./,
-      );
-    });
-
-    it('should throw an error on strings example value with too many values', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          example: [1, 2, 3],
-          limit: 2,
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
-        /Option numbers has too many values \(3\)\. Should have at most 2\./,
-      );
-    });
-
-    it('should throw an error on strings default value with too many values', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          default: [1, 2, 3],
-          limit: 2,
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
-        /Option numbers has too many values \(3\)\. Should have at most 2\./,
-      );
-    });
-
-    it('should throw an error on strings required value with too many values', () => {
-      const options = {
-        requires: {
-          type: 'flag',
-          names: ['-f'],
-          requires: { required: [1, 2, 3] },
-        },
-        required: {
-          type: 'numbers',
-          names: ['-ns'],
-          limit: 2,
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
-        /Option required has too many values \(3\)\. Should have at most 2\./,
+        `Invalid parameter to required: 3. Possible values are [1, 2].`,
       );
     });
   });

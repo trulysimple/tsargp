@@ -174,7 +174,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-ss'])).toThrow(/Missing parameter to -ss\./);
+      expect(() => parser.parse(['-ss'])).toThrow(`Missing parameter to -ss.`);
       expect(parser.parse(['-ss', 'sync,sync', '-ss', 'sync,sync'])).toEqual({ strings: ['SYNC'] });
       await expect(
         parser.parse(['-ss', 'sync,sync', '-ss', 'async,async']).strings,
@@ -265,7 +265,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-ns'])).toThrow(/Missing parameter to -ns\./);
+      expect(() => parser.parse(['-ns'])).toThrow(`Missing parameter to -ns.`);
       expect(parser.parse(['-ns', '1.1,1.2', '-ns', '1.1,1.2'])).toEqual({ numbers: [2] });
       await expect(parser.parse(['-ns', '1.1,1.2', '-ns', '2.1,2.2']).numbers).resolves.toEqual([
         2, 3,

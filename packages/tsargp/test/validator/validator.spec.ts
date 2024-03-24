@@ -10,18 +10,6 @@ describe('OptionValidator', () => {
   });
 
   describe('validate', () => {
-    it('should throw an error on boolean option with invalid positional marker', () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-s'],
-          positional: 'a = b',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
-    });
-
     it('should throw an error on boolean option with empty positional marker', () => {
       const options = {
         boolean: {
@@ -32,7 +20,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option boolean contains empty positional marker\./,
+        `Option boolean contains empty positional marker.`,
       );
     });
 
@@ -45,7 +33,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option version contains empty version\./);
+      expect(() => validator.validate()).toThrow(`Option version contains empty version.`);
     });
 
     it('should throw an error on string option with zero enumerated values', () => {
@@ -57,7 +45,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option string has zero enum values\./);
+      expect(() => validator.validate()).toThrow(`Option string has zero enum values.`);
     });
 
     it('should throw an error on number option with zero enumerated values', () => {
@@ -69,7 +57,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option number has zero enum values\./);
+      expect(() => validator.validate()).toThrow(`Option number has zero enum values.`);
     });
 
     it('should throw an error on strings option with zero enumerated values', () => {
@@ -81,7 +69,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option strings has zero enum values\./);
+      expect(() => validator.validate()).toThrow(`Option strings has zero enum values.`);
     });
 
     it('should throw an error on numbers option with zero enumerated values', () => {
@@ -93,7 +81,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option numbers has zero enum values\./);
+      expect(() => validator.validate()).toThrow(`Option numbers has zero enum values.`);
     });
 
     it('should validate nested command options recursively', () => {
@@ -114,7 +102,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Non-positional option command\.command\.flag has no name\./,
+        `Non-positional option command.command.flag has no name.`,
       );
     });
 

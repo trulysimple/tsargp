@@ -15,7 +15,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -s, --string  <string>  A string option. Values will be trimmed.\n',
+        `  -s, --string  <string>  A string option. Values will be trimmed.\n`,
       );
     });
 
@@ -30,7 +30,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -s, --string  <string>  A string option. Values will be converted to lowercase.\n',
+        `  -s, --string  <string>  A string option. Values will be converted to lowercase.\n`,
       );
     });
 
@@ -45,7 +45,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -s, --string  <string>  A string option. Values will be converted to uppercase.\n',
+        `  -s, --string  <string>  A string option. Values will be converted to uppercase.\n`,
       );
     });
 
@@ -60,7 +60,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded towards zero.\n',
+        `  -n, --number  <number>  A number option. Values will be rounded towards zero.\n`,
       );
     });
 
@@ -75,7 +75,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded up.\n',
+        `  -n, --number  <number>  A number option. Values will be rounded up.\n`,
       );
     });
 
@@ -90,7 +90,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded down.\n',
+        `  -n, --number  <number>  A number option. Values will be rounded down.\n`,
       );
     });
 
@@ -105,7 +105,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded to the nearest integer.\n',
+        `  -n, --number  <number>  A number option. Values will be rounded to the nearest integer.\n`,
       );
     });
 

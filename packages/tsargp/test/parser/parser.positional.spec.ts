@@ -13,7 +13,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse([])).toThrow(/Option is required\./);
+      expect(() => parser.parse([])).toThrow(`Option is required.`);
     });
 
     it('should throw an error missing parameter after positional marker', () => {
@@ -26,7 +26,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
+      expect(() => parser.parse(['--'])).toThrow(`Missing parameter to abc.`);
     });
 
     it('should throw an error on positional marker specified with value', () => {
@@ -38,8 +38,8 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(/Option -- does not accept inline values\./);
-      expect(() => parser.parse(['--=a'])).toThrow(/Option -- does not accept inline values\./);
+      expect(() => parser.parse(['--='])).toThrow(`Option -- does not accept inline values.`);
+      expect(() => parser.parse(['--=a'])).toThrow(`Option -- does not accept inline values.`);
     });
 
     it('should handle a boolean option with positional arguments', () => {
@@ -81,10 +81,6 @@ describe('ArgumentParser', () => {
     });
 
     it('should throw a name suggestion on parse failure from positional string option', () => {
-      const regex = new RegExp(
-        `Invalid parameter to -s: 's'\\. Possible values are \\['abc'\\]\\.\n\n` +
-          `Did you mean to specify an option name instead of s\\? Similar names are \\[-s\\]\\.`,
-      );
       const options = {
         string: {
           type: 'string',
@@ -94,7 +90,10 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['s'])).toThrow(regex);
+      expect(() => parser.parse(['s'])).toThrow(
+        `Invalid parameter to -s: 's'. Possible values are ['abc'].\n` +
+          `Did you mean to specify an option name instead of s? Similar names are [-s].\n`,
+      );
     });
 
     it('should throw an error on string option with missing parameter after positional marker', () => {
@@ -107,7 +106,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
+      expect(() => parser.parse(['--'])).toThrow(`Missing parameter to abc.`);
     });
 
     it('should handle a string option with positional arguments', () => {
@@ -149,10 +148,6 @@ describe('ArgumentParser', () => {
     });
 
     it('should throw a name suggestion on parse failure from positional number option', () => {
-      const regex = new RegExp(
-        `Invalid parameter to -n: 1\\. Possible values are \\[123\\]\\.\n\n` +
-          `Did you mean to specify an option name instead of 1\\?`,
-      );
       const options = {
         number: {
           type: 'number',
@@ -162,7 +157,10 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['1'])).toThrow(regex);
+      expect(() => parser.parse(['1'])).toThrow(
+        `Invalid parameter to -n: 1. Possible values are [123].\n` +
+          `Did you mean to specify an option name instead of 1?\n`,
+      );
     });
 
     it('should throw an error on number option with missing parameter after positional marker', () => {
@@ -175,7 +173,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
+      expect(() => parser.parse(['--'])).toThrow(`Missing parameter to abc.`);
     });
 
     it('should handle a number option with positional arguments', () => {
@@ -227,7 +225,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
+      expect(() => parser.parse(['--'])).toThrow(`Missing parameter to abc.`);
     });
 
     it('should handle a strings option with positional arguments', () => {
@@ -280,7 +278,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--'])).toThrow(/Missing parameter to abc\./);
+      expect(() => parser.parse(['--'])).toThrow(`Missing parameter to abc.`);
     });
 
     it('should handle a numbers option with positional arguments', () => {
