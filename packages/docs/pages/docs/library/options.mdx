@@ -109,8 +109,9 @@ neither on the command-line nor as an [environment variable]. Mutually exclusive
 required].
 
 <Callout type="default">
-  [Function options] and [command options] accept any kind of value as the default. In the case of
-  object values, it's useful to specify a custom `toString` method to render it in the help message:
+  Both [function options] and [command options] accept any kind of value as the default. In the case
+  of object values, it's useful to specify a custom `toString` method to render it in the help
+  message, e.g.:
   ```ts
   toString() {
     return JSON.stringify(this);
@@ -470,7 +471,7 @@ value. You can use it to perform many kinds of actions, such as:
 - reading configuration from a file
 - altering the values of previous options
 - altering the option definitions in response to an option value
-  - e.g., if `--verbose` is set, add more help items to the [help format]
+  - e.g., if `--verbose` is set, add more help items to the help option's [format]
 
 In addition to the set of [value attributes], it has the following attributes.
 
@@ -661,55 +662,50 @@ The **numbers** option has these sets of attributes:
 [number]: #number-option
 [strings]: #strings-option
 [numbers]: #numbers-option
-[formatter]: formatter
 [enumeration]: #enumeration
 [separator]: #separator
-[styling]: styles#styling-attributes
-[resulting object]: parser#option-values
-[text formatting]: styles#text-splitting
-[warning message]: styles#warning-message
+[format]: #help-format
+[flag option]: #flag-option
+[command options]: #command-option
+[nested command]: #command-option
+[boolean option]: #boolean-option
+[function option]: #function-option
+[function options]: #function-option
+[always required]: #always-required
 [positional option]: #positional--marker
 [default value]: #default-value--callback
 [conditional requirements]: #conditional-requirements
 [environment variable]: #environment-variable
 [always required]: #always-required
-[Function options]: #function-option
-[command options]: #command-option
-[nested command]: #command-option
-[always required]: #always-required
 [parameter name]: #parameter-name
 [example value]: #example-value
 [preferred name]: #names--preferred-name
-[default algorithm]: parser#completion-algorithm
 [parse delimited]: #parse-delimited
-[boolean option]: #boolean-option
 [regular expression]: #regular-expression
 [numeric range]: #numeric-range
 [parse delimited]: #parse-delimited
 [parse callback]: #parse-callback
 [count limit]: #count-limit
 [remove duplicates]: #remove-duplicates
-[function options]: #function-option
-[command options]: #command-option
-[flag option]: #flag-option
-[function option]: #function-option
-[help format]: formatter#help-format
-[help sections]: formatter#help-sections
-[function option]: #function-option
 [resolve callback]: #resolve-callback
 [version info]: #version-info
-[help format]: #help-format
 [value attributes]: #value-attributes
-[commands guide]: ../guides/commands
-[value attributes]: #value-attributes
-[recursive commands]: ../guides/commands
-[cluster letters]: options#cluster-letters
-[boolean option]: #boolean-option
 [miscellaneous attributes]: #miscellaneous-attributes
 [parameter attributes]: #parameter-attributes
 [string attributes]: #string-attributes
 [number attributes]: #number-attributes
 [array attributes]: #array-attributes
+[formatter]: formatter
+[commands guide]: ../guides/commands
+[recursive commands]: ../guides/commands
+[styling]: styles#styling-attributes
+[resulting object]: parser#option-values
+[text formatting]: styles#text-splitting
+[warning message]: styles#warning-message
+[default algorithm]: parser#completion-algorithm
+[help format]: formatter#help-format
+[help sections]: formatter#help-sections
+[cluster letters]: options#cluster-letters
 [`doParse`]: parser#getting-warnings
 [`tryParse`]: parser#avoiding-trycatch
 [`shortStyle`]: parser#short-option-style

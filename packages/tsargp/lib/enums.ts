@@ -107,27 +107,27 @@ export const enum ErrorItem {
    */
   incompatibleRequiredValue,
   /**
-   * Raised by both the parser or validator when a value fails to satisfy a string option's
+   * Raised by both the parser and validator when a value fails to satisfy a string option's
    * enumeration constraint.
    */
   stringEnumsConstraintViolation,
   /**
-   * Raised by both the parser or validator when a value fails to satisfy a string option's regex
+   * Raised by both the parser and validator when a value fails to satisfy a string option's regex
    * constraint.
    */
   regexConstraintViolation,
   /**
-   * Raised by both the parser or validator when a value fails to satisfy a number option's
+   * Raised by both the parser and validator when a value fails to satisfy a number option's
    * enumeration constraint.
    */
   numberEnumsConstraintViolation,
   /**
-   * Raised by both the parser or validator when a value fails to satisfy a number option's range
+   * Raised by both the parser and validator when a value fails to satisfy a number option's range
    * constraint.
    */
   rangeConstraintViolation,
   /**
-   * Raised by both the parser or validator when a value fails to satisfy an array option's limit
+   * Raised by both the parser and validator when a value fails to satisfy an array option's limit
    * constraint.
    */
   limitConstraintViolation,

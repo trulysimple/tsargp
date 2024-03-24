@@ -199,19 +199,19 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `incompatibleRequiredValue` -
   raised by the validator when an option is required with a value of incompatible data type
 - `stringEnumsConstraintViolation` -
-  raised by both the parser or validator when a value fails to satisfy a string option's enumeration
-  constraint
+  raised by both the parser and validator when a value fails to satisfy a string option's
+  enumeration constraint
 - `regexConstraintViolation` -
-  raised by both the parser or validator when a value fails to satisfy a string option's regex
+  raised by both the parser and validator when a value fails to satisfy a string option's regex
   constraint
 - `numberEnumsConstraintViolation` -
-  raised by both the parser or validator when a value fails to satisfy a number option's enumeration
-  constraint
+  raised by both the parser and validator when a value fails to satisfy a number option's
+  enumeration constraint
 - `rangeConstraintViolation` -
-  raised by both the parser or validator when a value fails to satisfy a number option's range
+  raised by both the parser and validator when a value fails to satisfy a number option's range
   constraint
 - `limitConstraintViolation` -
-  raised by both the parser or validator when a value fails to satisfy an array option's limit
+  raised by both the parser and validator when a value fails to satisfy an array option's limit
   constraint
 - `deprecatedOption` -
   warning saved by the parser when a deprecated option is specified on the command-line
@@ -312,7 +312,7 @@ description of the corresponding value.
 | duplicateClusterLetter         | `%o` = the cluster letter                                                       |
 | invalidClusterOption           | `%o` = the specified cluster letter                                             |
 
-[value validation]: value-validation
+[value validation]: #value-validation
 [cluster letters]: options#cluster-letters
 [negation names]: options#negation-names
 [positional marker]: options#positional--marker
@@ -321,7 +321,6 @@ description of the corresponding value.
 [range]: options#numeric-range
 [limit]: options#count-limit
 [default callbacks]: options#default-value--callback
-[value validation]: #value-validation
 [requirement callbacks]: options#forward-requirements
 [positional]: options#positional--marker
 [text formatting]: styles#text-splitting
