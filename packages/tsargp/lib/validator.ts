@@ -601,59 +601,46 @@ function validateEnums(config: ConcreteError, key: string, option: ParamOption) 
  * @throws On value not satisfying specified constraints
  */
 function validateValue(config: ConcreteError, key: string, option: ValuedOption, value: unknown) {
+  /** @ignore */
+  function assertType<T>(value: unknown, type: string): asserts value is T {
+    if (typeof value !== type) {
+      throw createError(config, ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
+    }
+  }
   if (value === undefined) {
     return;
   }
   switch (option.type) {
     case 'flag':
     case 'boolean':
-      assertType<boolean>(config, value, key, 'boolean');
+      assertType<boolean>(value, 'boolean');
       break;
     case 'string':
-      assertType<string>(config, value, key, 'string');
+      assertType<string>(value, 'string');
       normalizeString(config, option, key, value);
       break;
     case 'number':
-      assertType<number>(config, value, key, 'number');
+      assertType<number>(value, 'number');
       normalizeNumber(config, option, key, value);
       break;
     case 'strings': {
-      assertType<Array<string>>(config, value, key, 'object');
+      assertType<Array<string>>(value, 'object');
       const normalized = value.map((val) => {
-        assertType<string>(config, val, key, 'string');
+        assertType<string>(val, 'string');
         return normalizeString(config, option, key, val);
       });
       normalizeArray(config, option, key, normalized);
       break;
     }
     case 'numbers': {
-      assertType<Array<number>>(config, value, key, 'object');
+      assertType<Array<number>>(value, 'object');
       const normalized = value.map((val) => {
-        assertType<number>(config, val, key, 'number');
+        assertType<number>(val, 'number');
         return normalizeNumber(config, option, key, val);
       });
       normalizeArray(config, option, key, normalized);
       break;
     }
-  }
-}
-
-/**
- * Asserts that an option value conforms to a type.
- * @param config The error message configuration
- * @param value The option value
- * @param key The option key (plus the prefix, if any)
- * @param type The data type name
- * @throws On value not conforming to the given type
- */
-function assertType<T>(
-  config: ConcreteError,
-  value: unknown,
-  key: string,
-  type: string,
-): asserts value is T {
-  if (typeof value !== type) {
-    throw createError(config, ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
   }
 }
 
