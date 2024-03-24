@@ -5,5 +5,17 @@
     "@trulysimple/tsargp-docs": "0.2.0",
     "tsargp": "0.3.0"
   },
-  "changesets": []
+  "changesets": [
+    "big-fishes-stare",
+    "cuddly-sloths-lick",
+    "cyan-lemons-move",
+    "great-weeks-destroy",
+    "hip-baboons-smash",
+    "khaki-timers-burn",
+    "real-mice-explode",
+    "rotten-bears-heal",
+    "tidy-readers-argue",
+    "wise-fans-look",
+    "witty-turkeys-drive"
+  ]
 }

@@ -1,5 +1,17 @@
 # tsargp
 
+## 0.4.0-dev.0
+
+### Minor Changes
+
+- [#73](https://github.com/trulysimple/tsargp/pull/73) [`9e40f46`](https://github.com/trulysimple/tsargp/commit/9e40f469c8d9e4a6bbfb7f032451c7394a822adc) Thanks [@disog](https://github.com/disog)! - Added the `skipCount` attribute to function options to indicate the number of remaining command-line arguments to skip after returning from the execute callback.
+
+- [#78](https://github.com/trulysimple/tsargp/pull/78) [`9ac4ba5`](https://github.com/trulysimple/tsargp/commit/9ac4ba593fde0e78648e2fbc15f6cb633cca2a0d) Thanks [@disog](https://github.com/disog)! - The `validate` method now returns a list of warnings. The validator was updated to detect naming inconsistencies in the option definitions and report them as warnings.
+
+- [#74](https://github.com/trulysimple/tsargp/pull/74) [`489621b`](https://github.com/trulysimple/tsargp/commit/489621b62f019c56d7cce800bb728876dbcbf2dc) Thanks [@disog](https://github.com/disog)! - Added the `useFilters` attribute to help option to allow remaining arguments to be used as option filters for the help message.
+
+- [#71](https://github.com/trulysimple/tsargp/pull/71) [`4647beb`](https://github.com/trulysimple/tsargp/commit/4647beb973cd89d04cf6fcf3ed90f60712ee5744) Thanks [@disog](https://github.com/disog)! - The `separator` attribute can now be used in conjunction with the `parse` callback. In this case, the callback will be called for each element split by the separator.
+
 ## 0.3.0
 
 ### Minor Changes
