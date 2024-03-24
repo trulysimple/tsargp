@@ -50,7 +50,7 @@ export const enum ErrorItem {
    */
   missingPackageJson,
   /**
-   * Raised by the parser when wither a niladic option or a positional marker is specified with an
+   * Raised by the parser when either a niladic option or a positional marker is specified with an
    * inline value.
    */
   disallowedInlineValue,
@@ -71,15 +71,15 @@ export const enum ErrorItem {
    */
   emptyVersionDefinition,
   /**
-   * Raised by the validator when an option requires itself.
+   * Raised by the validator when an option references itself in a requirement.
    */
   invalidSelfRequirement,
   /**
-   * Raised by the validator when an option requires an unknown option.
+   * Raised by the validator when an option references an unknown option in a requirement.
    */
   unknownRequiredOption,
   /**
-   * Raised by the validator when an option requires a non-valued option.
+   * Raised by the validator when an option references a non-valued option in a requirement.
    */
   invalidRequiredOption,
   /**
@@ -97,38 +97,38 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when a string enumeration constraint has duplicate values.
    */
-  duplicateStringOptionEnum,
+  duplicateStringEnum,
   /**
    * Raised by the validator when a number enumeration constraint has duplicate values.
    */
-  duplicateNumberOptionEnum,
+  duplicateNumberEnum,
   /**
    * Raised by the validator when an option is required with a value of incompatible data type.
    */
   incompatibleRequiredValue,
   /**
-   * Raised by either the parser or validator when a value fails to satisfy a string option's
+   * Raised by both the parser and validator when a value fails to satisfy a string option's
    * enumeration constraint.
    */
   stringEnumsConstraintViolation,
   /**
-   * Raised by either the parser or validator when a value fails to satisfy a string option's
-   * regex constraint.
+   * Raised by both the parser and validator when a value fails to satisfy a string option's regex
+   * constraint.
    */
   regexConstraintViolation,
   /**
-   * Raised by either the parser or validator when a value fails to satisfy a number option's
+   * Raised by both the parser and validator when a value fails to satisfy a number option's
    * enumeration constraint.
    */
   numberEnumsConstraintViolation,
   /**
-   * Raised by either the parser or validator when a value fails to satisfy a number option's
-   * range constraint.
+   * Raised by both the parser and validator when a value fails to satisfy a number option's range
+   * constraint.
    */
   rangeConstraintViolation,
   /**
-   * Raised by either the parser or validator when a value fails to satisfy an array option's
-   * limit constraint.
+   * Raised by both the parser and validator when a value fails to satisfy an array option's limit
+   * constraint.
    */
   limitConstraintViolation,
   /**
@@ -219,7 +219,7 @@ export const enum HelpItem {
    */
   required,
   /**
-   * The option's default value, if not a callback.
+   * The option's default value, if any.
    */
   default,
   /**
@@ -441,9 +441,9 @@ const enum TypeFace {
    */
   crossedOut,
   /**
-   * Primary (default) font.
+   * Primary font.
    */
-  primary,
+  primaryFont,
   /**
    * Alternative font 1.
    */
@@ -481,9 +481,9 @@ const enum TypeFace {
    */
   alternative9,
   /**
-   * Black-letter font (Fraktur/Gothic).
+   * Black-letter font.
    */
-  gothic,
+  fraktur,
   /**
    * Doubly underlined.
    */
@@ -495,7 +495,7 @@ const enum TypeFace {
   /**
    * Regular face (neither italic nor black-letter).
    */
-  notItalic,
+  notItalicNorFraktur,
   /**
    * Not underlined.
    */
