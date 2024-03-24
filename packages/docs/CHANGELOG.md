@@ -1,5 +1,19 @@
 # @trulysimple/tsargp-docs
 
+## 0.3.0-dev.0
+
+### Minor Changes
+
+- [#78](https://github.com/trulysimple/tsargp/pull/78) [`9ac4ba5`](https://github.com/trulysimple/tsargp/commit/9ac4ba593fde0e78648e2fbc15f6cb633cca2a0d) Thanks [@disog](https://github.com/disog)! - The Validator page was updated to document the new behaviour of the `validate` method, namely, that it returns validation warnings as a result. The "Names validation" section was updated to document the detection of naming inconsistencies. The Playground page was updated to report validation warnings when validating the input source.
+
+### Patch Changes
+
+- [#74](https://github.com/trulysimple/tsargp/pull/74) [`489621b`](https://github.com/trulysimple/tsargp/commit/489621b62f019c56d7cce800bb728876dbcbf2dc) Thanks [@disog](https://github.com/disog)! - Updated the Options page to document the new `useFilters` attribute for help options. Also added a tip in the Demo page for users to try out the new feature.
+
+- [#73](https://github.com/trulysimple/tsargp/pull/73) [`9e40f46`](https://github.com/trulysimple/tsargp/commit/9e40f469c8d9e4a6bbfb7f032451c7394a822adc) Thanks [@disog](https://github.com/disog)! - Documented the new `skipCount` attribute for function options in the Options page.
+
+- [#71](https://github.com/trulysimple/tsargp/pull/71) [`4647beb`](https://github.com/trulysimple/tsargp/commit/4647beb973cd89d04cf6fcf3ed90f60712ee5744) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the possibility of specifying a `parse` callback in conjunction with a `separator`. The Parser page was updated with more details about the behavior of the custom parsing callbacks.
+
 ## 0.2.0
 
 ### Minor Changes
