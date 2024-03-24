@@ -372,16 +372,6 @@ export class OptionValidator {
   }
 
   /**
-   * Creates an error with a formatted message.
-   * @param kind The kind of error message
-   * @param args The error arguments
-   * @returns The formatted error
-   */
-  error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
-    return new ErrorMessage(this.format(kind, args));
-  }
-
-  /**
    * Creates a formatted message.
    * @param kind The kind of error or warning
    * @param args The message arguments
@@ -390,26 +380,21 @@ export class OptionValidator {
   format(kind: ErrorItem, args?: Record<string, unknown>): TerminalString {
     return format(this.config, kind, args);
   }
+
+  /**
+   * Creates an error with a formatted message.
+   * @param kind The kind of error message
+   * @param args The error arguments
+   * @returns The formatted error
+   */
+  error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
+    return new ErrorMessage(this.format(kind, args));
+  }
 }
 
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
-/**
- * Creates an error with a formatted message.
- * @param config The error message configuration
- * @param kind The kind of error message
- * @param args The error arguments
- * @returns The formatted error
- */
-function error(
-  config: ConcreteError,
-  kind: ErrorItem,
-  args?: Record<string, unknown>,
-): ErrorMessage {
-  return new ErrorMessage(format(config, kind, args));
-}
-
 /**
  * Creates a formatted message.
  * @param config The error message configuration
@@ -423,6 +408,21 @@ function format(
   args?: Record<string, unknown>,
 ): TerminalString {
   return formatMessage(config.styles, config.phrases[kind], args);
+}
+
+/**
+ * Creates an error with a formatted message.
+ * @param config The error message configuration
+ * @param kind The kind of error message
+ * @param args The error arguments
+ * @returns The formatted error
+ */
+function error(
+  config: ConcreteError,
+  kind: ErrorItem,
+  args?: Record<string, unknown>,
+): ErrorMessage {
+  return new ErrorMessage(format(config, kind, args));
 }
 
 /**

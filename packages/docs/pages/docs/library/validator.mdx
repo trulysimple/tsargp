@@ -287,40 +287,40 @@ Specifiers may end with a single digit that represents a specific value in the e
 following table lists the available specifiers for each kind of error message, along with a
 description of the corresponding value.
 
-| Error                          | Specifiers                                                                      |
-| ------------------------------ | ------------------------------------------------------------------------------- |
-| parseError                     | `%o` = the unknown option name                                                  |
-| parseErrorWithSimilar          | `%o1`= the unknown option name; `%o2` = similar option names                    |
-| unknownOption                  | `%o` = the unknown option name                                                  |
-| unknownOptionWithSimilar       | `%o1` = the unknown option name; `%o2` = similar option names                   |
-| unsatisfiedRequirement         | `%o` = the specified option name; `%t` = the option's requirements              |
-| missingRequiredOption          | `%o` = the option's preferred name                                              |
-| missingParameter               | `%o` = the specified option name                                                |
-| missingPackageJson             |                                                                                 |
-| disallowedInlineValue          | `%o` = the specified option name or positional marker                           |
-| emptyPositionalMarker          | `%o` = the option key                                                           |
-| unnamedOption                  | `%o` = the option key                                                           |
-| invalidOptionName              | `%o` = the option key; `%s` = the invalid name                                  |
-| emptyVersionDefinition         | `%o` = the option key                                                           |
-| invalidSelfRequirement         | `%o` = the option key                                                           |
-| unknownRequiredOption          | `%o` = the required option key                                                  |
-| invalidRequiredOption          | `%o` = the required option key                                                  |
-| emptyEnumsDefinition           | `%o` = the option key                                                           |
-| duplicateOptionName            | `%o` = the option key; `%s` = the duplicate name                                |
-| duplicatePositionalOption      | `%o` = the option key                                                           |
-| duplicateStringEnum            | `%o` = the option key; `%s` = the duplicate enum value                          |
-| duplicateNumberEnum            | `%o` = the option key; `%n` = the duplicate enum value                          |
-| incompatibleRequiredValue      | `%o` = the option key; `%p` = the incompatible value; `%s` = the expected type  |
-| stringEnumsConstraintViolation | `%o` = the option key or name; `%s1` = the specified value; `%s2` = the enums   |
-| regexConstraintViolation       | `%o` = the option key or name; `%s` = the specified value; `%r` = the regex     |
-| numberEnumsConstraintViolation | `%o` = the option key or name; `%n1` = the specified value; `%n2` = the enums   |
-| rangeConstraintViolation       | `%o` = the option key or name; `%n1` = the specified value; `%n2` = the range   |
-| limitConstraintViolation       | `%o` = the option key or name; `%n1` = the value count; `%n2` = the count limit |
-| deprecatedOption               | `%o` = the specified option name                                                |
-| unsatisfiedCondRequirement     | `%o` = the specified option name; `%t` = the option's requirements              |
-| duplicateClusterLetter         | `%o` = the option key; `%s` = the duplicate letter                              |
-| invalidClusterOption           | `%o` = the specified cluster letter                                             |
-| invalidClusterLetter           | `%o` = the option key; `%s` = the invalid letter                                |
+| Error                          | Specifiers                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| parseError                     | `%o` = the unknown option name                                                    |
+| parseErrorWithSimilar          | `%o1`= the unknown option name; `%o2` = similar option names                      |
+| unknownOption                  | `%o` = the unknown option name                                                    |
+| unknownOptionWithSimilar       | `%o1` = the unknown option name; `%o2` = similar option names                     |
+| unsatisfiedRequirement         | `%o` = the specified option name; `%t` = the option's requirements                |
+| missingRequiredOption          | `%o` = the option's preferred name                                                |
+| missingParameter               | `%o` = the specified option name                                                  |
+| missingPackageJson             |                                                                                   |
+| disallowedInlineValue          | `%o` = the specified option name or positional marker                             |
+| emptyPositionalMarker          | `%o` = the option's key                                                           |
+| unnamedOption                  | `%o` = the option's key                                                           |
+| invalidOptionName              | `%o` = the option's key; `%s` = the invalid name                                  |
+| emptyVersionDefinition         | `%o` = the option's key                                                           |
+| invalidSelfRequirement         | `%o` = the option's key                                                           |
+| unknownRequiredOption          | `%o` = the required option's key                                                  |
+| invalidRequiredOption          | `%o` = the required option's key                                                  |
+| emptyEnumsDefinition           | `%o` = the option's key                                                           |
+| duplicateOptionName            | `%o` = the option's key; `%s` = the duplicate name                                |
+| duplicatePositionalOption      | `%o1` = the duplicate option's key; `%o2` = the previous option's key             |
+| duplicateStringEnum            | `%o` = the option's key; `%s` = the duplicate enum value                          |
+| duplicateNumberEnum            | `%o` = the option's key; `%n` = the duplicate enum value                          |
+| incompatibleRequiredValue      | `%o` = the option's key; `%p` = the incompatible value; `%s` = the expected type  |
+| stringEnumsConstraintViolation | `%o` = the option's key or name; `%s1` = the specified value; `%s2` = the enums   |
+| regexConstraintViolation       | `%o` = the option's key or name; `%s` = the specified value; `%r` = the regex     |
+| numberEnumsConstraintViolation | `%o` = the option's key or name; `%n1` = the specified value; `%n2` = the enums   |
+| rangeConstraintViolation       | `%o` = the option's key or name; `%n1` = the specified value; `%n2` = the range   |
+| limitConstraintViolation       | `%o` = the option's key or name; `%n1` = the value count; `%n2` = the count limit |
+| deprecatedOption               | `%o` = the specified option name                                                  |
+| unsatisfiedCondRequirement     | `%o` = the specified option name; `%t` = the option's requirements                |
+| duplicateClusterLetter         | `%o` = the option's key; `%s` = the duplicate letter                              |
+| invalidClusterOption           | `%o` = the specified cluster letter                                               |
+| invalidClusterLetter           | `%o` = the option's key; `%s` = the invalid letter                                |
 
 [value validation]: #value-validation
 [negation names]: options#negation-names
