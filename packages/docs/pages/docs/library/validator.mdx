@@ -36,18 +36,24 @@ Option names are subject to the restrictions listed below:
   contain at least one _non-empty_ name.
 - **Invalid option name** -
   An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character can
-  be used as option-value separator on the command-line. Any other character (including Unicode code
-  points) is allowed.
+  be used as option-value separator on the command-line. Any other Unicode character is allowed.
 - **Duplicate option name** -
   An option should not have duplicate names, and there cannot be two options with the same name.
-- **Duplicate cluster letter** -
-  An option should not have duplicate [cluster letters], and there cannot be two options with the
-  same cluster letter.
 
 <Callout type="info">
-  In any of the name restrictions, empty strings and `null{:ts}`s are ignored. Flag options'
-  [negation names] and the [positional marker] are included in the validation.
+  In any of these restrictions, empty strings and `null{:ts}`s are ignored, while flags' [negation
+  names] and the [positional marker] are included.
 </Callout>
+
+### Cluster letter validation
+
+Cluster letters are subject to the restrictions listed below:
+
+- **Duplicate cluster letter** -
+  An option should not have duplicate cluster letters, and there cannot be two options with the
+  same letter.
+- **Invalid cluster letter** -
+  A cluster letter must not contain whitespace. Any other Unicode character is allowed.
 
 ### Enums validation
 
@@ -222,13 +228,15 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `invalidClusterOption` -
   raised by the parser when either a variadic array option or a command option is specified in the
   middle of a cluster argument
+- `invalidClusterLetter` -
+  raised by the validator when an option has an invalid cluster letter
 
 ### Error phrases
 
 The `phrases` property specifies the phrases to be used for each kind of error message:
 
-- `parseError` - `'%t\n\nDid you mean to specify an option name instead of %o?'{:ts}`
-- `parseErrorWithSimilar` - `'%t\n\nDid you mean to specify an option name instead of %o1? Similar names are %o2.'{:ts}`
+- `parseError` - `'Did you mean to specify an option name instead of %o?'{:ts}`
+- `parseErrorWithSimilar` - `'Did you mean to specify an option name instead of %o1? Similar names are %o2.'{:ts}`
 - `unknownOption` - `'Unknown option %o.'{:ts}`
 - `unknownOptionWithSimilar` - `'Unknown option %o1. Similar names are %o2.'{:ts}`
 - `unsatisfiedRequirement` - `'Option %o requires %t.'{:ts}`
@@ -238,14 +246,14 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `disallowedInlineValue` - `'Option %o does not accept inline values.'{:ts}`
 - `emptyPositionalMarker` - `'Option %o contains empty positional marker.'{:ts}`
 - `unnamedOption` - `'Non-positional option %o has no name.'{:ts}`
-- `invalidOptionName` - `'Invalid option name %o.'{:ts}`
+- `invalidOptionName` - `'Option %o has invalid name %s.'{:ts}`
 - `emptyVersionDefinition` - `'Option %o contains empty version.'{:ts}`
 - `invalidSelfRequirement` - `'Option %o requires itself.'{:ts}`
 - `unknownRequiredOption` - `'Unknown option %o in requirement.'{:ts}`
 - `invalidRequiredOption` - `'Non-valued option %o in requirement.'{:ts}`
 - `emptyEnumsDefinition` - `'Option %o has zero enum values.'{:ts}`
-- `duplicateOptionName` - `'Duplicate option name %o.'{:ts}`
-- `duplicatePositionalOption` - `'Duplicate positional option %o.'{:ts}`
+- `duplicateOptionName` - `'Option %o has duplicate name %s.'{:ts}`
+- `duplicatePositionalOption` - `'Duplicate positional option %o1: previous was %o2.'{:ts}`
 - `duplicateStringEnum` - `'Option %o has duplicate enum %s.'{:ts}`
 - `duplicateNumberEnum` - `'Option %o has duplicate enum %n.'{:ts}`
 - `incompatibleRequiredValue` - `'Option %o has incompatible value %p. Should be of type %s.'{:ts}`
@@ -256,8 +264,9 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `limitConstraintViolation` - `'Option %o has too many values (%n1). Should have at most %n2.'{:ts}`
 - `deprecatedOption` - `'Option %o is deprecated and may be removed in future releases.'{:ts}`
 - `unsatisfiedCondRequirement` - `'Option %o is required if %t.'{:ts}`
-- `duplicateClusterLetter` - `'Duplicate cluster letter %o.'{:ts}`
-- `invalidClusterOption` - `'Option %o must be the last in a cluster.'{:ts}`
+- `duplicateClusterLetter` - `'Option %o has duplicate cluster letter %s.'{:ts}`
+- `invalidClusterOption` - `'Option letter %o must be the last in a cluster.'{:ts}`
+- `invalidClusterLetter` - `'Option %o has invalid cluster letter %s.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
@@ -280,10 +289,10 @@ description of the corresponding value.
 
 | Error                          | Specifiers                                                                      |
 | ------------------------------ | ------------------------------------------------------------------------------- |
-| parseError                     | `%t` = the previous error message; `%o` = the unknown option name               |
-| parseErrorWithSimilar          | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
+| parseError                     | `%o` = the unknown option name                                                  |
+| parseErrorWithSimilar          | `%o1`= the unknown option name; `%o2` = similar option names                    |
 | unknownOption                  | `%o` = the unknown option name                                                  |
-| unknownOptionWithSimilar       | same as above, except `%o` is `%o1` and `%o2` = similar option names            |
+| unknownOptionWithSimilar       | `%o1` = the unknown option name; `%o2` = similar option names                   |
 | unsatisfiedRequirement         | `%o` = the specified option name; `%t` = the option's requirements              |
 | missingRequiredOption          | `%o` = the option's preferred name                                              |
 | missingParameter               | `%o` = the specified option name                                                |
@@ -291,13 +300,13 @@ description of the corresponding value.
 | disallowedInlineValue          | `%o` = the specified option name or positional marker                           |
 | emptyPositionalMarker          | `%o` = the option key                                                           |
 | unnamedOption                  | `%o` = the option key                                                           |
-| invalidOptionName              | `%o` = the option name                                                          |
+| invalidOptionName              | `%o` = the option key; `%s` = the invalid name                                  |
 | emptyVersionDefinition         | `%o` = the option key                                                           |
 | invalidSelfRequirement         | `%o` = the option key                                                           |
 | unknownRequiredOption          | `%o` = the required option key                                                  |
 | invalidRequiredOption          | `%o` = the required option key                                                  |
 | emptyEnumsDefinition           | `%o` = the option key                                                           |
-| duplicateOptionName            | `%o` = the option name                                                          |
+| duplicateOptionName            | `%o` = the option key; `%s` = the duplicate name                                |
 | duplicatePositionalOption      | `%o` = the option key                                                           |
 | duplicateStringEnum            | `%o` = the option key; `%s` = the duplicate enum value                          |
 | duplicateNumberEnum            | `%o` = the option key; `%n` = the duplicate enum value                          |
@@ -309,11 +318,11 @@ description of the corresponding value.
 | limitConstraintViolation       | `%o` = the option key or name; `%n1` = the value count; `%n2` = the count limit |
 | deprecatedOption               | `%o` = the specified option name                                                |
 | unsatisfiedCondRequirement     | `%o` = the specified option name; `%t` = the option's requirements              |
-| duplicateClusterLetter         | `%o` = the cluster letter                                                       |
+| duplicateClusterLetter         | `%o` = the option key; `%s` = the duplicate letter                              |
 | invalidClusterOption           | `%o` = the specified cluster letter                                             |
+| invalidClusterLetter           | `%o` = the option key; `%s` = the invalid letter                                |
 
 [value validation]: #value-validation
-[cluster letters]: options#cluster-letters
 [negation names]: options#negation-names
 [positional marker]: options#positional--marker
 [enums]: options#enumeration

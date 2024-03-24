@@ -118,7 +118,7 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
     [ErrorItem.unsatisfiedCondRequirement]: 'Option %o is required if %t.',
     [ErrorItem.duplicateClusterLetter]: 'Option %o has duplicate cluster letter %s.',
-    [ErrorItem.invalidClusterOption]: 'Option %o must be the last in a cluster.',
+    [ErrorItem.invalidClusterOption]: 'Option letter %o must be the last in a cluster.',
     [ErrorItem.invalidClusterLetter]: 'Option %o has invalid cluster letter %s.',
   },
 };
