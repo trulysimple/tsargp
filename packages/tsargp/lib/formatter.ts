@@ -627,41 +627,35 @@ function formatNameSlots(
   namesStyle: Style,
   defStyle: Style,
 ): Array<TerminalString> {
-  if (typeof nameWidths === 'number') {
-    const result = new TerminalString(config.names.indent, config.names.breaks);
-    let len = 0;
-    for (const name of names) {
-      if (name) {
-        if (len) {
-          result.addClosing(',');
-          len += 2;
-        }
-        len += name.length;
-        result.addAndRevert(namesStyle, name, defStyle);
-      }
-    }
-    if (config.names.align === 'right') {
-      result.indent += nameWidths - len;
-    }
-    return [result];
-  }
+  const slotted = typeof nameWidths !== 'number';
   const result = new Array<TerminalString>();
   let str: TerminalString | undefined;
   let indent = Math.max(0, config.names.indent);
   let breaks = config.names.breaks;
+  let len = 0;
   names.forEach((name, i) => {
     if (name) {
       if (str) {
         str.addClosing(',');
+        len += 2;
       }
-      str = new TerminalString(indent, breaks).addAndRevert(namesStyle, name, defStyle);
-      result.push(str);
-      breaks = 0; // break only on the first name
-    } else {
+      if (!str || slotted) {
+        str = new TerminalString(indent, breaks);
+        result.push(str);
+        breaks = 0; // break only on the first name
+      }
+      str.addAndRevert(namesStyle, name, defStyle);
+      len += name.length;
+    } else if (slotted) {
       str = undefined;
     }
-    indent += nameWidths[i] + 2;
+    if (slotted) {
+      indent += nameWidths[i] + 2;
+    }
   });
+  if (str && !slotted && config.names.align === 'right') {
+    str.indent += nameWidths - len;
+  }
   return result;
 }
 
