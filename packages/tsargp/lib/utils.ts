@@ -64,8 +64,8 @@ export interface URL extends _URL {}
 /**
  * A naming rule to match a name.
  * @param name The original name
- * @param lower The lowercase version of name
- * @param upper The uppercase version of name
+ * @param lower The lower-cased name
+ * @param upper The upper-cased name
  * @returns True if the name was matched
  * @internal
  */

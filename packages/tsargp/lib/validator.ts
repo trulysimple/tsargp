@@ -120,8 +120,8 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.duplicateClusterLetter]: 'Option %o has duplicate cluster letter %s.',
     [ErrorItem.invalidClusterOption]: 'Option letter %o must be the last in a cluster.',
     [ErrorItem.invalidClusterLetter]: 'Option %o has invalid cluster letter %s.',
-    [ErrorItem.tooSimilarOptionNames]: '[%o] Option name %s1 has too similar names %s2.',
-    [ErrorItem.mixedNamingConvention]: '[%o] Name slot %n has mixed naming conventions %s.',
+    [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names %s2.',
+    [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions %s.',
   },
 };
 
@@ -131,9 +131,9 @@ export const defaultConfig: ConcreteError = {
  */
 const namingConventions: NamingRules = {
   cases: {
-    lowercase: (name, lower, upper) => name == lower && name != upper,
-    UPPERCASE: (name, lower, upper) => name != lower && name == upper,
-    Capitalized: (name, lower, upper) => name[0] != lower[0] && name != upper,
+    lowercase: (name, lower, upper) => name == lower && name != upper, // has at least one lower
+    UPPERCASE: (name, lower, upper) => name != lower && name == upper, // has at least one upper
+    Capitalized: (name, lower, upper) => name[0] != lower[0] && name != upper, // has at least one lower
   },
   dashes: {
     noDash: (name) => name[0] != '-',
@@ -372,11 +372,10 @@ export class OptionValidator {
     getNamesInEachSlot(this.options).forEach((slot, i) => {
       const match = matchNamingRules(slot, namingConventions);
       for (const key in match) {
-        const entries = Object.entries(match[key]).map(([rule, name]) => rule + ': ' + name);
+        const entries = Object.entries(match[key]);
         if (entries.length > 1) {
-          result.push(
-            this.format(ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: entries }),
-          );
+          const list = entries.map(([rule, name]) => rule + ': ' + name);
+          result.push(this.format(ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: list }));
         }
       }
     });

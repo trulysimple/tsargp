@@ -55,7 +55,7 @@ such as:
 - **Too similar names** -
   When an option name is too similar to other names (e.g., if it differs by a single character in a
   five-character name), this may be a development mistake at best, or at worst it can become a
-  source of headaches for end-users . Hence, the validator tries to find names that closely match a
+  source of headaches for end-users. Hence, the validator tries to find names that closely match a
   given name using the same algorithm used by the parser in [name suggestions], just a little
   stricter.
 - **Mixed naming convention** -
@@ -291,8 +291,8 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `duplicateClusterLetter` - `'Option %o has duplicate cluster letter %s.'{:ts}`
 - `invalidClusterOption` - `'Option letter %o must be the last in a cluster.'{:ts}`
 - `invalidClusterLetter` - `'Option %o has invalid cluster letter %s.'{:ts}`
-- `tooSimilarOptionNames` - `'[%o] Option name %s1 has too similar names %s2.'{:ts}`
-- `mixedNamingConvention` - `'[%o] Name slot %n has mixed naming conventions %s.'{:ts}`
+- `tooSimilarOptionNames` - `'%o: Option name %s1 has too similar names %s2.'{:ts}`
+- `mixedNamingConvention` - `'%o: Name slot %n has mixed naming conventions %s.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
