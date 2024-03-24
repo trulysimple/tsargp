@@ -294,51 +294,23 @@ export class OptionValidator {
    * Validates all options' definitions, including command options recursively.
    * @param prefix The command prefix, if any
    * @param visited The set of visited option definitions
-   * @returns A list of validation warnings
-   * @throws On duplicate positional option, invalid enum values, invalid default value or invalid
-   * example value
+   * @throws On duplicate positional option
    */
-  validate(prefix = '', visited = new Set<Options>()): Array<WarnMessage> {
-    const result = new Array<WarnMessage>();
+  validate(prefix = '', visited = new Set<Options>()) {
     this.names.clear(); // to check for duplicate option names
     this.letters.clear(); // to check for duplicate cluster letters
     let positional = false; // to check for duplicate positional options
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);
-      if (!isNiladic(option)) {
-        if (option.positional) {
-          if (positional) {
-            throw this.error(ErrorItem.duplicatePositionalOption, { o: prefix + key });
-          }
-          positional = true;
+      validateOption(this.options, this.config, prefix, key, option, visited);
+      if ('positional' in option && option.positional) {
+        if (positional) {
+          throw this.error(ErrorItem.duplicatePositionalOption, { o: prefix + key });
         }
-        this.validateEnums(prefix + key, option);
-        if (typeof option.default !== 'function') {
-          this.validateValue(prefix + key, option, option.default);
-        }
-        this.validateValue(prefix + key, option, option.example);
-      }
-      // no need to verify flag option default value
-      if ('requires' in option && option.requires) {
-        this.validateRequirements(prefix, key, option.requires);
-      }
-      if ('requiredIf' in option && option.requiredIf) {
-        this.validateRequirements(prefix, key, option.requiredIf);
-      }
-      if (option.type === 'version' && option.version === '') {
-        throw this.error(ErrorItem.emptyVersionDefinition, { o: prefix + key });
-      }
-      if (option.type === 'command') {
-        const options = typeof option.options === 'function' ? option.options() : option.options;
-        if (!visited.has(options)) {
-          visited.add(options);
-          const validator = new OptionValidator(options, this.config);
-          result.push(...validator.validate(prefix + key + '.', visited));
-        }
+        positional = true;
       }
     }
-    return result;
   }
 
   /**
@@ -347,157 +319,25 @@ export class OptionValidator {
    * @param threshold The similarity threshold
    * @returns The list of similar names in decreasing order of similarity
    */
-  findSimilarNames(name: string, threshold = 0.6): Array<string> {
+  findSimilarNames(name: string, threshold: number): Array<string> {
     /** @ignore */
     function norm(name: string) {
       return name.replace(/\p{P}/gu, '').toLowerCase();
     }
     const searchName = norm(name);
     return [...this.names.keys()]
-      .reduce((acc, name) => {
-        const sim = gestaltSimilarity(searchName, norm(name));
-        if (sim >= threshold) {
-          acc.push([name, sim]);
+      .reduce((acc, name2) => {
+        if (name2 != name) {
+          // skip the original name
+          const sim = gestaltSimilarity(searchName, norm(name2));
+          if (sim >= threshold) {
+            acc.push([name2, sim]);
+          }
         }
         return acc;
       }, new Array<[string, number]>())
       .sort(([, as], [, bs]) => bs - as)
       .map(([str]) => str);
-  }
-
-  /**
-   * Validates an option's requirements.
-   * @param prefix The command prefix
-   * @param key The option key
-   * @param requires The option requirements
-   */
-  private validateRequirements(prefix: string, key: string, requires: Requires) {
-    if (typeof requires === 'string') {
-      this.validateRequirement(prefix, key, requires);
-    } else if (requires instanceof RequiresNot) {
-      this.validateRequirements(prefix, key, requires.item);
-    } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-      for (const item of requires.items) {
-        this.validateRequirements(prefix, key, item);
-      }
-    } else if (typeof requires === 'object') {
-      for (const requiredKey in requires) {
-        this.validateRequirement(prefix, key, requiredKey, requires[requiredKey]);
-      }
-    }
-  }
-
-  /**
-   * Validates an option requirement.
-   * @param prefix The command prefix
-   * @param key The option key
-   * @param requiredKey The required option key
-   * @param requiredValue The required value, if any
-   * @throws On option requiring itself, unknown required option, invalid required option or
-   * incompatible required values
-   */
-  private validateRequirement(
-    prefix: string,
-    key: string,
-    requiredKey: string,
-    requiredValue?: RequiresVal[string],
-  ) {
-    if (requiredKey === key) {
-      throw this.error(ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
-    }
-    if (!(requiredKey in this.options)) {
-      throw this.error(ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
-    }
-    const option = this.options[requiredKey];
-    if (!isValued(option)) {
-      throw this.error(ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
-    }
-    if (requiredValue !== undefined && requiredValue !== null) {
-      this.validateValue(prefix + requiredKey, option, requiredValue);
-    }
-  }
-
-  /**
-   * Checks the sanity of the option's enumerated values.
-   * @param key The option key (plus the prefix, if any)
-   * @param option The option definition
-   * @throws On zero or duplicate enumerated values or values not satisfying specified constraints
-   */
-  private validateEnums(key: string, option: ParamOption) {
-    if ('enums' in option && option.enums) {
-      if (!option.enums.length) {
-        throw this.error(ErrorItem.emptyEnumsDefinition, { o: key });
-      }
-      const set = new Set<string | number>(option.enums);
-      if (set.size !== option.enums.length) {
-        for (const value of option.enums) {
-          if (!set.delete(value)) {
-            if (option.type === 'string' || option.type === 'strings') {
-              throw this.error(ErrorItem.duplicateStringEnum, { o: key, s: value });
-            }
-            throw this.error(ErrorItem.duplicateNumberEnum, { o: key, n: value });
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Asserts that an option value conforms to a type.
-   * @param value The option value
-   * @param key The option key (plus the prefix, if any)
-   * @param type The data type name
-   * @throws On value not conforming to the given type
-   */
-  private assertType<T>(value: unknown, key: string, type: string): asserts value is T {
-    if (typeof value !== type) {
-      throw this.error(ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
-    }
-  }
-
-  /**
-   * Checks the sanity of the option's value (default, example or required).
-   * @param key The option key (plus the prefix, if any)
-   * @param option The option definition
-   * @param value The option value
-   * @throws On value not satisfying specified constraints
-   */
-  private validateValue(key: string, option: ValuedOption, value: unknown) {
-    if (value === undefined) {
-      return;
-    }
-    switch (option.type) {
-      case 'flag':
-      case 'boolean':
-        this.assertType<boolean>(value, key, 'boolean');
-        break;
-      case 'string':
-        this.assertType<string>(value, key, 'string');
-        this.normalizeString(option, key, value);
-        break;
-      case 'number':
-        this.assertType<number>(value, key, 'number');
-        this.normalizeNumber(option, key, value);
-        break;
-      case 'strings': {
-        this.assertType<Array<string>>(value, key, 'object');
-        const normalized = value.map((val) => {
-          this.assertType<string>(val, key, 'string');
-          return this.normalizeString(option, key, val);
-        });
-        this.normalizeArray(option, key, normalized);
-        break;
-      }
-      case 'numbers': {
-        this.assertType<Array<number>>(value, key, 'object');
-        const normalized = value.map((val) => {
-          this.assertType<number>(val, key, 'number');
-          return this.normalizeNumber(option, key, val);
-        });
-        this.normalizeArray(option, key, normalized);
-        break;
-      }
-    }
   }
 
   /**
@@ -514,111 +354,14 @@ export class OptionValidator {
     }
     if (typeof value === 'string') {
       assert(option.type === 'string' || option.type === 'strings');
-      return this.normalizeString(option, name, value) as T;
+      return normalizeString(this.config, option, name, value) as T;
     }
     if (typeof value === 'number') {
       assert(option.type === 'number' || option.type === 'numbers');
-      return this.normalizeNumber(option, name, value) as T;
+      return normalizeNumber(this.config, option, name, value) as T;
     }
     assert(isArray(option));
-    return this.normalizeArray(option, name, value as Array<string | number>) as T;
-  }
-
-  /**
-   * Normalizes the value of a string option and checks its validity against any constraint.
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   * @returns The normalized string
-   * @throws On value not satisfying the specified enumeration or regex constraint
-   */
-  private normalizeString(
-    option: StringOption | StringsOption,
-    name: string,
-    value: string,
-  ): string {
-    if (option.trim) {
-      value = value.trim();
-    }
-    if (option.case) {
-      value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
-    }
-    if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      throw this.error(ErrorItem.stringEnumsConstraintViolation, {
-        o: name,
-        s1: value,
-        s2: option.enums,
-      });
-    }
-    if ('regex' in option && option.regex && !option.regex.test(value)) {
-      throw this.error(ErrorItem.regexConstraintViolation, { o: name, s: value, r: option.regex });
-    }
-    return value;
-  }
-
-  /**
-   * Normalizes the value of a number option and checks its validity against any constraint.
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   * @returns The normalized number
-   * @throws On value not satisfying the specified enumeration or range constraint
-   */
-  private normalizeNumber(
-    option: NumberOption | NumbersOption,
-    name: string,
-    value: number,
-  ): number {
-    if (option.round) {
-      value = Math[option.round](value);
-    }
-    if ('enums' in option && option.enums && !option.enums.includes(value)) {
-      throw this.error(ErrorItem.numberEnumsConstraintViolation, {
-        o: name,
-        n1: value,
-        n2: option.enums,
-      });
-    }
-    if (
-      'range' in option &&
-      option.range &&
-      !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
-    ) {
-      throw this.error(ErrorItem.rangeConstraintViolation, {
-        o: name,
-        n1: value,
-        n2: option.range,
-      });
-    }
-    return value;
-  }
-
-  /**
-   * Normalizes the value of an array option and checks its validity against any constraint.
-   * @param option The option definition
-   * @param name The option name (as specified on the command-line)
-   * @param value The option value
-   * @returns The normalized array
-   * @throws On value not satisfying the specified limit constraint
-   */
-  private normalizeArray<T extends string | number>(
-    option: ArrayOption,
-    name: string,
-    value: Array<T>,
-  ): Array<T> {
-    if (option.unique) {
-      const unique = new Set(value);
-      value.length = 0;
-      value.push(...unique);
-    }
-    if (option.limit !== undefined && value.length > option.limit) {
-      throw this.error(ErrorItem.limitConstraintViolation, {
-        o: name,
-        n1: value.length,
-        n2: option.limit,
-      });
-    }
-    return value;
+    return normalizeArray(this.config, option, name, value as Array<string | number>) as T;
   }
 
   /**
@@ -628,7 +371,7 @@ export class OptionValidator {
    * @returns The formatted warning
    */
   warn(kind: ErrorItem, args?: Record<string, unknown>): WarnMessage {
-    return new WarnMessage(formatMessage(this.config, kind, args));
+    return createWarning(this.config, kind, args);
   }
 
   /**
@@ -638,7 +381,7 @@ export class OptionValidator {
    * @returns The formatted error
    */
   error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
-    return new ErrorMessage(formatMessage(this.config, kind, args));
+    return createError(this.config, kind, args);
   }
 }
 
@@ -646,19 +389,48 @@ export class OptionValidator {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Creates a terminal string with a formatted message.
+ * Creates a warning with a formatted message.
  * @param config The error message configuration
  * @param kind The kind of error message
+ * @param args The warning arguments
+ * @returns The formatted warning
+ */
+function createWarning(
+  config: ConcreteError,
+  kind: ErrorItem,
+  args?: Record<string, unknown>,
+): WarnMessage {
+  return new WarnMessage(formatMessage(config.styles, config.phrases[kind], args));
+}
+
+/**
+ * Creates an error with a formatted message.
+ * @param config The error message configuration
+ * @param kind The kind of error message
+ * @param args The error arguments
+ * @returns The formatted error
+ */
+function createError(
+  config: ConcreteError,
+  kind: ErrorItem,
+  args?: Record<string, unknown>,
+): ErrorMessage {
+  return new ErrorMessage(formatMessage(config.styles, config.phrases[kind], args));
+}
+
+/**
+ * Creates a terminal string with a formatted message.
+ * @param styles The error message styles
+ * @param phrase The error phrase
  * @param args The error arguments
  * @returns The terminal string
  */
 function formatMessage(
-  config: ConcreteError,
-  kind: ErrorItem,
+  styles: ConcreteStyles,
+  phrase: string,
   args?: Record<string, unknown>,
 ): TerminalString {
-  const result = new TerminalString().addSequence(config.styles.text);
-  const phrase = config.phrases[kind];
+  const result = new TerminalString().addSequence(styles.text);
   if (args) {
     result.splitText(phrase, (spec) => {
       const arg = spec.slice(1);
@@ -669,14 +441,14 @@ function formatMessage(
         if (Array.isArray(value)) {
           result.addOpening('[');
           value.forEach((val, i) => {
-            format(val, config.styles, config.styles.text, result);
+            format(val, styles, styles.text, result);
             if (i < value.length - 1) {
               result.addClosing(',');
             }
           });
           result.addClosing(']');
         } else {
-          format(value, config.styles, config.styles.text, result);
+          format(value, styles, styles.text, result);
         }
       }
     });
@@ -684,6 +456,312 @@ function formatMessage(
     result.splitText(phrase);
   }
   return result;
+}
+
+/**
+ * Validates an option's requirements.
+ * @param options The option definitions
+ * @param config The error message configuration
+ * @param prefix The command prefix
+ * @param key The option key
+ * @param option The option definition
+ * @param visited The set of visited option definitions
+ * @throws On invalid enums definition, invalid default value or invalid example value
+ */
+function validateOption(
+  options: Options,
+  config: ConcreteError,
+  prefix: string,
+  key: string,
+  option: Option,
+  visited: Set<Options>,
+) {
+  if (!isNiladic(option)) {
+    validateEnums(config, prefix + key, option);
+    if (typeof option.default !== 'function') {
+      validateValue(config, prefix + key, option, option.default);
+    }
+    validateValue(config, prefix + key, option, option.example);
+  }
+  // no need to verify flag option default value
+  if ('requires' in option && option.requires) {
+    validateRequirements(options, config, prefix, key, option.requires);
+  }
+  if ('requiredIf' in option && option.requiredIf) {
+    validateRequirements(options, config, prefix, key, option.requiredIf);
+  }
+  if (option.type === 'version' && option.version === '') {
+    throw createError(config, ErrorItem.emptyVersionDefinition, { o: prefix + key });
+  }
+  if (option.type === 'command') {
+    const options = typeof option.options === 'function' ? option.options() : option.options;
+    if (!visited.has(options)) {
+      visited.add(options);
+      new OptionValidator(options, config).validate(prefix + key + '.', visited);
+    }
+  }
+}
+
+/**
+ * Validates an option's requirements.
+ * @param options The option definitions
+ * @param config The error message configuration
+ * @param prefix The command prefix
+ * @param key The option key
+ * @param requires The option requirements
+ */
+function validateRequirements(
+  options: Options,
+  config: ConcreteError,
+  prefix: string,
+  key: string,
+  requires: Requires,
+) {
+  if (typeof requires === 'string') {
+    validateRequirement(options, config, prefix, key, requires);
+  } else if (requires instanceof RequiresNot) {
+    validateRequirements(options, config, prefix, key, requires.item);
+  } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
+    for (const item of requires.items) {
+      validateRequirements(options, config, prefix, key, item);
+    }
+  } else if (typeof requires === 'object') {
+    for (const requiredKey in requires) {
+      validateRequirement(options, config, prefix, key, requiredKey, requires[requiredKey]);
+    }
+  }
+}
+
+/**
+ * Validates an option requirement.
+ * @param options The option definitions
+ * @param config The error message configuration
+ * @param prefix The command prefix
+ * @param key The option key
+ * @param requiredKey The required option key
+ * @param requiredValue The required value, if any
+ * @throws On option requiring itself, unknown required option, invalid required option or
+ * incompatible required values
+ */
+function validateRequirement(
+  options: Options,
+  config: ConcreteError,
+  prefix: string,
+  key: string,
+  requiredKey: string,
+  requiredValue?: RequiresVal[string],
+) {
+  if (requiredKey === key) {
+    throw createError(config, ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
+  }
+  if (!(requiredKey in options)) {
+    throw createError(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
+  }
+  const option = options[requiredKey];
+  if (!isValued(option)) {
+    throw createError(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
+  }
+  if (requiredValue !== undefined && requiredValue !== null) {
+    validateValue(config, prefix + requiredKey, option, requiredValue);
+  }
+}
+
+/**
+ * Checks the sanity of the option's enumerated values.
+ * @param config The error message configuration
+ * @param key The option key (plus the prefix, if any)
+ * @param option The option definition
+ * @throws On zero or duplicate enumerated values or values not satisfying specified constraints
+ */
+function validateEnums(config: ConcreteError, key: string, option: ParamOption) {
+  if ('enums' in option && option.enums) {
+    if (!option.enums.length) {
+      throw createError(config, ErrorItem.emptyEnumsDefinition, { o: key });
+    }
+    const set = new Set<string | number>(option.enums);
+    if (set.size !== option.enums.length) {
+      for (const value of option.enums) {
+        if (!set.delete(value)) {
+          if (option.type === 'string' || option.type === 'strings') {
+            throw createError(config, ErrorItem.duplicateStringEnum, { o: key, s: value });
+          }
+          throw createError(config, ErrorItem.duplicateNumberEnum, { o: key, n: value });
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Checks the sanity of the option's value (default, example or required).
+ * @param config The error message configuration
+ * @param key The option key (plus the prefix, if any)
+ * @param option The option definition
+ * @param value The option value
+ * @throws On value not satisfying specified constraints
+ */
+function validateValue(config: ConcreteError, key: string, option: ValuedOption, value: unknown) {
+  if (value === undefined) {
+    return;
+  }
+  switch (option.type) {
+    case 'flag':
+    case 'boolean':
+      assertType<boolean>(config, value, key, 'boolean');
+      break;
+    case 'string':
+      assertType<string>(config, value, key, 'string');
+      normalizeString(config, option, key, value);
+      break;
+    case 'number':
+      assertType<number>(config, value, key, 'number');
+      normalizeNumber(config, option, key, value);
+      break;
+    case 'strings': {
+      assertType<Array<string>>(config, value, key, 'object');
+      const normalized = value.map((val) => {
+        assertType<string>(config, val, key, 'string');
+        return normalizeString(config, option, key, val);
+      });
+      normalizeArray(config, option, key, normalized);
+      break;
+    }
+    case 'numbers': {
+      assertType<Array<number>>(config, value, key, 'object');
+      const normalized = value.map((val) => {
+        assertType<number>(config, val, key, 'number');
+        return normalizeNumber(config, option, key, val);
+      });
+      normalizeArray(config, option, key, normalized);
+      break;
+    }
+  }
+}
+
+/**
+ * Asserts that an option value conforms to a type.
+ * @param config The error message configuration
+ * @param value The option value
+ * @param key The option key (plus the prefix, if any)
+ * @param type The data type name
+ * @throws On value not conforming to the given type
+ */
+function assertType<T>(
+  config: ConcreteError,
+  value: unknown,
+  key: string,
+  type: string,
+): asserts value is T {
+  if (typeof value !== type) {
+    throw createError(config, ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
+  }
+}
+
+/**
+ * Normalizes the value of a string option and checks its validity against any constraint.
+ * @param config The error message configuration
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The option value
+ * @returns The normalized string
+ * @throws On value not satisfying the specified enumeration or regex constraint
+ */
+function normalizeString(
+  config: ConcreteError,
+  option: StringOption | StringsOption,
+  name: string,
+  value: string,
+): string {
+  if (option.trim) {
+    value = value.trim();
+  }
+  if (option.case) {
+    value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
+  }
+  if ('enums' in option && option.enums && !option.enums.includes(value)) {
+    throw createError(config, ErrorItem.stringEnumsConstraintViolation, {
+      o: name,
+      s1: value,
+      s2: option.enums,
+    });
+  }
+  if ('regex' in option && option.regex && !option.regex.test(value)) {
+    throw createError(config, ErrorItem.regexConstraintViolation, {
+      o: name,
+      s: value,
+      r: option.regex,
+    });
+  }
+  return value;
+}
+
+/**
+ * Normalizes the value of a number option and checks its validity against any constraint.
+ * @param config The error message configuration
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The option value
+ * @returns The normalized number
+ * @throws On value not satisfying the specified enumeration or range constraint
+ */
+function normalizeNumber(
+  config: ConcreteError,
+  option: NumberOption | NumbersOption,
+  name: string,
+  value: number,
+): number {
+  if (option.round) {
+    value = Math[option.round](value);
+  }
+  if ('enums' in option && option.enums && !option.enums.includes(value)) {
+    throw createError(config, ErrorItem.numberEnumsConstraintViolation, {
+      o: name,
+      n1: value,
+      n2: option.enums,
+    });
+  }
+  if (
+    'range' in option &&
+    option.range &&
+    !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
+  ) {
+    throw createError(config, ErrorItem.rangeConstraintViolation, {
+      o: name,
+      n1: value,
+      n2: option.range,
+    });
+  }
+  return value;
+}
+
+/**
+ * Normalizes the value of an array option and checks its validity against any constraint.
+ * @param config The error message configuration
+ * @param option The option definition
+ * @param name The option name (as specified on the command-line)
+ * @param value The option value
+ * @returns The normalized array
+ * @throws On value not satisfying the specified limit constraint
+ */
+function normalizeArray<T extends string | number>(
+  config: ConcreteError,
+  option: ArrayOption,
+  name: string,
+  value: Array<T>,
+): Array<T> {
+  if (option.unique) {
+    const unique = new Set(value);
+    value.length = 0;
+    value.push(...unique);
+  }
+  if (option.limit !== undefined && value.length > option.limit) {
+    throw createError(config, ErrorItem.limitConstraintViolation, {
+      o: name,
+      n1: value.length,
+      n2: option.limit,
+    });
+  }
+  return value;
 }
 
 /**

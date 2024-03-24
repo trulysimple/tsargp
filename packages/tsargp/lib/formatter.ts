@@ -964,7 +964,7 @@ function formatUsageNames(
 ) {
   const names = option.names?.filter((name): name is string => !!name);
   if (names?.length) {
-    if ('negationNames' in option && option.negationNames) {
+    if (option.type === 'flag' && option.negationNames) {
       names.push(...option.negationNames.filter((name) => name));
     }
     const positional = 'positional' in option && option.positional;
@@ -1059,7 +1059,7 @@ function formatNegation(
   style: Style,
   result: TerminalString,
 ) {
-  if ('negationNames' in option && option.negationNames) {
+  if (option.type === 'flag' && option.negationNames) {
     const names = option.negationNames.filter((name) => name);
     result.splitText(phrase, () => {
       names.forEach((name, i) => {

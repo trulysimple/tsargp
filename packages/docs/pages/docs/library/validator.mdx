@@ -12,10 +12,10 @@ option definitions. You should _not_ need to instantiate this class directly. In
 
 ## Option validation
 
-The term _validation_ here means verifying the sanity of an option's definition. It is intended for
-development and testing, _not_ for use in production where it would impose an unwanted performance
-penalty on your application. The validations behave like assertions: they assert that your options
-will work as expected when delivered to end-users.
+The term _validation_ here means verifying the sanity of the options' definitions. It is intended
+for use during development, _not_ in production where it would impose a needless performance penalty
+on your application. The validations behave like assertions: they assert that your options will work
+as expected when delivered to end-users.
 
 To validate a set of option definitions, you must call the `validate` method on the parser instance.
 The following sections describe the various kinds of validation performed by this method. Any option

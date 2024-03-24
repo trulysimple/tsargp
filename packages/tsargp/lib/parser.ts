@@ -117,10 +117,11 @@ export class ArgumentParser<T extends Options = Options> {
   /**
    * Validates the option definitions. This should only be called during development and in unit
    * tests, but should be skipped in production.
-   * @returns A list of validation warnings
+   * @returns The parser instance.
    */
-  validate(): Array<WarnMessage> {
-    return this.validator.validate();
+  validate() {
+    this.validator.validate();
+    return this;
   }
 
   /**
@@ -819,7 +820,7 @@ function handleCompletion(option: ParamOption, param?: string) {
  * @param err The previous error message, if any
  */
 function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
-  const similar = validator.findSimilarNames(name);
+  const similar = validator.findSimilarNames(name, 0.6);
   if (err) {
     if (similar.length) {
       throw validator.error(ErrorItem.parseErrorWithSimilar, {
