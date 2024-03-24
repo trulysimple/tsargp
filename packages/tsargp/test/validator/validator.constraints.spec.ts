@@ -456,5 +456,54 @@ describe('OptionValidator', () => {
         `Invalid parameter to required: 3. Possible values are [1, 2].`,
       );
     });
+
+    it('should throw an error on numbers example value with too many values', () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          example: [1, 2, 3],
+          limit: 2,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option numbers has too many values (3). Should have at most 2.`,
+      );
+    });
+
+    it('should throw an error on numbers default value with too many values', () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          default: [1, 2, 3],
+          limit: 2,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option numbers has too many values (3). Should have at most 2.`,
+      );
+    });
+
+    it('should throw an error on numbers required value with too many values', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: { required: [1, 2, 3] },
+        },
+        required: {
+          type: 'numbers',
+          names: ['-ns'],
+          limit: 2,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option required has too many values (3). Should have at most 2.`,
+      );
+    });
   });
 });
