@@ -13,6 +13,17 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('\n');
     });
 
+    it('should handle an option with empty names array', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: [],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual('\n');
+    });
+
     it('should handle an option with no description', () => {
       const options = {
         flag: {
