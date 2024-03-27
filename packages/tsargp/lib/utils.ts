@@ -278,6 +278,38 @@ export function gestaltSimilarity(S: string, T: string): number {
 }
 
 /**
+ * Gets a list of option names that are similar to a given name.
+ * @param name The name to be searched
+ * @param names The names to be searched
+ * @param threshold The similarity threshold
+ * @returns The list of similar names in decreasing order of similarity
+ */
+export function findSimilarNames(
+  name: string,
+  names: Array<string>,
+  threshold: number,
+): Array<string> {
+  /** @ignore */
+  function norm(name: string) {
+    return name.replace(/\p{P}/gu, '').toLowerCase();
+  }
+  const searchName = norm(name);
+  return names
+    .reduce((acc, name2) => {
+      // skip the original name
+      if (name2 != name) {
+        const sim = gestaltSimilarity(searchName, norm(name2));
+        if (sim >= threshold) {
+          acc.push([name2, sim]);
+        }
+      }
+      return acc;
+    }, new Array<[string, number]>())
+    .sort(([, as], [, bs]) => bs - as)
+    .map(([str]) => str);
+}
+
+/**
  * Split a phrase into multiple alternatives
  * @param phrase The phrase string
  * @returns The phrase alternatives

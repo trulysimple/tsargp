@@ -38,7 +38,7 @@ import {
 } from './styles';
 import { OptionValidator, defaultConfig } from './validator';
 import { format } from './styles';
-import { checkRequiredArray, getArgs, isTrue } from './utils';
+import { checkRequiredArray, findSimilarNames, getArgs, isTrue } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -546,7 +546,7 @@ function handleCompletion(option: Option, param?: string) {
  * @param err The previous error message, if any
  */
 function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
-  const similar = validator.findSimilarNames(name, 0.6);
+  const similar = findSimilarNames(name, [...validator.names.keys()], 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o1: name }, 0];
   const config: FormatConfig = { alt, sep: ',' };
   if (err) {

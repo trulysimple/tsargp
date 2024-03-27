@@ -16,7 +16,7 @@ import {
   isUnknown,
 } from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
-import { gestaltSimilarity, matchNamingRules } from './utils';
+import { findSimilarNames, matchNamingRules } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -166,61 +166,10 @@ export class OptionValidator {
     this.options = options as InternalOptions;
     for (const key in this.options) {
       const option = this.options[key];
-      this.registerNames(key, option);
+      registerNames(this.config, this.names, this.letters, key, option);
       if (option.positional) {
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name: option.preferredName ?? '', option, marker };
-      }
-    }
-  }
-
-  /**
-   * Registers or validates an option's names.
-   * @param key The option key
-   * @param option The option definition
-   * @param validate True if performing validation
-   * @param prefix The command prefix, if any
-   * @throws On empty positional marker, option with no name, invalid option name, duplicate name or
-   * duplicate cluster letter
-   */
-  private registerNames(key: string, option: Option, validate = false, prefix = '') {
-    const names = option.names?.slice() ?? [];
-    if (option.negationNames) {
-      names.push(...option.negationNames);
-    }
-    if (validate && option.positional === '') {
-      throw this.error(ErrorItem.emptyPositionalMarker, { o: prefix + key });
-    }
-    if (typeof option.positional === 'string') {
-      names.push(option.positional);
-    }
-    if (validate && !option.positional && !names.find((name) => name)) {
-      throw this.error(ErrorItem.unnamedOption, { o: prefix + key });
-    }
-    for (const name of names) {
-      if (!name) {
-        continue;
-      }
-      if (validate && name.match(/[\s=]+/)) {
-        throw this.error(ErrorItem.invalidOptionName, { o: prefix + key, s: name });
-      }
-      if (validate && this.names.has(name)) {
-        throw this.error(ErrorItem.duplicateOptionName, { o: prefix + key, s: name });
-      }
-      this.names.set(name, key);
-    }
-    if (!option.preferredName) {
-      option.preferredName = names.find((name): name is string => !!name);
-    }
-    if (option.clusterLetters) {
-      for (const letter of option.clusterLetters) {
-        if (validate && letter.includes(' ')) {
-          throw this.error(ErrorItem.invalidClusterLetter, { o: prefix + key, s: letter });
-        }
-        if (validate && this.letters.has(letter)) {
-          throw this.error(ErrorItem.duplicateClusterLetter, { o: prefix + key, s: letter });
-        }
-        this.letters.set(letter, key);
       }
     }
   }
@@ -234,13 +183,14 @@ export class OptionValidator {
    */
   validate(prefix = '', visited = new Set<Options>()): WarnMessage {
     const result = new WarnMessage();
-    this.validateNames(prefix, result); // validate names before clearing them
+    // validate names before clearing them
+    validateNames(this.config, this.names, this.options, prefix, result);
     this.names.clear(); // to check for duplicate option names
     this.letters.clear(); // to check for duplicate cluster letters
     let positional = ''; // to check for duplicate positional options
     for (const key in this.options) {
       const option = this.options[key];
-      this.registerNames(key, option, true, prefix);
+      registerNames(this.config, this.names, this.letters, key, option, true, prefix);
       validateOption(this.options, this.config, prefix, key, option, visited, result);
       if (option.positional) {
         if (positional) {
@@ -253,66 +203,6 @@ export class OptionValidator {
       }
     }
     return result;
-  }
-
-  /**
-   * Validates the option names against a set of rules.
-   * @param prefix The command prefix, if any
-   * @param result The list of warnings to append to
-   */
-  private validateNames(prefix: string, result: WarnMessage) {
-    const visited = new Set<string>();
-    for (const name of this.names.keys()) {
-      if (visited.has(name)) {
-        continue;
-      }
-      const similar = this.findSimilarNames(name, 0.8);
-      if (similar.length) {
-        result.push(
-          this.format(ErrorItem.tooSimilarOptionNames, { o: prefix, s1: name, s2: similar }),
-        );
-        for (const similarName of similar) {
-          visited.add(similarName);
-        }
-      }
-    }
-    getNamesInEachSlot(this.options).forEach((slot, i) => {
-      const match = matchNamingRules(slot, namingConventions);
-      for (const key in match) {
-        const entries = Object.entries(match[key]);
-        if (entries.length > 1) {
-          const list = entries.map(([rule, name]) => rule + ': ' + name);
-          result.push(this.format(ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: list }));
-        }
-      }
-    });
-  }
-
-  /**
-   * Gets a list of option names that are similar to a given name.
-   * @param name The option name
-   * @param threshold The similarity threshold
-   * @returns The list of similar names in decreasing order of similarity
-   */
-  findSimilarNames(name: string, threshold: number): Array<string> {
-    /** @ignore */
-    function norm(name: string) {
-      return name.replace(/\p{P}/gu, '').toLowerCase();
-    }
-    const searchName = norm(name);
-    return [...this.names.keys()]
-      .reduce((acc, name2) => {
-        // skip the original name
-        if (name2 != name) {
-          const sim = gestaltSimilarity(searchName, norm(name2));
-          if (sim >= threshold) {
-            acc.push([name2, sim]);
-          }
-        }
-        return acc;
-      }, new Array<[string, number]>())
-      .sort(([, as], [, bs]) => bs - as)
-      .map(([str]) => str);
   }
 
   /**
@@ -362,6 +252,110 @@ export class OptionValidator {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Registers or validates an option's names.
+ * @param config The message configuration
+ * @param nameToKey The map of option names to keys
+ * @param letterToKey The map of cluster letters to key
+ * @param key The option key
+ * @param option The option definition
+ * @param validate True if performing validation
+ * @param prefix The command prefix, if any
+ * @throws On empty positional marker, option with no name, invalid option name, duplicate name or
+ * duplicate cluster letter
+ */
+function registerNames(
+  config: ConcreteConfig,
+  nameToKey: Map<string, string>,
+  letterToKey: Map<string, string>,
+  key: string,
+  option: Option,
+  validate = false,
+  prefix = '',
+) {
+  const names = option.names?.slice() ?? [];
+  if (option.negationNames) {
+    names.push(...option.negationNames);
+  }
+  if (validate && option.positional === '') {
+    throw error(config, ErrorItem.emptyPositionalMarker, { o: prefix + key });
+  }
+  if (typeof option.positional === 'string') {
+    names.push(option.positional);
+  }
+  if (validate && !option.positional && !names.find((name) => name)) {
+    throw error(config, ErrorItem.unnamedOption, { o: prefix + key });
+  }
+  for (const name of names) {
+    if (!name) {
+      continue;
+    }
+    if (validate && name.match(/[\s=]+/)) {
+      throw error(config, ErrorItem.invalidOptionName, { o: prefix + key, s: name });
+    }
+    if (validate && nameToKey.has(name)) {
+      throw error(config, ErrorItem.duplicateOptionName, { o: prefix + key, s: name });
+    }
+    nameToKey.set(name, key);
+  }
+  if (!option.preferredName) {
+    option.preferredName = names.find((name): name is string => !!name);
+  }
+  if (option.clusterLetters) {
+    for (const letter of option.clusterLetters) {
+      if (validate && letter.includes(' ')) {
+        throw error(config, ErrorItem.invalidClusterLetter, { o: prefix + key, s: letter });
+      }
+      if (validate && letterToKey.has(letter)) {
+        throw error(config, ErrorItem.duplicateClusterLetter, { o: prefix + key, s: letter });
+      }
+      letterToKey.set(letter, key);
+    }
+  }
+}
+
+/**
+ * Validates the option names against a set of rules.
+ * @param config The message configuration
+ * @param nameToKey The map of option names to keys
+ * @param options The option definitions
+ * @param prefix The command prefix, if any
+ * @param result The list of warnings to append to
+ */
+function validateNames(
+  config: ConcreteConfig,
+  nameToKey: Map<string, string>,
+  options: InternalOptions,
+  prefix: string,
+  result: WarnMessage,
+) {
+  const visited = new Set<string>();
+  for (const name of nameToKey.keys()) {
+    if (visited.has(name)) {
+      continue;
+    }
+    const similar = findSimilarNames(name, [...nameToKey.keys()], 0.8);
+    if (similar.length) {
+      result.push(
+        format(config, ErrorItem.tooSimilarOptionNames, { o: prefix, s1: name, s2: similar }),
+      );
+      for (const similarName of similar) {
+        visited.add(similarName);
+      }
+    }
+  }
+  getNamesInEachSlot(options).forEach((slot, i) => {
+    const match = matchNamingRules(slot, namingConventions);
+    for (const key in match) {
+      const entries = Object.entries(match[key]);
+      if (entries.length > 1) {
+        const list = entries.map(([rule, name]) => rule + ': ' + name);
+        result.push(format(config, ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: list }));
+      }
+    }
+  });
+}
+
 /**
  * Creates a formatted message.
  * @param config The message configuration
