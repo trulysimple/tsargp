@@ -6,7 +6,15 @@ import type { FormatArgs, FormatConfig, FormatStyles, MessageStyles } from './st
 import type { Concrete, NamingRules } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
-import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isValued, isString } from './options';
+import {
+  RequiresAll,
+  RequiresOne,
+  RequiresNot,
+  isNiladic,
+  isSpecial,
+  isString,
+  isUnknown,
+} from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
 import { gestaltSimilarity, matchNamingRules } from './utils';
 
@@ -36,8 +44,8 @@ export const defaultConfig: ConcreteConfig = {
   styles: defaultStyles,
   phrases: {
     [ErrorItem.parseError]:
-      'Did you mean to specify an option name instead of %o1?(| Similar names are %o2.)',
-    [ErrorItem.unknownOption]: 'Unknown option %o1.(| Similar names are %o2.)',
+      'Did you mean to specify an option name instead of %o1?(| Similar names are [%o2].)',
+    [ErrorItem.unknownOption]: 'Unknown option %o1.(| Similar names are [%o2].)',
     [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %p.',
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
@@ -50,7 +58,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.emptyVersionDefinition]: 'Option %o contains empty version.',
     [ErrorItem.invalidSelfRequirement]: 'Option %o requires itself.',
     [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
-    [ErrorItem.invalidRequiredOption]: 'Non-valued option %o in requirement.',
+    [ErrorItem.invalidRequiredOption]: 'Invalid option %o in requirement.',
     [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Option %o has duplicate name %s.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o1: previous was %o2.',
@@ -59,13 +67,13 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.incompatibleRequiredValue]:
       'Option %o has incompatible value %v. Should be of type %s.',
     [ErrorItem.stringEnumsConstraintViolation]:
-      'Invalid parameter to %o: %s1. Possible values are %s2.',
+      'Invalid parameter to %o: %s1. Possible values are {%s2}.',
     [ErrorItem.regexConstraintViolation]:
       'Invalid parameter to %o: %s. Value must match the regex %r.',
     [ErrorItem.numberEnumsConstraintViolation]:
-      'Invalid parameter to %o: %n1. Possible values are %n2.',
+      'Invalid parameter to %o: %n1. Possible values are {%n2}.',
     [ErrorItem.rangeConstraintViolation]:
-      'Invalid parameter to %o: %n1. Value must be in the range %n2.',
+      'Invalid parameter to %o: %n1. Value must be in the range [%n2].',
     [ErrorItem.limitConstraintViolation]:
       'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
@@ -73,9 +81,9 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.duplicateClusterLetter]: 'Option %o has duplicate cluster letter %s.',
     [ErrorItem.invalidClusterOption]: 'Option letter %o must be the last in a cluster.',
     [ErrorItem.invalidClusterLetter]: 'Option %o has invalid cluster letter %s.',
-    [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names %s2.',
-    [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions %s.',
-    [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range %n.',
+    [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names [%s2].',
+    [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions [%s].',
+    [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range [%n].',
   },
 };
 
@@ -517,10 +525,13 @@ function validateRequirement(
     throw error(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
   }
   const option = options[requiredKey];
-  if (!isValued(option)) {
+  if (isSpecial(option)) {
     throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
   if (requiredValue !== undefined && requiredValue !== null) {
+    if (isUnknown(option)) {
+      throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
+    }
     validateValue(config, prefix + requiredKey, option, requiredValue);
   }
 }

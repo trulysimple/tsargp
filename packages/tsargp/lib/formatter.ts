@@ -2,7 +2,7 @@
 // Imports
 //--------------------------------------------------------------------------------------------------
 import type { Option, InternalOptions, Requires, RequiresVal } from './options';
-import type { Style, FormatStyles, FormatConfig } from './styles';
+import type { Style, FormatStyles } from './styles';
 import type { Concrete } from './utils';
 import type { OptionValidator } from './validator';
 
@@ -16,6 +16,7 @@ import {
   isBoolean,
   isNumber,
   isVariadic,
+  isArray,
 } from './options';
 import { HelpMessage, TerminalString, style, format } from './styles';
 
@@ -261,7 +262,7 @@ const defaultConfig: ConcreteFormat = {
   ],
   phrases: {
     [HelpItem.synopsis]: '%t',
-    [HelpItem.negation]: 'Can be negated with %o.',
+    [HelpItem.negation]: 'Can be negated with [%o].',
     [HelpItem.separator]: 'Values are delimited by (%s|%r).',
     [HelpItem.variadic]: 'Accepts multiple parameters.',
     [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %o).',
@@ -269,14 +270,14 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.trim]: 'Values will be trimmed.',
     [HelpItem.case]: 'Values will be converted to (lowercase|uppercase).',
     [HelpItem.conv]: 'Values will be converted with Math.%t.',
-    [HelpItem.enums]: 'Values must be one of (%s|%n).',
+    [HelpItem.enums]: 'Values must be one of {(%s|%n)}.',
     [HelpItem.regex]: 'Values must match the regex %r.',
-    [HelpItem.range]: 'Values must be in the range %n.',
+    [HelpItem.range]: 'Values must be in the range [%n].',
     [HelpItem.unique]: 'Duplicate values will be removed.',
     [HelpItem.limit]: 'Value count is limited to %n.',
     [HelpItem.requires]: 'Requires %p.',
     [HelpItem.required]: 'Always required.',
-    [HelpItem.default]: 'Defaults to (%b|%s|%n|%v).',
+    [HelpItem.default]: 'Defaults to (%b|%s|%n|[%s]|[%n]|%v).',
     [HelpItem.deprecated]: 'Deprecated for %t.',
     [HelpItem.link]: 'Refer to %u for details.',
     [HelpItem.envVar]: 'Can be specified through the %o environment variable.',
@@ -387,8 +388,8 @@ export class HelpFormatter {
     if (this.config.names.hidden || !option.names) {
       return [];
     }
-    this.styles.current = option.styles?.names;
-    return formatNameSlots(this.config, this.styles, option.names, this.nameWidths);
+    const style = option.styles?.names ?? this.styles.option;
+    return formatNameSlots(this.config, option.names, this.nameWidths, style, this.styles.text);
   }
 
   /**
@@ -402,7 +403,7 @@ export class HelpFormatter {
     }
     this.styles.current = option.styles?.param;
     const result = new TerminalString(0, this.config.param.breaks).addSequence(
-      this.styles.current ?? this.styles.text,
+      this.styles.current ?? this.styles.value,
     );
     const len = formatParam(option, this.styles, result);
     this.paramWidth = Math.max(this.paramWidth, len);
@@ -616,16 +617,18 @@ function adjustEntries(
 /**
  * Formats a list of names to be printed on the terminal.
  * @param config The format configuration
- * @param styles The set of styles
  * @param names The list of option names
  * @param nameWidths The name slot widths
+ * @param namesStyle The style to apply
+ * @param defStyle The default style
  * @returns The resulting strings
  */
 function formatNameSlots(
   config: ConcreteFormat,
-  styles: FormatStyles,
   names: ReadonlyArray<string | null>,
   nameWidths: Array<number> | number,
+  namesStyle: Style,
+  defStyle: Style,
 ): Array<TerminalString> {
   const slotted = typeof nameWidths !== 'number';
   const result = new Array<TerminalString>();
@@ -640,11 +643,11 @@ function formatNameSlots(
         len += 2;
       }
       if (!str || slotted) {
-        str = new TerminalString(indent, breaks).addSequence(styles.current ?? styles.text);
+        str = new TerminalString(indent, breaks);
         result.push(str);
         breaks = 0; // break only on the first name
       }
-      format.o(name, styles, str);
+      str.addAndRevert(namesStyle, name, defStyle);
       len += name.length;
     } else if (slotted) {
       str = undefined;
@@ -877,8 +880,7 @@ function formatUsageNames(option: Option, styles: FormatStyles, result: Terminal
       result.addOpening('[');
     }
     if (names.length > 1) {
-      const config: FormatConfig = { brackets: ['(', ')'], sep: '|', mergeAfter: true };
-      result.formatArgs(styles, '%o', { o: names }, config);
+      result.formatArgs(styles, '(%o)', { o: names }, { sep: '|', mergeNext: true });
     } else {
       format.o(names[0], styles, result);
     }
@@ -919,16 +921,17 @@ function formatParam(option: Option, styles: FormatStyles, result: TerminalStrin
  */
 function formatExample(option: Option, styles: FormatStyles, result: TerminalString): number {
   const separator = option.separator;
+  const example = option.example;
   if (separator) {
     const sep = typeof separator === 'string' ? separator : separator.source;
-    const value = (option.example as Array<unknown>).join(sep);
-    result.formatArgs(styles, '%s', { s: value }, {});
+    const value = (example as Array<unknown>).join(sep);
+    result.formatArgs(styles, '%s', { s: value });
   } else {
     const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
-    result.formatArgs(styles, `%${spec}`, { [spec]: option.example }, {});
+    result.formatArgs(styles, `%${spec}`, { [spec]: example }, {});
   }
-  const nonDelimited = !separator && Array.isArray(option.example);
-  return result.length + (nonDelimited ? option.example.length - 1 : 0);
+  const nonDelimited = !separator && Array.isArray(example);
+  return result.length + (nonDelimited ? example.length - 1 : 0);
 }
 
 /**
@@ -965,7 +968,7 @@ function formatNegation(
 ) {
   const names = option.negationNames?.filter((name) => name);
   if (names?.length) {
-    result.formatArgs(styles, phrase, { o: names }, { sep: 'or', merge: false });
+    result.formatArgs(styles, phrase, { o: names });
   }
 }
 
@@ -1097,8 +1100,7 @@ function formatEnums(option: Option, phrase: string, styles: FormatStyles, resul
   const enums = option.enums;
   if (enums) {
     const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
-    const config: FormatConfig = { alt, brackets: ['{', '}'], sep: ',' };
-    result.formatArgs(styles, phrase, { [spec]: enums }, config);
+    result.formatArgs(styles, phrase, { [spec]: enums }, { alt, sep: ',' });
   }
 }
 
@@ -1197,16 +1199,19 @@ function formatDefault(
   if (value !== undefined) {
     const [spec, alt] =
       typeof value === 'function'
-        ? ['v', 3]
+        ? ['v', 5]
         : typeof value === 'boolean'
           ? ['b', 0]
-          : typeof value === 'string' || option.type === 'strings'
+          : typeof value === 'string'
             ? ['s', 1]
-            : typeof value === 'number' || option.type === 'numbers'
+            : typeof value === 'number'
               ? ['n', 2]
-              : ['v', 3];
-    const config: FormatConfig = { alt, brackets: ['[', ']'], sep: ',' };
-    result.formatArgs(styles, phrase, { [spec]: value }, config);
+              : option.type === 'strings'
+                ? ['s', 3]
+                : option.type === 'numbers'
+                  ? ['n', 4]
+                  : ['v', 5];
+    result.formatArgs(styles, phrase, { [spec]: value }, { alt, sep: ',' });
   }
 }
 
@@ -1283,6 +1288,7 @@ function formatClusterLetters(
 
 /**
  * Recursively formats an option's requirements to be included in the description.
+ * Assumes that the options were validated.
  * @param options The option definitions
  * @param requires The option requirements
  * @param styles The set of styles
@@ -1318,6 +1324,7 @@ function formatRequirements(
 
 /**
  * Formats a requirement expression to be included in the description.
+ * Assumes that the options were validated.
  * @param options The option definitions
  * @param requires The requirement expression
  * @param styles The set of styles
@@ -1348,6 +1355,7 @@ function formatRequiresExp(
 
 /**
  * Formats a requirement object to be included in the description.
+ * Assumes that the options were validated.
  * @param options The option definitions
  * @param requires The requirement object
  * @param styles The set of styles
@@ -1378,6 +1386,7 @@ function formatRequiresVal(
 
 /**
  * Formats an option's required value to be included in the description.
+ * Assumes that the options were validated.
  * @param option The option definition
  * @param value The option value
  * @param styles The set of styles
@@ -1398,6 +1407,6 @@ function formatRequiredValue(
   if (value !== null && value !== undefined) {
     result.addWord(negate ? '!=' : '=');
     const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
-    result.formatArgs(styles, `%${spec}`, { [spec]: value });
+    result.formatArgs(styles, isArray(option) ? `[%${spec}]` : `%${spec}`, { [spec]: value });
   }
 }

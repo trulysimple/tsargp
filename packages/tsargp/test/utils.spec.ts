@@ -162,16 +162,27 @@ describe('splitPhrase', () => {
     expect(splitPhrase('')).toEqual(['']);
   });
 
-  it('should handle a phrase with just words', () => {
-    expect(splitPhrase('type (script) is fun')).toEqual(['type (script) is fun']);
+  it('should handle a phrase with no groups', () => {
+    expect(splitPhrase('type|script (is fun)')).toEqual(['type|script (is fun)']);
   });
 
-  it('should handle a phrase with words and groups', () => {
+  it('should handle a phrase with unmatched parentheses', () => {
+    expect(splitPhrase('type (script')).toEqual(['type (script']);
+    expect(splitPhrase('type )script')).toEqual(['type )script']);
+  });
+
+  it('should handle a phrase with empty groups', () => {
+    expect(splitPhrase('(|) type')).toEqual([' type', ' type']);
+    expect(splitPhrase('script (|)')).toEqual(['script ', 'script ']);
+    expect(splitPhrase('is (|)fun')).toEqual(['is fun', 'is fun']);
+  });
+
+  it('should handle a phrase with non-empty groups', () => {
     expect(splitPhrase('(type|script) is fun')).toEqual(['type is fun', 'script is fun']);
   });
 
-  it('should handle a phrase with groups with empty alternatives', () => {
-    expect(splitPhrase('(|) is fun')).toEqual([' is fun', ' is fun']);
+  it('should handle a phrase with parentheses inside groups', () => {
+    expect(splitPhrase('((type)|(script)) is fun')).toEqual(['(type) is fun', '(script) is fun']);
   });
 });
 

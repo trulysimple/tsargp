@@ -161,7 +161,7 @@ describe('TerminalString', () => {
       ]);
     });
 
-    it('should format array-valued arguments with brackets', () => {
+    it('should format array-valued arguments with separator', () => {
       const str1 = new TerminalString().splitText('type script');
       const str2 = new TerminalString().formatArgs(styles, '%b %s %n %r %o %v %u %t %p', {
         b: [true, false],
@@ -176,32 +176,32 @@ describe('TerminalString', () => {
       });
       expect(str2.count).toEqual(22);
       expect(str2.strings).toEqual([
-        '[true,',
-        'false]',
-        `['abc',`,
-        `'def']`,
-        '[123,',
-        '456]',
-        '[/def/g,',
-        '/123/i]',
-        '[some name,',
-        'other name]',
-        '[<() => 1>,',
-        '<[object Object]>]',
-        '[https://abc/,',
-        'ftp://def/]',
-        '[some',
+        'true,',
+        'false',
+        `'abc',`,
+        `'def'`,
+        '123,',
+        '456',
+        '/def/g,',
+        '/123/i',
+        'some name,',
+        'other name',
+        '<() => 1>,',
+        '<[object Object]>',
+        'https://abc/,',
+        'ftp://def/',
+        'some',
         'text,',
         'other',
-        'text]',
-        '[type',
+        'text',
+        'type',
         'script,',
         'type',
-        'script]',
+        'script',
       ]);
     });
 
-    it('should format array-valued arguments with separator', () => {
+    it('should format array-valued arguments without merging the separator', () => {
       const str1 = new TerminalString().splitText('type script');
       const str2 = new TerminalString().formatArgs(
         styles,
@@ -217,7 +217,7 @@ describe('TerminalString', () => {
           t: ['some text', 'other text'],
           p: [str1, str1],
         },
-        { sep: '-', merge: false },
+        { sep: '-', mergePrev: false },
       );
       expect(str2.count).toEqual(31);
       expect(str2.strings).toEqual([

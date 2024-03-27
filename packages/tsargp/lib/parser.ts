@@ -22,7 +22,7 @@ import {
   isArray,
   isVariadic,
   isNiladic,
-  isValued,
+  isSpecial,
   isString,
   isBoolean,
   isUnknown,
@@ -38,7 +38,7 @@ import {
 } from './styles';
 import { OptionValidator, defaultConfig } from './validator';
 import { format } from './styles';
-import { assert, checkRequiredArray, getArgs, isTrue } from './utils';
+import { checkRequiredArray, getArgs, isTrue } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -231,7 +231,7 @@ class ParserLoop {
     for (const key in validator.options) {
       if (!(key in values)) {
         const option = validator.options[key];
-        if (isValued(option)) {
+        if (!isSpecial(option)) {
           values[key] = undefined;
         }
       }
@@ -246,6 +246,8 @@ class ParserLoop {
    * @returns The parser loop instance
    */
   loop(): this {
+    /** @ignore */
+    function assert(_condition: unknown): asserts _condition {}
     /** @ignore */
     function suggestName(option: Option): boolean {
       return (
@@ -591,7 +593,7 @@ class ParserLoop {
     const option = this.validator.options[key];
     const specified = this.specifiedKeys.has(key);
     const required = value !== null;
-    if (isUnknown(option) || !specified || !required || value === undefined) {
+    if (isSpecial(option) || isUnknown(option) || !specified || !required || value === undefined) {
       if ((specified == required) != negate) {
         return true;
       }
@@ -816,7 +818,7 @@ function handleCompletion(option: Option, param?: string) {
 function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
   const similar = validator.findSimilarNames(name, 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o1: name }, 0];
-  const config: FormatConfig = { alt, brackets: ['[', ']'], sep: ',' };
+  const config: FormatConfig = { alt, sep: ',' };
   if (err) {
     err.msg.push(validator.format(ErrorItem.parseError, args, config));
   } else {
@@ -1135,7 +1137,7 @@ function checkArray<T extends string | number>(
   const styles = validator.config.styles;
   format.o(name, styles, error);
   error.addWord(negate != invert ? '!=' : '=');
-  error.formatArgs(styles, `%${spec}`, { [spec]: expected });
+  error.formatArgs(styles, `[%${spec}]`, { [spec]: expected });
   return false;
 }
 

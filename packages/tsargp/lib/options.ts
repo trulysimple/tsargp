@@ -849,8 +849,18 @@ export function isArray(option: Option): boolean {
  * @returns True if the option is a valued option
  * @internal
  */
-export function isValued(option: Option): boolean {
-  return option.type !== 'help' && option.type !== 'version';
+export function isSpecial(option: Option): boolean {
+  return option.type === 'help' || option.type === 'version';
+}
+
+/**
+ * Tests if an option has unknown values.
+ * @param option The option definition
+ * @returns True if the option is unknown-valued
+ * @internal
+ */
+export function isUnknown(option: Option): boolean {
+  return option.type === 'function' || option.type === 'command';
 }
 
 /**
@@ -881,14 +891,4 @@ export function isString(option: Option): boolean {
  */
 export function isNumber(option: Option): boolean {
   return option.type === 'number' || option.type === 'numbers';
-}
-
-/**
- * Tests if an option has unknown values.
- * @param option The option definition
- * @returns True if the option is unknown-valued
- * @internal
- */
-export function isUnknown(option: Option): boolean {
-  return option.type === 'function' || option.type === 'command';
 }

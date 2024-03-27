@@ -199,21 +199,17 @@ export type FormatConfig = {
    */
   readonly alt?: number;
   /**
-   * A pair of brackets for array values.
-   */
-  readonly brackets?: [string, string];
-  /**
    * An element separator for array values.
    */
   readonly sep?: string;
   /**
    * Whether the separator should be merged with the previous value. (Defaults to true)
    */
-  readonly merge?: boolean;
+  readonly mergePrev?: boolean;
   /**
    * Whether the separator should be merged with the next value. (Defaults to false)
    */
-  readonly mergeAfter?: boolean;
+  readonly mergeNext?: boolean;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -702,7 +698,7 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
 function formatArgs(
   styles: FormatStyles,
   args: FormatArgs,
-  config: FormatConfig = { brackets: ['[', ']'], sep: ',' },
+  config: FormatConfig = { sep: ',' },
 ): FormatCallback {
   return function (this: TerminalString, spec: string) {
     const arg = spec.slice(1);
@@ -711,20 +707,14 @@ function formatArgs(
       const value = args[arg];
       const formatFn = (format as FormatFunctions)[fmt];
       if (Array.isArray(value)) {
-        if (config?.brackets) {
-          this.addOpening(config.brackets[0]);
-        }
         value.forEach((val, i) => {
           formatFn(val, styles, this);
           if (config?.sep && i < value.length - 1) {
-            this.setMerge(config.merge)
+            this.setMerge(config.mergePrev)
               .addWord(config.sep)
-              .setMerge(config.mergeAfter ?? false);
+              .setMerge(config.mergeNext ?? false);
           }
         });
-        if (config?.brackets) {
-          this.addClosing(config.brackets[1]);
-        }
       } else {
         formatFn(value, styles, this);
       }

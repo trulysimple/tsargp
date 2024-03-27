@@ -110,7 +110,7 @@ export type NamingMatch<T extends NamingRules> = Resolve<{
 
 /**
  * A (closed) numeric range.
- * 
+ *
  * In a valid range, the minimum should be strictly less than the maximum.
  */
 export type Range = [min: number, max: number];
@@ -278,16 +278,33 @@ export function gestaltSimilarity(S: string, T: string): number {
  * @internal
  */
 export function splitPhrase(phrase: string): Array<string> {
-  const [l, c, r] = phrase.split(/\(([^()|]*\|[^()]*)\)/, 3);
-  return c ? c.split('|').map((alt) => l + alt + r) : [l];
+  let a = [];
+  let b = -1;
+  let i = 0;
+  for (; i < phrase.length; ++i) {
+    const c = phrase[i];
+    if (c === '(') {
+      a.push(i);
+    } else if (c === '|') {
+      if (b < 0 && a.length) {
+        b = a.length;
+      }
+    } else if (c === ')') {
+      if (b == a.length) {
+        break;
+      }
+      a.pop();
+    }
+  }
+  if (i < phrase.length) {
+    const s = a[a.length - 1];
+    const l = phrase.slice(0, s);
+    const c = phrase.slice(s + 1, i);
+    const r = phrase.slice(i + 1);
+    return c.split('|').map((alt) => l + alt + r);
+  }
+  return [phrase];
 }
-
-/**
- * Asserts that a condition is true. This is a no-op.
- * @param _condition The condition
- * @internal
- */
-export function assert(_condition: unknown): asserts _condition {}
 
 /**
  * Converts a string to boolean.
