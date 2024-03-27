@@ -270,29 +270,76 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse(['-f1', '-f2', '1'])).not.toThrow();
     });
 
-    it('should throw an error on forward requirement not satisfied with an expression', () => {
+    it('should throw an error on forward requirement not satisfied with required boolean values', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: {
+            flag: false,
+            boolean: true,
+          },
+        },
+        flag: {
+          type: 'flag',
+          names: ['-f2'],
+          negationNames: ['--no-f2'],
+        },
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse([])).not.toThrow();
+      expect(() => parser.parse(['-f'])).toThrow(`Option -f requires -f2.`);
+      expect(() => parser.parse(['-f', '-f2'])).toThrow(`Option -f requires -f2 = false.`);
+      expect(() => parser.parse(['-f', '--no-f2'])).toThrow(`Option -f requires -b.`);
+      expect(() => parser.parse(['-f', '--no-f2', '-b', '0'])).toThrow(`Option -f requires -b = true.`);
+      expect(() => parser.parse(['-f', '--no-f2', '-b', '1'])).not.toThrow();
+    });
+
+    it('should throw an error on forward requirement not satisfied with required string values', () => {
       const options = {
         requires: {
           type: 'flag',
           names: ['-f'],
           requires: {
             string: 'abc',
-            number: 123,
-            strings: ['a', 'b'],
-            numbers: [1, 2],
+            strings: ['a'],
           },
         },
         string: {
           type: 'string',
           names: ['-s'],
         },
-        number: {
-          type: 'number',
-          names: ['-n'],
-        },
         strings: {
           type: 'strings',
           names: ['-ss'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse([])).not.toThrow();
+      expect(() => parser.parse(['-f'])).toThrow(`Option -f requires -s.`);
+      expect(() => parser.parse(['-f', '-s', 'x'])).toThrow(`Option -f requires -s = 'abc'.`);
+      expect(() => parser.parse(['-f', '-s', 'abc'])).toThrow(`Option -f requires -ss.`);
+      expect(() => parser.parse(['-f', '-s', 'abc', '-ss'])).toThrow(`Option -f requires -ss = ['a'].`);
+      expect(() => parser.parse(['-f', '-s', 'abc', '-ss', 'a'])).not.toThrow();
+    });
+
+    it('should throw an error on forward requirement not satisfied with required number values', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: {
+            number: 123,
+            numbers: [1],
+          },
+        },
+        number: {
+          type: 'number',
+          names: ['-n'],
         },
         numbers: {
           type: 'numbers',
@@ -301,53 +348,85 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse([])).not.toThrow();
-      expect(() => parser.parse(['-f'])).toThrow(`Option -f requires -s.`);
-      expect(() => parser.parse(['-f', '-s', 'a'])).toThrow(`Option -f requires -s = 'abc'.`);
-      expect(() => parser.parse(['-f', '-s', 'abc'])).toThrow(`Option -f requires -n.`);
-      expect(() => parser.parse(['-f', '-s', 'abc', '-n', '1'])).toThrow(
-        `Option -f requires -n = 123.`,
-      );
-      expect(() => parser.parse(['-f', '-n', '123'])).toThrow(`Option -f requires -s.`);
-      expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123'])).toThrow(
-        `Option -f requires -ss.`,
-      );
-      expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a'])).toThrow(
-        `Option -f requires -ss = ['a', 'b'].`,
-      );
-      expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).toThrow(
-        `Option -f requires -ns.`,
-      );
-      expect(() =>
-        parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1']),
-      ).toThrow(`Option -f requires -ns = [1, 2].`);
-      expect(() =>
-        parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
-      ).not.toThrow();
+      expect(() => parser.parse(['-f'])).toThrow(`Option -f requires -n.`);
+      expect(() => parser.parse(['-f', '-n', '1'])).toThrow(`Option -f requires -n = 123.`);
+      expect(() => parser.parse(['-f', '-n', '123'])).toThrow(`Option -f requires -ns.`);
+      expect(() => parser.parse(['-f', '-n', '123', '-ns'])).toThrow(`Option -f requires -ns = [1].`);
+      expect(() => parser.parse(['-f', '-n', '123', '-ns', '1'])).not.toThrow();
     });
 
-    it('should throw an error on forward requirement not satisfied with a negated expression', () => {
+    it('should throw an error on forward requirement not satisfied with negated required boolean values', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: req.not({
+            flag: false,
+            boolean: true,
+          }),
+        },
+        flag: {
+          type: 'flag',
+          names: ['-f2'],
+          negationNames: ['--no-f2'],
+        },
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse(['-f'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-f2'])).not.toThrow();
+      expect(() => parser.parse(['-f', '--no-f2'])).not.toThrow();
+      expect(() => parser.parse(['-f', '--no-f2', '-b', '0'])).not.toThrow();
+      expect(() => parser.parse(['-f', '--no-f2', '-b', '1'])).toThrow(
+        `Option -f requires (-f2 != false or -b != true).`,
+      );
+    });
+
+    it('should throw an error on forward requirement not satisfied with negated required string values', () => {
       const options = {
         requires: {
           type: 'flag',
           names: ['-f'],
           requires: req.not({
             string: 'abc',
-            number: 123,
-            strings: ['a', 'b'],
-            numbers: [1, 2],
+            strings: ['a'],
           }),
         },
         string: {
           type: 'string',
           names: ['-s'],
         },
-        number: {
-          type: 'number',
-          names: ['-n'],
-        },
         strings: {
           type: 'strings',
           names: ['-ss'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse(['-f'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-s', 'x'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-s', 'abc'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-s', 'abc', '-ss'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-s', 'abc', '-ss', 'a'])).toThrow(
+        `Option -f requires (-s != 'abc' or -ss != ['a']).`,
+      );
+    });
+
+    it('should throw an error on forward requirement not satisfied with negated required number values', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: req.not({
+            number: 123,
+            numbers: [1],
+          }),
+        },
+        number: {
+          type: 'number',
+          names: ['-n'],
         },
         numbers: {
           type: 'numbers',
@@ -355,16 +434,12 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse([])).not.toThrow();
       expect(() => parser.parse(['-f'])).not.toThrow();
-      expect(() => parser.parse(['-f', '-s', 'a'])).not.toThrow();
-      expect(() => parser.parse(['-f', '-s', 'abc'])).not.toThrow();
-      expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123'])).not.toThrow();
-      expect(() => parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).not.toThrow();
-      expect(() =>
-        parser.parse(['-f', '-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
-      ).toThrow(
-        `Option -f requires (-s != 'abc' or -n != 123 or -ss != ['a', 'b'] or -ns != [1, 2]).`,
+      expect(() => parser.parse(['-f', '-n', '1'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-n', '123'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-n', '123', '-ns'])).not.toThrow();
+      expect(() => parser.parse(['-f', '-n', '123', '-ns', '1'])).toThrow(
+        `Option -f requires (-n != 123 or -ns != [1]).`,
       );
     });
   });
@@ -599,29 +674,78 @@ describe('ArgumentParser', () => {
     expect(() => parser.parse(['-f1', '-f2'])).toThrow(`Option -b is required if -f1.`);
   });
 
-  it('should throw an error on conditional requirement not satisfied with an expression', () => {
+  it('should throw an error on conditional requirement not satisfied with required boolean values', () => {
     const options = {
-      required: {
+      requires: {
+        type: 'flag',
+        names: ['-f'],
+        requiredIf: {
+          flag: false,
+          boolean: true,
+        },
+      },
+      flag: {
+        type: 'flag',
+        names: ['-f2'],
+        negationNames: ['--no-f2'],
+      },
+      boolean: {
+        type: 'boolean',
+        names: ['-b'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options);
+    expect(() => parser.parse([])).not.toThrow();
+    expect(() => parser.parse(['-f2'])).not.toThrow();
+    expect(() => parser.parse(['--no-f2'])).not.toThrow();
+    expect(() => parser.parse(['--no-f2', '-b', '0'])).not.toThrow();
+    expect(() => parser.parse(['--no-f2', '-b', '1'])).toThrow(
+      `Option -f is required if (-f2 = false and -b = true).`,
+    );
+  });
+
+  it('should throw an error on conditional requirement not satisfied with required string values', () => {
+    const options = {
+      requires: {
         type: 'flag',
         names: ['-f'],
         requiredIf: {
           string: 'abc',
-          number: 123,
-          strings: ['a', 'b'],
-          numbers: [1, 2],
+          strings: ['a'],
         },
       },
       string: {
         type: 'string',
         names: ['-s'],
       },
-      number: {
-        type: 'number',
-        names: ['-n'],
-      },
       strings: {
         type: 'strings',
         names: ['-ss'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options);
+    expect(() => parser.parse([])).not.toThrow();
+    expect(() => parser.parse(['-s', 'x'])).not.toThrow();
+    expect(() => parser.parse(['-s', 'abc'])).not.toThrow();
+    expect(() => parser.parse(['-s', 'abc', '-ss'])).not.toThrow();
+    expect(() => parser.parse(['-s', 'abc', '-ss', 'a'])).toThrow(
+      `Option -f is required if (-s = 'abc' and -ss = ['a']).`,
+    );
+  });
+
+  it('should throw an error on conditional requirement not satisfied with required number values', () => {
+    const options = {
+      requires: {
+        type: 'flag',
+        names: ['-f'],
+        requiredIf: {
+          number: 123,
+          numbers: [1],
+        },
+      },
+      number: {
+        type: 'number',
+        names: ['-n'],
       },
       numbers: {
         type: 'numbers',
@@ -630,40 +754,82 @@ describe('ArgumentParser', () => {
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
     expect(() => parser.parse([])).not.toThrow();
-    expect(() => parser.parse(['-s', 'a'])).not.toThrow();
-    expect(() => parser.parse(['-s', 'abc'])).not.toThrow();
-    expect(() => parser.parse(['-s', 'abc', '-n', '123'])).not.toThrow();
-    expect(() => parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).not.toThrow();
-    expect(() =>
-      parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
-    ).toThrow(
-      `Option -f is required if (-s = 'abc' and -n = 123 and -ss = ['a', 'b'] and -ns = [1, 2]).`,
+    expect(() => parser.parse(['-n', '1'])).not.toThrow();
+    expect(() => parser.parse(['-n', '123'])).not.toThrow();
+    expect(() => parser.parse(['-n', '123', '-ns'])).not.toThrow();
+    expect(() => parser.parse(['-n', '123', '-ns', '1'])).toThrow(
+      `Option -f is required if (-n = 123 and -ns = [1]).`,
     );
   });
 
-  it('should throw an error on conditional requirement not satisfied with a negated expression', () => {
+  it('should throw an error on conditional requirement not satisfied with negated required boolean values', () => {
     const options = {
-      required: {
+      requires: {
+        type: 'flag',
+        names: ['-f'],
+        requiredIf: req.not({
+          flag: false,
+          boolean: true,
+        }),
+      },
+      flag: {
+        type: 'flag',
+        names: ['-f2'],
+        negationNames: ['--no-f2'],
+      },
+      boolean: {
+        type: 'boolean',
+        names: ['-b'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options);
+    expect(() => parser.parse([])).toThrow(`Option -f is required if no -f2.`);
+    expect(() => parser.parse(['-f2'])).toThrow(`Option -f is required if -f2 != false.`);
+    expect(() => parser.parse(['--no-f2'])).toThrow(`Option -f is required if no -b.`);
+    expect(() => parser.parse(['--no-f2', '-b', '0'])).toThrow(`Option -f is required if -b != true.`);
+    expect(() => parser.parse(['--no-f2', '-b', '1'])).not.toThrow();
+  });
+
+  it('should throw an error on conditional requirement not satisfied with negated required string values', () => {
+    const options = {
+      requires: {
         type: 'flag',
         names: ['-f'],
         requiredIf: req.not({
           string: 'abc',
-          number: 123,
-          strings: ['a', 'b'],
-          numbers: [1, 2],
+          strings: ['a'],
         }),
       },
       string: {
         type: 'string',
         names: ['-s'],
       },
-      number: {
-        type: 'number',
-        names: ['-n'],
-      },
       strings: {
         type: 'strings',
         names: ['-ss'],
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options);
+    expect(() => parser.parse([])).toThrow(`Option -f is required if no -s.`);
+    expect(() => parser.parse(['-s', 'x'])).toThrow(`Option -f is required if -s != 'abc'.`);
+    expect(() => parser.parse(['-s', 'abc'])).toThrow(`Option -f is required if no -ss.`);
+    expect(() => parser.parse(['-s', 'abc', '-ss'])).toThrow(`Option -f is required if -ss != ['a'].`);
+    expect(() => parser.parse(['-s', 'abc', '-ss', 'a'])).not.toThrow();
+  });
+
+  it('should throw an error on conditional requirement not satisfied with negated required number values', () => {
+    const options = {
+      requires: {
+        type: 'flag',
+        names: ['-f'],
+        requiredIf: req.not({
+          number: 123,
+          numbers: [1],
+        }),
+      },
+      number: {
+        type: 'number',
+        names: ['-n'],
       },
       numbers: {
         type: 'numbers',
@@ -671,28 +837,11 @@ describe('ArgumentParser', () => {
       },
     } as const satisfies Options;
     const parser = new ArgumentParser(options);
-    expect(() => parser.parse([])).toThrow(`Option -f is required if no -s.`);
-    expect(() => parser.parse(['-s', 'a'])).toThrow(`Option -f is required if -s != 'abc'.`);
-    expect(() => parser.parse(['-s', 'abc'])).toThrow(`Option -f is required if no -n.`);
-    expect(() => parser.parse(['-s', 'abc', '-n', '1'])).toThrow(
-      `Option -f is required if -n != 123.`,
-    );
-    expect(() => parser.parse(['-n', '123'])).toThrow(`Option -f is required if no -s.`);
-    expect(() => parser.parse(['-s', 'abc', '-n', '123'])).toThrow(
-      `Option -f is required if no -ss.`,
-    );
-    expect(() => parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a'])).toThrow(
-      `Option -f is required if -ss != ['a', 'b'].`,
-    );
-    expect(() => parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b'])).toThrow(
-      `Option -f is required if no -ns.`,
-    );
-    expect(() => parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1'])).toThrow(
-      `Option -f is required if -ns != [1, 2].`,
-    );
-    expect(() =>
-      parser.parse(['-s', 'abc', '-n', '123', '-ss', 'a', 'b', '-ns', '1', '2']),
-    ).not.toThrow();
+    expect(() => parser.parse([])).toThrow(`Option -f is required if no -n.`);
+    expect(() => parser.parse(['-n', '1'])).toThrow(`Option -f is required if -n != 123.`);
+    expect(() => parser.parse(['-n', '123'])).toThrow(`Option -f is required if no -ns.`);
+    expect(() => parser.parse(['-n', '123', '-ns'])).toThrow(`Option -f is required if -ns != [1].`);
+    expect(() => parser.parse(['-n', '123', '-ns', '1'])).not.toThrow();
   });
 
   it('should throw an error on conditional requirement not satisfied with a callback', () => {

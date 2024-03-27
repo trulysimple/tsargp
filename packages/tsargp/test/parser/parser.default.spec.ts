@@ -341,7 +341,7 @@ describe('ArgumentParser', () => {
           type: 'numbers',
           names: ['-ns'],
           default: [1.1, 2.2],
-          round: 'trunc',
+          conv: 'trunc',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -354,7 +354,7 @@ describe('ArgumentParser', () => {
           type: 'numbers',
           names: ['-ns'],
           default: () => [1.1, 2.2],
-          round: 'trunc',
+          conv: 'trunc',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -367,7 +367,7 @@ describe('ArgumentParser', () => {
           type: 'numbers',
           names: ['-ns'],
           default: async () => [1.1, 2.2],
-          round: 'trunc',
+          conv: 'trunc',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);

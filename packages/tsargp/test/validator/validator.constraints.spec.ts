@@ -102,6 +102,32 @@ describe('OptionValidator', () => {
       );
     });
 
+    it('should throw an error on number option with invalid range', () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          range: [0, 0],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option number has invalid numeric range [0, 0].`);
+    });
+
+    it('should throw an error on number option with invalid range with NaN', () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          range: [0, NaN],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option number has invalid numeric range [0, NaN].`,
+      );
+    });
+
     it('should throw an error on number example value not in range', () => {
       const options = {
         number: {

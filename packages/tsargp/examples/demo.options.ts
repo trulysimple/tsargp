@@ -217,7 +217,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     group: 'Number options',
     range: [0, Infinity],
     default: [1, 2],
-    round: 'round',
+    conv: 'round',
   },
   /**
    * A strings option that has an enumeration constraint.

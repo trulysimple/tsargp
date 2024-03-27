@@ -57,6 +57,19 @@ export type Concrete<T> = { [K in keyof T]-?: Concrete<T[K]> };
 export type Writable<T> = { -readonly [P in keyof T]: Writable<T[P]> };
 
 /**
+ * A helper type to get the keys of a type depending on a value constraint.
+ * @template T The source type
+ * @template V The value type
+ */
+export type KeyHaving<T, V> = keyof { [K in keyof T as T[K] extends V ? K : never]: never };
+
+/**
+ * A helper type to get the type of the array element from a type.
+ * @template T The source type
+ */
+export type Flatten<T> = T extends Array<infer E> ? E : T;
+
+/**
  * For some reason the global definition of `URL` has issues with static methods.
  */
 export interface URL extends _URL {}
@@ -94,6 +107,13 @@ export type NamingMatch<T extends NamingRules> = Resolve<{
     -readonly [key2 in keyof T[key1]]: string;
   };
 }>;
+
+/**
+ * A (closed) numeric range.
+ * 
+ * In a valid range, the minimum should be strictly less than the maximum.
+ */
+export type Range = [min: number, max: number];
 
 //--------------------------------------------------------------------------------------------------
 // Functions

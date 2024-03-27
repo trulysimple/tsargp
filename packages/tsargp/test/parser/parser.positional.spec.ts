@@ -38,8 +38,8 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(`Option -- does not accept inline values.`);
-      expect(() => parser.parse(['--=a'])).toThrow(`Option -- does not accept inline values.`);
+      expect(() => parser.parse(['--='])).toThrow(`Positional marker -- does not accept inline values.`);
+      expect(() => parser.parse(['--=a'])).toThrow(`Positional marker -- does not accept inline values.`);
     });
 
     it('should handle a boolean option with positional arguments', () => {

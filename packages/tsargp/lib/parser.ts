@@ -2,24 +2,16 @@
 // Imports
 //--------------------------------------------------------------------------------------------------
 import type {
-  ParamOption,
   Options,
   OptionValues,
+  InternalOptionValues,
   Requires,
   RequiresVal,
-  ValuedOption,
-  SpecialOption,
-  FunctionOption,
-  NiladicOption,
   CompleteCallback,
-  ArrayOption,
-  SingleOption,
   ResolveCallback,
-  CommandOption,
-  ParamValue,
   Option,
 } from './options';
-import type { Positional, ConcreteError, ErrorConfig, FormatFunction } from './validator';
+import type { OptionInfo, ConcreteConfig, ValidatorConfig } from './validator';
 
 import { ErrorItem } from './enums';
 import { HelpFormatter } from './formatter';
@@ -31,6 +23,9 @@ import {
   isVariadic,
   isNiladic,
   isValued,
+  isString,
+  isBoolean,
+  isUnknown,
 } from './options';
 import {
   Message,
@@ -39,8 +34,10 @@ import {
   VersionMessage,
   CompletionMessage,
   TerminalString,
+  FormatConfig,
 } from './styles';
-import { OptionValidator, defaultConfig, formatFunctions } from './validator';
+import { OptionValidator, defaultConfig } from './validator';
+import { format } from './styles';
 import { assert, checkRequiredArray, getArgs, isTrue } from './utils';
 
 //--------------------------------------------------------------------------------------------------
@@ -104,10 +101,10 @@ export class ArgumentParser<T extends Options = Options> {
   /**
    * Creates an argument parser based on a set of option definitions.
    * @param options The option definitions
-   * @param config The error message configuration
+   * @param config The validator configuration
    */
-  constructor(options: T, config: ErrorConfig = {}) {
-    const concreteConfig: ConcreteError = {
+  constructor(options: T, config: ValidatorConfig = {}) {
+    const concreteConfig: ConcreteConfig = {
       styles: Object.assign({}, defaultConfig.styles, config.styles),
       phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
     };
@@ -222,7 +219,7 @@ class ParserLoop {
    */
   constructor(
     private readonly validator: OptionValidator,
-    private readonly values: OptionValues,
+    private readonly values: InternalOptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
     private readonly progName?: string,
@@ -250,7 +247,7 @@ class ParserLoop {
    */
   loop(): this {
     /** @ignore */
-    function suggestName(option: ParamOption): boolean {
+    function suggestName(option: Option): boolean {
       return (
         argKind === ArgKind.positional ||
         (argKind === ArgKind.param && isArray(option) && isVariadic(option))
@@ -260,7 +257,7 @@ class ParserLoop {
     let argKind: ArgKind | undefined;
     let singleParam = false;
     let value: string | undefined;
-    let current: Positional | undefined;
+    let current: OptionInfo | undefined;
 
     for (let i = 0; i < this.args.length; ++i) {
       const [arg, comp] = this.args[i].split('\0', 2);
@@ -290,7 +287,7 @@ class ParserLoop {
           // assert(value !== undefined);
           throw new CompletionMessage();
         } else if (!this.completing && value !== undefined) {
-          throw this.validator.error(ErrorItem.disallowedInlineValue, { o: name });
+          throw this.validator.error(ErrorItem.disallowedInlineValue, { o: name }, { alt: 0 });
         } else if (this.handleNiladic(key, option, name, i)) {
           return this;
         }
@@ -342,7 +339,7 @@ class ParserLoop {
    * @param index The current argument index
    * @returns True if the parsing loop should be broken
    */
-  private handleNiladic(key: string, option: NiladicOption, name: string, index: number): boolean {
+  private handleNiladic(key: string, option: Option, name: string, index: number): boolean {
     switch (option.type) {
       case 'flag':
         this.values[key] = !option.negationNames?.includes(name);
@@ -363,7 +360,7 @@ class ParserLoop {
    * @param index The current argument index
    * @returns True if the parsing loop should be broken
    */
-  private handleFunction(key: string, option: FunctionOption, index: number): boolean {
+  private handleFunction(key: string, option: Option, index: number): boolean {
     const result = !!option.break && !this.completing;
     if (result) {
       this.checkRequired();
@@ -407,11 +404,11 @@ class ParserLoop {
    * @param index The current argument index
    * @returns True to break parsing loop (always)
    */
-  private handleCommand(key: string, option: CommandOption, name: string, index: number): true {
+  private handleCommand(key: string, option: Option, name: string, index: number): true {
     if (!this.completing) {
       this.checkRequired();
     }
-    const values: OptionValues = {};
+    const values: InternalOptionValues = {};
     const options = typeof option.options === 'function' ? option.options() : option.options;
     const validator = new OptionValidator(options, this.validator.config);
     const loop = new ParserLoop(
@@ -444,7 +441,7 @@ class ParserLoop {
    * @param index The current argument index
    * @returns True if the parsing loop should be broken
    */
-  private handleSpecial(option: SpecialOption, index: number): boolean {
+  private handleSpecial(option: Option, index: number): boolean {
     if (this.completing) {
       return false; // skip special options during completion
     }
@@ -509,13 +506,13 @@ class ParserLoop {
           continue;
         }
         const name = option.preferredName ?? '';
-        if ('required' in option && option.required) {
+        if (option.required) {
           throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
         }
-        if ('requiredIf' in option && option.requiredIf) {
+        if (option.requiredIf) {
           const error = new TerminalString();
           if (!this.checkRequires(option.requiredIf, error, true, true)) {
-            throw this.validator.error(ErrorItem.unsatisfiedCondRequirement, { o: name, t: error });
+            throw this.validator.error(ErrorItem.unsatisfiedCondRequirement, { o: name, p: error });
           }
         }
         if ('default' in option) {
@@ -525,11 +522,11 @@ class ParserLoop {
     }
     for (const key of this.specifiedKeys) {
       const option = this.validator.options[key];
-      if ('requires' in option && option.requires) {
+      if (option.requires) {
         const error = new TerminalString();
         if (!this.checkRequires(option.requires, error, false, false)) {
           const name = option.preferredName ?? '';
-          throw this.validator.error(ErrorItem.unsatisfiedRequirement, { o: name, t: error });
+          throw this.validator.error(ErrorItem.unsatisfiedRequirement, { o: name, p: error });
         }
       }
     }
@@ -570,7 +567,7 @@ class ParserLoop {
         error.addWord('not');
       }
       const styles = this.validator.config.styles;
-      formatFunctions.p(requires, styles, styles.text, error);
+      format.v(requires, styles, error);
       return false;
     }
     return true;
@@ -594,7 +591,7 @@ class ParserLoop {
     const option = this.validator.options[key];
     const specified = this.specifiedKeys.has(key);
     const required = value !== null;
-    if (isNiladic(option) || !specified || !required || value === undefined) {
+    if (isUnknown(option) || !specified || !required || value === undefined) {
       if ((specified == required) != negate) {
         return true;
       }
@@ -603,7 +600,7 @@ class ParserLoop {
       }
       const name = option.preferredName ?? '';
       const styles = this.validator.config.styles;
-      formatFunctions.o(name, styles, styles.text, error);
+      format.o(name, styles, error);
       return false;
     }
     return checkRequiredValue(
@@ -642,7 +639,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
     }
     const key = validator.letters.get(letter);
     if (!key) {
-      throw validator.error(ErrorItem.unknownOption, { o: letter });
+      throw validator.error(ErrorItem.unknownOption, { o1: letter }, { alt: 0 });
     }
     const option = validator.options[key];
     if (
@@ -670,11 +667,11 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
  */
 function checkEnvVar(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   option: Option,
   key: string,
 ): boolean {
-  if ('envVar' in option && option.envVar) {
+  if (option.envVar) {
     const value = process?.env[option.envVar];
     if (value) {
       if (option.type === 'flag') {
@@ -701,7 +698,7 @@ function checkEnvVar(
  */
 function createLoop(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
   config: ParseConfig = { compIndex: Number(process?.env['COMP_POINT']) },
 ): ParserLoop {
@@ -730,8 +727,8 @@ function parseOption(
   validator: OptionValidator,
   arg: string,
   comp: boolean,
-  current?: Positional,
-): [ArgKind, Positional, string | undefined] {
+  current?: OptionInfo,
+): [ArgKind, OptionInfo, string | undefined] {
   const [name, value] = arg.split(/=(.*)/, 2);
   const key = validator.names.get(name);
   if (key) {
@@ -743,7 +740,7 @@ function parseOption(
         throw new CompletionMessage();
       }
       if (value !== undefined) {
-        throw validator.error(ErrorItem.disallowedInlineValue, { o: name });
+        throw validator.error(ErrorItem.disallowedInlineValue, { o: name }, { alt: 1 });
       }
       return [ArgKind.marker, validator.positional, undefined];
     }
@@ -795,12 +792,12 @@ async function resolveVersion(
  * @param option The option definition
  * @param param The option parameter
  */
-function handleCompletion(option: ParamOption, param?: string) {
+function handleCompletion(option: Option, param?: string) {
   let words =
     option.type === 'boolean'
       ? ['true', 'false']
-      : 'enums' in option && option.enums
-        ? option.enums.map((val) => val.toString())
+      : option.enums
+        ? option.enums.map((val) => `${val}`)
         : [];
   if (words.length && param) {
     words = words.filter((word) => word.startsWith(param));
@@ -818,23 +815,14 @@ function handleCompletion(option: ParamOption, param?: string) {
  */
 function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
   const similar = validator.findSimilarNames(name, 0.6);
+  const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o1: name }, 0];
+  const config: FormatConfig = { alt, brackets: ['[', ']'], sep: ',' };
   if (err) {
-    const [kind, args] = similar.length
-      ? [
-          ErrorItem.parseErrorWithSimilar,
-          {
-            o1: name,
-            o2: similar,
-          },
-        ]
-      : [ErrorItem.parseError, { o: name }];
-    err.msg.push(validator.format(kind, args));
-    throw err;
+    err.msg.push(validator.format(ErrorItem.parseError, args, config));
+  } else {
+    err = validator.error(ErrorItem.unknownOption, args, config);
   }
-  if (similar.length) {
-    throw validator.error(ErrorItem.unknownOptionWithSimilar, { o1: name, o2: similar });
-  }
-  throw validator.error(ErrorItem.unknownOption, { o: name });
+  throw err;
 }
 
 /**
@@ -903,52 +891,48 @@ function checkRequireItems<T>(
  */
 function parseArray<T extends string | number>(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   key: string,
-  option: ArrayOption,
+  option: Option,
   name: string,
   value: string,
   convertFn: (value: string) => T,
 ) {
   /** @ignore */
+  function norm<T>(val: T) {
+    return validator.normalize(option, name, val);
+  }
+  /** @ignore */
   function append(vals: Array<T>) {
     return function (prev: Array<T>) {
-      prev.push(...vals.map((val) => validator.normalize(option, name, val)));
-      return validator.normalize(option, name, prev as ParamValue) as Array<T>;
+      prev.push(...vals.map(norm));
+      return validator.normalize(option, name, prev);
     };
   }
   let result: Array<T> | Promise<Array<T>>;
   let previous = values[key] as typeof result;
-  if (option.parseDelimited) {
-    const res = option.parseDelimited(values, name, value);
-    result =
-      res instanceof Promise
-        ? res.then(async (vals) => append(vals as Array<T>)(await previous))
-        : (res as Array<T>);
-  } else {
-    const vals = option.separator ? value.split(option.separator) : [value];
-    if (option.parse) {
-      let prevSync: Array<T> = [];
-      for (const val of vals) {
-        const res = option.parse(values, name, val);
-        if (res instanceof Promise) {
-          const copy = prevSync; // save the reference for the closure
-          const prev = previous; // save the reference for the closure
-          previous = res.then(async (val) => append([...copy, val as T])(await prev));
-          prevSync = []; // reset for incoming values
-        } else {
-          prevSync.push(res as T);
-        }
+  const vals = option.separator ? value.split(option.separator) : [value];
+  if (option.parse) {
+    let prevSync: Array<T> = [];
+    for (const val of vals) {
+      const res = option.parse(values, name, val);
+      if (res instanceof Promise) {
+        const copy = prevSync; // save the reference for the closure
+        const prev = previous; // save the reference for the closure
+        previous = res.then(async (val) => append([...copy, val as T])(await prev));
+        prevSync = []; // reset for incoming values
+      } else {
+        prevSync.push(res as T);
       }
-      result =
-        previous instanceof Promise
-          ? prevSync.length
-            ? previous.then(append(prevSync))
-            : previous
-          : prevSync;
-    } else {
-      result = vals.map(convertFn);
     }
+    result =
+      previous instanceof Promise
+        ? prevSync.length
+          ? previous.then(append(prevSync))
+          : previous
+        : prevSync;
+  } else {
+    result = vals.map(convertFn);
   }
   values[key] =
     result instanceof Promise
@@ -971,16 +955,16 @@ function parseArray<T extends string | number>(
  */
 function parseSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   key: string,
-  option: SingleOption,
+  option: Option,
   name: string,
   value: string,
   convertFn: (value: string) => T,
 ) {
-  const result =
-    'parse' in option && option.parse ? option.parse(values, name, value) : convertFn(value);
-  setSingle(validator, values, key, option, name, result);
+  const result = option.parse ? option.parse(values, name, value) : convertFn(value);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setSingle(validator, values, key, option, name, result as any);
 }
 
 /**
@@ -995,9 +979,9 @@ function parseSingle<T extends boolean | string | number>(
  */
 function setSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   key: string,
-  option: SingleOption,
+  option: Option,
   name: string,
   value: T | Promise<T>,
 ) {
@@ -1019,21 +1003,18 @@ function setSingle<T extends boolean | string | number>(
  */
 function setArray<T extends string | number>(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   key: string,
-  option: ArrayOption,
+  option: Option,
   name: string,
   value: ReadonlyArray<T> | Promise<ReadonlyArray<T>>,
 ) {
-  if (value instanceof Promise) {
-    values[key] = value.then((vals) => {
-      const normalized = vals.map((val) => validator.normalize(option, name, val));
-      return validator.normalize(option, name, normalized as ParamValue) as Array<T>;
-    });
-  } else {
-    const normalized = value.map((val) => validator.normalize(option, name, val));
-    values[key] = validator.normalize(option, name, normalized as ParamValue) as Array<T>;
+  /** @ignore */
+  function norm<T>(val: T) {
+    return validator.normalize(option, name, val);
   }
+  values[key] =
+    value instanceof Promise ? value.then((vals) => norm(vals.map(norm))) : norm(value.map(norm));
 }
 
 /**
@@ -1047,9 +1028,9 @@ function setArray<T extends string | number>(
  */
 function parseValue(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   key: string,
-  option: ParamOption,
+  option: Option,
   name: string,
   value: string,
 ) {
@@ -1070,7 +1051,7 @@ function parseValue(
  * @param key The option key
  * @param option The option definition
  */
-function resetValue(values: OptionValues, key: string, option: ArrayOption) {
+function resetValue(values: InternalOptionValues, key: string, option: Option) {
   if (!option.append || values[key] === undefined) {
     values[key] = [];
   }
@@ -1087,19 +1068,19 @@ function resetValue(values: OptionValues, key: string, option: ArrayOption) {
  * @param key The required option key
  * @param value The required value
  * @param error The terminal string error
- * @param formatFn The function to convert to string
+ * @param spec The formatting specification
  * @returns True if the requirement was satisfied
  */
 function checkSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: OptionValues,
-  option: SingleOption,
+  values: InternalOptionValues,
+  option: Option,
   negate: boolean,
   invert: boolean,
   key: string,
   value: T,
   error: TerminalString,
-  formatFn: FormatFunction,
+  spec: string,
 ): boolean {
   const actual = values[key] as T | Promise<T>;
   if (actual instanceof Promise) {
@@ -1111,9 +1092,9 @@ function checkSingle<T extends boolean | string | number>(
     return true;
   }
   const styles = validator.config.styles;
-  formatFunctions.o(name, styles, styles.text, error);
+  format.o(name, styles, error);
   error.addWord(negate != invert ? '!=' : '=');
-  formatFn(expected, styles, styles.text, error);
+  error.formatArgs(styles, `%${spec}`, { [spec]: expected });
   return false;
 }
 
@@ -1128,19 +1109,19 @@ function checkSingle<T extends boolean | string | number>(
  * @param key The required option key
  * @param value The required value
  * @param error The terminal string error
- * @param formatFn The function to convert to string
+ * @param spec The formatting specification
  * @returns True if the requirement was satisfied
  */
 function checkArray<T extends string | number>(
   validator: OptionValidator,
-  values: OptionValues,
-  option: ArrayOption,
+  values: InternalOptionValues,
+  option: Option,
   negate: boolean,
   invert: boolean,
   key: string,
   value: ReadonlyArray<T>,
   error: TerminalString,
-  formatFn: FormatFunction,
+  spec: string,
 ): boolean {
   const actual = values[key] as Array<T> | Promise<Array<T>>;
   if (actual instanceof Promise) {
@@ -1152,15 +1133,9 @@ function checkArray<T extends string | number>(
     return true;
   }
   const styles = validator.config.styles;
-  formatFunctions.o(name, styles, styles.text, error);
-  error.addWord(negate != invert ? '!=' : '=').addOpening('[');
-  expected.forEach((val, i) => {
-    formatFn(val, styles, styles.text, error);
-    if (i < expected.length - 1) {
-      error.addClosing(',');
-    }
-  });
-  error.addClosing(']');
+  format.o(name, styles, error);
+  error.addWord(negate != invert ? '!=' : '=');
+  error.formatArgs(styles, `%${spec}`, { [spec]: expected });
   return false;
 }
 
@@ -1178,8 +1153,8 @@ function checkArray<T extends string | number>(
  */
 function checkRequiredValue(
   validator: OptionValidator,
-  values: OptionValues,
-  option: ParamOption,
+  values: InternalOptionValues,
+  option: Option,
   negate: boolean,
   invert: boolean,
   key: string,
@@ -1187,14 +1162,9 @@ function checkRequiredValue(
   error: TerminalString,
 ): boolean {
   const checkFn = isArray(option) ? checkArray : checkSingle;
-  const formatFn =
-    option.type === 'boolean'
-      ? formatFunctions.b
-      : option.type === 'string' || option.type === 'strings'
-        ? formatFunctions.s
-        : formatFunctions.n;
+  const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : 'n';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (checkFn as any)(validator, values, option, negate, invert, key, value, error, formatFn);
+  return (checkFn as any)(validator, values, option, negate, invert, key, value, error, spec);
 }
 
 /**
@@ -1206,9 +1176,9 @@ function checkRequiredValue(
  */
 function setDefaultValue(
   validator: OptionValidator,
-  values: OptionValues,
+  values: InternalOptionValues,
   key: string,
-  option: ValuedOption,
+  option: Option,
 ) {
   if (option.default === undefined) {
     values[key] = undefined;

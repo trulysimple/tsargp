@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8 } from '../../lib';
+import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8, FormatStyles } from '../../lib';
 import { TerminalString } from '../../lib';
 import '../utils.spec'; // initialize globals
 
@@ -13,10 +13,7 @@ describe('TerminalString', () => {
         .addSequence(seq(cs.rm, 1, 2, 3));
       expect(str).toHaveLength(0);
       expect(str.count).toEqual(4);
-      expect(str.strings[0]).toEqual('\x9bu');
-      expect(str.strings[1]).toEqual('\x9b1Z');
-      expect(str.strings[2]).toEqual('\x9b1;2r');
-      expect(str.strings[3]).toEqual('\x9b1;2;3l');
+      expect(str.strings).toEqual(['\x9bu', '\x9b1Z', '\x9b1;2r', '\x9b1;2;3l']);
     });
   });
 
@@ -25,8 +22,7 @@ describe('TerminalString', () => {
       const str = new TerminalString().addWord('type').addWord('script');
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
-      expect(str.strings[0]).toEqual('type');
-      expect(str.strings[1]).toEqual('script');
+      expect(str.strings).toEqual(['type', 'script']);
     });
   });
 
@@ -35,7 +31,7 @@ describe('TerminalString', () => {
       const str = new TerminalString().splitText('type script').pop();
       expect(str).toHaveLength(4);
       expect(str.count).toEqual(1);
-      expect(str.strings[0]).toEqual('type');
+      expect(str.strings).toEqual(['type']);
     });
 
     it('should remove all words', () => {
@@ -54,7 +50,7 @@ describe('TerminalString', () => {
       );
       expect(str).toHaveLength(4);
       expect(str.count).toEqual(1);
-      expect(str.strings[0]).toEqual('\x9b38;5;0;48;5;0;58;5;0m' + 'type' + '\x9b0m');
+      expect(str.strings).toEqual(['\x9b38;5;0;48;5;0;58;5;0m' + 'type' + '\x9b0m']);
     });
   });
 
@@ -63,15 +59,14 @@ describe('TerminalString', () => {
       const str = new TerminalString().addOpening('[').addOpening('"').addWord('type');
       expect(str).toHaveLength(6);
       expect(str.count).toEqual(1);
-      expect(str.strings[0]).toEqual('["type');
+      expect(str.strings).toEqual(['["type']);
     });
 
     it('should not merge previous words if the opening is empty', () => {
       const str = new TerminalString().addWord('type').addOpening('').addWord('script');
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
-      expect(str.strings[0]).toEqual('type');
-      expect(str.strings[1]).toEqual('script');
+      expect(str.strings).toEqual(['type', 'script']);
     });
   });
 
@@ -81,10 +76,15 @@ describe('TerminalString', () => {
       const str2 = new TerminalString().addOther(str1).splitText(': is fun');
       expect(str2).toHaveLength(16);
       expect(str2.count).toEqual(4);
-      expect(str2.strings[0]).toEqual('type');
-      expect(str2.strings[1]).toEqual('script:');
-      expect(str2.strings[2]).toEqual('is');
-      expect(str2.strings[3]).toEqual('fun');
+      expect(str2.strings).toEqual(['type', 'script:', 'is', 'fun']);
+    });
+
+    it('should merge the endpoint strings if merge is true in the first string', () => {
+      const str1 = new TerminalString().splitText('type script');
+      const str2 = new TerminalString().addOpening('[').addOther(str1).addClosing(']');
+      expect(str2).toHaveLength(12);
+      expect(str2.count).toEqual(2);
+      expect(str2.strings).toEqual(['[type', 'script]']);
     });
   });
 
@@ -93,7 +93,7 @@ describe('TerminalString', () => {
       const str = new TerminalString().addClosing(']');
       expect(str).toHaveLength(1);
       expect(str.count).toEqual(1);
-      expect(str.strings[0]).toEqual(']');
+      expect(str.strings).toEqual([']']);
     });
 
     it('should add closing words to the last word', () => {
@@ -104,16 +104,155 @@ describe('TerminalString', () => {
         .addClosing('.');
       expect(str).toHaveLength(6);
       expect(str.count).toEqual(2);
-      expect(str.strings[0]).toEqual('type');
-      expect(str.strings[1]).toEqual('\x9b39;49;59m].');
+      expect(str.strings).toEqual(['type', '\x9b39;49;59m].']);
     });
 
     it('should not merge next words if the closing is empty', () => {
       const str = new TerminalString().addWord('type').addClosing('').addWord('script');
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
-      expect(str.strings[0]).toEqual('type');
-      expect(str.strings[1]).toEqual('script');
+      expect(str.strings).toEqual(['type', 'script']);
+    });
+  });
+
+  describe('formatArgs', () => {
+    const styles: FormatStyles = {
+      boolean: '',
+      string: '',
+      number: '',
+      regex: '',
+      option: '',
+      value: '',
+      url: '',
+      text: '',
+    };
+
+    it('should preserve merges outside', () => {
+      const str = new TerminalString().addOpening('[').formatArgs(styles, '%t', { t: 'some text' });
+      expect(str.count).toEqual(2);
+      expect(str.strings).toEqual(['[some', 'text']);
+    });
+
+    it('should format single-valued arguments', () => {
+      const str = new TerminalString().formatArgs(styles, '%b %s %n %r %o %v %u %t %p', {
+        b: true,
+        s: 'abc',
+        n: 123,
+        r: /def/,
+        o: 'some name',
+        v: () => 1,
+        u: new URL('https://abc'),
+        t: 'some text',
+        p: new TerminalString().splitText('type script'),
+      });
+      expect(str.count).toEqual(11);
+      expect(str.strings).toEqual([
+        'true',
+        `'abc'`,
+        '123',
+        '/def/',
+        'some name',
+        '<() => 1>',
+        'https://abc/',
+        'some',
+        'text',
+        'type',
+        'script',
+      ]);
+    });
+
+    it('should format array-valued arguments with brackets', () => {
+      const str1 = new TerminalString().splitText('type script');
+      const str2 = new TerminalString().formatArgs(styles, '%b %s %n %r %o %v %u %t %p', {
+        b: [true, false],
+        s: ['abc', 'def'],
+        n: [123, 456],
+        r: [/def/g, /123/i],
+        o: ['some name', 'other name'],
+        v: [() => 1, {}],
+        u: [new URL('https://abc'), new URL('ftp://def')],
+        t: ['some text', 'other text'],
+        p: [str1, str1],
+      });
+      expect(str2.count).toEqual(22);
+      expect(str2.strings).toEqual([
+        '[true,',
+        'false]',
+        `['abc',`,
+        `'def']`,
+        '[123,',
+        '456]',
+        '[/def/g,',
+        '/123/i]',
+        '[some name,',
+        'other name]',
+        '[<() => 1>,',
+        '<[object Object]>]',
+        '[https://abc/,',
+        'ftp://def/]',
+        '[some',
+        'text,',
+        'other',
+        'text]',
+        '[type',
+        'script,',
+        'type',
+        'script]',
+      ]);
+    });
+
+    it('should format array-valued arguments with separator', () => {
+      const str1 = new TerminalString().splitText('type script');
+      const str2 = new TerminalString().formatArgs(
+        styles,
+        '%b %s %n %r %o %v %u %t %p',
+        {
+          b: [true, false],
+          s: ['abc', 'def'],
+          n: [123, 456],
+          r: [/def/g, /123/i],
+          o: ['some name', 'other name'],
+          v: [() => 1, {}],
+          u: [new URL('https://abc'), new URL('ftp://def')],
+          t: ['some text', 'other text'],
+          p: [str1, str1],
+        },
+        { sep: '-', merge: false },
+      );
+      expect(str2.count).toEqual(31);
+      expect(str2.strings).toEqual([
+        'true',
+        '-',
+        'false',
+        `'abc'`,
+        '-',
+        `'def'`,
+        '123',
+        '-',
+        '456',
+        '/def/g',
+        '-',
+        '/123/i',
+        'some name',
+        '-',
+        'other name',
+        '<() => 1>',
+        '-',
+        '<[object Object]>',
+        'https://abc/',
+        '-',
+        'ftp://def/',
+        'some',
+        'text',
+        '-',
+        'other',
+        'text',
+        'type',
+        'script',
+        '-',
+        'type',
+        'script',
+      ]);
     });
   });
 });

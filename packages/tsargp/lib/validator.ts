@@ -1,96 +1,49 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type {
-  Option,
-  Options,
-  Requires,
-  RequiresVal,
-  ParamOption,
-  StringOption,
-  StringsOption,
-  NumberOption,
-  NumbersOption,
-  ArrayOption,
-  ParamValue,
-  ValuedOption,
-} from './options';
-import type { Style } from './styles';
-import type { Concrete, NamingRules, URL } from './utils';
+import type { Option, Options, Requires, RequiresVal, InternalOptions } from './options';
+import type { FormatArgs, FormatConfig, FormatStyles, MessageStyles } from './styles';
+import type { Concrete, NamingRules } from './utils';
 
 import { tf, fg, ErrorItem } from './enums';
-import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isArray, isValued } from './options';
+import { RequiresAll, RequiresOne, RequiresNot, isNiladic, isValued, isString } from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
-import { assert, gestaltSimilarity, matchNamingRules } from './utils';
+import { gestaltSimilarity, matchNamingRules } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
- * The error formatting functions.
+ * The default message styles.
  * @internal
  */
-export const formatFunctions = {
-  /**
-   * The boolean formatting function.
-   */
-  b: formatBoolean,
-  /**
-   * The string formatting function.
-   */
-  s: formatString,
-  /**
-   * The number formatting function.
-   */
-  n: formatNumber,
-  /**
-   * The regex formatting function.
-   */
-  r: formatRegExp,
-  /**
-   * The option name formatting function.
-   */
-  o: formatOption,
-  /**
-   * The option parameter formatting function.
-   */
-  p: formatParam,
-  /**
-   * The URL formatting function.
-   */
-  u: formatURL,
-  /**
-   * The terminal string formatting function.
-   */
-  t: formatTerm,
-} as const satisfies Record<string, FormatFunction>;
+const defaultStyles: FormatStyles = {
+  boolean: style(fg.yellow),
+  string: style(fg.green),
+  number: style(fg.yellow),
+  regex: style(fg.red),
+  option: style(fg.brightMagenta),
+  value: style(fg.brightBlack),
+  url: style(fg.brightBlack),
+  text: style(tf.clear),
+};
 
 /**
- * The default error messages configuration.
+ * The default message configuration.
  * @internal
  */
-export const defaultConfig: ConcreteError = {
-  styles: {
-    boolean: style(fg.yellow),
-    string: style(fg.green),
-    number: style(fg.yellow),
-    regex: style(fg.red),
-    option: style(fg.brightMagenta),
-    param: style(fg.brightBlack),
-    url: style(fg.brightBlack),
-    text: style(tf.clear),
-  },
+export const defaultConfig: ConcreteConfig = {
+  styles: defaultStyles,
   phrases: {
-    [ErrorItem.parseError]: 'Did you mean to specify an option name instead of %o?',
-    [ErrorItem.parseErrorWithSimilar]:
-      'Did you mean to specify an option name instead of %o1? Similar names are %o2.',
-    [ErrorItem.unknownOption]: 'Unknown option %o.',
-    [ErrorItem.unknownOptionWithSimilar]: 'Unknown option %o1. Similar names are %o2.',
-    [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %t.',
+    [ErrorItem.parseError]:
+      'Did you mean to specify an option name instead of %o1?(| Similar names are %o2.)',
+    [ErrorItem.unknownOption]: 'Unknown option %o1.(| Similar names are %o2.)',
+    [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %p.',
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
     [ErrorItem.missingPackageJson]: 'Could not find a "package.json" file.',
-    [ErrorItem.disallowedInlineValue]: 'Option %o does not accept inline values.',
+    [ErrorItem.disallowedInlineValue]:
+      '(Option|Positional marker) %o does not accept inline values.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o contains empty positional marker.',
     [ErrorItem.unnamedOption]: 'Non-positional option %o has no name.',
     [ErrorItem.invalidOptionName]: 'Option %o has invalid name %s.',
@@ -104,7 +57,7 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.duplicateStringEnum]: 'Option %o has duplicate enum %s.',
     [ErrorItem.duplicateNumberEnum]: 'Option %o has duplicate enum %n.',
     [ErrorItem.incompatibleRequiredValue]:
-      'Option %o has incompatible value %p. Should be of type %s.',
+      'Option %o has incompatible value %v. Should be of type %s.',
     [ErrorItem.stringEnumsConstraintViolation]:
       'Invalid parameter to %o: %s1. Possible values are %s2.',
     [ErrorItem.regexConstraintViolation]:
@@ -116,12 +69,13 @@ export const defaultConfig: ConcreteError = {
     [ErrorItem.limitConstraintViolation]:
       'Option %o has too many values (%n1). Should have at most %n2.',
     [ErrorItem.deprecatedOption]: 'Option %o is deprecated and may be removed in future releases.',
-    [ErrorItem.unsatisfiedCondRequirement]: 'Option %o is required if %t.',
+    [ErrorItem.unsatisfiedCondRequirement]: 'Option %o is required if %p.',
     [ErrorItem.duplicateClusterLetter]: 'Option %o has duplicate cluster letter %s.',
     [ErrorItem.invalidClusterOption]: 'Option letter %o must be the last in a cluster.',
     [ErrorItem.invalidClusterLetter]: 'Option %o has invalid cluster letter %s.',
     [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names %s2.',
     [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions %s.',
+    [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range %n.',
   },
 };
 
@@ -151,10 +105,10 @@ const namingConventions: NamingRules = {
 // Types
 //--------------------------------------------------------------------------------------------------
 /**
- * Information regarding a positional option.
+ * Information regarding an option.
  * @internal
  */
-export type Positional = {
+export type OptionInfo = {
   key: string;
   name: string;
   option: Option;
@@ -162,79 +116,23 @@ export type Positional = {
 };
 
 /**
- * A set of formatting functions for error messages.
- * @internal
+ * The validator configuration.
  */
-export type FormatFunction = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  value: any,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) => void;
-
-/**
- * A set of styles for displaying text on the terminal.
- */
-export type ErrorStyles = {
+export type ValidatorConfig = {
   /**
-   * The style of boolean values.
+   * The message styles
    */
-  readonly boolean?: Style;
+  readonly styles?: MessageStyles;
   /**
-   * The style of string values.
-   */
-  readonly string?: Style;
-  /**
-   * The style of number values.
-   */
-  readonly number?: Style;
-  /**
-   * The style of regular expressions.
-   */
-  readonly regex?: Style;
-  /**
-   * The style of option names.
-   */
-  readonly option?: Style;
-  /**
-   * The style of option parameters.
-   */
-  readonly param?: Style;
-  /**
-   * The style of URLs.
-   */
-  readonly url?: Style;
-  /**
-   * The style of general text.
-   */
-  readonly text?: Style;
-};
-
-/**
- * The error message configuration.
- */
-export type ErrorConfig = {
-  /**
-   * The error message styles
-   */
-  readonly styles?: ErrorStyles;
-  /**
-   * The error message phrases
+   * The message phrases
    */
   readonly phrases?: Readonly<Partial<Record<ErrorItem, string>>>;
 };
 
 /**
- * A concrete version of the error message configuration.
+ * A concrete version of the message configuration.
  */
-export type ConcreteError = Concrete<ErrorConfig>;
-
-/**
- * A concrete version of the error message styles.
- * @internal
- */
-export type ConcreteStyles = ConcreteError['styles'];
+export type ConcreteConfig = Concrete<ValidatorConfig>;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -245,21 +143,23 @@ export type ConcreteStyles = ConcreteError['styles'];
 export class OptionValidator {
   readonly names = new Map<string, string>();
   readonly letters = new Map<string, string>();
-  readonly positional: Positional | undefined;
+  readonly positional: OptionInfo | undefined;
+  readonly options: InternalOptions;
 
   /**
    * Creates an option validator based on a set of option definitions.
    * @param options The option definitions
-   * @param config The error message configuration
+   * @param config The message configuration
    */
   constructor(
-    readonly options: Options,
-    readonly config: ConcreteError = defaultConfig,
+    options: Options,
+    readonly config: ConcreteConfig = defaultConfig,
   ) {
+    this.options = options as InternalOptions;
     for (const key in this.options) {
       const option = this.options[key];
       this.registerNames(key, option);
-      if ('positional' in option && option.positional) {
+      if (option.positional) {
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name: option.preferredName ?? '', option, marker };
       }
@@ -277,17 +177,16 @@ export class OptionValidator {
    */
   private registerNames(key: string, option: Option, validate = false, prefix = '') {
     const names = option.names?.slice() ?? [];
-    if (option.type === 'flag' && option.negationNames) {
+    if (option.negationNames) {
       names.push(...option.negationNames);
     }
-    if ('positional' in option) {
-      if (validate && option.positional === '') {
-        throw this.error(ErrorItem.emptyPositionalMarker, { o: prefix + key });
-      }
-      if (typeof option.positional === 'string') {
-        names.push(option.positional);
-      }
-    } else if (validate && !names.find((name) => name)) {
+    if (validate && option.positional === '') {
+      throw this.error(ErrorItem.emptyPositionalMarker, { o: prefix + key });
+    }
+    if (typeof option.positional === 'string') {
+      names.push(option.positional);
+    }
+    if (validate && !option.positional && !names.find((name) => name)) {
       throw this.error(ErrorItem.unnamedOption, { o: prefix + key });
     }
     for (const name of names) {
@@ -305,7 +204,7 @@ export class OptionValidator {
     if (!option.preferredName) {
       option.preferredName = names.find((name): name is string => !!name);
     }
-    if ('clusterLetters' in option && option.clusterLetters) {
+    if (option.clusterLetters) {
       for (const letter of option.clusterLetters) {
         if (validate && letter.includes(' ')) {
           throw this.error(ErrorItem.invalidClusterLetter, { o: prefix + key, s: letter });
@@ -335,7 +234,7 @@ export class OptionValidator {
       const option = this.options[key];
       this.registerNames(key, option, true, prefix);
       validateOption(this.options, this.config, prefix, key, option, visited, result);
-      if ('positional' in option && option.positional) {
+      if (option.positional) {
         if (positional) {
           throw this.error(ErrorItem.duplicatePositionalOption, {
             o1: prefix + key,
@@ -409,47 +308,46 @@ export class OptionValidator {
   }
 
   /**
-   * Normalizes the value of a non-niladic option and checks its validity against any constraint.
+   * Normalizes the value of a verifiable option and checks its validity against any constraint.
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
    * @returns The normalized value
    * @throws On value not satisfying the specified enums, regex or range constraints
    */
-  normalize<T extends ParamValue>(option: ParamOption, name: string, value: T): T {
-    if (typeof value === 'boolean') {
-      return value;
-    }
-    if (typeof value === 'string') {
-      assert(option.type === 'string' || option.type === 'strings');
-      return normalizeString(this.config, option, name, value) as T;
-    }
-    if (typeof value === 'number') {
-      assert(option.type === 'number' || option.type === 'numbers');
-      return normalizeNumber(this.config, option, name, value) as T;
-    }
-    assert(isArray(option));
-    return normalizeArray(this.config, option, name, value as Array<string | number>) as T;
+  normalize<T>(option: Option, name: string, value: T): T {
+    const normalizeFn =
+      typeof value === 'string'
+        ? normalizeString
+        : typeof value === 'number'
+          ? normalizeNumber
+          : Array.isArray(value)
+            ? normalizeArray
+            : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return normalizeFn ? (normalizeFn as any)(this.config, option, name, value) : value;
   }
 
   /**
    * Creates a formatted message.
    * @param kind The kind of error or warning
    * @param args The message arguments
+   * @param fmt The format config
    * @returns The formatted message
    */
-  format(kind: ErrorItem, args?: Record<string, unknown>): TerminalString {
-    return format(this.config, kind, args);
+  format(kind: ErrorItem, args?: FormatArgs, fmt?: FormatConfig): TerminalString {
+    return format(this.config, kind, args, fmt);
   }
 
   /**
    * Creates an error with a formatted message.
    * @param kind The kind of error message
-   * @param args The error arguments
+   * @param args The message arguments
+   * @param fmt The format config
    * @returns The formatted error
    */
-  error(kind: ErrorItem, args?: Record<string, unknown>): ErrorMessage {
-    return new ErrorMessage(this.format(kind, args));
+  error(kind: ErrorItem, args?: FormatArgs, fmt?: FormatConfig): ErrorMessage {
+    return new ErrorMessage(format(this.config, kind, args, fmt));
   }
 }
 
@@ -458,73 +356,41 @@ export class OptionValidator {
 //--------------------------------------------------------------------------------------------------
 /**
  * Creates a formatted message.
- * @param config The error message configuration
+ * @param config The message configuration
  * @param kind The kind of error or warning
  * @param args The message arguments
+ * @param fmt The format config
  * @returns The formatted message
  */
 function format(
-  config: ConcreteError,
+  config: ConcreteConfig,
   kind: ErrorItem,
-  args?: Record<string, unknown>,
+  args?: FormatArgs,
+  fmt?: FormatConfig,
 ): TerminalString {
-  return formatMessage(config.styles, config.phrases[kind], args);
+  const styles: FormatStyles = config.styles;
+  delete styles.current;
+  return new TerminalString()
+    .addSequence(styles.text)
+    .formatArgs(styles, config.phrases[kind], args, fmt)
+    .addBreak();
 }
 
 /**
  * Creates an error with a formatted message.
- * @param config The error message configuration
+ * @param config The message configuration
  * @param kind The kind of error message
- * @param args The error arguments
+ * @param args The message arguments
+ * @param fmt The format config
  * @returns The formatted error
  */
 function error(
-  config: ConcreteError,
+  config: ConcreteConfig,
   kind: ErrorItem,
-  args?: Record<string, unknown>,
+  args?: FormatArgs,
+  fmt?: FormatConfig,
 ): ErrorMessage {
-  return new ErrorMessage(format(config, kind, args));
-}
-
-/**
- * Creates a terminal string with a formatted message.
- * The message always ends with a single line break.
- * @param styles The error message styles
- * @param phrase The error phrase
- * @param args The error arguments
- * @returns The terminal string
- */
-function formatMessage(
-  styles: ConcreteStyles,
-  phrase: string,
-  args?: Record<string, unknown>,
-): TerminalString {
-  const result = new TerminalString().addSequence(styles.text);
-  if (args) {
-    result.splitText(phrase, (spec) => {
-      const arg = spec.slice(1);
-      const fmt = arg[0];
-      if (fmt in formatFunctions && arg in args) {
-        const value = args[arg];
-        const format = (formatFunctions as Record<string, FormatFunction>)[fmt];
-        if (Array.isArray(value)) {
-          result.addOpening('[');
-          value.forEach((val, i) => {
-            format(val, styles, styles.text, result);
-            if (i < value.length - 1) {
-              result.addClosing(',');
-            }
-          });
-          result.addClosing(']');
-        } else {
-          format(value, styles, styles.text, result);
-        }
-      }
-    });
-  } else {
-    result.splitText(phrase);
-  }
-  return result.addBreak();
+  return new ErrorMessage(format(config, kind, args, fmt));
 }
 
 /**
@@ -532,7 +398,7 @@ function formatMessage(
  * @param options The option definitions
  * @returns The names in each name slot
  */
-function getNamesInEachSlot(options: Options): Array<Array<string>> {
+function getNamesInEachSlot(options: InternalOptions): Array<Array<string>> {
   const result = new Array<Array<string>>();
   for (const key in options) {
     options[key].names?.forEach((name, i) => {
@@ -551,7 +417,7 @@ function getNamesInEachSlot(options: Options): Array<Array<string>> {
 /**
  * Validates an option's requirements.
  * @param options The option definitions
- * @param config The error message configuration
+ * @param config The message configuration
  * @param prefix The command prefix
  * @param key The option key
  * @param option The option definition
@@ -560,8 +426,8 @@ function getNamesInEachSlot(options: Options): Array<Array<string>> {
  * @throws On invalid enums definition, invalid default value or invalid example value
  */
 function validateOption(
-  options: Options,
-  config: ConcreteError,
+  options: InternalOptions,
+  config: ConcreteConfig,
   prefix: string,
   key: string,
   option: Option,
@@ -569,20 +435,20 @@ function validateOption(
   result: WarnMessage,
 ) {
   if (!isNiladic(option)) {
-    validateEnums(config, prefix + key, option);
+    validateEnumsAndRanges(config, prefix + key, option);
     if (typeof option.default !== 'function') {
       validateValue(config, prefix + key, option, option.default);
     }
     validateValue(config, prefix + key, option, option.example);
   }
   // no need to verify flag option default value
-  if ('requires' in option && option.requires) {
+  if (option.requires) {
     validateRequirements(options, config, prefix, key, option.requires);
   }
-  if ('requiredIf' in option && option.requiredIf) {
+  if (option.requiredIf) {
     validateRequirements(options, config, prefix, key, option.requiredIf);
   }
-  if (option.type === 'version' && option.version === '') {
+  if (option.version === '') {
     throw error(config, ErrorItem.emptyVersionDefinition, { o: prefix + key });
   }
   if (option.type === 'command') {
@@ -598,14 +464,14 @@ function validateOption(
 /**
  * Validates an option's requirements.
  * @param options The option definitions
- * @param config The error message configuration
+ * @param config The message configuration
  * @param prefix The command prefix
  * @param key The option key
  * @param requires The option requirements
  */
 function validateRequirements(
-  options: Options,
-  config: ConcreteError,
+  options: InternalOptions,
+  config: ConcreteConfig,
   prefix: string,
   key: string,
   requires: Requires,
@@ -628,7 +494,7 @@ function validateRequirements(
 /**
  * Validates an option requirement.
  * @param options The option definitions
- * @param config The error message configuration
+ * @param config The message configuration
  * @param prefix The command prefix
  * @param key The option key
  * @param requiredKey The required option key
@@ -637,8 +503,8 @@ function validateRequirements(
  * incompatible required values
  */
 function validateRequirement(
-  options: Options,
-  config: ConcreteError,
+  options: InternalOptions,
+  config: ConcreteConfig,
   prefix: string,
   key: string,
   requiredKey: string,
@@ -660,44 +526,50 @@ function validateRequirement(
 }
 
 /**
- * Checks the sanity of the option's enumerated values.
- * @param config The error message configuration
+ * Checks the sanity of the option's enumerations and numeric ranges.
+ * @param config The message configuration
  * @param key The option key (plus the prefix, if any)
  * @param option The option definition
  * @throws On zero or duplicate enumerated values or values not satisfying specified constraints
  */
-function validateEnums(config: ConcreteError, key: string, option: ParamOption) {
-  if ('enums' in option && option.enums) {
+function validateEnumsAndRanges(config: ConcreteConfig, key: string, option: Option) {
+  if (option.enums) {
     if (!option.enums.length) {
       throw error(config, ErrorItem.emptyEnumsDefinition, { o: key });
     }
-    const set = new Set<string | number>(option.enums);
+    const set = new Set(option.enums);
     if (set.size !== option.enums.length) {
       for (const value of option.enums) {
         if (!set.delete(value)) {
-          if (option.type === 'string' || option.type === 'strings') {
-            throw error(config, ErrorItem.duplicateStringEnum, { o: key, s: value });
-          }
-          throw error(config, ErrorItem.duplicateNumberEnum, { o: key, n: value });
+          throw isString(option)
+            ? error(config, ErrorItem.duplicateStringEnum, { o: key, s: value })
+            : error(config, ErrorItem.duplicateNumberEnum, { o: key, n: value });
         }
       }
+    }
+  }
+  if (option.range) {
+    const [min, max] = option.range;
+    if (!(min < max)) {
+      // handles NaN as well
+      throw error(config, ErrorItem.invalidNumericRange, { o: key, n: option.range });
     }
   }
 }
 
 /**
  * Checks the sanity of the option's value (default, example or required).
- * @param config The error message configuration
+ * @param config The message configuration
  * @param key The option key (plus the prefix, if any)
  * @param option The option definition
  * @param value The option value
  * @throws On value not satisfying specified constraints
  */
-function validateValue(config: ConcreteError, key: string, option: ValuedOption, value: unknown) {
+function validateValue(config: ConcreteConfig, key: string, option: Option, value: unknown) {
   /** @ignore */
   function assertType<T>(value: unknown, type: string): asserts value is T {
     if (typeof value !== type) {
-      throw error(config, ErrorItem.incompatibleRequiredValue, { o: key, p: value, s: type });
+      throw error(config, ErrorItem.incompatibleRequiredValue, { o: key, v: value, s: type });
     }
   }
   if (value === undefined) {
@@ -739,7 +611,7 @@ function validateValue(config: ConcreteError, key: string, option: ValuedOption,
 
 /**
  * Normalizes the value of a string option and checks its validity against any constraint.
- * @param config The error message configuration
+ * @param config The message configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
@@ -747,8 +619,8 @@ function validateValue(config: ConcreteError, key: string, option: ValuedOption,
  * @throws On value not satisfying the specified enumeration or regex constraint
  */
 function normalizeString(
-  config: ConcreteError,
-  option: StringOption | StringsOption,
+  config: ConcreteConfig,
+  option: Option,
   name: string,
   value: string,
 ): string {
@@ -758,14 +630,14 @@ function normalizeString(
   if (option.case) {
     value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
   }
-  if ('enums' in option && option.enums && !option.enums.includes(value)) {
+  if (option.enums && !option.enums.includes(value)) {
     throw error(config, ErrorItem.stringEnumsConstraintViolation, {
       o: name,
       s1: value,
       s2: option.enums,
     });
   }
-  if ('regex' in option && option.regex && !option.regex.test(value)) {
+  if (option.regex && !option.regex.test(value)) {
     throw error(config, ErrorItem.regexConstraintViolation, {
       o: name,
       s: value,
@@ -777,7 +649,7 @@ function normalizeString(
 
 /**
  * Normalizes the value of a number option and checks its validity against any constraint.
- * @param config The error message configuration
+ * @param config The message configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
@@ -785,15 +657,15 @@ function normalizeString(
  * @throws On value not satisfying the specified enumeration or range constraint
  */
 function normalizeNumber(
-  config: ConcreteError,
-  option: NumberOption | NumbersOption,
+  config: ConcreteConfig,
+  option: Option,
   name: string,
   value: number,
 ): number {
-  if (option.round) {
-    value = Math[option.round](value);
+  if (option.conv) {
+    value = Math[option.conv](value);
   }
-  if ('enums' in option && option.enums && !option.enums.includes(value)) {
+  if (option.enums && !option.enums.includes(value)) {
     throw error(config, ErrorItem.numberEnumsConstraintViolation, {
       o: name,
       n1: value,
@@ -801,7 +673,6 @@ function normalizeNumber(
     });
   }
   if (
-    'range' in option &&
     option.range &&
     !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
   ) {
@@ -816,7 +687,7 @@ function normalizeNumber(
 
 /**
  * Normalizes the value of an array option and checks its validity against any constraint.
- * @param config The error message configuration
+ * @param config The message configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
@@ -824,8 +695,8 @@ function normalizeNumber(
  * @throws On value not satisfying the specified limit constraint
  */
 function normalizeArray<T extends string | number>(
-  config: ConcreteError,
-  option: ArrayOption,
+  config: ConcreteConfig,
+  option: Option,
   name: string,
   value: Array<T>,
 ): Array<T> {
@@ -842,97 +713,4 @@ function normalizeArray<T extends string | number>(
     });
   }
   return value;
-}
-
-/**
- * Formats a boolean value to be printed on the terminal.
- * @param value The boolean value
- * @param styles The error message styles
- * @param style The style to revert to
- * @param result The resulting string
- */
-function formatBoolean(
-  value: boolean,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
-  result.addAndRevert(styles.boolean, value.toString(), style);
-}
-
-/**
- * Formats a string value to be printed on the terminal.
- * @param value The string value
- * @param styles The error message styles
- * @param style The style to revert to
- * @param result The resulting string
- */
-function formatString(value: string, styles: ConcreteStyles, style: Style, result: TerminalString) {
-  result.addAndRevert(styles.string, `'${value}'`, style);
-}
-
-/**
- * Formats a number value to be printed on the terminal.
- * @param value The number value
- * @param styles The error message styles
- * @param style The style to revert to
- * @param result The resulting string
- */
-function formatNumber(value: number, styles: ConcreteStyles, style: Style, result: TerminalString) {
-  result.addAndRevert(styles.number, value.toString(), style);
-}
-
-/**
- * Formats a regex value to be printed on the terminal.
- * @param value The regex value
- * @param styles The error message styles
- * @param style The style to revert to
- * @param result The resulting string
- */
-function formatRegExp(value: RegExp, styles: ConcreteStyles, style: Style, result: TerminalString) {
-  result.addAndRevert(styles.regex, value.toString(), style);
-}
-
-/**
- * Formats a URL value to be printed on the terminal.
- * @param value The URL value
- * @param styles The error message styles
- * @param style The style to revert to
- * @param result The resulting string
- */
-function formatURL(value: URL, styles: ConcreteStyles, style: Style, result: TerminalString) {
-  result.addAndRevert(styles.url, value.href, style);
-}
-
-/**
- * Formats an option name to be printed on the terminal.
- * @param name The option name
- * @param styles The error message styles
- * @param style The style to revert to
- * @param result The resulting string
- */
-function formatOption(name: string, styles: ConcreteStyles, style: Style, result: TerminalString) {
-  result.addAndRevert(styles.option, name, style);
-}
-
-/**
- * Formats an option parameter to be printed on the terminal.
- * @param value The parameter value
- * @param styles The error message styles
- * @param style The style to revert to
- * @param result The resulting string
- */
-function formatParam(value: unknown, styles: ConcreteStyles, style: Style, result: TerminalString) {
-  result.addAndRevert(styles.param, `<${value}>`, style);
-}
-
-/**
- * Formats a previously formatted terminal string.
- * @param str The terminal string
- * @param _1 unused
- * @param _2 unused
- * @param result The resulting string
- */
-function formatTerm(str: TerminalString, _1: ConcreteStyles, _2: Style, result: TerminalString) {
-  result.addOther(str);
 }

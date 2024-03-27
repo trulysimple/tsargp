@@ -17,22 +17,14 @@ export {
  */
 export const enum ErrorItem {
   /**
-   * Raised by the parser when an option parameter fails to be parsed.
+   * Raised by the parser when an option parameter fails to be parsed, with possibe option name
+   * suggestions.
    */
   parseError,
   /**
-   * Raised by the parser when an option parameter fails to be parsed, and there are option name
-   * suggestions.
-   */
-  parseErrorWithSimilar,
-  /**
-   * Raised by the parser when an option name is not found.
+   * Raised by the parser when an option name is not found, with possible option name suggestions.
    */
   unknownOption,
-  /**
-   * Raised by the parser when an option name is not found, and there are option name suggestions.
-   */
-  unknownOptionWithSimilar,
   /**
    * Raised by the parser when an option requirement is not satisfied.
    */
@@ -161,6 +153,10 @@ export const enum ErrorItem {
    * conventions.
    */
   mixedNamingConvention,
+  /**
+   * Raised by the validator when an option has an invalid numeric range.
+   */
+  invalidNumericRange,
 }
 
 /**
@@ -200,9 +196,9 @@ export const enum HelpItem {
    */
   case,
   /**
-   * The kind of rounding applied to number parameters, if enabled.
+   * The kind of math conversion applied to number parameters, if enabled.
    */
-  round,
+  conv,
   /**
    * The enumerated values that the option accepts as parameters, if any.
    */

@@ -1,16 +1,23 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, Requires, ValuedOption, RequiresVal, ParamOption } from './options';
-import type { Style } from './styles';
+import type { Option, InternalOptions, Requires, RequiresVal } from './options';
+import type { Style, FormatStyles, FormatConfig } from './styles';
 import type { Concrete } from './utils';
-import type { ConcreteStyles, FormatFunction, OptionValidator } from './validator';
+import type { OptionValidator } from './validator';
 
 import { tf, HelpItem } from './enums';
-import { RequiresAll, RequiresNot, RequiresOne, isArray, isVariadic, isNiladic } from './options';
-import { HelpMessage, TerminalString, style } from './styles';
-import { formatFunctions } from './validator';
-import { assert, splitPhrase } from './utils';
+import {
+  RequiresAll,
+  RequiresNot,
+  RequiresOne,
+  isNiladic,
+  isString,
+  isBoolean,
+  isNumber,
+  isVariadic,
+} from './options';
+import { HelpMessage, TerminalString, style, format } from './styles';
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -55,9 +62,9 @@ export type WithAbsolute = {
 };
 
 /**
- * The help format configuration.
+ * The formatter configuration.
  */
-export type HelpConfig = {
+export type FormatterConfig = {
   /**
    * The settings for the names column.
    */
@@ -94,7 +101,7 @@ type ConcreteColumn = Concrete<WithColumn>;
 /**
  * A concrete version of the format configuration.
  */
-type ConcreteFormat = Concrete<HelpConfig>;
+type ConcreteFormat = Concrete<FormatterConfig>;
 
 /**
  * Precomputed texts used by the formatter.
@@ -237,7 +244,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.append,
     HelpItem.trim,
     HelpItem.case,
-    HelpItem.round,
+    HelpItem.conv,
     HelpItem.enums,
     HelpItem.regex,
     HelpItem.range,
@@ -253,27 +260,27 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.clusterLetters,
   ],
   phrases: {
-    [HelpItem.synopsis]: '%s',
-    [HelpItem.negation]: 'Can be negated with %s.',
-    [HelpItem.separator]: 'Values are delimited by %s.',
+    [HelpItem.synopsis]: '%t',
+    [HelpItem.negation]: 'Can be negated with %o.',
+    [HelpItem.separator]: 'Values are delimited by (%s|%r).',
     [HelpItem.variadic]: 'Accepts multiple parameters.',
-    [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %s).',
+    [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %o).',
     [HelpItem.append]: 'May be specified multiple times.',
     [HelpItem.trim]: 'Values will be trimmed.',
     [HelpItem.case]: 'Values will be converted to (lowercase|uppercase).',
-    [HelpItem.round]: 'Values will be rounded (towards zero|down|up|to the nearest integer).',
-    [HelpItem.enums]: 'Values must be one of %s.',
-    [HelpItem.regex]: 'Values must match the regex %s.',
-    [HelpItem.range]: 'Values must be in the range %s.',
+    [HelpItem.conv]: 'Values will be converted with Math.%t.',
+    [HelpItem.enums]: 'Values must be one of (%s|%n).',
+    [HelpItem.regex]: 'Values must match the regex %r.',
+    [HelpItem.range]: 'Values must be in the range %n.',
     [HelpItem.unique]: 'Duplicate values will be removed.',
-    [HelpItem.limit]: 'Value count is limited to %s.',
-    [HelpItem.requires]: 'Requires %s.',
+    [HelpItem.limit]: 'Value count is limited to %n.',
+    [HelpItem.requires]: 'Requires %p.',
     [HelpItem.required]: 'Always required.',
-    [HelpItem.default]: 'Defaults to %s.',
-    [HelpItem.deprecated]: 'Deprecated for %s.',
-    [HelpItem.link]: 'Refer to %s for details.',
-    [HelpItem.envVar]: 'Can be specified through the %s environment variable.',
-    [HelpItem.requiredIf]: 'Required if %s.',
+    [HelpItem.default]: 'Defaults to (%b|%s|%n|%v).',
+    [HelpItem.deprecated]: 'Deprecated for %t.',
+    [HelpItem.link]: 'Refer to %u for details.',
+    [HelpItem.envVar]: 'Can be specified through the %o environment variable.',
+    [HelpItem.requiredIf]: 'Required if %p.',
     [HelpItem.clusterLetters]: 'Can be clustered with %s.',
   },
 };
@@ -285,8 +292,8 @@ const defaultConfig: ConcreteFormat = {
  * Implements formatting of help messages for a set of option definitions.
  */
 export class HelpFormatter {
-  private readonly options: Options;
-  private readonly styles: ConcreteStyles;
+  private readonly options: InternalOptions;
+  private readonly styles: FormatStyles;
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number> | number;
@@ -304,7 +311,7 @@ export class HelpFormatter {
     formatAppend,
     formatTrim,
     formatCase,
-    formatRound,
+    formatConv,
     formatEnums,
     formatRegex,
     formatRange,
@@ -326,7 +333,7 @@ export class HelpFormatter {
    * @param config The format configuration
    * @param filters The option filters
    */
-  constructor(validator: OptionValidator, config?: HelpConfig, filters?: Array<RegExp>) {
+  constructor(validator: OptionValidator, config?: FormatterConfig, filters?: Array<RegExp>) {
     /** @ignore */
     function exclude(option: Option) {
       return (
@@ -380,8 +387,8 @@ export class HelpFormatter {
     if (this.config.names.hidden || !option.names) {
       return [];
     }
-    const style = option.styles?.names ?? this.styles.option;
-    return formatNameSlots(this.config, option.names, this.nameWidths, style, this.styles.text);
+    this.styles.current = option.styles?.names;
+    return formatNameSlots(this.config, this.styles, option.names, this.nameWidths);
   }
 
   /**
@@ -393,11 +400,14 @@ export class HelpFormatter {
     if (this.config.param.hidden || isNiladic(option)) {
       return new TerminalString();
     }
-    const result = new TerminalString(0, this.config.param.breaks);
-    const len = formatParam(option, this.styles, this.styles.text, result);
+    this.styles.current = option.styles?.param;
+    const result = new TerminalString(0, this.config.param.breaks).addSequence(
+      this.styles.current ?? this.styles.text,
+    );
+    const len = formatParam(option, this.styles, result);
     this.paramWidth = Math.max(this.paramWidth, len);
     result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
-    return result;
+    return result.addSequence(style(tf.clear));
   }
 
   /**
@@ -410,16 +420,16 @@ export class HelpFormatter {
     if (this.config.descr.hidden || !this.config.items.length) {
       return new TerminalString(0, 1);
     }
-    const descrStyle = option.styles?.descr ?? this.styles.text;
+    this.styles.current = option.styles?.descr;
     const result = new TerminalString(
       0,
       this.config.descr.breaks,
       this.config.descr.align === 'right',
-    ).addSequence(descrStyle);
+    ).addSequence(this.styles.current ?? this.styles.text);
     const count = result.count;
     for (const item of this.config.items) {
       const phrase = this.config.phrases[item];
-      this.format[item](option, phrase, this.styles, descrStyle, result);
+      this.format[item](option, phrase, this.styles, result);
     }
     if (result.count == count) {
       return new TerminalString(0, 1); // this string does not contain any word
@@ -432,21 +442,17 @@ export class HelpFormatter {
    * @param option The option definition
    * @param phrase The description item phrase
    * @param styles The set of styles
-   * @param style The default style
    * @param result The resulting string
    */
   private formatRequires(
     option: Option,
     phrase: string,
-    styles: ConcreteStyles,
-    style: Style,
+    styles: FormatStyles,
     result: TerminalString,
   ) {
-    if ('requires' in option && option.requires) {
+    if (option.requires) {
       const requires = option.requires;
-      result.splitText(phrase, () => {
-        formatRequirements(this.options, requires, styles, style, result);
-      });
+      result.splitText(phrase, () => formatRequirements(this.options, requires, styles, result));
     }
   }
 
@@ -455,21 +461,17 @@ export class HelpFormatter {
    * @param option The option definition
    * @param phrase The description item phrase
    * @param styles The set of styles
-   * @param style The default style
    * @param result The resulting string
    */
   private formatRequiredIf(
     option: Option,
     phrase: string,
-    styles: ConcreteStyles,
-    style: Style,
+    styles: FormatStyles,
     result: TerminalString,
   ) {
-    if ('requiredIf' in option && option.requiredIf) {
+    if (option.requiredIf) {
       const requiredIf = option.requiredIf;
-      result.splitText(phrase, () => {
-        formatRequirements(this.options, requiredIf, styles, style, result);
-      });
+      result.splitText(phrase, () => formatRequirements(this.options, requiredIf, styles, result));
     }
   }
 
@@ -530,7 +532,7 @@ export class HelpFormatter {
  * @param config The provided configuration
  * @returns The merged configuration
  */
-function mergeConfig(config: HelpConfig = {}): ConcreteFormat {
+function mergeConfig(config: FormatterConfig = {}): ConcreteFormat {
   return {
     names: { ...defaultConfig.names, ...config.names },
     param: { ...defaultConfig.param, ...config.param },
@@ -545,7 +547,7 @@ function mergeConfig(config: HelpConfig = {}): ConcreteFormat {
  * @param options The option definitions
  * @returns The name slot widths
  */
-function getNameWidths(options: Options): Array<number> {
+function getNameWidths(options: InternalOptions): Array<number> {
   const result = new Array<number>();
   for (const key in options) {
     const option = options[key];
@@ -563,7 +565,7 @@ function getNameWidths(options: Options): Array<number> {
  * @param options The option definitions
  * @returns The maximum width
  */
-function getMaxNamesWidth(options: Options): number {
+function getMaxNamesWidth(options: InternalOptions): number {
   let result = 0;
   for (const key in options) {
     const option = options[key];
@@ -614,18 +616,16 @@ function adjustEntries(
 /**
  * Formats a list of names to be printed on the terminal.
  * @param config The format configuration
+ * @param styles The set of styles
  * @param names The list of option names
  * @param nameWidths The name slot widths
- * @param namesStyle The style to apply
- * @param defStyle The default style
  * @returns The resulting strings
  */
 function formatNameSlots(
   config: ConcreteFormat,
+  styles: FormatStyles,
   names: ReadonlyArray<string | null>,
   nameWidths: Array<number> | number,
-  namesStyle: Style,
-  defStyle: Style,
 ): Array<TerminalString> {
   const slotted = typeof nameWidths !== 'number';
   const result = new Array<TerminalString>();
@@ -640,11 +640,11 @@ function formatNameSlots(
         len += 2;
       }
       if (!str || slotted) {
-        str = new TerminalString(indent, breaks);
+        str = new TerminalString(indent, breaks).addSequence(styles.current ?? styles.text);
         result.push(str);
         breaks = 0; // break only on the first name
       }
-      str.addAndRevert(namesStyle, name, defStyle);
+      format.o(name, styles, str);
       len += name.length;
     } else if (slotted) {
       str = undefined;
@@ -657,84 +657,6 @@ function formatNameSlots(
     str.indent += nameWidths - len;
   }
   return result;
-}
-
-/**
- * Formats a value from an option's property.
- * @param option The option definition
- * @param value The option value
- * @param result The resulting string
- * @param styles The set of styles
- * @param style The default style
- * @param inDesc True if in the description
- */
-function formatValue(
-  option: ValuedOption,
-  value: unknown,
-  result: TerminalString,
-  styles: ConcreteStyles,
-  style: Style,
-  inDesc: boolean,
-) {
-  switch (typeof value) {
-    case 'boolean':
-      formatFunctions.b(value, styles, style, result);
-      break;
-    case 'string':
-      formatFunctions.s(value, styles, style, result);
-      break;
-    case 'number':
-      formatFunctions.n(value, styles, style, result);
-      break;
-    default:
-      if (isArray(option) && Array.isArray(value)) {
-        const formatFn = option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
-        if (inDesc) {
-          formatArray(value, style, result, styles, formatFn, ['[', ']'], ',');
-        } else if ('separator' in option && option.separator) {
-          const sep = option.separator;
-          const text = value.join(typeof sep === 'string' ? sep : sep.source);
-          formatFunctions.s(text, styles, style, result);
-        } else {
-          formatArray(value, style, result, styles, formatFn);
-        }
-      } else if (value !== undefined) {
-        formatFunctions.p(value, styles, style, result);
-      }
-  }
-}
-
-/**
- * Formats a list of values to be printed on the terminal.
- * @param values The array values
- * @param style The style to be applied
- * @param result The resulting string
- * @param styles The set of styles
- * @param formatFn The function to convert a value to string
- * @param brackets An optional pair of brackets to surround the values
- * @param separator An optional separator to delimit the values
- */
-function formatArray(
-  values: ReadonlyArray<string> | ReadonlyArray<number>,
-  style: Style,
-  result: TerminalString,
-  styles: ConcreteStyles,
-  formatFn: FormatFunction,
-  brackets?: [string, string],
-  separator?: string,
-) {
-  if (brackets) {
-    result.addOpening(brackets[0]);
-  }
-  values.forEach((value, i) => {
-    formatFn(value, styles, style, result);
-    if (separator && i < values.length - 1) {
-      result.addClosing(separator);
-    }
-  });
-  if (brackets) {
-    result.addClosing(brackets[1]);
-  }
 }
 
 /**
@@ -761,9 +683,9 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
  * @param result The resulting message
  */
 function formatSection(
-  options: Options,
+  options: InternalOptions,
   groups: Map<string, Array<HelpEntry>>,
-  styles: ConcreteStyles,
+  styles: FormatStyles,
   section: HelpSection,
   progName: string,
   result: HelpMessage,
@@ -796,8 +718,8 @@ function formatSection(
  * @param result The resulting message
  */
 function formatUsageSection(
-  options: Options,
-  styles: ConcreteStyles,
+  options: InternalOptions,
+  styles: FormatStyles,
   breaks: number,
   section: HelpUsage,
   progName: string,
@@ -815,7 +737,7 @@ function formatUsageSection(
     breaks = 0;
   }
   const filterKeys = filter && new Set(filter);
-  result.push(formatUsage(options, styles, styles.text, indent2, breaks, filterKeys, exclude));
+  result.push(formatUsage(options, styles, indent2, breaks, filterKeys, exclude));
 }
 
 /**
@@ -887,7 +809,6 @@ function formatText(
  * Options are rendered in the same order as was declared in the option definitions.
  * @param options The option definitions
  * @param styles The set of styles
- * @param defStyle The default style
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
  * @param filterKeys An optional set of options keys to filter
@@ -895,20 +816,19 @@ function formatText(
  * @returns The terminal string
  */
 function formatUsage(
-  options: Options,
-  styles: ConcreteStyles,
-  defStyle: Style,
+  options: InternalOptions,
+  styles: FormatStyles,
   indent?: number,
   breaks?: number,
   filterKeys?: Set<string>,
   exclude = false,
 ): TerminalString {
-  const result = new TerminalString(indent, breaks).addSequence(defStyle);
+  const result = new TerminalString(indent, breaks).addSequence(styles.text);
   const count = result.count;
   for (const key in options) {
     const option = options[key];
     if (!option.hide && (filterKeys?.has(key) ?? !exclude) != exclude) {
-      formatUsageOption(option, styles, defStyle, result);
+      formatUsageOption(option, styles, result);
     }
   }
   if (result.count == count) {
@@ -921,22 +841,16 @@ function formatUsage(
  * Formats an option to be included in the the usage text.
  * @param option The option definition
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
-function formatUsageOption(
-  option: Option,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
-  const required = 'required' in option && option.required;
+function formatUsageOption(option: Option, styles: FormatStyles, result: TerminalString) {
+  const required = option.required;
   if (!required) {
     result.addOpening('[');
   }
-  formatUsageNames(option, styles, style, result);
+  formatUsageNames(option, styles, result);
   if (!isNiladic(option)) {
-    formatParam(option, styles, style, result);
+    formatParam(option, styles, result);
   }
   if (!required) {
     result.addClosing(']');
@@ -947,21 +861,15 @@ function formatUsageOption(
  * Formats an option's names to be included in the usage text.
  * @param option The option definition
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
-function formatUsageNames(
-  option: Option,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
+function formatUsageNames(option: Option, styles: FormatStyles, result: TerminalString) {
   const names = option.names?.filter((name): name is string => !!name);
   if (names?.length) {
-    if (option.type === 'flag' && option.negationNames) {
+    if (option.negationNames) {
       names.push(...option.negationNames.filter((name) => name));
     }
-    const positional = 'positional' in option && option.positional;
+    const positional = option.positional;
     if (typeof positional === 'string') {
       names.push(positional);
     }
@@ -969,16 +877,10 @@ function formatUsageNames(
       result.addOpening('[');
     }
     if (names.length > 1) {
-      result.addOpening('(');
-      names.forEach((name, i) => {
-        formatFunctions.o(name, styles, style, result);
-        if (i < names.length - 1) {
-          result.addClosing('|').setMerge();
-        }
-      });
-      result.addClosing(')');
+      const config: FormatConfig = { brackets: ['(', ')'], sep: '|', mergeAfter: true };
+      result.formatArgs(styles, '%o', { o: names }, config);
     } else {
-      formatFunctions.o(names[0], styles, style, result);
+      format.o(names[0], styles, result);
     }
     if (positional) {
       result.addClosing(']');
@@ -988,53 +890,63 @@ function formatUsageNames(
 
 /**
  * Formats an option's parameter to be included in the description or the usage text.
+ * Assumes that the option is not niladic.
  * @param option The option definition
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
- * @returns The string length, counting spaces in example values
+ * @returns The string length
  */
-function formatParam(
-  option: ParamOption,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-): number {
-  const variadic = isArray(option) && isVariadic(option);
-  if ('example' in option && option.example !== undefined) {
-    formatValue(option, option.example, result, styles, style, false);
-    return result.length + (variadic ? option.example.length - 1 : 0);
+function formatParam(option: Option, styles: FormatStyles, result: TerminalString): number {
+  if (option.example !== undefined) {
+    return formatExample(option, styles, result);
   }
-  const ellipsis = variadic ? '...' : '';
-  const paramStyle = option.styles?.param ?? styles.param;
-  const param =
-    'paramName' in option && option.paramName
-      ? option.paramName.includes('<')
-        ? option.paramName
-        : `<${option.paramName}>${ellipsis}`
-      : `<${option.type}>${ellipsis}`;
-  result.addAndRevert(paramStyle, param, style);
+  const ellipsis = isVariadic(option) ? '...' : '';
+  const param = option.paramName
+    ? option.paramName.includes('<')
+      ? option.paramName
+      : `<${option.paramName}>${ellipsis}`
+    : `<${option.type}>${ellipsis}`;
+  result.addWord(param);
   return param.length;
+}
+
+/**
+ * Formats an option's example value to be included in the description or the usage text.
+ * @param option The option definition
+ * @param styles The set of styles
+ * @param result The resulting string
+ * @returns The string length, counting spaces in non-delimited array values
+ */
+function formatExample(option: Option, styles: FormatStyles, result: TerminalString): number {
+  const separator = option.separator;
+  if (separator) {
+    const sep = typeof separator === 'string' ? separator : separator.source;
+    const value = (option.example as Array<unknown>).join(sep);
+    result.formatArgs(styles, '%s', { s: value }, {});
+  } else {
+    const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
+    result.formatArgs(styles, `%${spec}`, { [spec]: option.example }, {});
+  }
+  const nonDelimited = !separator && Array.isArray(option.example);
+  return result.length + (nonDelimited ? option.example.length - 1 : 0);
 }
 
 /**
  * Formats an option's synopsis to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param styles The set of styles
  * @param result The resulting string
  */
 function formatSynopsis(
   option: Option,
   phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if (option.desc) {
-    const text = option.desc;
-    result.splitText(phrase, () => result.splitText(text));
+  const desc = option.desc;
+  if (desc) {
+    result.formatArgs(styles, phrase, { t: desc });
   }
 }
 
@@ -1043,26 +955,17 @@ function formatSynopsis(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
 function formatNegation(
   option: Option,
   phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if (option.type === 'flag' && option.negationNames) {
-    const names = option.negationNames.filter((name) => name);
-    result.splitText(phrase, () => {
-      names.forEach((name, i) => {
-        formatFunctions.o(name, styles, style, result);
-        if (i < names.length - 1) {
-          result.addWord('or');
-        }
-      });
-    });
+  const names = option.negationNames?.filter((name) => name);
+  if (names?.length) {
+    result.formatArgs(styles, phrase, { o: names }, { sep: 'or', merge: false });
   }
 }
 
@@ -1071,28 +974,18 @@ function formatNegation(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
 function formatSeparator(
   option: Option,
   phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('separator' in option && option.separator) {
-    const sep = option.separator;
-    const formatFn = typeof sep === 'string' ? formatFunctions.s : formatFunctions.r;
-    type FormatFn = (
-      value: string | RegExp,
-      styles: ConcreteStyles,
-      style: Style,
-      result: TerminalString,
-    ) => void;
-    result.splitText(phrase, () => {
-      (formatFn as FormatFn)(sep, styles, style, result);
-    });
+  const separator = option.separator;
+  if (separator) {
+    const [spec, alt] = typeof separator === 'string' ? ['s', 0] : ['r', 1];
+    result.formatArgs(styles, phrase, { [spec]: separator }, { alt });
   }
 }
 
@@ -1100,18 +993,16 @@ function formatSeparator(
  * Formats an option's variadic nature to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param _styles The set of styles
  * @param result The resulting string
  */
 function formatVariadic(
   option: Option,
   phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
+  _styles: FormatStyles,
   result: TerminalString,
 ) {
-  if (isArray(option) && isVariadic(option)) {
+  if (isVariadic(option)) {
     result.splitText(phrase);
   }
 }
@@ -1121,26 +1012,18 @@ function formatVariadic(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
 function formatPositional(
   option: Option,
   phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('positional' in option && option.positional) {
-    const pos = option.positional;
-    const [p, m] = splitPhrase(phrase);
-    if (pos === true || !m) {
-      result.splitText(p);
-    } else {
-      result.splitText(m, () => {
-        formatFunctions.o(pos, styles, style, result);
-      });
-    }
+  const positional = option.positional;
+  if (positional) {
+    const [spec, alt] = positional === true ? ['', 0] : ['o', 1];
+    result.formatArgs(styles, phrase, { [spec]: positional }, { alt });
   }
 }
 
@@ -1148,18 +1031,16 @@ function formatPositional(
  * Formats an option's append attribute to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param _styles The set of styles
  * @param result The resulting string
  */
 function formatAppend(
   option: Option,
   phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
+  _styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('append' in option && option.append) {
+  if (option.append) {
     result.splitText(phrase);
   }
 }
@@ -1168,64 +1049,40 @@ function formatAppend(
  * Formats an option's trim normalization to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param _styles The set of styles
  * @param result The resulting string
  */
-function formatTrim(
-  option: Option,
-  phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
-  result: TerminalString,
-) {
-  if ('trim' in option && option.trim) {
+function formatTrim(option: Option, phrase: string, _styles: FormatStyles, result: TerminalString) {
+  if (option.trim) {
     result.splitText(phrase);
   }
 }
 
 /**
- * Formats an option's case normalization to be included in the description.
+ * Formats an option's case conversion to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param styles The set of styles
  * @param result The resulting string
  */
-function formatCase(
-  option: Option,
-  phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
-  result: TerminalString,
-) {
-  if ('case' in option && option.case) {
-    const [l, u] = splitPhrase(phrase);
-    result.splitText(option.case === 'lower' || !u ? l : u);
+function formatCase(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+  const conv = option.case;
+  if (conv) {
+    result.formatArgs(styles, phrase, {}, { alt: conv === 'lower' ? 0 : 1 });
   }
 }
 
 /**
- * Formats an option's rounding normalization to be included in the description.
+ * Formats an option's math conversion to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param styles The set of styles
  * @param result The resulting string
  */
-function formatRound(
-  option: Option,
-  phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
-  result: TerminalString,
-) {
-  if ('round' in option && option.round) {
-    const round = option.round;
-    const [t, f, c, r] = splitPhrase(phrase);
-    const text =
-      round === 'trunc' || !f ? t : round === 'floor' || !c ? f : round === 'ceil' || !r ? c : r;
-    result.splitText(text);
+function formatConv(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+  const conv = option.conv;
+  if (conv) {
+    result.formatArgs(styles, phrase, { t: conv });
   }
 }
 
@@ -1234,23 +1091,14 @@ function formatRound(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
-function formatEnums(
-  option: Option,
-  phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
-  if ('enums' in option && option.enums) {
-    const enums = option.enums;
-    const formatFn =
-      option.type === 'string' || option.type === 'strings' ? formatFunctions.s : formatFunctions.n;
-    result.splitText(phrase, () => {
-      formatArray(enums, style, result, styles, formatFn, ['{', '}'], ',');
-    });
+function formatEnums(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+  const enums = option.enums;
+  if (enums) {
+    const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
+    const config: FormatConfig = { alt, brackets: ['{', '}'], sep: ',' };
+    result.formatArgs(styles, phrase, { [spec]: enums }, config);
   }
 }
 
@@ -1259,21 +1107,12 @@ function formatEnums(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
-function formatRegex(
-  option: Option,
-  phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
-  if ('regex' in option && option.regex) {
-    const regex = option.regex;
-    result.splitText(phrase, () => {
-      formatFunctions.r(regex, styles, style, result);
-    });
+function formatRegex(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+  const regex = option.regex;
+  if (regex) {
+    result.formatArgs(styles, phrase, { r: regex });
   }
 }
 
@@ -1282,21 +1121,12 @@ function formatRegex(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
-function formatRange(
-  option: Option,
-  phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
-  if ('range' in option && option.range) {
-    const range = option.range;
-    result.splitText(phrase, () => {
-      formatArray(range, style, result, styles, formatFunctions.n, ['[', ']'], ',');
-    });
+function formatRange(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+  const range = option.range;
+  if (range) {
+    result.formatArgs(styles, phrase, { n: range });
   }
 }
 
@@ -1304,18 +1134,16 @@ function formatRange(
  * Formats an option's unique constraint to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param _styles The set of styles
  * @param result The resulting string
  */
 function formatUnique(
   option: Option,
   phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
+  _styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('unique' in option && option.unique) {
+  if (option.unique) {
     result.splitText(phrase);
   }
 }
@@ -1325,21 +1153,12 @@ function formatUnique(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
-function formatLimit(
-  option: Option,
-  phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
-  if ('limit' in option && option.limit !== undefined) {
-    const limit = option.limit;
-    result.splitText(phrase, () => {
-      formatFunctions.n(limit, styles, style, result);
-    });
+function formatLimit(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+  const limit = option.limit;
+  if (limit !== undefined) {
+    result.formatArgs(styles, phrase, { n: limit });
   }
 }
 
@@ -1347,18 +1166,16 @@ function formatLimit(
  * Formats an option's required attribute to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param _styles The set of styles
  * @param result The resulting string
  */
 function formatRequired(
   option: Option,
   phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
+  _styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('required' in option && option.required) {
+  if (option.required) {
     result.splitText(phrase);
   }
 }
@@ -1368,21 +1185,28 @@ function formatRequired(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
 function formatDefault(
   option: Option,
   phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('default' in option && option.default !== undefined) {
-    const def = option.default;
-    result.splitText(phrase, () => {
-      formatValue(option, def, result, styles, style, true);
-    });
+  const value = option.default;
+  if (value !== undefined) {
+    const [spec, alt] =
+      typeof value === 'function'
+        ? ['v', 3]
+        : typeof value === 'boolean'
+          ? ['b', 0]
+          : typeof value === 'string' || option.type === 'strings'
+            ? ['s', 1]
+            : typeof value === 'number' || option.type === 'numbers'
+              ? ['n', 2]
+              : ['v', 3];
+    const config: FormatConfig = { alt, brackets: ['[', ']'], sep: ',' };
+    result.formatArgs(styles, phrase, { [spec]: value }, config);
   }
 }
 
@@ -1390,20 +1214,18 @@ function formatDefault(
  * Formats an option's deprecation reason to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles unused
- * @param _style unused
+ * @param styles The set of styles
  * @param result The resulting string
  */
 function formatDeprecated(
   option: Option,
   phrase: string,
-  _styles: ConcreteStyles,
-  _style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if (option.deprecated) {
-    const text = option.deprecated;
-    result.splitText(phrase, () => result.splitText(text));
+  const deprecated = option.deprecated;
+  if (deprecated) {
+    result.formatArgs(styles, phrase, { t: deprecated });
   }
 }
 
@@ -1412,21 +1234,12 @@ function formatDeprecated(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
-function formatLink(
-  option: Option,
-  phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
-  result: TerminalString,
-) {
-  if (option.link) {
-    const link = option.link;
-    result.splitText(phrase, () => {
-      formatFunctions.u(link, styles, style, result);
-    });
+function formatLink(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+  const link = option.link;
+  if (link) {
+    result.formatArgs(styles, phrase, { u: link });
   }
 }
 
@@ -1435,21 +1248,17 @@ function formatLink(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
 function formatEnvVar(
   option: Option,
   phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('envVar' in option && option.envVar) {
-    const envVar = option.envVar;
-    result.splitText(phrase, () => {
-      formatFunctions.o(envVar, styles, style, result);
-    });
+  const envVar = option.envVar;
+  if (envVar) {
+    result.formatArgs(styles, phrase, { o: envVar });
   }
 }
 
@@ -1458,21 +1267,17 @@ function formatEnvVar(
  * @param option The option definition
  * @param phrase The description item phrase
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  */
 function formatClusterLetters(
   option: Option,
   phrase: string,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if ('clusterLetters' in option && option.clusterLetters) {
-    const letters = option.clusterLetters;
-    result.splitText(phrase, () => {
-      formatFunctions.s(letters, styles, style, result);
-    });
+  const letters = option.clusterLetters;
+  if (letters) {
+    result.formatArgs(styles, phrase, { s: letters });
   }
 }
 
@@ -1481,15 +1286,13 @@ function formatClusterLetters(
  * @param options The option definitions
  * @param requires The option requirements
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */
 function formatRequirements(
-  options: Options,
+  options: InternalOptions,
   requires: Requires,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
   negate: boolean = false,
 ) {
@@ -1498,18 +1301,18 @@ function formatRequirements(
       result.addWord('no');
     }
     const name = options[requires].preferredName ?? '';
-    formatFunctions.o(name, styles, style, result);
+    format.o(name, styles, result);
   } else if (requires instanceof RequiresNot) {
-    formatRequirements(options, requires.item, styles, style, result, !negate);
+    formatRequirements(options, requires.item, styles, result, !negate);
   } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-    formatRequiresExp(options, requires, styles, style, result, negate);
+    formatRequiresExp(options, requires, styles, result, negate);
   } else if (typeof requires === 'object') {
-    formatRequiresVal(options, requires, styles, style, result, negate);
+    formatRequiresVal(options, requires, styles, result, negate);
   } else {
     if (negate) {
       result.addWord('not');
     }
-    formatFunctions.p(requires, styles, style, result);
+    format.v(requires, styles, result);
   }
 }
 
@@ -1518,15 +1321,13 @@ function formatRequirements(
  * @param options The option definitions
  * @param requires The requirement expression
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */
 function formatRequiresExp(
-  options: Options,
+  options: InternalOptions,
   requires: RequiresAll | RequiresOne,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
   negate: boolean,
 ) {
@@ -1535,7 +1336,7 @@ function formatRequiresExp(
     result.addOpening('(');
   }
   requires.items.forEach((item, i) => {
-    formatRequirements(options, item, styles, style, result, negate);
+    formatRequirements(options, item, styles, result, negate);
     if (i < requires.items.length - 1) {
       result.addWord(op);
     }
@@ -1550,15 +1351,13 @@ function formatRequiresExp(
  * @param options The option definitions
  * @param requires The requirement object
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */
 function formatRequiresVal(
-  options: Options,
+  options: InternalOptions,
   requires: RequiresVal,
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
   negate: boolean,
 ) {
@@ -1567,7 +1366,7 @@ function formatRequiresVal(
     result.addOpening('(');
   }
   entries.forEach(([key, value], i) => {
-    formatRequiredValue(options[key], value, styles, style, result, negate);
+    formatRequiredValue(options[key], value, styles, result, negate);
     if (i < entries.length - 1) {
       result.addWord('and');
     }
@@ -1582,26 +1381,23 @@ function formatRequiresVal(
  * @param option The option definition
  * @param value The option value
  * @param styles The set of styles
- * @param style The default style
  * @param result The resulting string
  * @param negate True if the requirement should be negated
  */
 function formatRequiredValue(
   option: Option,
   value: RequiresVal[string],
-  styles: ConcreteStyles,
-  style: Style,
+  styles: FormatStyles,
   result: TerminalString,
   negate: boolean,
 ) {
   if ((value === null && !negate) || (value === undefined && negate)) {
     result.addWord('no');
   }
-  const name = option.preferredName ?? '';
-  formatFunctions.o(name, styles, style, result);
+  format.o(option.preferredName ?? '', styles, result);
   if (value !== null && value !== undefined) {
-    assert(!isNiladic(option));
     result.addWord(negate ? '!=' : '=');
-    formatValue(option, value, result, styles, style, true);
+    const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
+    result.formatArgs(styles, `%${spec}`, { [spec]: value });
   }
 }

@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Alias, Enumerate } from './utils';
+import type { Alias, Concrete, Enumerate, URL } from './utils';
 import { cs, tf, fg, bg, ul } from './enums';
-import { overrides } from './utils';
+import { overrides, splitPhrase } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 
@@ -22,6 +22,49 @@ const regex = {
   // eslint-disable-next-line no-control-regex
   styles: /(?:\x9b[\d;]+m)+/g,
 };
+
+/**
+ * The formatting functions.
+ * @internal
+ */
+export const format = {
+  /**
+   * The formatting function for boolean values.
+   */
+  b: formatBool,
+  /**
+   * The formatting function for string values.
+   */
+  s: formatString,
+  /**
+   * The formatting function for number values.
+   */
+  n: formatNumber,
+  /**
+   * The formatting function for regex values.
+   */
+  r: formatRegExp,
+  /**
+   * The formatting function for option names.
+   */
+  o: formatOption,
+  /**
+   * The formatting function for generic values.
+   */
+  v: formatValue,
+  /**
+   * The formatting function for URLs.
+   */
+  u: formatURL,
+  /**
+   * The formatting function for general text.
+   */
+  t: formatText,
+  /**
+   * The formatting function for previously formatted terminal strings.
+   */
+  p: formatPrev,
+} as const satisfies FormatFunctions;
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -76,9 +119,102 @@ export type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
 export type FormatCallback = (this: TerminalString, spec: string) => void;
 
 /**
+ * A set of formatting arguments.
+ */
+export type FormatArgs = Record<string, unknown>;
+
+/**
+ * A formatting function.
+ * @internal
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type FormatFunction = (value: any, styles: FormatStyles, result: TerminalString) => void;
+
+/**
+ * A set of formatting functions.
+ * @internal
+ */
+export type FormatFunctions = Record<string, FormatFunction>;
+
+/**
  * A message that can be printed on a terminal.
  */
 export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage | CompletionMessage;
+
+/**
+ * A set of styles for terminal messages.
+ */
+export type MessageStyles = {
+  /**
+   * The style of boolean values.
+   */
+  readonly boolean?: Style;
+  /**
+   * The style of string values.
+   */
+  readonly string?: Style;
+  /**
+   * The style of number values.
+   */
+  readonly number?: Style;
+  /**
+   * The style of regular expressions.
+   */
+  readonly regex?: Style;
+  /**
+   * The style of option names.
+   */
+  readonly option?: Style;
+  /**
+   * A style for generic (or unknown) values.
+   */
+  readonly value?: Style;
+  /**
+   * The style of URLs.
+   */
+  readonly url?: Style;
+  /**
+   * The style of general text.
+   */
+  readonly text?: Style;
+};
+
+/**
+ * A concrete version of the format styles.
+ * @internal
+ */
+export type FormatStyles = Concrete<MessageStyles> & {
+  /**
+   * The current style in use.
+   */
+  current?: Style;
+};
+
+/**
+ * Configuration for the formatting of arguments.
+ */
+export type FormatConfig = {
+  /**
+   * The phrase alternative, if any.
+   */
+  readonly alt?: number;
+  /**
+   * A pair of brackets for array values.
+   */
+  readonly brackets?: [string, string];
+  /**
+   * An element separator for array values.
+   */
+  readonly sep?: string;
+  /**
+   * Whether the separator should be merged with the previous value. (Defaults to true)
+   */
+  readonly merge?: boolean;
+  /**
+   * Whether the separator should be merged with the next value. (Defaults to false)
+   */
+  readonly mergeAfter?: boolean;
+};
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -147,15 +283,24 @@ export class TerminalString {
    * @returns The terminal string instance
    */
   addOther(other: TerminalString): this {
-    this.strings.push(...other.strings);
-    this.lengths.push(...other.lengths);
+    const count = this.count;
+    let i = 0;
+    if (count && this.merge && other.count) {
+      this.strings[count - 1] += other.strings[0];
+      this.lengths[count - 1] += other.lengths[0];
+      i++;
+    }
+    for (; i < other.count; ++i) {
+      this.strings.push(other.strings[i]);
+      this.lengths.push(other.lengths[i]);
+    }
     this.merge = other.merge;
     return this;
   }
 
   /**
    * Sets a flag to merge the next word to the last word.
-   * @param value The flag value
+   * @param value The flag value (defaults to true)
    * @returns The terminal string instance
    */
   setMerge(value = true): this {
@@ -169,7 +314,7 @@ export class TerminalString {
    * @returns The terminal string instance
    */
   addOpening(word: string): this {
-    return this.addWord(word).setMerge(!!word);
+    return word ? this.addWord(word).setMerge() : this;
   }
 
   /**
@@ -255,6 +400,20 @@ export class TerminalString {
       }
     });
     return this;
+  }
+
+  /**
+   * Formats a set of arguments.
+   * @param styles The format styles
+   * @param phrase The format phrase
+   * @param args The format arguments
+   * @param config The format config
+   * @returns The terminal string instance
+   */
+  formatArgs(styles: FormatStyles, phrase: string, args?: FormatArgs, config?: FormatConfig): this {
+    const formatFn = args && formatArgs(styles, args, config);
+    const alternative = config?.alt !== undefined ? splitPhrase(phrase)[config.alt] : phrase;
+    return this.splitText(alternative, formatFn);
   }
 
   /**
@@ -534,6 +693,46 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
 }
 
 /**
+ * Creates a formatting callback from a set of styles and arguments.
+ * @param styles The format styles
+ * @param args The format arguments
+ * @param config The format config
+ * @returns The formatting callback
+ */
+function formatArgs(
+  styles: FormatStyles,
+  args: FormatArgs,
+  config: FormatConfig = { brackets: ['[', ']'], sep: ',' },
+): FormatCallback {
+  return function (this: TerminalString, spec: string) {
+    const arg = spec.slice(1);
+    const fmt = arg[0];
+    if (fmt in format && arg in args) {
+      const value = args[arg];
+      const formatFn = (format as FormatFunctions)[fmt];
+      if (Array.isArray(value)) {
+        if (config?.brackets) {
+          this.addOpening(config.brackets[0]);
+        }
+        value.forEach((val, i) => {
+          formatFn(val, styles, this);
+          if (config?.sep && i < value.length - 1) {
+            this.setMerge(config.merge)
+              .addWord(config.sep)
+              .setMerge(config.mergeAfter ?? false);
+          }
+        });
+        if (config?.brackets) {
+          this.addClosing(config.brackets[1]);
+        }
+      } else {
+        formatFn(value, styles, this);
+      }
+    }
+  };
+}
+
+/**
  * @param width The terminal width (in number of columns)
  * @returns True if styles should be omitted from terminal strings
  * @see https://clig.dev/#output
@@ -590,4 +789,94 @@ function background(color: Decimal): BgColor {
  */
 function underline(color: Decimal): UlColor {
   return [58, 5, color];
+}
+
+/**
+ * Formats a boolean value to be printed on the terminal.
+ * @param value The boolean value
+ * @param styles The format styles
+ * @param result The resulting string
+ */
+function formatBool(value: boolean, styles: FormatStyles, result: TerminalString) {
+  result.addAndRevert(styles.boolean, `${value}`, styles.current ?? styles.text);
+}
+
+/**
+ * Formats a string value to be printed on the terminal.
+ * @param value The string value
+ * @param styles The format styles
+ * @param result The resulting string
+ */
+function formatString(value: string, styles: FormatStyles, result: TerminalString) {
+  result.addAndRevert(styles.string, `'${value}'`, styles.current ?? styles.text);
+}
+
+/**
+ * Formats a number value to be printed on the terminal.
+ * @param value The number value
+ * @param styles The format styles
+ * @param result The resulting string
+ */
+function formatNumber(value: number, styles: FormatStyles, result: TerminalString) {
+  result.addAndRevert(styles.number, `${value}`, styles.current ?? styles.text);
+}
+
+/**
+ * Formats a regex value to be printed on the terminal.
+ * @param value The regex value
+ * @param styles The format styles
+ * @param result The resulting string
+ */
+function formatRegExp(value: RegExp, styles: FormatStyles, result: TerminalString) {
+  result.addAndRevert(styles.regex, `${value}`, styles.current ?? styles.text);
+}
+
+/**
+ * Formats a URL value to be printed on the terminal.
+ * @param value The URL value
+ * @param styles The format styles
+ * @param result The resulting string
+ */
+function formatURL(value: URL, styles: FormatStyles, result: TerminalString) {
+  result.addAndRevert(styles.url, value.href, styles.current ?? styles.text);
+}
+
+/**
+ * Formats an option name to be printed on the terminal.
+ * @param name The option name
+ * @param styles The format styles
+ * @param result The resulting string
+ */
+function formatOption(name: string, styles: FormatStyles, result: TerminalString) {
+  result.addAndRevert(styles.option, name, styles.current ?? styles.text);
+}
+
+/**
+ * Formats a generic or unknown value to be printed on the terminal.
+ * @param value The unknown value
+ * @param styles The format styles
+ * @param result The resulting string
+ */
+function formatValue(value: unknown, styles: FormatStyles, result: TerminalString) {
+  result.addAndRevert(styles.value, `<${value}>`, styles.current ?? styles.text);
+}
+
+/**
+ * Formats general text to be printed on the terminal.
+ * @param text The text
+ * @param _styles The format styles
+ * @param result The resulting string
+ */
+function formatText(text: string, _styles: FormatStyles, result: TerminalString) {
+  result.splitText(text);
+}
+
+/**
+ * Formats a previously formatted terminal string.
+ * @param str The terminal string
+ * @param _styles The format styles
+ * @param result The resulting string
+ */
+function formatPrev(str: TerminalString, _styles: FormatStyles, result: TerminalString) {
+  result.addOther(str);
 }
