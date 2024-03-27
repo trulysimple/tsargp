@@ -290,13 +290,27 @@ class ParserLoop {
           throw new CompletionMessage();
         } else if (!this.completing && value !== undefined) {
           throw this.validator.error(ErrorItem.disallowedInlineValue, { o: name }, { alt: 0 });
-        } else if (this.handleNiladic(key, option, name, i)) {
+        } else if (
+          handleNiladic(
+            this.validator,
+            this.values,
+            this.specifiedKeys,
+            key,
+            option,
+            name,
+            i,
+            this.completing,
+            this.args,
+            this.promises,
+            this.progName,
+          )
+        ) {
           return this;
         }
         current = undefined;
       } else if (comp !== undefined) {
         if (option.complete) {
-          this.handleComplete(option.complete, i, value);
+          handleComplete(this.values, option.complete, i, value ?? '', this.args, this.promises);
           return this;
         }
         handleCompletion(option, value);
@@ -329,292 +343,8 @@ class ParserLoop {
       }
     }
     // assert(!this.completing);
-    this.checkRequired();
+    checkRequired(this.validator, this.values, this.specifiedKeys);
     return this;
-  }
-
-  /**
-   * Handles a niladic option.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified in the command-line)
-   * @param index The current argument index
-   * @returns True if the parsing loop should be broken
-   */
-  private handleNiladic(key: string, option: Option, name: string, index: number): boolean {
-    switch (option.type) {
-      case 'flag':
-        this.values[key] = !option.negationNames?.includes(name);
-        return false;
-      case 'function':
-        return this.handleFunction(key, option, index);
-      case 'command':
-        return this.handleCommand(key, option, name, index);
-      default:
-        return this.handleSpecial(option, index);
-    }
-  }
-
-  /**
-   * Handles a function option.
-   * @param key The option key
-   * @param option The option definition
-   * @param index The current argument index
-   * @returns True if the parsing loop should be broken
-   */
-  private handleFunction(key: string, option: Option, index: number): boolean {
-    const result = !!option.break && !this.completing;
-    if (result) {
-      this.checkRequired();
-    }
-    try {
-      const result = option.exec(this.values, this.completing, this.args.slice(index + 1));
-      if (!this.completing && option.skipCount) {
-        this.args.splice(index + 1, Math.max(0, option.skipCount));
-      }
-      if (result instanceof Promise) {
-        this.promises.push(
-          result.then(
-            (val) => {
-              this.values[key] = val;
-            },
-            (err) => {
-              // do not propagate errors during completion
-              if (!this.completing) {
-                throw err;
-              }
-            },
-          ),
-        );
-      } else {
-        this.values[key] = result;
-      }
-    } catch (err) {
-      // do not propagate errors during completion
-      if (!this.completing) {
-        throw err;
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Handles a command option.
-   * @param key The option key
-   * @param option The option definition
-   * @param name The option name (as specified in the command-line)
-   * @param index The current argument index
-   * @returns True to break parsing loop (always)
-   */
-  private handleCommand(key: string, option: Option, name: string, index: number): true {
-    if (!this.completing) {
-      this.checkRequired();
-    }
-    const values: InternalOptionValues = {};
-    const options = typeof option.options === 'function' ? option.options() : option.options;
-    const validator = new OptionValidator(options, this.validator.config);
-    const loop = new ParserLoop(
-      validator,
-      values,
-      this.args.slice(index + 1),
-      this.completing,
-      name,
-      option.shortStyle,
-    ).loop();
-    this.promises.push(...loop.promises);
-    if (!this.completing) {
-      const result = option.cmd(this.values, values);
-      if (result instanceof Promise) {
-        this.promises.push(
-          result.then((val) => {
-            this.values[key] = val;
-          }),
-        );
-      } else {
-        this.values[key] = result;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Handles a special option.
-   * @param option The option definition
-   * @param index The current argument index
-   * @returns True if the parsing loop should be broken
-   */
-  private handleSpecial(option: Option, index: number): boolean {
-    if (this.completing) {
-      return false; // skip special options during completion
-    }
-    if (option.type === 'help') {
-      const filters =
-        option.useFilters && this.args.slice(index + 1).map((arg) => RegExp(arg, 'i'));
-      const formatter = new HelpFormatter(this.validator, option.format, filters);
-      const sections = option.sections ?? [
-        { type: 'usage', title: 'Usage:', indent: 2 },
-        { type: 'groups', title: 'Options', phrase: '%s:' },
-      ];
-      throw formatter.formatSections(sections, this.progName);
-    } else if (option.version) {
-      throw new VersionMessage(option.version);
-    } else if (option.resolve) {
-      const promise = resolveVersion(this.validator, option.resolve);
-      this.promises.push(promise);
-    }
-    return true;
-  }
-
-  /**
-   * Handles the completion of an option that has a completion callback.
-   * @param complete The completion callback
-   * @param index The current argument index
-   * @param param The option parameter, if any
-   */
-  private handleComplete(complete: CompleteCallback, index: number, param: string = '') {
-    let result;
-    try {
-      result = complete(this.values, param, this.args.slice(index + 1));
-    } catch (err) {
-      // do not propagate errors during completion
-      throw new CompletionMessage();
-    }
-    if (Array.isArray(result)) {
-      throw new CompletionMessage(...result);
-    }
-    const promise = result.then(
-      (words) => {
-        throw new CompletionMessage(...words);
-      },
-      () => {
-        // do not propagate errors during completion
-        throw new CompletionMessage();
-      },
-    );
-    this.promises.push(promise);
-  }
-
-  /**
-   * Checks if required options were correctly specified.
-   * Sets option values to their env. var. or default value, if not previously set.
-   * This should only be called when completion is not in effect.
-   */
-  private checkRequired() {
-    for (const key in this.validator.options) {
-      if (!this.specifiedKeys.has(key)) {
-        const option = this.validator.options[key];
-        if (checkEnvVar(this.validator, this.values, option, key)) {
-          this.specifiedKeys.add(key); // need this for checking requirements in the second loop
-          continue;
-        }
-        const name = option.preferredName ?? '';
-        if (option.required) {
-          throw this.validator.error(ErrorItem.missingRequiredOption, { o: name });
-        }
-        if (option.requiredIf) {
-          const error = new TerminalString();
-          if (!this.checkRequires(option.requiredIf, error, true, true)) {
-            throw this.validator.error(ErrorItem.unsatisfiedCondRequirement, { o: name, p: error });
-          }
-        }
-        if ('default' in option) {
-          setDefaultValue(this.validator, this.values, key, option);
-        }
-      }
-    }
-    for (const key of this.specifiedKeys) {
-      const option = this.validator.options[key];
-      if (option.requires) {
-        const error = new TerminalString();
-        if (!this.checkRequires(option.requires, error, false, false)) {
-          const name = option.preferredName ?? '';
-          throw this.validator.error(ErrorItem.unsatisfiedRequirement, { o: name, p: error });
-        }
-      }
-    }
-  }
-
-  /**
-   * Checks the requirements of an option that was specified.
-   * @param requires The option requirements
-   * @param error The terminal string error
-   * @param negate True if the requirements should be negated
-   * @param invert True if the requirements should be inverted
-   * @returns True if the requirements were satisfied
-   */
-  private checkRequires(
-    requires: Requires,
-    error: TerminalString,
-    negate: boolean,
-    invert: boolean,
-  ): boolean {
-    if (typeof requires === 'string') {
-      return this.checkRequirement([requires, undefined], error, negate, invert);
-    }
-    if (requires instanceof RequiresNot) {
-      return this.checkRequires(requires.item, error, !negate, invert);
-    }
-    if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-      const and = requires instanceof RequiresAll !== negate;
-      const itemFn = this.checkRequires.bind(this);
-      return checkRequireItems(requires.items, itemFn, error, negate, invert, and);
-    }
-    if (typeof requires === 'object') {
-      const entries = Object.entries(requires);
-      const itemFn = this.checkRequirement.bind(this);
-      return checkRequireItems(entries, itemFn, error, negate, invert, !negate);
-    }
-    if (requires(this.values) == negate) {
-      if (negate != invert) {
-        error.addWord('not');
-      }
-      const styles = this.validator.config.styles;
-      format.v(requires, styles, error);
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Checks if a required option was specified with correct values.
-   * @param kvp The required option key and value
-   * @param error The terminal string error
-   * @param negate True if the requirement should be negated
-   * @param invert True if the requirements should be inverted
-   * @returns True if the requirement was satisfied
-   */
-  private checkRequirement(
-    kvp: [key: string, value: RequiresVal[string]],
-    error: TerminalString,
-    negate: boolean,
-    invert: boolean,
-  ): boolean {
-    const [key, value] = kvp;
-    const option = this.validator.options[key];
-    const specified = this.specifiedKeys.has(key);
-    const required = value !== null;
-    if (isSpecial(option) || isUnknown(option) || !specified || !required || value === undefined) {
-      if ((specified == required) != negate) {
-        return true;
-      }
-      if (specified != invert) {
-        error.addWord('no');
-      }
-      const name = option.preferredName ?? '';
-      const styles = this.validator.config.styles;
-      format.o(name, styles, error);
-      return false;
-    }
-    return checkRequiredValue(
-      this.validator,
-      this.values,
-      option,
-      negate,
-      invert,
-      key,
-      value,
-      error,
-    );
   }
 }
 
@@ -1194,4 +924,414 @@ function setDefaultValue(
       (setFn as any)(validator, values, key, option, key, value);
     }
   }
+}
+
+/**
+ * Handles a niladic option.
+ * @param validator The option validator
+ * @param values The option values
+ * @param specifiedKeys The set of specified keys
+ * @param key The option key
+ * @param option The option definition
+ * @param name The option name (as specified in the command-line)
+ * @param index The current argument index
+ * @param completing True if performing completion
+ * @param args The command-line arguments
+ * @param promises The list of promises
+ * @param progName The program name
+ * @returns True if the parsing loop should be broken
+ */
+function handleNiladic(
+  validator: OptionValidator,
+  values: InternalOptionValues,
+  specifiedKeys: Set<string>,
+  key: string,
+  option: Option,
+  name: string,
+  index: number,
+  completing: boolean,
+  args: Array<string>,
+  promises: Array<Promise<void>>,
+  progName?: string,
+): boolean {
+  switch (option.type) {
+    case 'flag':
+      values[key] = !option.negationNames?.includes(name);
+      return false;
+    case 'function':
+      return handleFunction(
+        validator,
+        values,
+        specifiedKeys,
+        key,
+        option,
+        index,
+        completing,
+        args,
+        promises,
+      );
+    case 'command':
+      return handleCommand(
+        validator,
+        values,
+        specifiedKeys,
+        key,
+        option,
+        name,
+        index,
+        completing,
+        args,
+        promises,
+      );
+    default:
+      if (completing) {
+        return false; // skip special options during completion
+      }
+      return handleSpecial(validator, option, index, args, promises, progName);
+  }
+}
+
+/**
+ * Handles a function option.
+ * @param validator The option validator
+ * @param values The option values
+ * @param specifiedKeys The set of specified keys
+ * @param key The option key
+ * @param option The option definition
+ * @param index The current argument index
+ * @param completing True if performing completion
+ * @param args The command-line arguments
+ * @param promises The list of promises
+ * @returns True if the parsing loop should be broken
+ */
+function handleFunction(
+  validator: OptionValidator,
+  values: InternalOptionValues,
+  specifiedKeys: Set<string>,
+  key: string,
+  option: Option,
+  index: number,
+  completing: boolean,
+  args: Array<string>,
+  promises: Array<Promise<void>>,
+): boolean {
+  const result = !!option.break && !completing;
+  if (result) {
+    checkRequired(validator, values, specifiedKeys);
+  }
+  try {
+    const result = option.exec(values, completing, args.slice(index + 1));
+    if (!completing && option.skipCount) {
+      args.splice(index + 1, Math.max(0, option.skipCount));
+    }
+    if (result instanceof Promise) {
+      promises.push(
+        result.then(
+          (val) => {
+            values[key] = val;
+          },
+          (err) => {
+            // do not propagate errors during completion
+            if (!completing) {
+              throw err;
+            }
+          },
+        ),
+      );
+    } else {
+      values[key] = result;
+    }
+  } catch (err) {
+    // do not propagate errors during completion
+    if (!completing) {
+      throw err;
+    }
+  }
+  return result;
+}
+
+/**
+ * Handles a command option.
+ * @param validator The option validator
+ * @param values The option values
+ * @param specifiedKeys The set of specified keys
+ * @param key The option key
+ * @param option The option definition
+ * @param name The option name (as specified in the command-line)
+ * @param index The current argument index
+ * @param completing True if performing completion
+ * @param args The command-line arguments
+ * @param promises The list of promises
+ * @returns True to break parsing loop (always)
+ */
+function handleCommand(
+  validator: OptionValidator,
+  values: InternalOptionValues,
+  specifiedKeys: Set<string>,
+  key: string,
+  option: Option,
+  name: string,
+  index: number,
+  completing: boolean,
+  args: Array<string>,
+  promises: Array<Promise<void>>,
+): true {
+  if (!completing) {
+    checkRequired(validator, values, specifiedKeys);
+  }
+  const newValues: InternalOptionValues = {};
+  const options = typeof option.options === 'function' ? option.options() : option.options;
+  const newValidator = new OptionValidator(options, validator.config);
+  const loop = new ParserLoop(
+    newValidator,
+    newValues,
+    args.slice(index + 1),
+    completing,
+    name,
+    option.shortStyle,
+  ).loop();
+  promises.push(...loop.promises);
+  if (!completing) {
+    const result = option.cmd(values, newValues);
+    if (result instanceof Promise) {
+      promises.push(
+        result.then((val) => {
+          values[key] = val;
+        }),
+      );
+    } else {
+      values[key] = result;
+    }
+  }
+  return true;
+}
+
+/**
+ * Handles a special option.
+ * @param validator The option validator
+ * @param option The option definition
+ * @param index The current argument index
+ * @param args The command-line arguments
+ * @param promises The list of promises
+ * @param progName The program name
+ * @returns True if the parsing loop should be broken
+ */
+function handleSpecial(
+  validator: OptionValidator,
+  option: Option,
+  index: number,
+  args: Array<string>,
+  promises: Array<Promise<void>>,
+  progName?: string,
+): boolean {
+  if (option.type === 'help') {
+    const filters = option.useFilters && args.slice(index + 1).map((arg) => RegExp(arg, 'i'));
+    const formatter = new HelpFormatter(validator, option.format, filters);
+    const sections = option.sections ?? [
+      { type: 'usage', title: 'Usage:', indent: 2 },
+      { type: 'groups', title: 'Options', phrase: '%s:' },
+    ];
+    throw formatter.formatSections(sections, progName);
+  } else if (option.version) {
+    throw new VersionMessage(option.version);
+  } else if (option.resolve) {
+    const promise = resolveVersion(validator, option.resolve);
+    promises.push(promise);
+  }
+  return true;
+}
+
+/**
+ * Handles the completion of an option that has a completion callback.
+ * @param values The option values
+ * @param complete The completion callback
+ * @param index The current argument index
+ * @param param The option parameter, if any
+ * @param args The command-line arguments
+ * @param promises The list of promises
+ */
+function handleComplete(
+  values: InternalOptionValues,
+  complete: CompleteCallback,
+  index: number,
+  param: string,
+  args: Array<string>,
+  promises: Array<Promise<void>>,
+) {
+  let result;
+  try {
+    result = complete(values, param, args.slice(index + 1));
+  } catch (err) {
+    // do not propagate errors during completion
+    throw new CompletionMessage();
+  }
+  if (Array.isArray(result)) {
+    throw new CompletionMessage(...result);
+  }
+  const promise = result.then(
+    (words) => {
+      throw new CompletionMessage(...words);
+    },
+    () => {
+      // do not propagate errors during completion
+      throw new CompletionMessage();
+    },
+  );
+  promises.push(promise);
+}
+
+/**
+ * Checks if required options were correctly specified.
+ * Sets option values to their env. var. or default value, if not previously set.
+ * This should only be called when completion is not in effect.
+ * @param validator The option validator
+ * @param values The option values
+ * @param specifiedKeys The set of specified keys
+ */
+function checkRequired(
+  validator: OptionValidator,
+  values: InternalOptionValues,
+  specifiedKeys: Set<string>,
+) {
+  for (const key in validator.options) {
+    if (!specifiedKeys.has(key)) {
+      const option = validator.options[key];
+      if (checkEnvVar(validator, values, option, key)) {
+        specifiedKeys.add(key); // need this for checking requirements in the second loop
+        continue;
+      }
+      const name = option.preferredName ?? '';
+      if (option.required) {
+        throw validator.error(ErrorItem.missingRequiredOption, { o: name });
+      }
+      if (option.requiredIf) {
+        const error = new TerminalString();
+        if (
+          !checkRequires(validator, values, specifiedKeys, option.requiredIf, error, true, true)
+        ) {
+          throw validator.error(ErrorItem.unsatisfiedCondRequirement, { o: name, p: error });
+        }
+      }
+      if ('default' in option) {
+        setDefaultValue(validator, values, key, option);
+      }
+    }
+  }
+  for (const key of specifiedKeys) {
+    const option = validator.options[key];
+    if (option.requires) {
+      const error = new TerminalString();
+      if (!checkRequires(validator, values, specifiedKeys, option.requires, error, false, false)) {
+        const name = option.preferredName ?? '';
+        throw validator.error(ErrorItem.unsatisfiedRequirement, { o: name, p: error });
+      }
+    }
+  }
+}
+
+/**
+ * Checks the requirements of an option that was specified.
+ * @param validator The option validator
+ * @param values The option values
+ * @param specifiedKeys The set of specified keys
+ * @param requires The option requirements
+ * @param error The terminal string error
+ * @param negate True if the requirements should be negated
+ * @param invert True if the requirements should be inverted
+ * @returns True if the requirements were satisfied
+ */
+function checkRequires(
+  validator: OptionValidator,
+  values: InternalOptionValues,
+  specifiedKeys: Set<string>,
+  requires: Requires,
+  error: TerminalString,
+  negate: boolean,
+  invert: boolean,
+): boolean {
+  /** @ignore */
+  function checkReqItem(
+    requires: Requires,
+    error: TerminalString,
+    negate: boolean,
+    invert: boolean,
+  ) {
+    return checkRequires(validator, values, specifiedKeys, requires, error, negate, invert);
+  }
+  /** @ignore */
+  function checkKvpItem(
+    kvp: [key: string, value: RequiresVal[string]],
+    error: TerminalString,
+    negate: boolean,
+    invert: boolean,
+  ) {
+    return checkRequirement(validator, values, specifiedKeys, kvp, error, negate, invert);
+  }
+  if (typeof requires === 'string') {
+    return checkRequirement(
+      validator,
+      values,
+      specifiedKeys,
+      [requires, undefined],
+      error,
+      negate,
+      invert,
+    );
+  }
+  if (requires instanceof RequiresNot) {
+    return checkRequires(validator, values, specifiedKeys, requires.item, error, !negate, invert);
+  }
+  if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
+    const and = requires instanceof RequiresAll !== negate;
+    return checkRequireItems(requires.items, checkReqItem, error, negate, invert, and);
+  }
+  if (typeof requires === 'object') {
+    const entries = Object.entries(requires);
+    return checkRequireItems(entries, checkKvpItem, error, negate, invert, !negate);
+  }
+  if (requires(values) == negate) {
+    if (negate != invert) {
+      error.addWord('not');
+    }
+    format.v(requires, validator.config.styles, error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Checks if a required option was specified with correct values.
+ * @param validator The option validator
+ * @param values The option values
+ * @param specifiedKeys The set of specified keys
+ * @param kvp The required option key and value
+ * @param error The terminal string error
+ * @param negate True if the requirement should be negated
+ * @param invert True if the requirements should be inverted
+ * @returns True if the requirement was satisfied
+ */
+function checkRequirement(
+  validator: OptionValidator,
+  values: InternalOptionValues,
+  specifiedKeys: Set<string>,
+  kvp: [key: string, value: RequiresVal[string]],
+  error: TerminalString,
+  negate: boolean,
+  invert: boolean,
+): boolean {
+  const [key, value] = kvp;
+  const option = validator.options[key];
+  const specified = specifiedKeys.has(key);
+  const required = value !== null;
+  if (isSpecial(option) || isUnknown(option) || !specified || !required || value === undefined) {
+    if ((specified == required) != negate) {
+      return true;
+    }
+    if (specified != invert) {
+      error.addWord('no');
+    }
+    format.o(option.preferredName ?? '', validator.config.styles, error);
+    return false;
+  }
+  return checkRequiredValue(validator, values, option, negate, invert, key, value, error);
 }
