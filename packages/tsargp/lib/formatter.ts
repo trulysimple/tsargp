@@ -216,6 +216,17 @@ export type HelpSection = HelpText | HelpUsage | HelpGroups;
  */
 export type HelpSections = Array<HelpSection>;
 
+/**
+ * A function that formats a help item to be included in an option's description.
+ */
+type HelpItemFunction = (
+  option: Option,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+  options: InternalOptions,
+) => void;
+
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
@@ -262,7 +273,7 @@ const defaultConfig: ConcreteFormat = {
   ],
   phrases: {
     [HelpItem.synopsis]: '%t',
-    [HelpItem.negation]: 'Can be negated with [%o].',
+    [HelpItem.negation]: 'Can be negated with %o.',
     [HelpItem.separator]: 'Values are delimited by (%s|%r).',
     [HelpItem.variadic]: 'Accepts multiple parameters.',
     [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %o).',
@@ -286,6 +297,34 @@ const defaultConfig: ConcreteFormat = {
   },
 };
 
+/**
+ * Keep this in-sync with {@link HelpItem}.
+ */
+const helpItemFunctions: ReadonlyArray<HelpItemFunction> = [
+  formatSynopsis,
+  formatNegation,
+  formatSeparator,
+  formatVariadic,
+  formatPositional,
+  formatAppend,
+  formatTrim,
+  formatCase,
+  formatConv,
+  formatEnums,
+  formatRegex,
+  formatRange,
+  formatUnique,
+  formatLimit,
+  formatRequires,
+  formatRequired,
+  formatDefault,
+  formatDeprecated,
+  formatLink,
+  formatEnvVar,
+  formatRequiredIf,
+  formatClusterLetters,
+];
+
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
@@ -299,34 +338,6 @@ export class HelpFormatter {
   private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number> | number;
   private paramWidth = 0;
-
-  /**
-   * Keep this in-sync with {@link HelpItem}.
-   */
-  private readonly format: Array<typeof formatSynopsis> = [
-    formatSynopsis,
-    formatNegation,
-    formatSeparator,
-    formatVariadic,
-    formatPositional,
-    formatAppend,
-    formatTrim,
-    formatCase,
-    formatConv,
-    formatEnums,
-    formatRegex,
-    formatRange,
-    formatUnique,
-    formatLimit,
-    this.formatRequires.bind(this),
-    formatRequired,
-    formatDefault,
-    formatDeprecated,
-    formatLink,
-    formatEnvVar,
-    this.formatRequiredIf.bind(this),
-    formatClusterLetters,
-  ];
 
   /**
    * Creates a help message formatter.
@@ -356,124 +367,18 @@ export class HelpFormatter {
     for (const key in this.options) {
       const option = this.options[key];
       if (!option.hide && !exclude(option)) {
-        this.formatOption(option);
+        const paramLen = formatOption(
+          this.groups,
+          this.config,
+          this.styles,
+          this.options,
+          this.nameWidths,
+          option,
+        );
+        this.paramWidth = Math.max(this.paramWidth, paramLen);
       }
     }
     adjustEntries(this.groups, this.config, this.nameWidths, this.paramWidth);
-  }
-
-  /**
-   * Formats an option to be printed on the terminal.
-   * @param option The option definition
-   */
-  private formatOption(option: Option) {
-    const names = this.formatNames(option);
-    const param = this.formatParam(option);
-    const descr = this.formatDescription(option);
-    const entry: HelpEntry = { names, param, descr };
-    const group = this.groups.get(option.group ?? '');
-    if (!group) {
-      this.groups.set(option.group ?? '', [entry]);
-    } else {
-      group.push(entry);
-    }
-  }
-
-  /**
-   * Formats an option's names to be printed on the terminal.
-   * @param option The option definition
-   * @returns A terminal string with the formatted names
-   */
-  private formatNames(option: Option): Array<TerminalString> {
-    if (this.config.names.hidden || !option.names) {
-      return [];
-    }
-    const style = option.styles?.names ?? this.styles.option;
-    return formatNameSlots(this.config, option.names, this.nameWidths, style, this.styles.text);
-  }
-
-  /**
-   * Formats an option's parameter to be printed on the terminal.
-   * @param option The option definition
-   * @returns A terminal string with the formatted option parameter
-   */
-  private formatParam(option: Option): TerminalString {
-    if (this.config.param.hidden || isNiladic(option)) {
-      return new TerminalString();
-    }
-    this.styles.current = option.styles?.param;
-    const result = new TerminalString(0, this.config.param.breaks).addSequence(
-      this.styles.current ?? this.styles.value,
-    );
-    const len = formatParam(option, this.styles, result);
-    this.paramWidth = Math.max(this.paramWidth, len);
-    result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
-    return result.addSequence(style(tf.clear));
-  }
-
-  /**
-   * Formats an option's description to be printed on the terminal.
-   * The description always ends with a single line break.
-   * @param option The option definition
-   * @returns A terminal string with the formatted option description
-   */
-  private formatDescription(option: Option): TerminalString {
-    if (this.config.descr.hidden || !this.config.items.length) {
-      return new TerminalString(0, 1);
-    }
-    this.styles.current = option.styles?.descr;
-    const result = new TerminalString(
-      0,
-      this.config.descr.breaks,
-      this.config.descr.align === 'right',
-    ).addSequence(this.styles.current ?? this.styles.text);
-    const count = result.count;
-    for (const item of this.config.items) {
-      const phrase = this.config.phrases[item];
-      this.format[item](option, phrase, this.styles, result);
-    }
-    if (result.count == count) {
-      return new TerminalString(0, 1); // this string does not contain any word
-    }
-    return result.addSequence(style(tf.clear)).addBreak(); // add ending breaks after styles
-  }
-
-  /**
-   * Formats an option's requirements to be included in the description.
-   * @param option The option definition
-   * @param phrase The description item phrase
-   * @param styles The set of styles
-   * @param result The resulting string
-   */
-  private formatRequires(
-    option: Option,
-    phrase: string,
-    styles: FormatStyles,
-    result: TerminalString,
-  ) {
-    if (option.requires) {
-      const requires = option.requires;
-      result.splitText(phrase, () => formatRequirements(this.options, requires, styles, result));
-    }
-  }
-
-  /**
-   * Formats an option's conditional requirements to be included in the description.
-   * @param option The option definition
-   * @param phrase The description item phrase
-   * @param styles The set of styles
-   * @param result The resulting string
-   */
-  private formatRequiredIf(
-    option: Option,
-    phrase: string,
-    styles: FormatStyles,
-    result: TerminalString,
-  ) {
-    if (option.requiredIf) {
-      const requiredIf = option.requiredIf;
-      result.splitText(phrase, () => formatRequirements(this.options, requiredIf, styles, result));
-    }
   }
 
   /**
@@ -528,6 +433,120 @@ export class HelpFormatter {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Formats an option to be printed on the terminal.
+ * @param groups The option groups
+ * @param config The format configuration
+ * @param styles The set of styles
+ * @param options The option definitions
+ * @param nameWidths The name slot widths
+ * @param option The option definition
+ * @returns The length of the option parameter
+ */
+function formatOption(
+  groups: Map<string, Array<HelpEntry>>,
+  config: ConcreteFormat,
+  styles: FormatStyles,
+  options: InternalOptions,
+  nameWidths: Array<number> | number,
+  option: Option,
+): number {
+  const names = formatNames(config, styles, option, nameWidths);
+  const param = new TerminalString();
+  const paramLen = formatParams(config, styles, option, param);
+  const descr = new TerminalString();
+  formatDescription(config, styles, option, descr, options);
+  const entry: HelpEntry = { names, param, descr };
+  const group = groups.get(option.group ?? '');
+  if (!group) {
+    groups.set(option.group ?? '', [entry]);
+  } else {
+    group.push(entry);
+  }
+  return paramLen;
+}
+
+/**
+ * Formats an option's names to be printed on the terminal.
+ * @param config The format configuration
+ * @param styles The set of styles
+ * @param option The option definition
+ * @param nameWidths The name slot widths
+ * @returns The list of terminal strings, one for each name
+ */
+function formatNames(
+  config: ConcreteFormat,
+  styles: FormatStyles,
+  option: Option,
+  nameWidths: Array<number> | number,
+): Array<TerminalString> {
+  if (config.names.hidden || !option.names) {
+    return [];
+  }
+  const style = option.styles?.names ?? styles.option;
+  return formatNameSlots(config, option.names, nameWidths, style, styles.text);
+}
+
+/**
+ * Formats an option's parameter to be printed on the terminal.
+ * @param config The format configuration
+ * @param styles The set of styles
+ * @param option The option definition
+ * @param result The resulting string
+ * @returns The string length
+ */
+function formatParams(
+  config: ConcreteFormat,
+  styles: FormatStyles,
+  option: Option,
+  result: TerminalString,
+): number {
+  if (config.param.hidden || isNiladic(option)) {
+    return 0;
+  }
+  styles.current = option.styles?.param;
+  result.addBreak(config.param.breaks).addSequence(styles.current ?? styles.value);
+  const len = formatParam(option, styles, result);
+  result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
+  result.addSequence(style(tf.clear));
+  return len;
+}
+
+/**
+ * Formats an option's description to be printed on the terminal.
+ * The description always ends with a single line break.
+ * @param config The format configuration
+ * @param styles The set of styles
+ * @param option The option definition
+ * @param result The resulting string
+ * @param options The option definitions
+ * @returns A terminal string with the formatted option description
+ */
+function formatDescription(
+  config: ConcreteFormat,
+  styles: FormatStyles,
+  option: Option,
+  result: TerminalString,
+  options: InternalOptions,
+) {
+  if (config.descr.hidden || !config.items.length) {
+    return result.addBreak(1);
+  }
+  styles.current = option.styles?.descr;
+  result.rightAlign = config.descr.align === 'right';
+  result.addBreak(config.descr.breaks).addSequence(styles.current ?? styles.text);
+  const count = result.count;
+  for (const item of config.items) {
+    const phrase = config.phrases[item];
+    helpItemFunctions[item](option, phrase, styles, result, options);
+  }
+  if (result.count == count) {
+    result.pop(count).addBreak(1); // this string does not contain any word
+  } else {
+    result.addSequence(style(tf.clear)).addBreak(); // add ending breaks after styles
+  }
+}
+
 /**
  * Merges a help configuration with the default configuration.
  * @param config The provided configuration
@@ -1408,5 +1427,47 @@ function formatRequiredValue(
     result.addWord(negate ? '!=' : '=');
     const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
     result.formatArgs(styles, isArray(option) ? `[%${spec}]` : `%${spec}`, { [spec]: value });
+  }
+}
+
+/**
+ * Formats an option's requirements to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param styles The set of styles
+ * @param result The resulting string
+ * @param options The option definitions
+ */
+function formatRequires(
+  option: Option,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+  options: InternalOptions,
+) {
+  if (option.requires) {
+    const requires = option.requires;
+    result.splitText(phrase, () => formatRequirements(options, requires, styles, result));
+  }
+}
+
+/**
+ * Formats an option's conditional requirements to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param styles The set of styles
+ * @param result The resulting string
+ * @param options The option definitions
+ */
+function formatRequiredIf(
+  option: Option,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+  options: InternalOptions,
+) {
+  if (option.requiredIf) {
+    const requiredIf = option.requiredIf;
+    result.splitText(phrase, () => formatRequirements(options, requiredIf, styles, result));
   }
 }

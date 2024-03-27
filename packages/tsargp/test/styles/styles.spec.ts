@@ -99,12 +99,12 @@ describe('TerminalString', () => {
     it('should add closing words to the last word', () => {
       const str = new TerminalString()
         .addWord('type')
-        .addSequence(style(fg.default, bg.default, ul.default))
+        .addSequence(style(fg.default, bg.default, ul.curly))
         .addClosing(']')
         .addClosing('.');
       expect(str).toHaveLength(6);
       expect(str.count).toEqual(2);
-      expect(str.strings).toEqual(['type', '\x9b39;49;59m].']);
+      expect(str.strings).toEqual(['type', '\x9b39;49;4;3m].']);
     });
 
     it('should not merge next words if the closing is empty', () => {

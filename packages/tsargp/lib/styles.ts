@@ -1,33 +1,51 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Alias, Concrete, Enumerate, URL } from './utils';
-import { cs, tf, fg, bg, ul } from './enums';
+import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
+import { cs, tf, fg, bg } from './enums';
 import { overrides, splitPhrase } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
+export { underlineStyle as ul, formatFunctions as format };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
- * A set of regular expressions for terminal strings.
+ * A predefined underline style.
  */
-const regex = {
-  para: /(?:[ \t]*\r?\n){2,}/,
-  item: /^[ \t]*(-|\*|\d+\.) /m,
-  punct: /[.,:;!?]$/,
-  word: /\s+/,
-  spec: /(%[a-z][0-9]?)/,
-  // eslint-disable-next-line no-control-regex
-  styles: /(?:\x9b[\d;]+m)+/g,
-};
+const underlineStyle = {
+  /**
+   * No underline.
+   */
+  none: [4, 0],
+  /**
+   * Single underline.
+   */
+  single: [4, 1],
+  /**
+   * Double underline.
+   */
+  double: [4, 2],
+  /**
+   * Curly underline.
+   */
+  curly: [4, 3],
+  /**
+   * Dotted underline.
+   */
+  dotted: [4, 4],
+  /**
+   * Dashed underline.
+   */
+  dashed: [4, 5],
+} as const satisfies Record<string, [4, number]>;
 
 /**
  * The formatting functions.
  * @internal
  */
-export const format = {
+const formatFunctions = {
   /**
    * The formatting function for boolean values.
    */
@@ -65,6 +83,19 @@ export const format = {
    */
   p: formatPrev,
 } as const satisfies FormatFunctions;
+
+/**
+ * A set of regular expressions for terminal strings.
+ */
+const regex = {
+  para: /(?:[ \t]*\r?\n){2,}/,
+  item: /^[ \t]*(-|\*|\d+\.) /m,
+  punct: /[.,:;!?]$/,
+  word: /\s+/,
+  spec: /(%[a-z][0-9]?)/,
+  // eslint-disable-next-line no-control-regex
+  styles: /(?:\x9b[\d;]+m)+/g,
+} as const satisfies Record<string, RegExp>;
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -107,9 +138,14 @@ export type BgColor = [48, 5, Decimal];
 export type UlColor = [58, 5, Decimal];
 
 /**
+ * An underline style.
+ */
+export type UlStyle = ValuesOf<typeof underlineStyle>;
+
+/**
  * A text styling attribute.
  */
-export type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
+export type StyleAttr = tf | fg | bg | FgColor | BgColor | UlColor | UlStyle;
 
 /**
  * A callback that processes a format specifier when splitting text.
@@ -703,9 +739,9 @@ function formatArgs(
   return function (this: TerminalString, spec: string) {
     const arg = spec.slice(1);
     const fmt = arg[0];
-    if (fmt in format && arg in args) {
+    if (fmt in formatFunctions && arg in args) {
       const value = args[arg];
-      const formatFn = (format as FormatFunctions)[fmt];
+      const formatFn = (formatFunctions as FormatFunctions)[fmt];
       if (Array.isArray(value)) {
         value.forEach((val, i) => {
           formatFn(val, styles, this);

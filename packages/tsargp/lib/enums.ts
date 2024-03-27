@@ -1,13 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Exports - NOTE: some enumerations are abbreviated for ease of use in client code.
 //--------------------------------------------------------------------------------------------------
-export {
-  ControlSequence as cs,
-  TypeFace as tf,
-  Foreground as fg,
-  Background as bg,
-  Underline as ul,
-};
+export { ControlSequence as cs, TypeFace as tf, Foreground as fg, Background as bg };
 
 //--------------------------------------------------------------------------------------------------
 // Constants - NOTE: please add new enumerators at the _end_ of the enumeration.
@@ -17,7 +11,7 @@ export {
  */
 export const enum ErrorItem {
   /**
-   * Raised by the parser when an option parameter fails to be parsed, with possibe option name
+   * Raised by the parser when an option parameter fails to be parsed, with possible option name
    * suggestions.
    */
   parseError,
@@ -635,11 +629,4 @@ const enum Background {
   brightMagenta,
   brightCyan,
   brightWhite,
-}
-
-/**
- * A predefined text underline color.
- */
-const enum Underline {
-  default = 59,
 }

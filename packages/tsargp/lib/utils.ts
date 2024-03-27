@@ -70,6 +70,12 @@ export type KeyHaving<T, V> = keyof { [K in keyof T as T[K] extends V ? K : neve
 export type Flatten<T> = T extends Array<infer E> ? E : T;
 
 /**
+ * A helper type to get a union of the values of all properties from a type.
+ * @template T The source type
+ */
+export type ValuesOf<T> = T[keyof T];
+
+/**
  * For some reason the global definition of `URL` has issues with static methods.
  */
 export interface URL extends _URL {}
