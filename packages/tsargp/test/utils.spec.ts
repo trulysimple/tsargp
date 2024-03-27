@@ -3,8 +3,9 @@ import {
   overrides,
   checkRequiredArray,
   gestaltSimilarity,
+  findSimilarNames,
   getArgs,
-  splitPhrase,
+  selectAlternative,
   isTrue,
   matchNamingRules,
   type NamingRules,
@@ -157,32 +158,60 @@ describe('gestaltSimilarity', () => {
   });
 });
 
+describe('findSimilarNames', () => {
+  it('should handle empty names', () => {
+    expect(findSimilarNames('', ['abc'])).toHaveLength(1);
+    expect(findSimilarNames('abc', [])).toHaveLength(0);
+  });
+
+  it('should return names in decreasing order of similarity ', () => {
+    const similar = findSimilarNames('abc', ['a', 'ab', 'abc', 'abcd']);
+    expect(similar).toEqual(['abcd', 'ab', 'a']);
+  });
+
+  it('should filter names by similarity threshold', () => {
+    const similar = findSimilarNames('abc', ['a', 'ab', 'abc', 'abcd'], 0.6);
+    expect(similar).toEqual(['abcd', 'ab']);
+  });
+});
+
 describe('splitPhrase', () => {
-  it('should handle a phrase with no words', () => {
-    expect(splitPhrase('')).toEqual(['']);
+  it('should handle an empty phrase', () => {
+    expect(selectAlternative('')).toEqual('');
   });
 
   it('should handle a phrase with no groups', () => {
-    expect(splitPhrase('type|script (is fun)')).toEqual(['type|script (is fun)']);
+    expect(selectAlternative('type|script (is fun)')).toEqual('type|script (is fun)');
   });
 
   it('should handle a phrase with unmatched parentheses', () => {
-    expect(splitPhrase('type (script')).toEqual(['type (script']);
-    expect(splitPhrase('type )script')).toEqual(['type )script']);
+    expect(selectAlternative('type (script')).toEqual('type (script');
+    expect(selectAlternative('type )script')).toEqual('type )script');
   });
 
   it('should handle a phrase with empty groups', () => {
-    expect(splitPhrase('(|) type')).toEqual([' type', ' type']);
-    expect(splitPhrase('script (|)')).toEqual(['script ', 'script ']);
-    expect(splitPhrase('is (|)fun')).toEqual(['is fun', 'is fun']);
+    expect(selectAlternative('type (|) script', 0)).toEqual('type  script');
+    expect(selectAlternative('type (|) script', 1)).toEqual('type  script');
   });
 
   it('should handle a phrase with non-empty groups', () => {
-    expect(splitPhrase('(type|script) is fun')).toEqual(['type is fun', 'script is fun']);
+    expect(selectAlternative('(type|script) is fun', 0)).toEqual('type is fun');
+    expect(selectAlternative('(type|script) is fun', 1)).toEqual('script is fun');
   });
 
   it('should handle a phrase with parentheses inside groups', () => {
-    expect(splitPhrase('((type)|(script)) is fun')).toEqual(['(type) is fun', '(script) is fun']);
+    expect(selectAlternative('((type)|(script)) is fun', 0)).toEqual('(type) is fun');
+    expect(selectAlternative('((type)|(script)) is fun', 1)).toEqual('(script) is fun');
+  });
+
+  it('should handle a phrase with multiple groups', () => {
+    expect(selectAlternative('(type|script) (is|fun)', 0)).toEqual('type is');
+    expect(selectAlternative('(type|script) (is|fun)', 1)).toEqual('script fun');
+  });
+
+  it('should handle a phrase with parentheses after a group', () => {
+    expect(selectAlternative('(type|script) (is fun)', 0)).toEqual('type (is fun)');
+    expect(selectAlternative('(type|script) (is fun)', 1)).toEqual('script (is fun)');
   });
 });
 

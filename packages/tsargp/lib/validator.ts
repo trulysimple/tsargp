@@ -44,8 +44,8 @@ export const defaultConfig: ConcreteConfig = {
   styles: defaultStyles,
   phrases: {
     [ErrorItem.parseError]:
-      'Did you mean to specify an option name instead of %o1?(| Similar names are [%o2].)',
-    [ErrorItem.unknownOption]: 'Unknown option %o1.(| Similar names are [%o2].)',
+      'Did you mean to specify an option name instead of (%o|%o1)?(| Similar names are [%o2].)',
+    [ErrorItem.unknownOption]: 'Unknown option (%o|%o1).(| Similar names are [%o2].)',
     [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %p.',
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
@@ -62,16 +62,13 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Option %o has duplicate name %s.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o1: previous was %o2.',
-    [ErrorItem.duplicateStringEnum]: 'Option %o has duplicate enum %s.',
-    [ErrorItem.duplicateNumberEnum]: 'Option %o has duplicate enum %n.',
+    [ErrorItem.duplicateEnumValue]: 'Option %o has duplicate enum (%s|%n).',
     [ErrorItem.incompatibleRequiredValue]:
       'Option %o has incompatible value %v. Should be of type %s.',
-    [ErrorItem.stringEnumsConstraintViolation]:
-      'Invalid parameter to %o: %s1. Possible values are {%s2}.',
+    [ErrorItem.enumsConstraintViolation]:
+      'Invalid parameter to %o: (%s1|%n1). Possible values are {(%s2|%n2)}.',
     [ErrorItem.regexConstraintViolation]:
       'Invalid parameter to %o: %s. Value must match the regex %r.',
-    [ErrorItem.numberEnumsConstraintViolation]:
-      'Invalid parameter to %o: %n1. Possible values are {%n2}.',
     [ErrorItem.rangeConstraintViolation]:
       'Invalid parameter to %o: %n1. Value must be in the range [%n2].',
     [ErrorItem.limitConstraintViolation]:
@@ -437,7 +434,7 @@ function validateOption(
   result: WarnMessage,
 ) {
   if (!isNiladic(option)) {
-    validateEnumsAndRanges(config, prefix + key, option);
+    validateConstraints(config, prefix + key, option);
     if (typeof option.default !== 'function') {
       validateValue(config, prefix + key, option, option.default);
     }
@@ -531,13 +528,13 @@ function validateRequirement(
 }
 
 /**
- * Checks the sanity of the option's enumerations and numeric ranges.
+ * Checks the sanity of the option's constraints.
  * @param config The message configuration
  * @param key The option key (plus the prefix, if any)
  * @param option The option definition
- * @throws On zero or duplicate enumerated values or values not satisfying specified constraints
+ * @throws On zero or duplicate enumerated values or invalid numeric range
  */
-function validateEnumsAndRanges(config: ConcreteConfig, key: string, option: Option) {
+function validateConstraints(config: ConcreteConfig, key: string, option: Option) {
   if (option.enums) {
     if (!option.enums.length) {
       throw error(config, ErrorItem.emptyEnumsDefinition, { o: key });
@@ -546,9 +543,8 @@ function validateEnumsAndRanges(config: ConcreteConfig, key: string, option: Opt
     if (set.size !== option.enums.length) {
       for (const value of option.enums) {
         if (!set.delete(value)) {
-          throw isString(option)
-            ? error(config, ErrorItem.duplicateStringEnum, { o: key, s: value })
-            : error(config, ErrorItem.duplicateNumberEnum, { o: key, n: value });
+          const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
+          throw error(config, ErrorItem.duplicateEnumValue, { o: key, [spec]: value }, { alt });
         }
       }
     }
@@ -636,18 +632,12 @@ function normalizeString(
     value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
   }
   if (option.enums && !option.enums.includes(value)) {
-    throw error(config, ErrorItem.stringEnumsConstraintViolation, {
-      o: name,
-      s1: value,
-      s2: option.enums,
-    });
+    const args = { o: name, s1: value, s2: option.enums };
+    throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 0, sep: ',' });
   }
   if (option.regex && !option.regex.test(value)) {
-    throw error(config, ErrorItem.regexConstraintViolation, {
-      o: name,
-      s: value,
-      r: option.regex,
-    });
+    const args = { o: name, s: value, r: option.regex };
+    throw error(config, ErrorItem.regexConstraintViolation, args);
   }
   return value;
 }
@@ -671,21 +661,15 @@ function normalizeNumber(
     value = Math[option.conv](value);
   }
   if (option.enums && !option.enums.includes(value)) {
-    throw error(config, ErrorItem.numberEnumsConstraintViolation, {
-      o: name,
-      n1: value,
-      n2: option.enums,
-    });
+    const args = { o: name, n1: value, n2: option.enums };
+    throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 1, sep: ',' });
   }
   if (
     option.range &&
     !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
   ) {
-    throw error(config, ErrorItem.rangeConstraintViolation, {
-      o: name,
-      n1: value,
-      n2: option.range,
-    });
+    const args = { o: name, n1: value, n2: option.range };
+    throw error(config, ErrorItem.rangeConstraintViolation, args);
   }
   return value;
 }

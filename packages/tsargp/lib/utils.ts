@@ -278,17 +278,13 @@ export function gestaltSimilarity(S: string, T: string): number {
 }
 
 /**
- * Gets a list of option names that are similar to a given name.
+ * Gets a list of names that are similar to a given name.
  * @param name The name to be searched
- * @param names The names to be searched
+ * @param names The names to be searched in
  * @param threshold The similarity threshold
  * @returns The list of similar names in decreasing order of similarity
  */
-export function findSimilarNames(
-  name: string,
-  names: Array<string>,
-  threshold: number,
-): Array<string> {
+export function findSimilarNames(name: string, names: Array<string>, threshold = 0): Array<string> {
   /** @ignore */
   function norm(name: string) {
     return name.replace(/\p{P}/gu, '').toLowerCase();
@@ -310,38 +306,45 @@ export function findSimilarNames(
 }
 
 /**
- * Split a phrase into multiple alternatives
+ * Select a phrase alternative
  * @param phrase The phrase string
+ * @param alt The alternative number
  * @returns The phrase alternatives
  * @internal
  */
-export function splitPhrase(phrase: string): Array<string> {
-  let a = [];
-  let b = -1;
-  let i = 0;
-  for (; i < phrase.length; ++i) {
+export function selectAlternative(phrase: string, alt = 0): string {
+  const groups = new Array<[number, number]>();
+  for (let i = 0, s = 0, level = 0, groupLevel = 0, startIndices = []; i < phrase.length; ++i) {
     const c = phrase[i];
     if (c === '(') {
-      a.push(i);
-    } else if (c === '|') {
-      if (b < 0 && a.length) {
-        b = a.length;
+      level = startIndices.push(i);
+    } else if (level) {
+      if (c === '|') {
+        if (!groupLevel) {
+          groupLevel = level;
+        }
+      } else if (c === ')') {
+        s = startIndices.pop() ?? 0;
+        if (groupLevel == level) {
+          groups.push([s, i]);
+          groupLevel = 0; // reset
+        }
+        level--;
       }
-    } else if (c === ')') {
-      if (b == a.length) {
-        break;
-      }
-      a.pop();
     }
   }
-  if (i < phrase.length) {
-    const s = a[a.length - 1];
-    const l = phrase.slice(0, s);
-    const c = phrase.slice(s + 1, i);
-    const r = phrase.slice(i + 1);
-    return c.split('|').map((alt) => l + alt + r);
+  if (groups.length) {
+    const result = [];
+    let j = 0;
+    for (let i = 0; i < groups.length; ++i) {
+      const [s, e] = groups[i];
+      result.push(phrase.slice(j, s), phrase.slice(s + 1, e).split('|')[alt]);
+      j = e + 1;
+    }
+    result.push(phrase.slice(j));
+    return result.join('');
   }
-  return [phrase];
+  return phrase;
 }
 
 /**

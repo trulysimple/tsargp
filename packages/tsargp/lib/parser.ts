@@ -371,7 +371,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
     }
     const key = validator.letters.get(letter);
     if (!key) {
-      throw validator.error(ErrorItem.unknownOption, { o1: letter }, { alt: 0 });
+      throw validator.error(ErrorItem.unknownOption, { o: letter }, { alt: 0 });
     }
     const option = validator.options[key];
     if (
@@ -547,7 +547,7 @@ function handleCompletion(option: Option, param?: string) {
  */
 function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
   const similar = findSimilarNames(name, [...validator.names.keys()], 0.6);
-  const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o1: name }, 0];
+  const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
   const config: FormatConfig = { alt, sep: ',' };
   if (err) {
     err.msg.push(validator.format(ErrorItem.parseError, args, config));

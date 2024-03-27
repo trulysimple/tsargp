@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
 import { cs, tf, fg, bg } from './enums';
-import { overrides, splitPhrase } from './utils';
+import { overrides, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -202,7 +202,7 @@ export type MessageStyles = {
    */
   readonly option?: Style;
   /**
-   * A style for generic (or unknown) values.
+   * The style of generic (or unknown) values.
    */
   readonly value?: Style;
   /**
@@ -444,7 +444,7 @@ export class TerminalString {
    */
   formatArgs(styles: FormatStyles, phrase: string, args?: FormatArgs, config?: FormatConfig): this {
     const formatFn = args && formatArgs(styles, args, config);
-    const alternative = config?.alt !== undefined ? splitPhrase(phrase)[config.alt] : phrase;
+    const alternative = config?.alt !== undefined ? selectAlternative(phrase, config.alt) : phrase;
     return this.splitText(alternative, formatFn);
   }
 
