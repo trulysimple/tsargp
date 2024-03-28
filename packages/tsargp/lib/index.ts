@@ -7,5 +7,5 @@ export * from './formatter';
 export * from './parser';
 export * from './styles';
 
-export { req, RequiresAll, RequiresOne, RequiresNot } from './options';
+export { req } from './options';
 export { OptionValidator } from './validator';

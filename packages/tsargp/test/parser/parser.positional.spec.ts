@@ -38,8 +38,12 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['--='])).toThrow(`Option -- does not accept inline values.`);
-      expect(() => parser.parse(['--=a'])).toThrow(`Option -- does not accept inline values.`);
+      expect(() => parser.parse(['--='])).toThrow(
+        `Positional marker -- does not accept inline values.`,
+      );
+      expect(() => parser.parse(['--=a'])).toThrow(
+        `Positional marker -- does not accept inline values.`,
+      );
     });
 
     it('should handle a boolean option with positional arguments', () => {
@@ -91,7 +95,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['s'])).toThrow(
-        `Invalid parameter to -s: 's'. Possible values are ['abc'].\n` +
+        `Invalid parameter to -s: 's'. Possible values are {'abc'}.\n` +
           `Did you mean to specify an option name instead of s? Similar names are [-s].\n`,
       );
     });
@@ -158,7 +162,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(() => parser.parse(['1'])).toThrow(
-        `Invalid parameter to -n: 1. Possible values are [123].\n` +
+        `Invalid parameter to -n: 1. Possible values are {123}.\n` +
           `Did you mean to specify an option name instead of 1?\n`,
       );
     });

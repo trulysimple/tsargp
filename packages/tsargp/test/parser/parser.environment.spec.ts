@@ -114,7 +114,7 @@ describe('ArgumentParser', () => {
           names: ['-ns'],
           envVar: 'NUMBERS',
           separator: ',',
-          round: 'trunc',
+          conv: 'trunc',
           requires: 'required',
         },
         required: {

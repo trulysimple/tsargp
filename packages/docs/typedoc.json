@@ -7,5 +7,20 @@
   "githubPages": false,
   "excludeExternals": true,
   "treatWarningsAsErrors": true,
-  "intentionallyNotExported": ["OptionDataType", "HelpEntry", "Positional", "ParamValue"]
+  "intentionallyNotExported": [
+    "HelpEntry",
+    "OptionInfo",
+    "OpaqueOption",
+    "OpaqueOptionValues",
+    "OptionDataType",
+    "WithRequired",
+    "WithDefault",
+    "WithExample",
+    "WithParamName",
+    "WithEnums",
+    "WithRegex",
+    "WithRange",
+    "WithVerInfo",
+    "WithResolve"
+  ]
 }

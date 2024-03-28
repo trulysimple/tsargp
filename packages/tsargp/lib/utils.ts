@@ -57,6 +57,25 @@ export type Concrete<T> = { [K in keyof T]-?: Concrete<T[K]> };
 export type Writable<T> = { -readonly [P in keyof T]: Writable<T[P]> };
 
 /**
+ * A helper type to get the keys of a type depending on a value constraint.
+ * @template T The source type
+ * @template V The value type
+ */
+export type KeyHaving<T, V> = keyof { [K in keyof T as T[K] extends V ? K : never]: never };
+
+/**
+ * A helper type to get the type of the array element from a type.
+ * @template T The source type
+ */
+export type Flatten<T> = T extends Array<infer E> ? E : T;
+
+/**
+ * A helper type to get a union of the values of all properties from a type.
+ * @template T The source type
+ */
+export type ValuesOf<T> = T[keyof T];
+
+/**
  * For some reason the global definition of `URL` has issues with static methods.
  */
 export interface URL extends _URL {}
@@ -94,6 +113,13 @@ export type NamingMatch<T extends NamingRules> = Resolve<{
     -readonly [key2 in keyof T[key1]]: string;
   };
 }>;
+
+/**
+ * A (closed) numeric range.
+ *
+ * In a valid range, the minimum should be strictly less than the maximum.
+ */
+export type Range = [min: number, max: number];
 
 //--------------------------------------------------------------------------------------------------
 // Functions
@@ -155,6 +181,7 @@ export function getArgs(line: string, compIndex: number = NaN): Array<string> {
 
 /**
  * Checks the specified value of an array option against a required value.
+ * @template T The type of the array element
  * @param actual The specified value
  * @param expected The required value
  * @param negate True if the requirement should be negated
@@ -162,7 +189,7 @@ export function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * @returns True if the requirement was satisfied
  * @internal
  */
-export function checkRequiredArray<T extends string | number>(
+export function checkRequiredArray<T>(
   actual: ReadonlyArray<T>,
   expected: ReadonlyArray<T>,
   negate: boolean,
@@ -252,22 +279,74 @@ export function gestaltSimilarity(S: string, T: string): number {
 }
 
 /**
- * Split a phrase into multiple alternatives
- * @param phrase The phrase string
- * @returns The phrase alternatives
- * @internal
+ * Gets a list of names that are similar to a given name.
+ * @param name The name to be searched
+ * @param names The names to be searched in
+ * @param threshold The similarity threshold
+ * @returns The list of similar names in decreasing order of similarity
  */
-export function splitPhrase(phrase: string): Array<string> {
-  const [l, c, r] = phrase.split(/\(([^()|]*\|[^()]*)\)/, 3);
-  return c ? c.split('|').map((alt) => l + alt + r) : [l];
+export function findSimilarNames(name: string, names: Array<string>, threshold = 0): Array<string> {
+  /** @ignore */
+  function norm(name: string) {
+    return name.replace(/\p{P}/gu, '').toLowerCase();
+  }
+  const searchName = norm(name);
+  return names
+    .reduce((acc, name2) => {
+      // skip the original name
+      if (name2 != name) {
+        const sim = gestaltSimilarity(searchName, norm(name2));
+        if (sim >= threshold) {
+          acc.push([name2, sim]);
+        }
+      }
+      return acc;
+    }, new Array<[string, number]>())
+    .sort(([, as], [, bs]) => bs - as)
+    .map(([str]) => str);
 }
 
 /**
- * Asserts that a condition is true. This is a no-op.
- * @param _condition The condition
+ * Select a phrase alternative
+ * @param phrase The phrase string
+ * @param alt The alternative number
+ * @returns The phrase alternatives
  * @internal
  */
-export function assert(_condition: unknown): asserts _condition {}
+export function selectAlternative(phrase: string, alt = 0): string {
+  const groups = new Array<[number, number]>();
+  for (let i = 0, s = 0, level = 0, groupLevel = 0, startIndices = []; i < phrase.length; ++i) {
+    const c = phrase[i];
+    if (c === '(') {
+      level = startIndices.push(i);
+    } else if (level) {
+      if (c === '|') {
+        if (!groupLevel) {
+          groupLevel = level;
+        }
+      } else if (c === ')') {
+        s = startIndices.pop() ?? 0;
+        if (groupLevel == level) {
+          groups.push([s, i]);
+          groupLevel = 0; // reset
+        }
+        level--;
+      }
+    }
+  }
+  if (groups.length) {
+    const result = [];
+    let j = 0;
+    for (let i = 0; i < groups.length; ++i) {
+      const [s, e] = groups[i];
+      result.push(phrase.slice(j, s), phrase.slice(s + 1, e).split('|')[alt]);
+      j = e + 1;
+    }
+    result.push(phrase.slice(j));
+    return result.join('');
+  }
+  return phrase;
+}
 
 /**
  * Converts a string to boolean.

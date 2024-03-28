@@ -40,12 +40,12 @@ describe('ArgumentParser', () => {
       expect(parser.parse(['-s', 'oNe'])).toEqual({ string: 'ONE' });
     });
 
-    it('should handle a number option with truncation', () => {
+    it('should handle a number option with math normalization', () => {
       const options = {
         number: {
           type: 'number',
           names: ['-n'],
-          round: 'trunc',
+          conv: 'trunc',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -55,57 +55,6 @@ describe('ArgumentParser', () => {
       expect(parser.parse(['-n', '-.1'])).toEqual({ number: -0 });
       expect(parser.parse(['-n', '-.5'])).toEqual({ number: -0 });
       expect(parser.parse(['-n', '-.9'])).toEqual({ number: -0 });
-    });
-
-    it('should handle a number option with ceil rounding', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          round: 'ceil',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(parser.parse(['-n', '0.1'])).toEqual({ number: 1 });
-      expect(parser.parse(['-n', '0.5'])).toEqual({ number: 1 });
-      expect(parser.parse(['-n', '0.9'])).toEqual({ number: 1 });
-      expect(parser.parse(['-n', '-.1'])).toEqual({ number: -0 });
-      expect(parser.parse(['-n', '-.5'])).toEqual({ number: -0 });
-      expect(parser.parse(['-n', '-.9'])).toEqual({ number: -0 });
-    });
-
-    it('should handle a number option with floor rounding', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          round: 'floor',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
-      expect(parser.parse(['-n', '0.5'])).toEqual({ number: 0 });
-      expect(parser.parse(['-n', '0.9'])).toEqual({ number: 0 });
-      expect(parser.parse(['-n', '-.1'])).toEqual({ number: -1 });
-      expect(parser.parse(['-n', '-.5'])).toEqual({ number: -1 });
-      expect(parser.parse(['-n', '-.9'])).toEqual({ number: -1 });
-    });
-
-    it('should handle a number option with nearest rounding', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          round: 'round',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
-      expect(parser.parse(['-n', '0.5'])).toEqual({ number: 1 });
-      expect(parser.parse(['-n', '0.9'])).toEqual({ number: 1 });
-      expect(parser.parse(['-n', '-.1'])).toEqual({ number: -0 });
-      expect(parser.parse(['-n', '-.5'])).toEqual({ number: -0 });
-      expect(parser.parse(['-n', '-.9'])).toEqual({ number: -1 });
     });
 
     it('should handle a strings option with trimming normalization', () => {
@@ -147,60 +96,18 @@ describe('ArgumentParser', () => {
       expect(parser.parse(['-ss', 'o?Ne,2ki'])).toEqual({ strings: ['O?NE', '2KI'] });
     });
 
-    it('should handle a numbers option with truncation', () => {
+    it('should handle a numbers option math normalization', () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns'],
-          round: 'trunc',
+          conv: 'trunc',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -0] });
       expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [0, -0] });
       expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [0, -0] });
-    });
-
-    it('should handle a numbers option with ceil rounding', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          round: 'ceil',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [1, -0] });
-      expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [1, -0] });
-      expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [1, -0] });
-    });
-
-    it('should handle a numbers option with floor rounding', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          round: 'floor',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -1] });
-      expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [0, -1] });
-      expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [0, -1] });
-    });
-
-    it('should handle a numbers option with nearest rounding', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          round: 'round',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -0] });
-      expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [1, -0] });
-      expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [1, -1] });
     });
   });
 });

@@ -166,6 +166,25 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^$/);
     });
 
+    it('should handle the completion of a positional marker with enums', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          enums: ['one', 'two'],
+          positional: '--',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      expect(() => parser.parse('cmd ', { compIndex: 4 })).toThrow(/^one\ntwo$/);
+      expect(() => parser.parse('cmd -', { compIndex: 5 })).toThrow(/^-s\n--$/);
+      expect(() => parser.parse('cmd --', { compIndex: 6 })).toThrow(/^--$/);
+      expect(() => parser.parse('cmd -- ', { compIndex: 7 })).toThrow(/^one\ntwo$/);
+      expect(() => parser.parse('cmd -- o', { compIndex: 8 })).toThrow(/^one$/);
+      expect(() => parser.parse('cmd --=', { compIndex: 7 })).toThrow(/^$/);
+      expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^one\ntwo$/);
+    });
+
     it('should handle the completion of a positional boolean option', () => {
       const options = {
         boolean: {

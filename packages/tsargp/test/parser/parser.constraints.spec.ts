@@ -32,7 +32,7 @@ describe('ArgumentParser', () => {
       expect(parser.parse([])).toEqual({ string: undefined });
       expect(parser.parse(['-s', 'one'])).toEqual({ string: 'one' });
       expect(() => parser.parse(['-s', 'abc'])).toThrow(
-        `Invalid parameter to -s: 'abc'. Possible values are ['one', 'two'].`,
+        `Invalid parameter to -s: 'abc'. Possible values are {'one', 'two'}.`,
       );
     });
 
@@ -67,7 +67,7 @@ describe('ArgumentParser', () => {
       expect(parser.parse([])).toEqual({ number: undefined });
       expect(parser.parse(['-n', '1'])).toEqual({ number: 1 });
       expect(() => parser.parse(['-n', '3'])).toThrow(
-        `Invalid parameter to -n: 3. Possible values are [1, 2].`,
+        `Invalid parameter to -n: 3. Possible values are {1, 2}.`,
       );
     });
 
@@ -103,7 +103,7 @@ describe('ArgumentParser', () => {
       expect(parser.parse(['-ss', ' one , one '])).toEqual({ strings: ['one', 'one'] });
       expect(parser.parse(['-ss', ' two '])).toEqual({ strings: ['two'] });
       expect(() => parser.parse(['-ss', 'abc'])).toThrow(
-        `Invalid parameter to -ss: 'abc'. Possible values are ['one', 'two'].`,
+        `Invalid parameter to -ss: 'abc'. Possible values are {'one', 'two'}.`,
       );
     });
 
@@ -141,7 +141,7 @@ describe('ArgumentParser', () => {
       expect(parser.parse(['-ns', ' 1 , 1 '])).toEqual({ numbers: [1, 1] });
       expect(parser.parse(['-ns', ' 2 '])).toEqual({ numbers: [2] });
       expect(() => parser.parse(['-ns', '1,3'])).toThrow(
-        `Invalid parameter to -ns: 3. Possible values are [1, 2].`,
+        `Invalid parameter to -ns: 3. Possible values are {1, 2}.`,
       );
     });
 

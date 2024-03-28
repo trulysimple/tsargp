@@ -88,7 +88,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -f, --flag    A flag option. Can be negated with -no-f or --no-flag.\n`,
+        `  -f, --flag    A flag option. Can be negated with -no-f, --no-flag.\n`,
       );
     });
 

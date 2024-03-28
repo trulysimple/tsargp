@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { HelpConfig, HelpSections } from './formatter';
+import type { FormatterConfig, HelpSections } from './formatter';
 import type { Style } from './styles';
-import type { Resolve, Writable, URL } from './utils';
+import type { Resolve, URL, Flatten, KeyHaving, Range } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -41,7 +41,7 @@ export const req = {
 } as const;
 
 //--------------------------------------------------------------------------------------------------
-// Types
+// Public types
 //--------------------------------------------------------------------------------------------------
 /**
  * A set of styles for displaying an option on the terminal.
@@ -88,11 +88,16 @@ export class RequiresNot {
 export type RequiresExp = RequiresNot | RequiresAll | RequiresOne;
 
 /**
+ * The type of an option value.
+ */
+export type OptionValue = boolean | string | number | Array<string> | Array<number>;
+
+/**
  * An object that maps option keys to required values.
  *
  * Values can be `undefined` to indicate presence, or `null` to indicate absence.
  */
-export type RequiresVal = { [key: string]: ParamOption['example'] | null };
+export type RequiresVal = { [key: string]: OptionValue | undefined | null };
 
 /**
  * An option requirement can be either:
@@ -109,7 +114,7 @@ export type Requires = string | RequiresVal | RequiresExp | RequiresCallback;
  * @param values The option values
  * @returns True if the requirements were satisfied
  */
-export type RequiresCallback = (values: OptionValues) => boolean;
+export type RequiresCallback = (values: OpaqueOptionValues) => boolean;
 
 /**
  * A callback to parse the value of option parameters. Any specified normalization or constraint
@@ -120,11 +125,17 @@ export type RequiresCallback = (values: OptionValues) => boolean;
  * @param value The parameter value
  * @returns The parsed value
  */
-export type ParseCallback<T> = (values: OptionValues, name: string, value: string) => T;
+export type ParseCallback<T> = (
+  values: OpaqueOptionValues,
+  name: string,
+  value: string,
+) => T | Promise<T>;
 
 /**
- * A module-relative resolution function (i.e., scoped to a module). To be used in non-browser
- * environments only.
+ * A module-relative resolution function (i.e., scoped to a module).
+ * To be used in non-browser environments only.
+ * @param specifier The path specifier
+ * @returns The resolved path
  */
 export type ResolveCallback = (specifier: string) => string;
 
@@ -134,7 +145,7 @@ export type ResolveCallback = (specifier: string) => string;
  * @param values The values parsed so far
  * @returns The default value
  */
-export type DefaultCallback<T> = (values: OptionValues) => T | Promise<T>;
+export type DefaultCallback<T> = (values: OpaqueOptionValues) => T | Promise<T>;
 
 /**
  * A callback for function options.
@@ -143,15 +154,19 @@ export type DefaultCallback<T> = (values: OptionValues) => T | Promise<T>;
  * @param rest The remaining command-line arguments
  * @returns The option value
  */
-export type ExecuteCallback = (values: OptionValues, comp: boolean, rest: Array<string>) => unknown;
+export type ExecuteCallback = (
+  values: OpaqueOptionValues,
+  comp: boolean,
+  rest: Array<string>,
+) => unknown;
 
 /**
  * A callback for command options.
- * @param values The values parsed before the command
- * @param cmdValues The values parsed after the command
+ * @param prev The values parsed for the parent command
+ * @param values The values parsed for the command
  * @returns The option value
  */
-export type CommandCallback = (values: OptionValues, cmdValues: OptionValues) => unknown;
+export type CommandCallback = (prev: OpaqueOptionValues, values: OpaqueOptionValues) => unknown;
 
 /**
  * A callback for option completion.
@@ -161,13 +176,13 @@ export type CommandCallback = (values: OptionValues, cmdValues: OptionValues) =>
  * @returns The list of completion words
  */
 export type CompleteCallback = (
-  values: OptionValues,
+  values: OpaqueOptionValues,
   comp: string,
   rest: Array<string>,
 ) => Array<string> | Promise<Array<string>>;
 
 /**
- * Defines attributes common to all options.
+ * Defines the type of an option.
  * @template T The option type
  */
 export type WithType<T extends string> = {
@@ -175,10 +190,16 @@ export type WithType<T extends string> = {
    * The option type.
    */
   readonly type: T;
+};
+
+/**
+ * Defines attributes common to all options.
+ */
+export type WithBasic = {
   /**
    * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
    *
-   * Names cannot contain whitespace or the equals sign `=` (since it may act as option-value
+   * Names cannot contain whitespace or the equals sign `=` (since it may act as option-parameter
    * separator). Empty names or `null`s can be specified in order to skip the respective "slot" in
    * the help message names column.
    */
@@ -188,13 +209,17 @@ export type WithType<T extends string> = {
    * when evaluating option requirements or processing positional arguments). It is not validated
    * and can be anything.
    *
-   * If not specified, the first name in the {@link WithType.names} array will be used.
+   * If not specified, the first name in the {@link WithBasic.names} array will be used.
    */
   preferredName?: string;
   /**
    * The option synopsis. It may contain inline styles.
    */
   readonly desc?: string;
+  /**
+   * The option deprecation reason. It may contain inline styles.
+   */
+  readonly deprecated?: string;
   /**
    * The option group in the help message.
    */
@@ -208,38 +233,20 @@ export type WithType<T extends string> = {
    */
   readonly styles?: OptionStyles;
   /**
-   * The option deprecation reason. It may contain inline styles.
-   */
-  readonly deprecated?: string;
-  /**
    * A reference to an external resource.
    */
   readonly link?: URL;
 };
 
 /**
- * Defines attributes for a required option.
+ * Defines attributes common to options with values.
+ * @template T The data type
  */
-export type WithRequired = {
+export type WithValue<T> = {
   /**
    * True if the option is always required.
    */
   readonly required?: true;
-  /**
-   * @deprecated mutually exclusive with {@link WithRequired.required}
-   */
-  readonly default?: never;
-  /**
-   * @deprecated mutually exclusive with {@link WithRequired.required}
-   */
-  readonly requiredIf?: never;
-};
-
-/**
- * Defines attributes for a default value.
- * @template T The default data type
- */
-export type WithDefault<T> = {
   /**
    * The option default value or a callback that returns the default value.
    *
@@ -247,245 +254,15 @@ export type WithDefault<T> = {
    * command-line. You may use a callback to inspect parsed values and determine the default value
    * based on those values.
    */
-  readonly default?: T | DefaultCallback<T>;
-  /**
-   * The conditional requirements.
-   */
-  readonly requiredIf?: Requires;
-  // TODO: change link to WithDefault.default once this is resolved:
-  // https://github.com/TypeStrong/typedoc/issues/2524
-  /**
-   * @deprecated mutually exclusive with {@link WithDefault['default']} and
-   * {@link WithDefault['requiredIf']}
-   */
-  readonly required?: never;
-};
-
-/**
- * Defines attributes common to all options that accept parameters.
- */
-export type WithParam = {
-  /**
-   * Allows positional arguments. There may be at most one option with this setting.
-   *
-   * If set, then any argument not recognized as an option name will be considered positional.
-   * Additionally, if a string is specified as positional marker, then all arguments beyond this
-   * marker will be considered positional.
-   *
-   * We recommend also setting {@link WithType.preferredName} to some explanatory name.
-   */
-  readonly positional?: true | string;
-  /**
-   * A custom completion callback. It should not throw. If asynchronous, you should call
-   * `ArgumentParser.parseAsync` and await its result.
-   */
-  readonly complete?: CompleteCallback;
-};
-
-/**
- * Defines attributes for an example value.
- * @template T The example data type
- */
-export type WithExample<T> = {
-  /**
-   * The option example value. Replaces the option type in the help message parameter column.
-   */
-  readonly example?: T;
-  /**
-   * @deprecated mutually exclusive with {@link WithExample.example}
-   */
-  readonly paramName?: never;
-};
-
-/**
- * Defines attributes for a parameter name.
- */
-export type WithParamName = {
-  /**
-   * The option parameter name. Replaces the option type in the help message parameter column.
-   */
-  readonly paramName?: string;
-  /**
-   * @deprecated mutually exclusive with {@link WithParamName.paramName}
-   */
-  readonly example?: never;
-};
-
-/**
- * Defines attributes for a custom callback that parses single-value parameters.
- */
-export type WithParse<T> = {
-  /**
-   * A custom function to parse the value of the option parameter.
-   */
-  readonly parse?: ParseCallback<T | Promise<T>>;
-  /**
-   * @deprecated mutually exclusive with {@link WithParse.parse}
-   */
-  readonly parseDelimited?: never;
-};
-
-/**
- * Defines attributes for a custom callback that parses delimited-value parameters.
- */
-export type WithParseDelimited<T> = {
-  /**
-   * A custom function to parse the delimited values of the option parameter. If specified, the
-   * option accepts a single parameter.
-   */
-  readonly parseDelimited?: ParseCallback<Array<T> | Promise<Array<T>>>;
-  /**
-   * @deprecated mutually exclusive with {@link WithParseDelimited.parseDelimited}
-   */
-  readonly parse?: never;
-  /**
-   * @deprecated mutually exclusive with {@link WithParseDelimited.parseDelimited}
-   */
-  readonly separator?: never;
-};
-
-/**
- * Defines attributes for an option that accepts delimited-value parameters.
- */
-export type WithSeparator = {
-  /**
-   * The parameter value separator. If specified, the option accepts a single parameter.
-   */
-  readonly separator?: string | RegExp;
-  /**
-   * @deprecated mutually exclusive with {@link WithSeparator.separator}
-   */
-  readonly parseDelimited?: never;
-};
-
-/**
- * Defines attributes common to all options that have array values.
- */
-export type WithArray = {
-  /**
-   * True if duplicate elements should be removed.
-   */
-  readonly unique?: true;
-  /**
-   * Allows appending elements if specified multiple times.
-   */
-  readonly append?: true;
-  /**
-   * The maximum allowed number of elements.
-   */
-  readonly limit?: number;
-};
-
-/**
- * Defines attributes for an enumeration constraint.
- * @template T The enumeration data type
- */
-export type WithEnums<T> = {
-  /**
-   * The enumerated values.
-   */
-  readonly enums?: ReadonlyArray<T>;
-  /**
-   * @deprecated mutually exclusive with {@link WithEnums.enums}
-   */
-  readonly regex?: never;
-  /**
-   * @deprecated mutually exclusive with {@link WithEnums.enums}
-   */
-  readonly range?: never;
-};
-
-/**
- * Defines attributes for a regex constraint.
- */
-export type WithRegex = {
-  /**
-   * The regular expression.
-   */
-  readonly regex?: RegExp;
-  /**
-   * @deprecated mutually exclusive with {@link WithRegex.regex}
-   */
-  readonly enums?: never;
-};
-
-/**
- * Defines attributes for a range constraint.
- */
-export type WithRange = {
-  /**
-   * The (closed) numeric range. You may want to use `[-Infinity, Infinity]` to disallow `NaN`.
-   */
-  readonly range?: [floor: number, ceiling: number];
-  /**
-   * @deprecated mutually exclusive with {@link WithRange.range}
-   */
-  readonly enums?: never;
-};
-
-/**
- * Defines the version attribute of a version option.
- */
-export type WithVersion = {
-  /**
-   * The semantic version (e.g., 0.1.0) or version information. It is not validated, but cannot be
-   * empty. It may contain inline styles.
-   */
-  readonly version: string;
-  /**
-   * @deprecated mutually exclusive with {@link WithVersion.version}
-   */
-  readonly resolve?: never;
-};
-
-/**
- * Defines the resolve attribute of a version option.
- */
-export type WithResolve = {
-  /**
-   * A resolution function scoped to the module where a `package.json` file should be searched. Use
-   * `import.meta.resolve`. Use in non-browser environments only. This results in an asynchronous
-   * operation, so you should call `ArgumentParser.parseAsync` and await its result.
-   */
-  readonly resolve: ResolveCallback;
-  /**
-   * @deprecated mutually exclusive with {@link WithResolve.resolve}
-   */
-  readonly version?: never;
-};
-
-/**
- * Defines attributes common to all options that accept string parameters.
- */
-export type WithString = (WithEnums<string> | WithRegex) & {
-  /**
-   * True if the values should be trimmed (remove leading and trailing whitespace).
-   */
-  readonly trim?: true;
-  /**
-   * The kind of case conversion to apply.
-   */
-  readonly case?: 'lower' | 'upper';
-};
-
-/**
- * Defines attributes common to all options that accept number parameters.
- */
-export type WithNumber = (WithEnums<number> | WithRange) & {
-  /**
-   * The kind of rounding to apply.
-   */
-  readonly round?: 'trunc' | 'floor' | 'ceil' | 'round';
-};
-
-/**
- * Defines attributes common to all options that have values.
- */
-export type WithValue<T> = (WithDefault<T> | WithRequired) & {
+  readonly default?: Readonly<T> | DefaultCallback<T>;
   /**
    * The option requirements.
    */
   readonly requires?: Requires;
+  /**
+   * The conditional requirements.
+   */
+  readonly requiredIf?: Requires;
   /**
    * The letters used for clustering in short-option style (e.g., 'fF').
    */
@@ -493,7 +270,99 @@ export type WithValue<T> = (WithDefault<T> | WithRequired) & {
 };
 
 /**
- * Defines attributes common to all valued options except function and command options.
+ * Defines attributes common to options with parameters.
+ * @template T The option value data type
+ */
+export type WithParam<T> = {
+  /**
+   * The option example value. Replaces the option type in the help message parameter column.
+   */
+  readonly example?: Readonly<T>;
+  /**
+   * The option parameter name. Replaces the option type in the help message parameter column.
+   */
+  readonly paramName?: string;
+  /**
+   * Allows positional arguments. There may be at most one option with this setting.
+   *
+   * If set, then any argument not recognized as an option name will be considered positional.
+   * Additionally, if a string is specified as positional marker, then all arguments beyond this
+   * marker will be considered positional.
+   *
+   * We recommend also setting {@link WithBasic.preferredName} to some explanatory name.
+   */
+  readonly positional?: true | string;
+  /**
+   * A custom completion callback. It should not throw. If asynchronous, you should call
+   * `ArgumentParser.parseAsync` and await its result.
+   */
+  readonly complete?: CompleteCallback;
+  /**
+   * A custom function to parse the value of the option parameter.
+   */
+  readonly parse?: ParseCallback<Flatten<T>>;
+  /**
+   * The enumerated values.
+   */
+  readonly enums?: ReadonlyArray<Flatten<T>>;
+};
+
+/**
+ * Defines attributes common to string-valued options.
+ */
+export type WithString = {
+  /**
+   * The regular expression.
+   */
+  readonly regex?: RegExp;
+  /**
+   * True if the values should be trimmed (remove leading and trailing whitespace).
+   */
+  readonly trim?: true;
+  /**
+   * The kind of case-conversion to apply.
+   */
+  readonly case?: 'lower' | 'upper';
+};
+
+/**
+ * Defines attributes common to number-valued options.
+ */
+export type WithNumber = {
+  /**
+   * The numeric range. You may want to use `[-Infinity, Infinity]` to disallow `NaN`.
+   */
+  readonly range?: Range;
+  /**
+   * The kind of math conversion to apply.
+   */
+  readonly conv?: KeyHaving<Math, (x: number) => number>;
+};
+
+/**
+ * Defines attributes common to array-valued options.
+ */
+export type WithArray = {
+  /**
+   * Allows appending elements if specified multiple times.
+   */
+  readonly append?: true;
+  /**
+   * The parameter value separator. If specified, the option accepts a single parameter.
+   */
+  readonly separator?: string | RegExp;
+  /**
+   * True if duplicate elements should be removed.
+   */
+  readonly unique?: true;
+  /**
+   * The maximum allowed number of elements.
+   */
+  readonly limit?: number;
+};
+
+/**
+ * Defines miscellaneous attributes.
  */
 export type WithMisc = {
   /**
@@ -504,123 +373,13 @@ export type WithMisc = {
 };
 
 /**
- * An option that has a boolean value (accepts a single boolean parameter).
+ * Defines attributes for the help option.
  */
-export type BooleanOption = WithType<'boolean'> &
-  WithParam &
-  WithMisc &
-  WithValue<boolean> &
-  (WithExample<boolean> | WithParamName) &
-  WithParse<boolean>;
-
-/**
- * An option that has a string value (accepts a single string parameter).
- */
-export type StringOption = WithType<'string'> &
-  WithParam &
-  WithMisc &
-  WithValue<string> &
-  (WithExample<string> | WithParamName) &
-  WithString &
-  WithParse<string>;
-
-/**
- * An option that has a number value (accepts a single number parameter).
- */
-export type NumberOption = WithType<'number'> &
-  WithParam &
-  WithMisc &
-  WithValue<number> &
-  (WithExample<number> | WithParamName) &
-  WithNumber &
-  WithParse<number>;
-
-/**
- * An option that has a string array value (may accept single or multiple parameters).
- */
-export type StringsOption = WithType<'strings'> &
-  WithParam &
-  WithMisc &
-  WithValue<ReadonlyArray<string>> &
-  (WithExample<ReadonlyArray<string>> | WithParamName) &
-  WithString &
-  WithArray &
-  ((WithParse<string> & WithSeparator) | WithParseDelimited<string>);
-
-/**
- * An option that has a number array value (may accept single or multiple parameters).
- */
-export type NumbersOption = WithType<'numbers'> &
-  WithParam &
-  WithMisc &
-  WithValue<ReadonlyArray<number>> &
-  (WithExample<ReadonlyArray<number>> | WithParamName) &
-  WithNumber &
-  WithArray &
-  ((WithParse<number> & WithSeparator) | WithParseDelimited<number>);
-
-/**
- * An option that has a boolean value and is enabled if specified (or disabled if negated).
- */
-export type FlagOption = WithType<'flag'> &
-  WithMisc &
-  WithValue<boolean> & {
-    /**
-     * The names used for negation (e.g., '--no-flag').
-     */
-    readonly negationNames?: ReadonlyArray<string>;
-  };
-
-/**
- * An option that executes a callback function.
- */
-export type FunctionOption = WithType<'function'> &
-  WithValue<unknown> & {
-    /**
-     * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-     * its result.
-     */
-    readonly exec: ExecuteCallback;
-    /**
-     * True to break the parsing loop.
-     */
-    readonly break?: true;
-    /**
-     * The number of remaining arguments to skip. You may change this value inside a synchronous
-     * callback. Otherwise, you should leave it unchanged. The parser does not alter this value.
-     * During bash completion, it is ignored.
-     */
-    skipCount?: number;
-  };
-
-/**
- * An option that executes a command.
- */
-export type CommandOption = WithType<'command'> &
-  WithValue<unknown> & {
-    /**
-     * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-     * its result.
-     */
-    readonly cmd: CommandCallback;
-    /**
-     * The command options or a callback that returns the options (for use with recursive commands).
-     */
-    readonly options: Options | (() => Options);
-    /**
-     * True if the first argument is expected to be an option cluster (i.e., short-option style).
-     */
-    readonly shortStyle?: true;
-  };
-
-/**
- * An option that throws a help message.
- */
-export type HelpOption = WithType<'help'> & {
+export type WithHelp = {
   /**
-   * The help format configuration.
+   * The formatter configuration.
    */
-  readonly format?: HelpConfig;
+  readonly format?: FormatterConfig;
   /**
    * The help sections to be rendered.
    */
@@ -632,157 +391,438 @@ export type HelpOption = WithType<'help'> & {
 };
 
 /**
- * An option that throws a semantic version.
+ * Defines attributes for the version option.
  */
-export type VersionOption = WithType<'version'> & (WithVersion | WithResolve);
+export type WithVersion = {
+  /**
+   * The semantic version (e.g., 0.1.0) or version information. It is not validated, but cannot be
+   * empty. It may contain inline styles.
+   */
+  readonly version?: string;
+  /**
+   * A resolution function scoped to the module where a `package.json` file should be searched. Use
+   * `import.meta.resolve`. Use in non-browser environments only. This results in an asynchronous
+   * operation, so you should call `ArgumentParser.parseAsync` and await its result.
+   */
+  readonly resolve?: ResolveCallback;
+};
 
 /**
- * An option that performs some predefined action.
+ * Defines attributes for the function option.
  */
-export type SpecialOption = HelpOption | VersionOption;
+export type WithFunction = {
+  /**
+   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+   * its result.
+   */
+  readonly exec: ExecuteCallback;
+  /**
+   * True to break the parsing loop.
+   */
+  readonly break?: true;
+  /**
+   * The number of remaining arguments to skip. You may change this value inside a synchronous
+   * callback. Otherwise, you should leave it unchanged. The parser does not alter this value.
+   * During bash completion, it is ignored.
+   */
+  skipCount?: number;
+};
 
 /**
- * An option that performs a user-defined action.
+ * Defines attributes for the command option.
  */
-export type ExecutingOption = FunctionOption | CommandOption;
+export type WithCommand = {
+  /**
+   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
+   * its result.
+   */
+  readonly cmd: CommandCallback;
+  /**
+   * The command options or a callback that returns the options (for use with recursive commands).
+   */
+  readonly options: Options | (() => Options);
+  /**
+   * True if the first argument is expected to be an option cluster (i.e., short-option style).
+   */
+  readonly shortStyle?: true;
+};
 
 /**
- * An option that accepts no parameters.
+ * Defines attributes for the flag option.
  */
-export type NiladicOption = FlagOption | ExecutingOption | SpecialOption;
+export type WithFlag = {
+  /**
+   * The names used for negation (e.g., '--no-flag').
+   */
+  readonly negationNames?: ReadonlyArray<string>;
+};
 
 /**
- * A single-valued option that accepts a single parameter.
+ * An option that throws a help message.
  */
-export type SingleOption = BooleanOption | StringOption | NumberOption;
+export type HelpOption = WithType<'help'> & WithBasic & WithHelp;
 
 /**
- * An array-valued option that may accept multiple parameters.
+ * An option that throws a version information.
  */
-export type ArrayOption = StringsOption | NumbersOption;
+export type VersionOption = WithType<'version'> &
+  WithBasic &
+  WithVersion &
+  (WithVerInfo | WithResolve);
 
 /**
- * An option that accepts any kind of parameter.
+ * An option that executes a callback function.
  */
-export type ParamOption = SingleOption | ArrayOption;
+export type FunctionOption = WithType<'function'> &
+  WithBasic &
+  WithFunction &
+  WithValue<unknown> &
+  (WithDefault | WithRequired);
 
 /**
- * An option that has a default value.
+ * An option that executes a command.
  */
-export type ValuedOption = FlagOption | ExecutingOption | ParamOption;
+export type CommandOption = WithType<'command'> &
+  WithBasic &
+  WithCommand &
+  WithValue<unknown> &
+  (WithDefault | WithRequired);
 
 /**
- * An option definition. (finally)
+ * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
-export type Option = NiladicOption | ParamOption;
+export type FlagOption = WithType<'flag'> &
+  WithBasic &
+  WithMisc &
+  WithFlag &
+  WithValue<boolean> &
+  (WithDefault | WithRequired);
 
 /**
- * A collection of option definitions.
+ * An option that has a boolean value (accepts a single boolean parameter).
+ */
+export type BooleanOption = WithType<'boolean'> &
+  WithBasic &
+  WithMisc &
+  WithValue<boolean> &
+  WithParam<boolean> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName);
+
+/**
+ * An option that has a string value (accepts a single string parameter).
+ */
+export type StringOption = WithType<'string'> &
+  WithBasic &
+  WithMisc &
+  WithString &
+  WithValue<string> &
+  WithParam<string> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRegex);
+
+/**
+ * An option that has a number value (accepts a single number parameter).
+ */
+export type NumberOption = WithType<'number'> &
+  WithBasic &
+  WithMisc &
+  WithNumber &
+  WithValue<number> &
+  WithParam<number> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRange);
+
+/**
+ * An option that has a string array value (may accept single or multiple parameters).
+ */
+export type StringsOption = WithType<'strings'> &
+  WithBasic &
+  WithMisc &
+  WithString &
+  WithArray &
+  WithValue<Array<string>> &
+  WithParam<Array<string>> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRegex);
+
+/**
+ * An option that has a number array value (may accept single or multiple parameters).
+ */
+export type NumbersOption = WithType<'numbers'> &
+  WithBasic &
+  WithMisc &
+  WithNumber &
+  WithArray &
+  WithValue<Array<number>> &
+  WithParam<Array<number>> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRange);
+
+/**
+ * The public option types.
+ */
+export type Option =
+  | HelpOption
+  | VersionOption
+  | FunctionOption
+  | CommandOption
+  | FlagOption
+  | BooleanOption
+  | StringOption
+  | NumberOption
+  | StringsOption
+  | NumbersOption;
+
+/**
+ * A collection of public option definitions.
  */
 export type Options = Readonly<Record<string, Option>>;
-
-/**
- * The data type of an option with a default value.
- * @template T The option definition type
- */
-type DefaultDataType<T extends ValuedOption> =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends { default: (...args: any) => infer R }
-    ? Writable<R>
-    : T extends { default: infer D }
-      ? D extends undefined
-        ? never
-        : Writable<D>
-      : T extends { required: true }
-        ? never
-        : undefined;
-
-/**
- * The data type of a non-niladic option.
- * @template T The option definition type
- * @template D The option value data type
- * @template E The effective data type
- */
-type ParamDataType<T extends ParamOption, D, E> = T extends
-  | { parse: ParseCallback<D> }
-  | { parseDelimited: ParseCallback<Array<D>> }
-  ? E
-  : T extends
-        | { parse: ParseCallback<Promise<D>> }
-        | { parseDelimited: ParseCallback<Promise<Array<D>>> }
-    ? Promise<E>
-    : T extends
-          | { parse: ParseCallback<D | Promise<D>> }
-          | { parseDelimited: ParseCallback<Array<D> | Promise<Array<D>>> }
-      ? E | Promise<E>
-      : E;
-
-/**
- * The data type of an option with enumerated values.
- * @template T The option definition type
- * @template D The option value data type
- */
-type EnumsDataType<T extends ParamOption, D> = T extends { enums: ReadonlyArray<infer E> } ? E : D;
-
-/**
- * The data type of a (possibly) delimited array-valued option.
- * @template T The option definition type
- */
-type DelimitedDataType<T extends ArrayOption> = T extends
-  | { separator: string }
-  | { parseDelimited: NonNullable<unknown> }
-  ? never
-  : [];
-
-/**
- * The data type of a single-valued option.
- * @template T The option definition type
- * @template D The option value data type
- */
-type SingleDataType<T extends SingleOption, D> = ParamDataType<T, D, EnumsDataType<T, D>>;
-
-/**
- * The data type of an array-valued option.
- * @template T The option definition type
- * @template D The option value data type
- */
-type ArrayDataType<T extends ArrayOption, D> = ParamDataType<T, D, Array<EnumsDataType<T, D>>>;
-
-/**
- * The data type of an option value.
- * @template T The option definition type
- */
-type OptionDataType<T extends Option> = T extends FunctionOption
-  ? ReturnType<T['exec']> | DefaultDataType<T>
-  : T extends CommandOption
-    ? ReturnType<T['cmd']> | DefaultDataType<T>
-    : T extends FlagOption
-      ? boolean | DefaultDataType<T>
-      : T extends BooleanOption
-        ? SingleDataType<T, boolean> | DefaultDataType<T>
-        : T extends StringOption
-          ? SingleDataType<T, string> | DefaultDataType<T>
-          : T extends NumberOption
-            ? SingleDataType<T, number> | DefaultDataType<T>
-            : T extends StringsOption
-              ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
-              : T extends NumbersOption
-                ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
-                : never;
 
 /**
  * A generic collection of option values.
  * @template T The type of the option definitions
  */
 export type OptionValues<T extends Options = Options> = Resolve<{
-  -readonly [key in keyof T as T[key] extends SpecialOption ? never : key]: OptionDataType<T[key]>;
+  -readonly [key in keyof T as T[key] extends { type: 'help' | 'version' }
+    ? never
+    : key]: OptionDataType<T[key]>;
 }>;
 
+//--------------------------------------------------------------------------------------------------
+// Internal types
+//--------------------------------------------------------------------------------------------------
 /**
- * The concrete data type of the option value of a non-niladic option.
+ * The option types.
  * @internal
  */
-export type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
+type OptionTypes =
+  | 'help'
+  | 'version'
+  | 'function'
+  | 'command'
+  | 'flag'
+  | 'boolean'
+  | 'string'
+  | 'number'
+  | 'strings'
+  | 'numbers';
+
+/**
+ * An internal option definition.
+ * @internal
+ */
+export type OpaqueOption = WithType<OptionTypes> &
+  WithBasic &
+  WithValue<unknown> &
+  WithParam<unknown> &
+  WithHelp &
+  WithVersion &
+  WithFunction &
+  WithCommand &
+  WithFlag &
+  WithString &
+  WithNumber &
+  WithArray &
+  WithMisc;
+
+/**
+ * A collection of internal option definitions.
+ * @internal
+ */
+export type OpaqueOptions = Readonly<Record<string, OpaqueOption>>;
+
+/**
+ * A collection of internal option values.
+ * @internal
+ */
+export type OpaqueOptionValues = Record<string, unknown>;
+
+/**
+ * Defines attributes for a required option.
+ */
+type WithRequired = {
+  /**
+   * @deprecated mutually exclusive with {@link WithValue.required}
+   */
+  readonly default?: never;
+  /**
+   * @deprecated mutually exclusive with {@link WithValue.required}
+   */
+  readonly requiredIf?: never;
+};
+
+/**
+ * Defines attributes for a default value.
+ */
+type WithDefault = {
+  /**
+   * @deprecated mutually exclusive with {@link WithValue.default} and {@link WithValue.requiredIf}
+   */
+  readonly required?: never;
+};
+
+/**
+ * Defines attributes for an example value.
+ */
+type WithExample = {
+  /**
+   * @deprecated mutually exclusive with {@link WithParam.example}
+   */
+  readonly paramName?: never;
+};
+
+/**
+ * Defines attributes for a parameter name.
+ */
+type WithParamName = {
+  /**
+   * @deprecated mutually exclusive with {@link WithParam.paramName}
+   */
+  readonly example?: never;
+};
+
+/**
+ * Defines attributes for an enumeration constraint.
+ */
+type WithEnums = {
+  /**
+   * @deprecated mutually exclusive with {@link WithParam.enums}
+   */
+  readonly regex?: never;
+  /**
+   * @deprecated mutually exclusive with {@link WithParam.enums}
+   */
+  readonly range?: never;
+};
+
+/**
+ * Defines attributes for a regex constraint.
+ */
+type WithRegex = {
+  /**
+   * @deprecated mutually exclusive with {@link WithString.regex}
+   */
+  readonly enums?: never;
+};
+
+/**
+ * Defines attributes for a range constraint.
+ */
+type WithRange = {
+  /**
+   * @deprecated mutually exclusive with {@link WithNumber.range}
+   */
+  readonly enums?: never;
+};
+
+/**
+ * Defines the version attribute of a version option.
+ */
+type WithVerInfo = {
+  /**
+   * @deprecated mutually exclusive with {@link WithVersion.version}
+   */
+  readonly resolve?: never;
+};
+
+/**
+ * Defines the resolve attribute of a version option.
+ */
+type WithResolve = {
+  /**
+   * @deprecated mutually exclusive with {@link WithVersion.resolve}
+   */
+  readonly version?: never;
+};
+
+/**
+ * The data type of an option that may have a default value.
+ * @template T The option definition type
+ */
+type DefaultDataType<T extends Option> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends { default: (...args: any) => infer R }
+    ? R
+    : T extends { default: infer D }
+      ? D extends undefined
+        ? never
+        : D
+      : T extends { required: true }
+        ? never
+        : undefined;
+
+/**
+ * The data type of an option that has parameters.
+ * @template T The option definition type
+ * @template D The option value data type
+ * @template E The effective data type
+ */
+type ParamDataType<T extends Option, D, E> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends { parse: (...args: any) => infer R }
+    ? R extends D
+      ? E
+      : R extends Promise<D>
+        ? Promise<E>
+        : R extends D | Promise<D>
+          ? E | Promise<E>
+          : E
+    : E;
+
+/**
+ * The data type of an option with enumerated values.
+ * @template T The option definition type
+ * @template D The option value data type
+ */
+type EnumsDataType<T extends Option, D> = T extends { enums: ReadonlyArray<infer E> } ? E : D;
+
+/**
+ * The data type of a (possibly) delimited array-valued option.
+ * @template T The option definition type
+ */
+type DelimitedDataType<T extends Option> = T extends { separator: string } ? never : [];
+
+/**
+ * The data type of a single-valued option.
+ * @template T The option definition type
+ * @template D The option value data type
+ */
+type SingleDataType<T extends Option, D> = ParamDataType<T, D, EnumsDataType<T, D>>;
+
+/**
+ * The data type of an array-valued option.
+ * @template T The option definition type
+ * @template D The option value data type
+ */
+type ArrayDataType<T extends Option, D> = ParamDataType<T, D, Array<EnumsDataType<T, D>>>;
+
+/**
+ * The data type of an option value.
+ * @template T The option definition type
+ */
+type OptionDataType<T extends Option> =
+  T extends WithType<'function'>
+    ? ReturnType<T['exec']> | DefaultDataType<T>
+    : T extends WithType<'command'>
+      ? ReturnType<T['cmd']> | DefaultDataType<T>
+      : T extends WithType<'flag'>
+        ? boolean | DefaultDataType<T>
+        : T extends WithType<'boolean'>
+          ? SingleDataType<T, boolean> | DefaultDataType<T>
+          : T extends WithType<'string'>
+            ? SingleDataType<T, string> | DefaultDataType<T>
+            : T extends WithType<'number'>
+              ? SingleDataType<T, number> | DefaultDataType<T>
+              : T extends WithType<'strings'>
+                ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
+                : T extends WithType<'numbers'>
+                  ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
+                  : never;
 
 //--------------------------------------------------------------------------------------------------
 // Functions
@@ -793,8 +833,18 @@ export type ParamValue = Writable<Exclude<ParamOption['example'], undefined>>;
  * @returns True if the option is niladic
  * @internal
  */
-export function isNiladic(option: Option): option is NiladicOption {
-  return ['flag', 'function', 'help', 'version', 'command'].includes(option.type);
+export function isNiladic(option: OpaqueOption): boolean {
+  return ['help', 'version', 'function', 'command', 'flag'].includes(option.type);
+}
+
+/**
+ * Tests if an option is variadic (i.e., it accepts a variable number of parameters).
+ * @param option The option definition
+ * @returns True if the option is variadic
+ * @internal
+ */
+export function isVariadic(option: OpaqueOption): boolean {
+  return isArray(option) && !option.separator;
 }
 
 /**
@@ -803,7 +853,7 @@ export function isNiladic(option: Option): option is NiladicOption {
  * @returns True if the option is an array option
  * @internal
  */
-export function isArray(option: Option): option is ArrayOption {
+export function isArray(option: OpaqueOption): boolean {
   return option.type === 'strings' || option.type === 'numbers';
 }
 
@@ -813,19 +863,46 @@ export function isArray(option: Option): option is ArrayOption {
  * @returns True if the option is a valued option
  * @internal
  */
-export function isValued(option: Option): option is ValuedOption {
-  return option.type !== 'help' && option.type !== 'version';
+export function isSpecial(option: OpaqueOption): boolean {
+  return option.type === 'help' || option.type === 'version';
 }
 
 /**
- * Tests if an array option is variadic (i.e., accepts multiple parameters).
+ * Tests if an option has unknown values.
  * @param option The option definition
- * @returns True if the option is variadic
+ * @returns True if the option is unknown-valued
  * @internal
  */
-export function isVariadic(option: ArrayOption): boolean {
-  return (
-    !('separator' in option && option.separator) &&
-    !('parseDelimited' in option && option.parseDelimited)
-  );
+export function isUnknown(option: OpaqueOption): boolean {
+  return option.type === 'function' || option.type === 'command';
+}
+
+/**
+ * Tests if an option has a boolean value.
+ * @param option The option definition
+ * @returns True if the option is boolean-valued
+ * @internal
+ */
+export function isBoolean(option: OpaqueOption): boolean {
+  return option.type === 'flag' || option.type === 'boolean';
+}
+
+/**
+ * Tests if an option has string values.
+ * @param option The option definition
+ * @returns True if the option is string-valued
+ * @internal
+ */
+export function isString(option: OpaqueOption): boolean {
+  return option.type === 'string' || option.type === 'strings';
+}
+
+/**
+ * Tests if an option has number values.
+ * @param option The option definition
+ * @returns True if the option is number-valued
+ * @internal
+ */
+export function isNumber(option: OpaqueOption): boolean {
+  return option.type === 'number' || option.type === 'numbers';
 }

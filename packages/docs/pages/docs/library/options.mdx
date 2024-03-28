@@ -24,9 +24,9 @@ There is a total of ten option types, as summarized in the table below:
 | [flag]      | niladic                                 | `boolean{:ts}`     |                    |                     |
 | [boolean]   | positional, monadic                     | `boolean{:ts}`     |                    |                     |
 | [string]    | positional, monadic                     | `string{:ts}`      | trim, case         | enums, regex        |
-| [number]    | positional, monadic                     | `number{:ts}`      | round              | enums, range        |
+| [number]    | positional, monadic                     | `number{:ts}`      | conv               | enums, range        |
 | [strings]   | positional, variadic, delimited, append | `string[]{:ts}`    | unique, trim, case | enums, regex, limit |
-| [numbers]   | positional, variadic, delimited, append | `number[]{:ts}`    | unique, round      | enums, range, limit |
+| [numbers]   | positional, variadic, delimited, append | `number[]{:ts}`    | unique, conv       | enums, range, limit |
 
 In the above table, _niladic_ means that the option expects zero parameters on the command-line;
 _monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
@@ -288,7 +288,6 @@ Notes about this callback:
 
 - it should return a value of the data type expected by the option (this should not be an array)
 - if asynchronous, and is called, then the resulting option value will be a promise
-- mutually exclusive with [parse delimited]
 
 #### Enumeration
 
@@ -330,12 +329,11 @@ be within. Any parameter that is _not_ within the given range (after normalizati
 error to be thrown. You may want to use `[-Infinity, Infinity]{:ts}` to disallow `NaN{:ts}`.
 Mutually exclusive with [enumeration].
 
-#### Rounding
+#### Math convertion
 
-The `round` attribute, if present, specifies the kind of rounding to apply to number parameters. Can
-be one of `'trunc'{:ts}` (round towards zero), `'floor'{:ts}` (round down), `'ceil'{:ts}` (round up)
-or `'round'{:ts}` (round to the nearest integer). This normalization is applied _before_ checking
-value constraints.
+The `conv` attribute, if present, specifies the kind of math convertion to apply to number
+parameters. Can be any of JavaScript's [Math] functions that accept a single number parameter. This
+normalization is applied _before_ checking value constraints.
 
 ### Array attributes
 
@@ -345,24 +343,7 @@ Array-valued option types share a set of attributes, as described below.
 
 The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
 specified, the option will accept a single parameter and not multiple parameters[^2]. It can be
-either a string or a regular expression. Mutually exclusive with [parse delimited].
-
-#### Parse delimited
-
-The `parseDelimited` attribute, if present, specifies a custom callback to parse the value of the
-option parameter. It accepts three parameters:
-
-- `values` - the values parsed up to the current iteration
-- `name` - the option name, as was specified on the command-line
-- `value` - the parameter string value
-
-Notes about this callback:
-
-- unlike [parse callback] that returns a single value, this callback should return
-  an array
-- if specified, the option will accept a single parameter and not multiple parameters[^2]
-- if asynchronous, and is called, then the resulting option value will be a promise
-- mutually exclusive with [separator] and [parse callback]
+either a string or a regular expression.
 
 #### Remove duplicates
 
@@ -680,10 +661,8 @@ The **numbers** option has these sets of attributes:
 [parameter name]: #parameter-name
 [example value]: #example-value
 [preferred name]: #names--preferred-name
-[parse delimited]: #parse-delimited
 [regular expression]: #regular-expression
 [numeric range]: #numeric-range
-[parse delimited]: #parse-delimited
 [parse callback]: #parse-callback
 [count limit]: #count-limit
 [remove duplicates]: #remove-duplicates
@@ -710,6 +689,7 @@ The **numbers** option has these sets of attributes:
 [`tryParse`]: parser#avoiding-trycatch
 [`shortStyle`]: parser#short-option-style
 [`parseAsync`]: parser#executing-callbacks
+[Math]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 [_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html
 

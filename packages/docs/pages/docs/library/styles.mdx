@@ -33,50 +33,48 @@ In the next sections we present the various styling attributes available.
 The `tf` enumeration declares text type faces that can be combined together. Here is the full list:
 
 - `clear` - reset or normal (resets any other preceding SGR attribute)
-- `bold` - bold or increased intensity
-- `faint` - faint, decreased intensity, or dim
-- `italic` - italic
-- `underlined` - underlined
-- `slowlyBlinking` - slowly blinking
-- `rapidlyBlinking` - rapidly blinking
-- `inverse` - reverse video or inverse (flips foreground and background color)
-- `invisible` - invisible, concealed or hidden
-- `crossedOut` - crossed-out or strikethrough
-- `primaryFont` - primary font
-- `alternative1` - alternative font 1
-- `alternative2` - alternative font 2
-- `alternative3` - alternative font 3
-- `alternative4` - alternative font 4
-- `alternative5` - alternative font 5
-- `alternative6` - alternative font 6
-- `alternative7` - alternative font 7
-- `alternative8` - alternative font 8
-- `alternative9` - alternative font 9
-- `fraktur` - black-letter font
-- `doublyUnderlined` - doubly underlined
-- `notBoldOrFaint` - normal intensity (neither bold nor faint)
-- `notItalicNorFraktur` - regular face (neither italic nor black-letter)
-- `notUnderlined` - not underlined
-- `notBlinking` - steady (not blinking)
-- `proportionalSpacing` - proportional spacing
-- `notInverse` - positive (not inverse)
-- `notInvisible` - visible (reveal, or not hidden)
-- `notCrossedOut` - not crossed out (no strikethrough)
-- `notProportionalSpacing` - disable proportional spacing
-- `framed` - framed
-- `encircled` - encircled
-- `overlined` - overlined
-- `notFramedOrEncircled` - neither framed nor encircled
-- `notOverlined` - not overlined
-- `ideogramUnderline` - ideogram underline or right side line
-- `ideogramDoubleUnderline` - ideogram double underline, or double line on the right side
-- `ideogramOverline` - ideogram overline or left side line
-- `ideogramDoubleOverline` - ideogram double overline, or double line on the left side
-- `ideogramStressMarking` - ideogram stress marking
-- `noIdeogram` - no ideogram attributes
-- `superscript` - superscript
-- `subscript` - subscript.
-- `notSuperscriptOrSubscript` - neither superscript nor subscript.
+- enable attributes:
+  - `bold` - bold or increased intensity
+  - `faint` - faint, decreased intensity, or dim
+  - `italic` - italic
+  - `underlined` - underlined
+  - `slowlyBlinking` - slowly blinking
+  - `rapidlyBlinking` - rapidly blinking
+  - `inverse` - reverse video or inverse (flips foreground and background color)
+  - `invisible` - invisible, concealed or hidden
+  - `crossedOut` - crossed-out or strikethrough
+  - `doublyUnderlined` - doubly underlined
+  - `proportionalSpacing` - proportional spacing
+- change font:
+  - `primaryFont` - primary font
+  - `alternative[1-9]` - alternative font 1 through 9
+  - `fraktur` - black-letter font
+- disable attributes:
+  - `notBoldOrFaint` - normal intensity (neither bold nor faint)
+  - `notItalicNorFraktur` - regular face (neither italic nor black-letter)
+  - `notUnderlined` - not underlined
+  - `notBlinking` - steady (not blinking)
+  - `notInverse` - positive (not inverse)
+  - `notInvisible` - visible (reveal, or not hidden)
+  - `notCrossedOut` - not crossed out (no strikethrough)
+  - `notProportionalSpacing` - disable proportional spacing
+- framing:
+  - `framed` - framed
+  - `encircled` - encircled
+  - `overlined` - overlined
+  - `notFramedOrEncircled` - neither framed nor encircled
+  - `notOverlined` - not overlined
+- ideogram attributes:
+  - `ideogramUnderline` - ideogram underline or right side line
+  - `ideogramDoubleUnderline` - ideogram double underline, or double line on the right side
+  - `ideogramOverline` - ideogram overline or left side line
+  - `ideogramDoubleOverline` - ideogram double overline, or double line on the left side
+  - `ideogramStressMarking` - ideogram stress marking
+  - `noIdeogram` - no ideogram attributes
+- superscript or subscript:
+  - `superscript` - superscript
+  - `subscript` - subscript.
+  - `notSuperscriptOrSubscript` - neither superscript nor subscript
 
 ### Predefined text colors
 
@@ -102,8 +100,6 @@ The `fg` and `bg` enumerations declare predefined foreground and background colo
   - `brightCyan` - bright cyan
   - `brightWhite` - bright white
 
-The `ul` enumeration has a single value of `default` for the default underline color.
-
 ### Extended text colors
 
 In addition to predefined colors, there are three utility functions to get custom 8-bit colors:
@@ -111,6 +107,17 @@ In addition to predefined colors, there are three utility functions to get custo
 - `fg8` - creates a foreground color from an 8-bit decimal value
 - `bg8` - creates a background color from an 8-bit decimal value
 - `ul8` - creates an underline color from an 8-bit decimal value
+
+### Underline styles
+
+The `ul` constant holds the styles of underlined text:
+
+- `none` - no underline
+- `single` - single underline
+- `double` - double underline
+- `curly` - curly underline
+- `dotted` - dotted underline
+- `dashed` - dashed underline
 
 ## Terminal strings
 
@@ -129,14 +136,30 @@ expressions. The following features are supported in text splitting.
 
 #### Format specifiers
 
-Format specifiers can be extracted from the text and processed by a formatting callback. This is
-used in different places in the library:
+Format specifiers, prefixed with a percent sign `%`, can be extracted from the text and processed by
+a formatting callback. This is used in different places in the library:
 
 - by the parser to produce error messages based on configured [error phrases]
 - by the formatter to assemble help items from configured [help phrases]
 - by the formatter to create group headings from configured [heading phrases]
 
 This particular feature is only available in _phrases_, not in text attributes of option definitions.
+The specifiers get replaced with a value (or values, in case of arrays). The available ones are:
+
+- `b` - a boolean value
+- `s` - a string value
+- `n` - a number value
+- `r` - a regular expression
+- `o` - an option name
+- `v` - a generic value enclosed in angle brackets (like the [parameter column])
+- `u` - a URL hyperlink
+- `t` - general text
+- `p` - a previously formatted string
+
+If a phrase supports values, the specifier can be used to indicate where in the phrase to place the
+value. If a phrase has multiple alternatives depending on the context, different texts may be
+specified separated with `'|'{:ts}` and grouped in parentheses. Specifiers may also end with a
+single digit that represents a predefined value in an error message or help item.
 
 #### Inline styles
 
@@ -146,6 +169,12 @@ formatter splits into words before adding to the option description.
 When splitting text, the terminal string instance will try its best to preserve styles. However,
 if you find some corner case that is not currently covered by the unit tests, please submit a [bug
 report].
+
+<Callout type="warning">
+  Phrases can contain inline styles, but not in the same word as a format specifier. Otherwise, they
+  will mess up the text wrapping. For example, the following phrase is not valid:
+  ``` `Requires ${style(tf.bold)}%v`{:ts} ```. You should insert a space in between.
+</Callout>
 
 #### Paragraphs and lists
 
@@ -278,5 +307,6 @@ with `console.log` or equivalent.
 [help section texts]: formatter#help-sections
 [description column]: formatter#description-column
 [synopsis and deprecation reason]: options#synopsis--deprecated
+[parameter column]: formatter#parameter-column
 [bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

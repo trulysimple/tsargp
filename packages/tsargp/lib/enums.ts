@@ -1,13 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Exports - NOTE: some enumerations are abbreviated for ease of use in client code.
 //--------------------------------------------------------------------------------------------------
-export {
-  ControlSequence as cs,
-  TypeFace as tf,
-  Foreground as fg,
-  Background as bg,
-  Underline as ul,
-};
+export { ControlSequence as cs, TypeFace as tf, Foreground as fg, Background as bg };
 
 //--------------------------------------------------------------------------------------------------
 // Constants - NOTE: please add new enumerators at the _end_ of the enumeration.
@@ -17,22 +11,14 @@ export {
  */
 export const enum ErrorItem {
   /**
-   * Raised by the parser when an option parameter fails to be parsed.
+   * Raised by the parser when an option parameter fails to be parsed, with possible option name
+   * suggestions.
    */
   parseError,
   /**
-   * Raised by the parser when an option parameter fails to be parsed, and there are option name
-   * suggestions.
-   */
-  parseErrorWithSimilar,
-  /**
-   * Raised by the parser when an option name is not found.
+   * Raised by the parser when an option name is not found, with possible option name suggestions.
    */
   unknownOption,
-  /**
-   * Raised by the parser when an option name is not found, and there are option name suggestions.
-   */
-  unknownOptionWithSimilar,
   /**
    * Raised by the parser when an option requirement is not satisfied.
    */
@@ -79,7 +65,8 @@ export const enum ErrorItem {
    */
   unknownRequiredOption,
   /**
-   * Raised by the validator when an option references a non-valued option in a requirement.
+   * Raised by the validator when an option references either a non-valued option or an option with
+   * unknown values in a requirement.
    */
   invalidRequiredOption,
   /**
@@ -95,40 +82,28 @@ export const enum ErrorItem {
    */
   duplicatePositionalOption,
   /**
-   * Raised by the validator when a string enumeration constraint has duplicate values.
+   * Raised by the validator when a string or number enumeration constraint has duplicate values.
    */
-  duplicateStringEnum,
-  /**
-   * Raised by the validator when a number enumeration constraint has duplicate values.
-   */
-  duplicateNumberEnum,
+  duplicateEnumValue,
   /**
    * Raised by the validator when an option is required with a value of incompatible data type.
    */
   incompatibleRequiredValue,
   /**
-   * Raised by both the parser and validator when a value fails to satisfy a string option's
-   * enumeration constraint.
+   * Raised by both the parser and validator when a value fails to satisfy either a string or a
+   * number enumeration constraint.
    */
-  stringEnumsConstraintViolation,
+  enumsConstraintViolation,
   /**
-   * Raised by both the parser and validator when a value fails to satisfy a string option's regex
-   * constraint.
+   * Raised by both the parser and validator when a value fails to satisfy a string regex constraint.
    */
   regexConstraintViolation,
   /**
-   * Raised by both the parser and validator when a value fails to satisfy a number option's
-   * enumeration constraint.
-   */
-  numberEnumsConstraintViolation,
-  /**
-   * Raised by both the parser and validator when a value fails to satisfy a number option's range
-   * constraint.
+   * Raised by both the parser and validator when a value fails to satisfy a number range constraint.
    */
   rangeConstraintViolation,
   /**
-   * Raised by both the parser and validator when a value fails to satisfy an array option's limit
-   * constraint.
+   * Raised by both the parser and validator when a value fails to satisfy an array limit constraint.
    */
   limitConstraintViolation,
   /**
@@ -161,6 +136,10 @@ export const enum ErrorItem {
    * conventions.
    */
   mixedNamingConvention,
+  /**
+   * Raised by the validator when an option has an invalid numeric range.
+   */
+  invalidNumericRange,
 }
 
 /**
@@ -200,9 +179,9 @@ export const enum HelpItem {
    */
   case,
   /**
-   * The kind of rounding applied to number parameters, if enabled.
+   * The kind of math conversion applied to number parameters, if enabled.
    */
-  round,
+  conv,
   /**
    * The enumerated values that the option accepts as parameters, if any.
    */
@@ -639,11 +618,4 @@ const enum Background {
   brightMagenta,
   brightCyan,
   brightWhite,
-}
-
-/**
- * A predefined text underline color.
- */
-const enum Underline {
-  default = 59,
 }

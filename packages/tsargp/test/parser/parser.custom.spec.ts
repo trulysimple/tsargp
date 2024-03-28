@@ -61,7 +61,7 @@ describe('ArgumentParser', () => {
         number: {
           type: 'number',
           names: ['-n'],
-          round: 'ceil',
+          conv: 'ceil',
           parse: vi.fn().mockImplementation((_0, _1, value) => Number(value) + 2),
         },
       } as const satisfies Options;
@@ -75,7 +75,7 @@ describe('ArgumentParser', () => {
         number: {
           type: 'number',
           names: ['-n'],
-          round: 'ceil',
+          conv: 'ceil',
           parse: async (_0, _1, value) => Number(value) + 2,
         },
       } as const satisfies Options;
@@ -159,40 +159,12 @@ describe('ArgumentParser', () => {
       ]);
     });
 
-    it('should handle a strings option with mixed-async custom delimited parsing', async () => {
-      const options = {
-        strings: {
-          type: 'strings',
-          names: ['-ss'],
-          case: 'upper',
-          append: true,
-          unique: true,
-          parseDelimited: (_0, _1, value: string) => {
-            const res = value.split(',');
-            return value.startsWith('sync') ? res : Promise.resolve(res);
-          },
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-ss'])).toThrow(`Missing parameter to -ss.`);
-      expect(parser.parse(['-ss', 'sync,sync', '-ss', 'sync,sync'])).toEqual({ strings: ['SYNC'] });
-      await expect(
-        parser.parse(['-ss', 'sync,sync', '-ss', 'async,async']).strings,
-      ).resolves.toEqual(['SYNC', 'ASYNC']);
-      await expect(
-        parser.parse(['-ss', 'async,async', '-ss', 'sync,sync']).strings,
-      ).resolves.toEqual(['ASYNC', 'SYNC']);
-      await expect(
-        parser.parse(['-ss', 'async,async', '-ss', 'async,async']).strings,
-      ).resolves.toEqual(['ASYNC']);
-    });
-
     it('should handle a numbers option with mixed-async custom parsing', async () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns'],
-          round: 'ceil',
+          conv: 'ceil',
           unique: true,
           parse: vi.fn().mockImplementation((_0, _1, value) => {
             const res = Number(value);
@@ -220,7 +192,7 @@ describe('ArgumentParser', () => {
         numbers: {
           type: 'numbers',
           names: ['-ns'],
-          round: 'ceil',
+          conv: 'ceil',
           append: true,
           unique: true,
           separator: ',',
@@ -247,34 +219,6 @@ describe('ArgumentParser', () => {
         3,
         2,
         4, // order is preserved
-      ]);
-    });
-
-    it('should handle a numbers option with mixed-async custom delimited parsing', async () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          round: 'ceil',
-          append: true,
-          unique: true,
-          parseDelimited: (_0, _1, value): Array<number> | Promise<Array<number>> => {
-            const res = value.split(',').map((val) => Number(val));
-            return value.startsWith('1') ? res : Promise.resolve(res);
-          },
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      expect(() => parser.parse(['-ns'])).toThrow(`Missing parameter to -ns.`);
-      expect(parser.parse(['-ns', '1.1,1.2', '-ns', '1.1,1.2'])).toEqual({ numbers: [2] });
-      await expect(parser.parse(['-ns', '1.1,1.2', '-ns', '2.1,2.2']).numbers).resolves.toEqual([
-        2, 3,
-      ]);
-      await expect(parser.parse(['-ns', '2.1,2.2', '-ns', '1.1,1.2']).numbers).resolves.toEqual([
-        3, 2,
-      ]);
-      await expect(parser.parse(['-ns', '2.1,2.2', '-ns', '2.1,2.2']).numbers).resolves.toEqual([
-        3,
       ]);
     });
   });
