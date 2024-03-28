@@ -41,7 +41,7 @@ export const req = {
 } as const;
 
 //--------------------------------------------------------------------------------------------------
-// Types
+// Public types
 //--------------------------------------------------------------------------------------------------
 /**
  * A set of styles for displaying an option on the terminal.
@@ -114,7 +114,7 @@ export type Requires = string | RequiresVal | RequiresExp | RequiresCallback;
  * @param values The option values
  * @returns True if the requirements were satisfied
  */
-export type RequiresCallback = (values: InternalOptionValues) => boolean;
+export type RequiresCallback = (values: OpaqueOptionValues) => boolean;
 
 /**
  * A callback to parse the value of option parameters. Any specified normalization or constraint
@@ -126,7 +126,7 @@ export type RequiresCallback = (values: InternalOptionValues) => boolean;
  * @returns The parsed value
  */
 export type ParseCallback<T> = (
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   name: string,
   value: string,
 ) => T | Promise<T>;
@@ -145,7 +145,7 @@ export type ResolveCallback = (specifier: string) => string;
  * @param values The values parsed so far
  * @returns The default value
  */
-export type DefaultCallback<T> = (values: InternalOptionValues) => T | Promise<T>;
+export type DefaultCallback<T> = (values: OpaqueOptionValues) => T | Promise<T>;
 
 /**
  * A callback for function options.
@@ -155,7 +155,7 @@ export type DefaultCallback<T> = (values: InternalOptionValues) => T | Promise<T
  * @returns The option value
  */
 export type ExecuteCallback = (
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   comp: boolean,
   rest: Array<string>,
 ) => unknown;
@@ -166,7 +166,7 @@ export type ExecuteCallback = (
  * @param values The values parsed for the command
  * @returns The option value
  */
-export type CommandCallback = (prev: InternalOptionValues, values: InternalOptionValues) => unknown;
+export type CommandCallback = (prev: OpaqueOptionValues, values: OpaqueOptionValues) => unknown;
 
 /**
  * A callback for option completion.
@@ -176,14 +176,11 @@ export type CommandCallback = (prev: InternalOptionValues, values: InternalOptio
  * @returns The list of completion words
  */
 export type CompleteCallback = (
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   comp: string,
   rest: Array<string>,
 ) => Array<string> | Promise<Array<string>>;
 
-//--------------------------------------------------------------------------------------------------
-// Internal types
-//--------------------------------------------------------------------------------------------------
 /**
  * Defines attributes common to all options.
  * @template T The option type
@@ -455,7 +452,138 @@ export type WithFlag = {
 };
 
 /**
+ * An option that throws a help message.
+ */
+export type HelpOption = WithBasic<'help'> & WithHelp;
+
+/**
+ * An option that throws a version information.
+ */
+export type VersionOption = WithBasic<'version'> & WithVersion & (WithVerInfo | WithResolve);
+
+/**
+ * An option that executes a callback function.
+ */
+export type FunctionOption = WithBasic<'function'> &
+  WithFunction &
+  WithValue<unknown> &
+  WithParam<unknown> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName);
+
+/**
+ * An option that executes a command.
+ */
+export type CommandOption = WithBasic<'command'> &
+  WithCommand &
+  WithValue<unknown> &
+  (WithDefault | WithRequired);
+
+/**
+ * An option that has a boolean value and is enabled if specified (or disabled if negated).
+ */
+export type FlagOption = WithBasic<'flag'> &
+  WithMisc &
+  WithFlag &
+  WithValue<boolean> &
+  (WithDefault | WithRequired);
+
+/**
+ * An option that has a boolean value (accepts a single boolean parameter).
+ */
+export type BooleanOption = WithBasic<'boolean'> &
+  WithMisc &
+  WithValue<boolean> &
+  WithParam<boolean> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName);
+
+/**
+ * An option that has a string value (accepts a single string parameter).
+ */
+export type StringOption = WithBasic<'string'> &
+  WithMisc &
+  WithString &
+  WithValue<string> &
+  WithParam<string> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRegex);
+
+/**
+ * An option that has a number value (accepts a single number parameter).
+ */
+export type NumberOption = WithBasic<'number'> &
+  WithMisc &
+  WithNumber &
+  WithValue<number> &
+  WithParam<number> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRange);
+
+/**
+ * An option that has a string array value (may accept single or multiple parameters).
+ */
+export type StringsOption = WithBasic<'strings'> &
+  WithMisc &
+  WithString &
+  WithArray &
+  WithValue<Array<string>> &
+  WithParam<Array<string>> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRegex);
+
+/**
+ * An option that has a number array value (may accept single or multiple parameters).
+ */
+export type NumbersOption = WithBasic<'numbers'> &
+  WithMisc &
+  WithNumber &
+  WithArray &
+  WithValue<Array<number>> &
+  WithParam<Array<number>> &
+  (WithDefault | WithRequired) &
+  (WithExample | WithParamName) &
+  (WithEnums | WithRange);
+
+/**
+ * The public option types.
+ */
+export type Option =
+  | HelpOption
+  | VersionOption
+  | FunctionOption
+  | CommandOption
+  | FlagOption
+  | BooleanOption
+  | StringOption
+  | NumberOption
+  | StringsOption
+  | NumbersOption;
+
+/**
+ * A collection of public option definitions.
+ */
+export type Options = Readonly<Record<string, Option>>;
+
+/**
+ * A generic collection of option values.
+ * @template T The type of the option definitions
+ */
+export type OptionValues<T extends Options = Options> = Resolve<{
+  -readonly [key in keyof T as T[key] extends { type: 'help' | 'version' }
+    ? never
+    : key]: OptionDataType<T[key]>;
+}>;
+
+//--------------------------------------------------------------------------------------------------
+// Internal types
+//--------------------------------------------------------------------------------------------------
+/**
  * The option types.
+ * @internal
  */
 type OptionTypes =
   | 'help'
@@ -471,11 +599,11 @@ type OptionTypes =
 
 /**
  * An internal option definition.
+ * @internal
  */
-export type Option = WithBasic<OptionTypes> &
+export type OpaqueOption = WithBasic<OptionTypes> &
   WithValue<unknown> &
   WithParam<unknown> &
-  WithMisc &
   WithHelp &
   WithVersion &
   WithFunction &
@@ -483,21 +611,21 @@ export type Option = WithBasic<OptionTypes> &
   WithFlag &
   WithString &
   WithNumber &
-  WithArray;
+  WithArray &
+  WithMisc;
 
 /**
  * A collection of internal option definitions.
+ * @internal
  */
-export type InternalOptions = Readonly<Record<string, Option>>;
+export type OpaqueOptions = Readonly<Record<string, OpaqueOption>>;
 
 /**
  * A collection of internal option values.
+ * @internal
  */
-export type InternalOptionValues = Record<string, unknown>;
+export type OpaqueOptionValues = Record<string, unknown>;
 
-//--------------------------------------------------------------------------------------------------
-// Public types
-//--------------------------------------------------------------------------------------------------
 /**
  * Defines attributes for a required option.
  */
@@ -597,127 +725,10 @@ type WithResolve = {
 };
 
 /**
- * An option that throws a help message.
- */
-type HelpOption = WithBasic<'help'> & WithHelp;
-
-/**
- * An option that throws a version information.
- */
-type VersionOption = WithBasic<'version'> & WithVersion & (WithVerInfo | WithResolve);
-
-/**
- * An option that executes a callback function.
- */
-type FunctionOption = WithBasic<'function'> &
-  WithFunction &
-  WithValue<unknown> &
-  WithParam<unknown> &
-  (WithDefault | WithRequired) &
-  (WithExample | WithParamName);
-
-/**
- * An option that executes a command.
- */
-type CommandOption = WithBasic<'command'> &
-  WithCommand &
-  WithValue<unknown> &
-  (WithDefault | WithRequired);
-
-/**
- * An option that has a boolean value and is enabled if specified (or disabled if negated).
- */
-type FlagOption = WithBasic<'flag'> &
-  WithMisc &
-  WithFlag &
-  WithValue<boolean> &
-  (WithDefault | WithRequired);
-
-/**
- * An option that has a boolean value (accepts a single boolean parameter).
- */
-type BooleanOption = WithBasic<'boolean'> &
-  WithMisc &
-  WithValue<boolean> &
-  WithParam<boolean> &
-  (WithDefault | WithRequired) &
-  (WithExample | WithParamName);
-
-/**
- * An option that has a string value (accepts a single string parameter).
- */
-type StringOption = WithBasic<'string'> &
-  WithMisc &
-  WithString &
-  WithValue<string> &
-  WithParam<string> &
-  (WithDefault | WithRequired) &
-  (WithExample | WithParamName) &
-  (WithEnums | WithRegex);
-
-/**
- * An option that has a number value (accepts a single number parameter).
- */
-type NumberOption = WithBasic<'number'> &
-  WithMisc &
-  WithNumber &
-  WithValue<number> &
-  WithParam<number> &
-  (WithDefault | WithRequired) &
-  (WithExample | WithParamName) &
-  (WithEnums | WithRange);
-
-/**
- * An option that has a string array value (may accept single or multiple parameters).
- */
-type StringsOption = WithBasic<'strings'> &
-  WithMisc &
-  WithString &
-  WithArray &
-  WithValue<Array<string>> &
-  WithParam<Array<string>> &
-  (WithDefault | WithRequired) &
-  (WithExample | WithParamName) &
-  (WithEnums | WithRegex);
-
-/**
- * An option that has a number array value (may accept single or multiple parameters).
- */
-type NumbersOption = WithBasic<'numbers'> &
-  WithMisc &
-  WithNumber &
-  WithArray &
-  WithValue<Array<number>> &
-  WithParam<Array<number>> &
-  (WithDefault | WithRequired) &
-  (WithExample | WithParamName) &
-  (WithEnums | WithRange);
-
-/**
- * The public option types.
- */
-type PublicOption =
-  | HelpOption
-  | VersionOption
-  | FunctionOption
-  | CommandOption
-  | FlagOption
-  | BooleanOption
-  | StringOption
-  | NumberOption
-  | StringsOption
-  | NumbersOption;
-
-/**
- * A collection of public option definitions.
- */
-export type Options = Readonly<Record<string, PublicOption>>;
-
-/**
  * The data type of an option that may have a default value.
  * @template T The option definition type
  */
-type DefaultDataType<T extends PublicOption> =
+type DefaultDataType<T extends Option> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   T extends { default: (...args: any) => infer R }
     ? R
@@ -735,7 +746,7 @@ type DefaultDataType<T extends PublicOption> =
  * @template D The option value data type
  * @template E The effective data type
  */
-type ParamDataType<T extends PublicOption, D, E> =
+type ParamDataType<T extends Option, D, E> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   T extends { parse: (...args: any) => infer R }
     ? R extends D
@@ -752,33 +763,33 @@ type ParamDataType<T extends PublicOption, D, E> =
  * @template T The option definition type
  * @template D The option value data type
  */
-type EnumsDataType<T extends PublicOption, D> = T extends { enums: ReadonlyArray<infer E> } ? E : D;
+type EnumsDataType<T extends Option, D> = T extends { enums: ReadonlyArray<infer E> } ? E : D;
 
 /**
  * The data type of a (possibly) delimited array-valued option.
  * @template T The option definition type
  */
-type DelimitedDataType<T extends PublicOption> = T extends { separator: string } ? never : [];
+type DelimitedDataType<T extends Option> = T extends { separator: string } ? never : [];
 
 /**
  * The data type of a single-valued option.
  * @template T The option definition type
  * @template D The option value data type
  */
-type SingleDataType<T extends PublicOption, D> = ParamDataType<T, D, EnumsDataType<T, D>>;
+type SingleDataType<T extends Option, D> = ParamDataType<T, D, EnumsDataType<T, D>>;
 
 /**
  * The data type of an array-valued option.
  * @template T The option definition type
  * @template D The option value data type
  */
-type ArrayDataType<T extends PublicOption, D> = ParamDataType<T, D, Array<EnumsDataType<T, D>>>;
+type ArrayDataType<T extends Option, D> = ParamDataType<T, D, Array<EnumsDataType<T, D>>>;
 
 /**
  * The data type of an option value.
  * @template T The option definition type
  */
-type OptionDataType<T extends PublicOption> =
+type OptionDataType<T extends Option> =
   T extends WithBasic<'function'>
     ? ReturnType<T['exec']> | DefaultDataType<T>
     : T extends WithBasic<'command'>
@@ -797,19 +808,6 @@ type OptionDataType<T extends PublicOption> =
                   ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
                   : never;
 
-/**
- * The non-valued option types.
- */
-type NonValued = WithBasic<'help' | 'version'>;
-
-/**
- * A generic collection of option values.
- * @template T The type of the option definitions
- */
-export type OptionValues<T extends Options = Options> = Resolve<{
-  -readonly [key in keyof T as T[key] extends NonValued ? never : key]: OptionDataType<T[key]>;
-}>;
-
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
@@ -819,7 +817,7 @@ export type OptionValues<T extends Options = Options> = Resolve<{
  * @returns True if the option is niladic
  * @internal
  */
-export function isNiladic(option: Option): boolean {
+export function isNiladic(option: OpaqueOption): boolean {
   return ['help', 'function', 'version', 'command', 'flag'].includes(option.type);
 }
 
@@ -829,7 +827,7 @@ export function isNiladic(option: Option): boolean {
  * @returns True if the option is variadic
  * @internal
  */
-export function isVariadic(option: Option): boolean {
+export function isVariadic(option: OpaqueOption): boolean {
   return isArray(option) && !option.separator;
 }
 
@@ -839,7 +837,7 @@ export function isVariadic(option: Option): boolean {
  * @returns True if the option is an array option
  * @internal
  */
-export function isArray(option: Option): boolean {
+export function isArray(option: OpaqueOption): boolean {
   return option.type === 'strings' || option.type === 'numbers';
 }
 
@@ -849,7 +847,7 @@ export function isArray(option: Option): boolean {
  * @returns True if the option is a valued option
  * @internal
  */
-export function isSpecial(option: Option): boolean {
+export function isSpecial(option: OpaqueOption): boolean {
   return option.type === 'help' || option.type === 'version';
 }
 
@@ -859,7 +857,7 @@ export function isSpecial(option: Option): boolean {
  * @returns True if the option is unknown-valued
  * @internal
  */
-export function isUnknown(option: Option): boolean {
+export function isUnknown(option: OpaqueOption): boolean {
   return option.type === 'function' || option.type === 'command';
 }
 
@@ -869,7 +867,7 @@ export function isUnknown(option: Option): boolean {
  * @returns True if the option is boolean-valued
  * @internal
  */
-export function isBoolean(option: Option): boolean {
+export function isBoolean(option: OpaqueOption): boolean {
   return option.type === 'flag' || option.type === 'boolean';
 }
 
@@ -879,7 +877,7 @@ export function isBoolean(option: Option): boolean {
  * @returns True if the option is string-valued
  * @internal
  */
-export function isString(option: Option): boolean {
+export function isString(option: OpaqueOption): boolean {
   return option.type === 'string' || option.type === 'strings';
 }
 
@@ -889,6 +887,6 @@ export function isString(option: Option): boolean {
  * @returns True if the option is number-valued
  * @internal
  */
-export function isNumber(option: Option): boolean {
+export function isNumber(option: OpaqueOption): boolean {
   return option.type === 'number' || option.type === 'numbers';
 }

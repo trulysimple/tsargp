@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { Option, Options, Requires, RequiresVal, InternalOptions } from './options';
+import type { OpaqueOption, Options, Requires, RequiresVal, OpaqueOptions } from './options';
 import type { FormatArgs, FormatConfig, FormatStyles, MessageStyles } from './styles';
 import type { Concrete, NamingRules } from './utils';
 
@@ -22,26 +22,20 @@ import { findSimilarNames, matchNamingRules } from './utils';
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
- * The default message styles.
- * @internal
- */
-const defaultStyles: FormatStyles = {
-  boolean: style(fg.yellow),
-  string: style(fg.green),
-  number: style(fg.yellow),
-  regex: style(fg.red),
-  option: style(fg.brightMagenta),
-  value: style(fg.brightBlack),
-  url: style(fg.brightBlack),
-  text: style(tf.clear),
-};
-
-/**
- * The default message configuration.
+ * The default validator configuration.
  * @internal
  */
 export const defaultConfig: ConcreteConfig = {
-  styles: defaultStyles,
+  styles: {
+    boolean: style(fg.yellow),
+    string: style(fg.green),
+    number: style(fg.yellow),
+    regex: style(fg.red),
+    option: style(fg.brightMagenta),
+    value: style(fg.brightBlack),
+    url: style(fg.brightBlack),
+    text: style(tf.clear),
+  },
   phrases: {
     [ErrorItem.parseError]:
       'Did you mean to specify an option name instead of (%o|%o1)?(| Similar names are [%o2].)',
@@ -107,19 +101,8 @@ const namingConventions: NamingRules = {
 };
 
 //--------------------------------------------------------------------------------------------------
-// Types
+// Public types
 //--------------------------------------------------------------------------------------------------
-/**
- * Information regarding an option.
- * @internal
- */
-export type OptionInfo = {
-  key: string;
-  name: string;
-  option: Option;
-  marker?: string;
-};
-
 /**
  * The validator configuration.
  */
@@ -135,9 +118,23 @@ export type ValidatorConfig = {
 };
 
 /**
- * A concrete version of the message configuration.
+ * A concrete version of the validator configuration.
  */
 export type ConcreteConfig = Concrete<ValidatorConfig>;
+
+//--------------------------------------------------------------------------------------------------
+// Internal types
+//--------------------------------------------------------------------------------------------------
+/**
+ * Information regarding an option.
+ * @internal
+ */
+export type OptionInfo = {
+  key: string;
+  name: string;
+  option: OpaqueOption;
+  marker?: string;
+};
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -149,18 +146,18 @@ export class OptionValidator {
   readonly names = new Map<string, string>();
   readonly letters = new Map<string, string>();
   readonly positional: OptionInfo | undefined;
-  readonly options: InternalOptions;
+  readonly options: OpaqueOptions;
 
   /**
    * Creates an option validator based on a set of option definitions.
    * @param options The option definitions
-   * @param config The message configuration
+   * @param config The validator configuration
    */
   constructor(
     options: Options,
     readonly config: ConcreteConfig = defaultConfig,
   ) {
-    this.options = options as InternalOptions;
+    this.options = options as OpaqueOptions;
     for (const key in this.options) {
       const option = this.options[key];
       registerNames(this.config, this.names, this.letters, key, option);
@@ -178,7 +175,7 @@ export class OptionValidator {
    * @returns A list of validation warnings
    * @throws On duplicate positional option
    */
-  validate(prefix = '', visited = new Set<Options>()): WarnMessage {
+  validate(prefix = '', visited = new Set<OpaqueOptions>()): WarnMessage {
     const result = new WarnMessage();
     // validate names before clearing them
     validateNames(this.config, this.names, this.options, prefix, result);
@@ -210,7 +207,7 @@ export class OptionValidator {
    * @returns The normalized value
    * @throws On value not satisfying the specified enums, regex or range constraints
    */
-  normalize<T>(option: Option, name: string, value: T): T {
+  normalize<T>(option: OpaqueOption, name: string, value: T): T {
     const normalizeFn =
       typeof value === 'string'
         ? normalizeString
@@ -251,7 +248,7 @@ export class OptionValidator {
 //--------------------------------------------------------------------------------------------------
 /**
  * Registers or validates an option's names.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param nameToKey The map of option names to keys
  * @param letterToKey The map of cluster letters to key
  * @param key The option key
@@ -266,7 +263,7 @@ function registerNames(
   nameToKey: Map<string, string>,
   letterToKey: Map<string, string>,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   validate = false,
   prefix = '',
 ) {
@@ -313,7 +310,7 @@ function registerNames(
 
 /**
  * Validates the option names against a set of rules.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param nameToKey The map of option names to keys
  * @param options The option definitions
  * @param prefix The command prefix, if any
@@ -322,7 +319,7 @@ function registerNames(
 function validateNames(
   config: ConcreteConfig,
   nameToKey: Map<string, string>,
-  options: InternalOptions,
+  options: OpaqueOptions,
   prefix: string,
   result: WarnMessage,
 ) {
@@ -355,7 +352,7 @@ function validateNames(
 
 /**
  * Creates a formatted message.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param kind The kind of error or warning
  * @param args The message arguments
  * @param fmt The format config
@@ -377,7 +374,7 @@ function format(
 
 /**
  * Creates an error with a formatted message.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param kind The kind of error message
  * @param args The message arguments
  * @param fmt The format config
@@ -397,7 +394,7 @@ function error(
  * @param options The option definitions
  * @returns The names in each name slot
  */
-function getNamesInEachSlot(options: InternalOptions): Array<Array<string>> {
+function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
   const result = new Array<Array<string>>();
   for (const key in options) {
     options[key].names?.forEach((name, i) => {
@@ -416,7 +413,7 @@ function getNamesInEachSlot(options: InternalOptions): Array<Array<string>> {
 /**
  * Validates an option's requirements.
  * @param options The option definitions
- * @param config The message configuration
+ * @param config The validator configuration
  * @param prefix The command prefix
  * @param key The option key
  * @param option The option definition
@@ -425,12 +422,12 @@ function getNamesInEachSlot(options: InternalOptions): Array<Array<string>> {
  * @throws On invalid enums definition, invalid default value or invalid example value
  */
 function validateOption(
-  options: InternalOptions,
+  options: OpaqueOptions,
   config: ConcreteConfig,
   prefix: string,
   key: string,
-  option: Option,
-  visited: Set<Options>,
+  option: OpaqueOption,
+  visited: Set<OpaqueOptions>,
   result: WarnMessage,
 ) {
   if (!isNiladic(option)) {
@@ -452,8 +449,8 @@ function validateOption(
   }
   if (option.type === 'command') {
     const options = typeof option.options === 'function' ? option.options() : option.options;
-    if (!visited.has(options)) {
-      visited.add(options);
+    if (!visited.has(options as OpaqueOptions)) {
+      visited.add(options as OpaqueOptions);
       const validator = new OptionValidator(options, config);
       result.push(...validator.validate(prefix + key + '.', visited));
     }
@@ -463,13 +460,13 @@ function validateOption(
 /**
  * Validates an option's requirements.
  * @param options The option definitions
- * @param config The message configuration
+ * @param config The validator configuration
  * @param prefix The command prefix
  * @param key The option key
  * @param requires The option requirements
  */
 function validateRequirements(
-  options: InternalOptions,
+  options: OpaqueOptions,
   config: ConcreteConfig,
   prefix: string,
   key: string,
@@ -493,7 +490,7 @@ function validateRequirements(
 /**
  * Validates an option requirement.
  * @param options The option definitions
- * @param config The message configuration
+ * @param config The validator configuration
  * @param prefix The command prefix
  * @param key The option key
  * @param requiredKey The required option key
@@ -502,7 +499,7 @@ function validateRequirements(
  * incompatible required values
  */
 function validateRequirement(
-  options: InternalOptions,
+  options: OpaqueOptions,
   config: ConcreteConfig,
   prefix: string,
   key: string,
@@ -529,12 +526,12 @@ function validateRequirement(
 
 /**
  * Checks the sanity of the option's constraints.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param key The option key (plus the prefix, if any)
  * @param option The option definition
  * @throws On zero or duplicate enumerated values or invalid numeric range
  */
-function validateConstraints(config: ConcreteConfig, key: string, option: Option) {
+function validateConstraints(config: ConcreteConfig, key: string, option: OpaqueOption) {
   if (option.enums) {
     if (!option.enums.length) {
       throw error(config, ErrorItem.emptyEnumsDefinition, { o: key });
@@ -560,13 +557,13 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Option
 
 /**
  * Checks the sanity of the option's value (default, example or required).
- * @param config The message configuration
+ * @param config The validator configuration
  * @param key The option key (plus the prefix, if any)
  * @param option The option definition
  * @param value The option value
  * @throws On value not satisfying specified constraints
  */
-function validateValue(config: ConcreteConfig, key: string, option: Option, value: unknown) {
+function validateValue(config: ConcreteConfig, key: string, option: OpaqueOption, value: unknown) {
   /** @ignore */
   function assertType<T>(value: unknown, type: string): asserts value is T {
     if (typeof value !== type) {
@@ -612,7 +609,7 @@ function validateValue(config: ConcreteConfig, key: string, option: Option, valu
 
 /**
  * Normalizes the value of a string option and checks its validity against any constraint.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
@@ -621,7 +618,7 @@ function validateValue(config: ConcreteConfig, key: string, option: Option, valu
  */
 function normalizeString(
   config: ConcreteConfig,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: string,
 ): string {
@@ -644,7 +641,7 @@ function normalizeString(
 
 /**
  * Normalizes the value of a number option and checks its validity against any constraint.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
@@ -653,7 +650,7 @@ function normalizeString(
  */
 function normalizeNumber(
   config: ConcreteConfig,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: number,
 ): number {
@@ -676,7 +673,7 @@ function normalizeNumber(
 
 /**
  * Normalizes the value of an array option and checks its validity against any constraint.
- * @param config The message configuration
+ * @param config The validator configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)
  * @param value The option value
@@ -685,7 +682,7 @@ function normalizeNumber(
  */
 function normalizeArray<T extends string | number>(
   config: ConcreteConfig,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: Array<T>,
 ): Array<T> {

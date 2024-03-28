@@ -4,12 +4,12 @@
 import type {
   Options,
   OptionValues,
-  InternalOptionValues,
+  OpaqueOptionValues,
   Requires,
   RequiresVal,
   CompleteCallback,
   ResolveCallback,
-  Option,
+  OpaqueOption,
 } from './options';
 import type { OptionInfo, ConcreteConfig, ValidatorConfig } from './validator';
 
@@ -202,6 +202,7 @@ export class ArgumentParser<T extends Options = Options> {
 
 /**
  * Implements the parsing loop.
+ * @internal
  */
 class ParserLoop {
   private readonly specifiedKeys = new Set<string>();
@@ -219,7 +220,7 @@ class ParserLoop {
    */
   constructor(
     private readonly validator: OptionValidator,
-    private readonly values: InternalOptionValues,
+    private readonly values: OpaqueOptionValues,
     private readonly args: Array<string>,
     private readonly completing: boolean,
     private readonly progName?: string,
@@ -249,7 +250,7 @@ class ParserLoop {
     /** @ignore */
     function assert(_condition: unknown): asserts _condition {}
     /** @ignore */
-    function suggestName(option: Option): boolean {
+    function suggestName(option: OpaqueOption): boolean {
       return (
         argKind === ArgKind.positional ||
         (argKind === ArgKind.param && isArray(option) && isVariadic(option))
@@ -399,8 +400,8 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
  */
 function checkEnvVar(
   validator: OptionValidator,
-  values: InternalOptionValues,
-  option: Option,
+  values: OpaqueOptionValues,
+  option: OpaqueOption,
   key: string,
 ): boolean {
   if (option.envVar) {
@@ -430,7 +431,7 @@ function checkEnvVar(
  */
 function createLoop(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
   config: ParseConfig = { compIndex: Number(process?.env['COMP_POINT']) },
 ): ParserLoop {
@@ -524,7 +525,7 @@ async function resolveVersion(
  * @param option The option definition
  * @param param The option parameter
  */
-function handleCompletion(option: Option, param?: string) {
+function handleCompletion(option: OpaqueOption, param?: string) {
   let words =
     option.type === 'boolean'
       ? ['true', 'false']
@@ -623,9 +624,9 @@ function checkRequireItems<T>(
  */
 function parseArray<T extends string | number>(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: string,
   convertFn: (value: string) => T,
@@ -687,9 +688,9 @@ function parseArray<T extends string | number>(
  */
 function parseSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: string,
   convertFn: (value: string) => T,
@@ -711,9 +712,9 @@ function parseSingle<T extends boolean | string | number>(
  */
 function setSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: T | Promise<T>,
 ) {
@@ -735,9 +736,9 @@ function setSingle<T extends boolean | string | number>(
  */
 function setArray<T extends string | number>(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: ReadonlyArray<T> | Promise<ReadonlyArray<T>>,
 ) {
@@ -760,9 +761,9 @@ function setArray<T extends string | number>(
  */
 function parseValue(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   value: string,
 ) {
@@ -783,7 +784,7 @@ function parseValue(
  * @param key The option key
  * @param option The option definition
  */
-function resetValue(values: InternalOptionValues, key: string, option: Option) {
+function resetValue(values: OpaqueOptionValues, key: string, option: OpaqueOption) {
   if (!option.append || values[key] === undefined) {
     values[key] = [];
   }
@@ -805,8 +806,8 @@ function resetValue(values: InternalOptionValues, key: string, option: Option) {
  */
 function checkSingle<T extends boolean | string | number>(
   validator: OptionValidator,
-  values: InternalOptionValues,
-  option: Option,
+  values: OpaqueOptionValues,
+  option: OpaqueOption,
   negate: boolean,
   invert: boolean,
   key: string,
@@ -846,8 +847,8 @@ function checkSingle<T extends boolean | string | number>(
  */
 function checkArray<T extends string | number>(
   validator: OptionValidator,
-  values: InternalOptionValues,
-  option: Option,
+  values: OpaqueOptionValues,
+  option: OpaqueOption,
   negate: boolean,
   invert: boolean,
   key: string,
@@ -885,8 +886,8 @@ function checkArray<T extends string | number>(
  */
 function checkRequiredValue(
   validator: OptionValidator,
-  values: InternalOptionValues,
-  option: Option,
+  values: OpaqueOptionValues,
+  option: OpaqueOption,
   negate: boolean,
   invert: boolean,
   key: string,
@@ -908,9 +909,9 @@ function checkRequiredValue(
  */
 function setDefaultValue(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   key: string,
-  option: Option,
+  option: OpaqueOption,
 ) {
   if (option.default === undefined) {
     values[key] = undefined;
@@ -943,10 +944,10 @@ function setDefaultValue(
  */
 function handleNiladic(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   index: number,
   completing: boolean,
@@ -1006,10 +1007,10 @@ function handleNiladic(
  */
 function handleFunction(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   index: number,
   completing: boolean,
   args: Array<string>,
@@ -1066,10 +1067,10 @@ function handleFunction(
  */
 function handleCommand(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
   key: string,
-  option: Option,
+  option: OpaqueOption,
   name: string,
   index: number,
   completing: boolean,
@@ -1079,7 +1080,7 @@ function handleCommand(
   if (!completing) {
     checkRequired(validator, values, specifiedKeys);
   }
-  const newValues: InternalOptionValues = {};
+  const newValues: OpaqueOptionValues = {};
   const options = typeof option.options === 'function' ? option.options() : option.options;
   const newValidator = new OptionValidator(options, validator.config);
   const loop = new ParserLoop(
@@ -1118,7 +1119,7 @@ function handleCommand(
  */
 function handleSpecial(
   validator: OptionValidator,
-  option: Option,
+  option: OpaqueOption,
   index: number,
   args: Array<string>,
   promises: Array<Promise<void>>,
@@ -1151,7 +1152,7 @@ function handleSpecial(
  * @param promises The list of promises
  */
 function handleComplete(
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   complete: CompleteCallback,
   index: number,
   param: string,
@@ -1190,7 +1191,7 @@ function handleComplete(
  */
 function checkRequired(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
 ) {
   for (const key in validator.options) {
@@ -1242,7 +1243,7 @@ function checkRequired(
  */
 function checkRequires(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
   requires: Requires,
   error: TerminalString,
@@ -1312,7 +1313,7 @@ function checkRequires(
  */
 function checkRequirement(
   validator: OptionValidator,
-  values: InternalOptionValues,
+  values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
   kvp: [key: string, value: RequiresVal[string]],
   error: TerminalString,

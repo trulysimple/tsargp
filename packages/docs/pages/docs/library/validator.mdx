@@ -49,6 +49,8 @@ Option names are subject to the restrictions listed below:
   names] and the [positional marker] are included.
 </Callout>
 
+#### Naming inconsistencies
+
 In addition to the above, the validator may generate warnings if it detects naming inconsistencies,
 such as:
 
@@ -74,16 +76,19 @@ Cluster letters are subject to the restrictions listed below:
 - **Invalid cluster letter** -
   A cluster letter must not contain whitespace. Any other Unicode character is allowed.
 
-### Enums validation
+### Constraints validation
 
-Enumerated values are subject to the restrictions listed below:
+Constraint definitions are subject to the restrictions listed below:
 
 - **Zero enum values** -
-  There cannot be an option with zero enumerated values. The enumeration array should have
-  _non-zero_ length.
+  In number-valued and string-valued options, if the [enums] attribute is present, it must _not_ be
+  empty. It should have non-zero length.
 - **Duplicate enum value** -
-  There cannot be an option with duplicate enumerated values. The enumeration array should _not_
+  In number-valued and string-valued options, if the [enums] attribute is present, it must _not_
   contain duplicate elements.
+- **Invalid numeric range** -
+  In a number-valued option, if the [range] attribute is present, then its minimum value should be
+  strictly less than the maximum.
 
 ### Value validation
 
@@ -118,7 +123,8 @@ the restrictions listed below:
 - **Unknown required option** -
   An option must not declare a requirement that references an _unknown_ option.
 - **Invalid required option** -
-  An option must not declare a requirement that references a _non-valued_ option.
+  An option must not declare a requirement that references either a non-valued option (help and
+  version) or an option with unknown values (function and command) in a requirement.
 - **Incompatible required value** -
   Since a requirement may be an object with values of any kind, the data type of these values must
   be validated at run-time. Thus, an option must not declare a requirement that references a valued
@@ -164,7 +170,7 @@ optional properties:
 - `number` - the style of number values (defaults to `fg.yellow`)
 - `regex` - the style of regular expressions (defaults to `fg.red`)
 - `option` - the style of option names (defaults to `fg.brightMagenta`)
-- `param` - the style of option parameters (defaults to `fg.brightBlack`)
+- `value` - the style of generic (or unknown) values (defaults to `fg.brightBlack`)
 - `url` - the style of URLs (defaults to `fg.brightBlack`)
 - `text` - The style of general text (defaults to `tf.clear`)
 
@@ -178,14 +184,10 @@ optional properties:
 The `ErrorItem` enumeration lists the kinds of error messages that may be raised by the library:
 
 - `parseError` -
-  raised by the parser when an option parameter fails to be parsed
-- `parseErrorWithSimilar` -
-  raised by the parser when an option parameter fails to be parsed, and there are option name
+  raised by the parser when an option parameter fails to be parsed, with possible option name
   suggestions
 - `unknownOption` -
-  raised by the parser when an option name is not found
-- `unknownOptionWithSimilar` -
-  raised by the parser when an option name is not found, and there are option name suggestions
+  raised by the parser when an option name is not found, with possible option name suggestions
 - `unsatisfiedRequirement` -
   raised by the parser when an option requirement is not satisfied
 - `missingRequiredOption` -
@@ -210,34 +212,27 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `unknownRequiredOption` -
   raised by the validator when an option references an unknown option in a requirement
 - `invalidRequiredOption` -
-  raised by the validator when an option references a non-valued option in a requirement
+  raised by the validator when an option references either a non-valued option or an option with
+  unknown values in a requirement
 - `emptyEnumsDefinition` -
   raised by the validator when an option has a zero-length enumeration array
 - `duplicateOptionName` -
   raised by the validator when an option has a duplicate name
 - `duplicatePositionalOption` -
   raised by the validator when there are two or more positional options
-- `duplicateStringEnum` -
-  raised by the validator when a string enumeration constraint has duplicate values
-- `duplicateNumberEnum` -
-  raised by the validator when a number enumeration constraint has duplicate values
+- `duplicateEnumValue` -
+  raised by the validator when a string or number enumeration constraint has duplicate values
 - `incompatibleRequiredValue` -
   raised by the validator when an option is required with a value of incompatible data type
-- `stringEnumsConstraintViolation` -
-  raised by both the parser and validator when a value fails to satisfy a string option's
+- `enumsConstraintViolation` -
+  raised by both the parser and validator when a value fails to satisfy either a string or a number
   enumeration constraint
 - `regexConstraintViolation` -
-  raised by both the parser and validator when a value fails to satisfy a string option's regex
-  constraint
-- `numberEnumsConstraintViolation` -
-  raised by both the parser and validator when a value fails to satisfy a number option's
-  enumeration constraint
+  raised by both the parser and validator when a value fails to satisfy a string regex constraint
 - `rangeConstraintViolation` -
-  raised by both the parser and validator when a value fails to satisfy a number option's range
-  constraint
+  raised by both the parser and validator when a value fails to satisfy a number range constraint
 - `limitConstraintViolation` -
-  raised by both the parser and validator when a value fails to satisfy an array option's limit
-  constraint
+  raised by both the parser and validator when a value fails to satisfy an array limit constraint
 - `deprecatedOption` -
   warning produced by the parser when a deprecated option is specified on the command-line
 - `unsatisfiedCondRequirement` -
@@ -254,101 +249,85 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `mixedNamingConvention` -
   warning produced by the validator when a name slot contains names with different naming
   conventions
+- `invalidNumericRange` -
+  raised by the validator when an option has an invalid numeric range
 
 ### Error phrases
 
 The `phrases` property specifies the phrases to be used for each kind of error message:
 
-- `parseError` - `'Did you mean to specify an option name instead of %o?'{:ts}`
-- `parseErrorWithSimilar` - `'Did you mean to specify an option name instead of %o1? Similar names are %o2.'{:ts}`
-- `unknownOption` - `'Unknown option %o.'{:ts}`
-- `unknownOptionWithSimilar` - `'Unknown option %o1. Similar names are %o2.'{:ts}`
-- `unsatisfiedRequirement` - `'Option %o requires %t.'{:ts}`
+- `parseError` - `'Did you mean to specify an option name instead of (%o|%o1)?(| Similar names are [%o2].)'{:ts}`
+- `unknownOption` - `'Unknown option (%o|%o1).(| Similar names are [%o2].)'{:ts}`
+- `unsatisfiedRequirement` - `'Option %o requires %p.'{:ts}`
 - `missingRequiredOption` - `'Option %o is required.'{:ts}`
 - `missingParameter` - `'Missing parameter to %o.'{:ts}`
 - `missingPackageJson` - `'Could not find a "package.json" file.'{:ts}`
-- `disallowedInlineValue` - `'Option %o does not accept inline values.'{:ts}`
+- `disallowedInlineValue` - `'(Option|Positional marker) %o does not accept inline values.'{:ts}`
 - `emptyPositionalMarker` - `'Option %o contains empty positional marker.'{:ts}`
 - `unnamedOption` - `'Non-positional option %o has no name.'{:ts}`
 - `invalidOptionName` - `'Option %o has invalid name %s.'{:ts}`
 - `emptyVersionDefinition` - `'Option %o contains empty version.'{:ts}`
 - `invalidSelfRequirement` - `'Option %o requires itself.'{:ts}`
 - `unknownRequiredOption` - `'Unknown option %o in requirement.'{:ts}`
-- `invalidRequiredOption` - `'Non-valued option %o in requirement.'{:ts}`
+- `invalidRequiredOption` - `'Invalid option %o in requirement.'{:ts}`
 - `emptyEnumsDefinition` - `'Option %o has zero enum values.'{:ts}`
 - `duplicateOptionName` - `'Option %o has duplicate name %s.'{:ts}`
 - `duplicatePositionalOption` - `'Duplicate positional option %o1: previous was %o2.'{:ts}`
-- `duplicateStringEnum` - `'Option %o has duplicate enum %s.'{:ts}`
-- `duplicateNumberEnum` - `'Option %o has duplicate enum %n.'{:ts}`
-- `incompatibleRequiredValue` - `'Option %o has incompatible value %p. Should be of type %s.'{:ts}`
-- `stringEnumsConstraintViolation` - `'Invalid parameter to %o: %s1. Possible values are %s2.'{:ts}`
+- `duplicateEnumValue` - `'Option %o has duplicate enum (%s|%n).'{:ts}`
+- `incompatibleRequiredValue` - `'Option %o has incompatible value %v. Should be of type %s.'{:ts}`
+- `enumsConstraintViolation` - `'Invalid parameter to %o: (%s1|%n1). Possible values are {(%s2|%n2)}.'{:ts}`
 - `regexConstraintViolation` - `'Invalid parameter to %o: %s. Value must match the regex %r.'{:ts}`
-- `numberEnumsConstraintViolation` - `'Invalid parameter to %o: %n1. Possible values are %n2.'{:ts}`
-- `rangeConstraintViolation` - `'Invalid parameter to %o: %n1. Value must be in the range %n2.'{:ts}`
+- `rangeConstraintViolation` - `'Invalid parameter to %o: %n1. Value must be in the range [%n2].'{:ts}`
 - `limitConstraintViolation` - `'Option %o has too many values (%n1). Should have at most %n2.'{:ts}`
 - `deprecatedOption` - `'Option %o is deprecated and may be removed in future releases.'{:ts}`
-- `unsatisfiedCondRequirement` - `'Option %o is required if %t.'{:ts}`
+- `unsatisfiedCondRequirement` - `'Option %o is required if %p.'{:ts}`
 - `duplicateClusterLetter` - `'Option %o has duplicate cluster letter %s.'{:ts}`
 - `invalidClusterOption` - `'Option letter %o must be the last in a cluster.'{:ts}`
 - `invalidClusterLetter` - `'Option %o has invalid cluster letter %s.'{:ts}`
 - `tooSimilarOptionNames` - `'%o: Option name %s1 has too similar names %s2.'{:ts}`
 - `mixedNamingConvention` - `'%o: Name slot %n has mixed naming conventions %s.'{:ts}`
+- `invalidNumericRange` - `'Option %o has invalid numeric range [%n].'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
-### Error specifiers
+#### Format specifiers
 
-Error phrases may have specifiers that are replaced with a value:
+Error phrases may have [format specifiers] prefixed with a percent sign `%`, which get replaced with
+a value. The following table lists the available specifiers for each kind of error message, along
+with a description of the corresponding value:
 
-- `b` - a boolean value
-- `s` - a string value (or values)
-- `n` - a number value (or values)
-- `r` - a regular expression
-- `o` - an option name
-- `p` - a generic value enclosed in angle brackets (like the [parameter column])
-- `u` - a URL
-- `t` - a previously formatted string that is enhanced with additional details
-
-Specifiers may end with a single digit that represents a specific value in the error message. The
-following table lists the available specifiers for each kind of error message, along with a
-description of the corresponding value.
-
-| Error                          | Specifiers                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------------- |
-| parseError                     | `%o` = the unknown option name                                                      |
-| parseErrorWithSimilar          | `%o1`= the unknown option name; `%o2` = similar option names                        |
-| unknownOption                  | `%o` = the unknown option name                                                      |
-| unknownOptionWithSimilar       | `%o1` = the unknown option name; `%o2` = similar option names                       |
-| unsatisfiedRequirement         | `%o` = the specified option name; `%t` = the option's requirements                  |
-| missingRequiredOption          | `%o` = the option's preferred name                                                  |
-| missingParameter               | `%o` = the specified option name                                                    |
-| missingPackageJson             |                                                                                     |
-| disallowedInlineValue          | `%o` = the specified option name or positional marker                               |
-| emptyPositionalMarker          | `%o` = the option's key                                                             |
-| unnamedOption                  | `%o` = the option's key                                                             |
-| invalidOptionName              | `%o` = the option's key; `%s` = the invalid name                                    |
-| emptyVersionDefinition         | `%o` = the option's key                                                             |
-| invalidSelfRequirement         | `%o` = the option's key                                                             |
-| unknownRequiredOption          | `%o` = the required option's key                                                    |
-| invalidRequiredOption          | `%o` = the required option's key                                                    |
-| emptyEnumsDefinition           | `%o` = the option's key                                                             |
-| duplicateOptionName            | `%o` = the option's key; `%s` = the duplicate name                                  |
-| duplicatePositionalOption      | `%o1` = the duplicate option's key; `%o2` = the previous option's key               |
-| duplicateStringEnum            | `%o` = the option's key; `%s` = the duplicate enum value                            |
-| duplicateNumberEnum            | `%o` = the option's key; `%n` = the duplicate enum value                            |
-| incompatibleRequiredValue      | `%o` = the option's key; `%p` = the incompatible value; `%s` = the expected type    |
-| stringEnumsConstraintViolation | `%o` = the option's key or name; `%s1` = the specified value; `%s2` = the enums     |
-| regexConstraintViolation       | `%o` = the option's key or name; `%s` = the specified value; `%r` = the regex       |
-| numberEnumsConstraintViolation | `%o` = the option's key or name; `%n1` = the specified value; `%n2` = the enums     |
-| rangeConstraintViolation       | `%o` = the option's key or name; `%n1` = the specified value; `%n2` = the range     |
-| limitConstraintViolation       | `%o` = the option's key or name; `%n1` = the value count; `%n2` = the count limit   |
-| deprecatedOption               | `%o` = the specified option name                                                    |
-| unsatisfiedCondRequirement     | `%o` = the specified option name; `%t` = the option's requirements                  |
-| duplicateClusterLetter         | `%o` = the option's key; `%s` = the duplicate letter                                |
-| invalidClusterOption           | `%o` = the specified cluster letter                                                 |
-| invalidClusterLetter           | `%o` = the option's key; `%s` = the invalid letter                                  |
-| tooSimilarOptionNames          | `%o` = the command prefix[^1]; `%s1` = the option name; `%s2` = the similar names   |
-| mixedNamingConvention          | `%o` = the command prefix[^1]; `%n` = the slot index; `%s` = the naming conventions |
+| Error                      | Specifiers                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| parseError                 | `%o`/`%o1` = the unknown option name; `%o2` = similar option names                          |
+| unknownOption              | `%o`/`%o1` = the unknown option name; `%o2` = similar option names                          |
+| unsatisfiedRequirement     | `%o` = the specified option name; `%p` = the option's requirements                          |
+| missingRequiredOption      | `%o` = the option's preferred name                                                          |
+| missingParameter           | `%o` = the specified option name                                                            |
+| missingPackageJson         |                                                                                             |
+| disallowedInlineValue      | `%o` = the specified option name or positional marker                                       |
+| emptyPositionalMarker      | `%o` = the option's key                                                                     |
+| unnamedOption              | `%o` = the option's key                                                                     |
+| invalidOptionName          | `%o` = the option's key; `%s` = the invalid name                                            |
+| emptyVersionDefinition     | `%o` = the option's key                                                                     |
+| invalidSelfRequirement     | `%o` = the option's key                                                                     |
+| unknownRequiredOption      | `%o` = the required option's key                                                            |
+| invalidRequiredOption      | `%o` = the required option's key                                                            |
+| emptyEnumsDefinition       | `%o` = the option's key                                                                     |
+| duplicateOptionName        | `%o` = the option's key; `%s` = the duplicate name                                          |
+| duplicatePositionalOption  | `%o1` = the duplicate option's key; `%o2` = the previous option's key                       |
+| duplicateEnumValue         | `%o` = the option's key; `%s` or `%n` = the duplicate enum value                            |
+| incompatibleRequiredValue  | `%o` = the option's key; `%v` = the incompatible value; `%s` = the expected type            |
+| enumsConstraintViolation   | `%o` = the option's key or name; `%s1`/`%n1` = the specified value; `%s2`/`%n2` = the enums |
+| regexConstraintViolation   | `%o` = the option's key or name; `%s` = the specified value; `%r` = the regex               |
+| rangeConstraintViolation   | `%o` = the option's key or name; `%n1` = the specified value; `%n2` = the range             |
+| limitConstraintViolation   | `%o` = the option's key or name; `%n1` = the value count; `%n2` = the count limit           |
+| deprecatedOption           | `%o` = the specified option name                                                            |
+| unsatisfiedCondRequirement | `%o` = the specified option name; `%p` = the option's requirements                          |
+| duplicateClusterLetter     | `%o` = the option's key; `%s` = the duplicate letter                                        |
+| invalidClusterOption       | `%o` = the specified cluster letter                                                         |
+| invalidClusterLetter       | `%o` = the option's key; `%s` = the invalid letter                                          |
+| tooSimilarOptionNames      | `%o` = the command prefix[^1]; `%s1` = the option name; `%s2` = the similar names           |
+| mixedNamingConvention      | `%o` = the command prefix[^1]; `%n` = the slot index; `%s` = the naming conventions         |
 
 [value validation]: #value-validation
 [negation names]: options#negation-names
@@ -361,10 +340,10 @@ description of the corresponding value.
 [requirement callbacks]: options#forward-requirements
 [positional]: options#positional--marker
 [text formatting]: styles#text-splitting
-[parameter column]: formatter#parameter-column
 [name suggestions]: parser#name-suggestions
 [name slot]: formatter#names-column
 [nested command]: options#command-option
+[format specifiers]: styles#format-specifiers
 
 [^1]:
     the command prefix is a series of option keys interspersed with periods, denoting the current

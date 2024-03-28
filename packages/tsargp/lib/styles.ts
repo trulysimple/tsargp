@@ -98,7 +98,7 @@ const regex = {
 } as const satisfies Record<string, RegExp>;
 
 //--------------------------------------------------------------------------------------------------
-// Types
+// Public types
 //--------------------------------------------------------------------------------------------------
 /**
  * A control sequence introducer.
@@ -160,19 +160,6 @@ export type FormatCallback = (this: TerminalString, spec: string) => void;
 export type FormatArgs = Record<string, unknown>;
 
 /**
- * A formatting function.
- * @internal
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type FormatFunction = (value: any, styles: FormatStyles, result: TerminalString) => void;
-
-/**
- * A set of formatting functions.
- * @internal
- */
-export type FormatFunctions = Record<string, FormatFunction>;
-
-/**
  * A message that can be printed on a terminal.
  */
 export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage | CompletionMessage;
@@ -217,7 +204,6 @@ export type MessageStyles = {
 
 /**
  * A concrete version of the format styles.
- * @internal
  */
 export type FormatStyles = Concrete<MessageStyles> & {
   /**
@@ -247,6 +233,22 @@ export type FormatConfig = {
    */
   readonly mergeNext?: boolean;
 };
+
+//--------------------------------------------------------------------------------------------------
+// Internal types
+//--------------------------------------------------------------------------------------------------
+/**
+ * A formatting function.
+ * @internal
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type FormatFunction = (value: any, styles: FormatStyles, result: TerminalString) => void;
+
+/**
+ * A set of formatting functions.
+ * @internal
+ */
+export type FormatFunctions = Record<string, FormatFunction>;
 
 //--------------------------------------------------------------------------------------------------
 // Classes

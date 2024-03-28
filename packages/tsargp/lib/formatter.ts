@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { Option, InternalOptions, Requires, RequiresVal } from './options';
+import type { OpaqueOption, OpaqueOptions, Requires, RequiresVal } from './options';
 import type { Style, FormatStyles } from './styles';
 import type { Concrete } from './utils';
 import type { OptionValidator } from './validator';
@@ -21,7 +21,7 @@ import {
 import { HelpMessage, TerminalString, style, format } from './styles';
 
 //--------------------------------------------------------------------------------------------------
-// Types
+// Public types
 //--------------------------------------------------------------------------------------------------
 /**
  * A text alignment setting.
@@ -92,25 +92,6 @@ export type FormatterConfig = {
    * `'Values will be converted to (lowercase|uppercase)'`.
    */
   readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
-};
-
-/**
- * A concrete version of the help column settings.
- */
-type ConcreteColumn = Concrete<WithColumn>;
-
-/**
- * A concrete version of the format configuration.
- */
-type ConcreteFormat = Concrete<FormatterConfig>;
-
-/**
- * Precomputed texts used by the formatter.
- */
-type HelpEntry = {
-  readonly names: Array<TerminalString>;
-  readonly param: TerminalString;
-  readonly descr: TerminalString;
 };
 
 /**
@@ -216,15 +197,41 @@ export type HelpSection = HelpText | HelpUsage | HelpGroups;
  */
 export type HelpSections = Array<HelpSection>;
 
+//--------------------------------------------------------------------------------------------------
+// Internal types
+//--------------------------------------------------------------------------------------------------
+/**
+ * A concrete version of the help column settings.
+ * @internal
+ */
+type ConcreteColumn = Concrete<WithColumn>;
+
+/**
+ * A concrete version of the format configuration.
+ * @internal
+ */
+type ConcreteFormat = Concrete<FormatterConfig>;
+
+/**
+ * Precomputed texts used by the formatter.
+ * @internal
+ */
+type HelpEntry = {
+  readonly names: Array<TerminalString>;
+  readonly param: TerminalString;
+  readonly descr: TerminalString;
+};
+
 /**
  * A function that formats a help item to be included in an option's description.
+ * @internal
  */
 type HelpItemFunction = (
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
-  options: InternalOptions,
+  options: OpaqueOptions,
 ) => void;
 
 //--------------------------------------------------------------------------------------------------
@@ -332,7 +339,7 @@ const helpItemFunctions: ReadonlyArray<HelpItemFunction> = [
  * Implements formatting of help messages for a set of option definitions.
  */
 export class HelpFormatter {
-  private readonly options: InternalOptions;
+  private readonly options: OpaqueOptions;
   private readonly styles: FormatStyles;
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly config: ConcreteFormat;
@@ -347,7 +354,7 @@ export class HelpFormatter {
    */
   constructor(validator: OptionValidator, config?: FormatterConfig, filters?: Array<RegExp>) {
     /** @ignore */
-    function exclude(option: Option) {
+    function exclude(option: OpaqueOption) {
       return (
         filters?.length &&
         !filters.find(
@@ -447,9 +454,9 @@ function formatOption(
   groups: Map<string, Array<HelpEntry>>,
   config: ConcreteFormat,
   styles: FormatStyles,
-  options: InternalOptions,
+  options: OpaqueOptions,
   nameWidths: Array<number> | number,
-  option: Option,
+  option: OpaqueOption,
 ): number {
   const names = formatNames(config, styles, option, nameWidths);
   const param = new TerminalString();
@@ -477,7 +484,7 @@ function formatOption(
 function formatNames(
   config: ConcreteFormat,
   styles: FormatStyles,
-  option: Option,
+  option: OpaqueOption,
   nameWidths: Array<number> | number,
 ): Array<TerminalString> {
   if (config.names.hidden || !option.names) {
@@ -498,7 +505,7 @@ function formatNames(
 function formatParams(
   config: ConcreteFormat,
   styles: FormatStyles,
-  option: Option,
+  option: OpaqueOption,
   result: TerminalString,
 ): number {
   if (config.param.hidden || isNiladic(option)) {
@@ -525,9 +532,9 @@ function formatParams(
 function formatDescription(
   config: ConcreteFormat,
   styles: FormatStyles,
-  option: Option,
+  option: OpaqueOption,
   result: TerminalString,
-  options: InternalOptions,
+  options: OpaqueOptions,
 ) {
   if (config.descr.hidden || !config.items.length) {
     return result.addBreak(1);
@@ -567,7 +574,7 @@ function mergeConfig(config: FormatterConfig = {}): ConcreteFormat {
  * @param options The option definitions
  * @returns The name slot widths
  */
-function getNameWidths(options: InternalOptions): Array<number> {
+function getNameWidths(options: OpaqueOptions): Array<number> {
   const result = new Array<number>();
   for (const key in options) {
     const option = options[key];
@@ -585,7 +592,7 @@ function getNameWidths(options: InternalOptions): Array<number> {
  * @param options The option definitions
  * @returns The maximum width
  */
-function getMaxNamesWidth(options: InternalOptions): number {
+function getMaxNamesWidth(options: OpaqueOptions): number {
   let result = 0;
   for (const key in options) {
     const option = options[key];
@@ -705,7 +712,7 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
  * @param result The resulting message
  */
 function formatSection(
-  options: InternalOptions,
+  options: OpaqueOptions,
   groups: Map<string, Array<HelpEntry>>,
   styles: FormatStyles,
   section: HelpSection,
@@ -740,7 +747,7 @@ function formatSection(
  * @param result The resulting message
  */
 function formatUsageSection(
-  options: InternalOptions,
+  options: OpaqueOptions,
   styles: FormatStyles,
   breaks: number,
   section: HelpUsage,
@@ -838,7 +845,7 @@ function formatText(
  * @returns The terminal string
  */
 function formatUsage(
-  options: InternalOptions,
+  options: OpaqueOptions,
   styles: FormatStyles,
   indent?: number,
   breaks?: number,
@@ -865,7 +872,7 @@ function formatUsage(
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatUsageOption(option: Option, styles: FormatStyles, result: TerminalString) {
+function formatUsageOption(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
   const required = option.required;
   if (!required) {
     result.addOpening('[');
@@ -885,7 +892,7 @@ function formatUsageOption(option: Option, styles: FormatStyles, result: Termina
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatUsageNames(option: Option, styles: FormatStyles, result: TerminalString) {
+function formatUsageNames(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
   const names = option.names?.filter((name): name is string => !!name);
   if (names?.length) {
     if (option.negationNames) {
@@ -917,7 +924,7 @@ function formatUsageNames(option: Option, styles: FormatStyles, result: Terminal
  * @param result The resulting string
  * @returns The string length
  */
-function formatParam(option: Option, styles: FormatStyles, result: TerminalString): number {
+function formatParam(option: OpaqueOption, styles: FormatStyles, result: TerminalString): number {
   if (option.example !== undefined) {
     return formatExample(option, styles, result);
   }
@@ -938,7 +945,7 @@ function formatParam(option: Option, styles: FormatStyles, result: TerminalStrin
  * @param result The resulting string
  * @returns The string length, counting spaces in non-delimited array values
  */
-function formatExample(option: Option, styles: FormatStyles, result: TerminalString): number {
+function formatExample(option: OpaqueOption, styles: FormatStyles, result: TerminalString): number {
   const separator = option.separator;
   const example = option.example;
   if (separator) {
@@ -961,7 +968,7 @@ function formatExample(option: Option, styles: FormatStyles, result: TerminalStr
  * @param result The resulting string
  */
 function formatSynopsis(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -980,7 +987,7 @@ function formatSynopsis(
  * @param result The resulting string
  */
 function formatNegation(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -999,7 +1006,7 @@ function formatNegation(
  * @param result The resulting string
  */
 function formatSeparator(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -1019,7 +1026,7 @@ function formatSeparator(
  * @param result The resulting string
  */
 function formatVariadic(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   _styles: FormatStyles,
   result: TerminalString,
@@ -1037,7 +1044,7 @@ function formatVariadic(
  * @param result The resulting string
  */
 function formatPositional(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -1057,7 +1064,7 @@ function formatPositional(
  * @param result The resulting string
  */
 function formatAppend(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   _styles: FormatStyles,
   result: TerminalString,
@@ -1074,7 +1081,12 @@ function formatAppend(
  * @param _styles The set of styles
  * @param result The resulting string
  */
-function formatTrim(option: Option, phrase: string, _styles: FormatStyles, result: TerminalString) {
+function formatTrim(
+  option: OpaqueOption,
+  phrase: string,
+  _styles: FormatStyles,
+  result: TerminalString,
+) {
   if (option.trim) {
     result.splitText(phrase);
   }
@@ -1087,7 +1099,12 @@ function formatTrim(option: Option, phrase: string, _styles: FormatStyles, resul
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatCase(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+function formatCase(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
   const conv = option.case;
   if (conv) {
     result.formatArgs(styles, phrase, {}, { alt: conv === 'lower' ? 0 : 1 });
@@ -1101,7 +1118,12 @@ function formatCase(option: Option, phrase: string, styles: FormatStyles, result
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatConv(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+function formatConv(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
   const conv = option.conv;
   if (conv) {
     result.formatArgs(styles, phrase, { t: conv });
@@ -1115,7 +1137,12 @@ function formatConv(option: Option, phrase: string, styles: FormatStyles, result
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatEnums(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+function formatEnums(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
   const enums = option.enums;
   if (enums) {
     const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
@@ -1130,7 +1157,12 @@ function formatEnums(option: Option, phrase: string, styles: FormatStyles, resul
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatRegex(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+function formatRegex(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
   const regex = option.regex;
   if (regex) {
     result.formatArgs(styles, phrase, { r: regex });
@@ -1144,7 +1176,12 @@ function formatRegex(option: Option, phrase: string, styles: FormatStyles, resul
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatRange(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+function formatRange(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
   const range = option.range;
   if (range) {
     result.formatArgs(styles, phrase, { n: range });
@@ -1159,7 +1196,7 @@ function formatRange(option: Option, phrase: string, styles: FormatStyles, resul
  * @param result The resulting string
  */
 function formatUnique(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   _styles: FormatStyles,
   result: TerminalString,
@@ -1176,7 +1213,12 @@ function formatUnique(
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatLimit(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+function formatLimit(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
   const limit = option.limit;
   if (limit !== undefined) {
     result.formatArgs(styles, phrase, { n: limit });
@@ -1191,7 +1233,7 @@ function formatLimit(option: Option, phrase: string, styles: FormatStyles, resul
  * @param result The resulting string
  */
 function formatRequired(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   _styles: FormatStyles,
   result: TerminalString,
@@ -1209,7 +1251,7 @@ function formatRequired(
  * @param result The resulting string
  */
 function formatDefault(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -1242,7 +1284,7 @@ function formatDefault(
  * @param result The resulting string
  */
 function formatDeprecated(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -1260,7 +1302,12 @@ function formatDeprecated(
  * @param styles The set of styles
  * @param result The resulting string
  */
-function formatLink(option: Option, phrase: string, styles: FormatStyles, result: TerminalString) {
+function formatLink(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
   const link = option.link;
   if (link) {
     result.formatArgs(styles, phrase, { u: link });
@@ -1275,7 +1322,7 @@ function formatLink(option: Option, phrase: string, styles: FormatStyles, result
  * @param result The resulting string
  */
 function formatEnvVar(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -1294,7 +1341,7 @@ function formatEnvVar(
  * @param result The resulting string
  */
 function formatClusterLetters(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
@@ -1315,7 +1362,7 @@ function formatClusterLetters(
  * @param negate True if the requirement should be negated
  */
 function formatRequirements(
-  options: InternalOptions,
+  options: OpaqueOptions,
   requires: Requires,
   styles: FormatStyles,
   result: TerminalString,
@@ -1351,7 +1398,7 @@ function formatRequirements(
  * @param negate True if the requirement should be negated
  */
 function formatRequiresExp(
-  options: InternalOptions,
+  options: OpaqueOptions,
   requires: RequiresAll | RequiresOne,
   styles: FormatStyles,
   result: TerminalString,
@@ -1382,7 +1429,7 @@ function formatRequiresExp(
  * @param negate True if the requirement should be negated
  */
 function formatRequiresVal(
-  options: InternalOptions,
+  options: OpaqueOptions,
   requires: RequiresVal,
   styles: FormatStyles,
   result: TerminalString,
@@ -1413,7 +1460,7 @@ function formatRequiresVal(
  * @param negate True if the requirement should be negated
  */
 function formatRequiredValue(
-  option: Option,
+  option: OpaqueOption,
   value: RequiresVal[string],
   styles: FormatStyles,
   result: TerminalString,
@@ -1439,11 +1486,11 @@ function formatRequiredValue(
  * @param options The option definitions
  */
 function formatRequires(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
-  options: InternalOptions,
+  options: OpaqueOptions,
 ) {
   if (option.requires) {
     const requires = option.requires;
@@ -1460,11 +1507,11 @@ function formatRequires(
  * @param options The option definitions
  */
 function formatRequiredIf(
-  option: Option,
+  option: OpaqueOption,
   phrase: string,
   styles: FormatStyles,
   result: TerminalString,
-  options: InternalOptions,
+  options: OpaqueOptions,
 ) {
   if (option.requiredIf) {
     const requiredIf = option.requiredIf;
