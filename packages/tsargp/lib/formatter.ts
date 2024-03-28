@@ -490,8 +490,8 @@ function formatNames(
   if (config.names.hidden || !option.names) {
     return [];
   }
-  const style = option.styles?.names ?? styles.option;
-  return formatNameSlots(config, option.names, nameWidths, style, styles.text);
+  const namesStyle = option.styles?.names ?? styles.option;
+  return formatNameSlots(config, option.names, nameWidths, namesStyle, styles.text);
 }
 
 /**
@@ -511,12 +511,12 @@ function formatParams(
   if (config.param.hidden || isNiladic(option)) {
     return 0;
   }
-  styles.current = option.styles?.param;
-  result.addBreak(config.param.breaks).addSequence(styles.current ?? styles.value);
+  const paramStyle = option.styles?.param ?? styles.value;
+  styles.current = paramStyle;
+  result.addBreak(config.param.breaks).addSequence(paramStyle);
   const len = formatParam(option, styles, result);
-  result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
-  result.addSequence(style(tf.clear));
-  return len;
+  result.addClear();
+  return (result.indent = len); // hack: save the length, since we will need it in `adjustEntries`
 }
 
 /**
@@ -539,9 +539,10 @@ function formatDescription(
   if (config.descr.hidden || !config.items.length) {
     return result.addBreak(1);
   }
-  styles.current = option.styles?.descr;
+  const descrStyle = option.styles?.descr ?? styles.text;
+  styles.current = descrStyle;
   result.rightAlign = config.descr.align === 'right';
-  result.addBreak(config.descr.breaks).addSequence(styles.current ?? styles.text);
+  result.addBreak(config.descr.breaks).addSequence(descrStyle);
   const count = result.count;
   for (const item of config.items) {
     const phrase = config.phrases[item];
@@ -550,7 +551,7 @@ function formatDescription(
   if (result.count == count) {
     result.pop(count).addBreak(1); // this string does not contain any word
   } else {
-    result.addSequence(style(tf.clear)).addBreak(); // add ending breaks after styles
+    result.addClear().addBreak(); // add ending breaks after styles
   }
 }
 
@@ -830,7 +831,7 @@ function formatText(
   } else {
     format();
   }
-  return result.addSequence(style(tf.clear)); // to simplify client code
+  return result.addClear(); // to simplify client code
 }
 
 /**
@@ -863,7 +864,7 @@ function formatUsage(
   if (result.count == count) {
     return new TerminalString(); // this string does not contain any word
   }
-  return result.addSequence(style(tf.clear)); // to simplify client code
+  return result.addClear(); // to simplify client code
 }
 
 /**
@@ -940,14 +941,15 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
 
 /**
  * Formats an option's example value to be included in the description or the usage text.
+ * Assumes that the option was validated.
  * @param option The option definition
  * @param styles The set of styles
  * @param result The resulting string
  * @returns The string length, counting spaces in non-delimited array values
  */
 function formatExample(option: OpaqueOption, styles: FormatStyles, result: TerminalString): number {
-  const separator = option.separator;
   const example = option.example;
+  const separator = option.separator;
   if (separator) {
     const sep = typeof separator === 'string' ? separator : separator.source;
     const value = (example as Array<unknown>).join(sep);
@@ -956,7 +958,7 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
     const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
     result.formatArgs(styles, `%${spec}`, { [spec]: example }, {});
   }
-  const nonDelimited = !separator && Array.isArray(example);
+  const nonDelimited = Array.isArray(example) && !separator;
   return result.length + (nonDelimited ? example.length - 1 : 0);
 }
 
@@ -1107,7 +1109,8 @@ function formatCase(
 ) {
   const conv = option.case;
   if (conv) {
-    result.formatArgs(styles, phrase, {}, { alt: conv === 'lower' ? 0 : 1 });
+    const alt = conv === 'lower' ? 0 : 1;
+    result.formatArgs(styles, phrase, {}, { alt });
   }
 }
 
@@ -1473,7 +1476,8 @@ function formatRequiredValue(
   if (value !== null && value !== undefined) {
     result.addWord(negate ? '!=' : '=');
     const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
-    result.formatArgs(styles, isArray(option) ? `[%${spec}]` : `%${spec}`, { [spec]: value });
+    const phrase = isArray(option) ? `[%${spec}]` : `%${spec}`;
+    result.formatArgs(styles, phrase, { [spec]: value });
   }
 }
 
@@ -1492,8 +1496,8 @@ function formatRequires(
   result: TerminalString,
   options: OpaqueOptions,
 ) {
-  if (option.requires) {
-    const requires = option.requires;
+  const requires = option.requires;
+  if (requires) {
     result.splitText(phrase, () => formatRequirements(options, requires, styles, result));
   }
 }
@@ -1513,8 +1517,8 @@ function formatRequiredIf(
   result: TerminalString,
   options: OpaqueOptions,
 ) {
-  if (option.requiredIf) {
-    const requiredIf = option.requiredIf;
+  const requiredIf = option.requiredIf;
+  if (requiredIf) {
     result.splitText(phrase, () => formatRequirements(options, requiredIf, styles, result));
   }
 }

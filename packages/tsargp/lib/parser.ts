@@ -10,6 +10,7 @@ import type {
   CompleteCallback,
   ResolveCallback,
   OpaqueOption,
+  OptionValue,
 } from './options';
 import type { OptionInfo, ConcreteConfig, ValidatorConfig } from './validator';
 
@@ -296,13 +297,13 @@ class ParserLoop {
             this.validator,
             this.values,
             this.specifiedKeys,
+            this.completing,
+            this.args,
+            this.promises,
             key,
             option,
             name,
             i,
-            this.completing,
-            this.args,
-            this.promises,
             this.progName,
           )
         ) {
@@ -311,7 +312,7 @@ class ParserLoop {
         current = undefined;
       } else if (comp !== undefined) {
         if (option.complete) {
-          handleComplete(this.values, option.complete, i, value ?? '', this.args, this.promises);
+          handleComplete(this.values, option.complete, this.args, this.promises, i, value);
           return this;
         }
         handleCompletion(option, value);
@@ -622,7 +623,7 @@ function checkRequireItems<T>(
  * @param value The parameter value
  * @param convertFn The function to convert from string
  */
-function parseArray<T extends string | number>(
+function parseArray<T>(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   key: string,
@@ -639,7 +640,7 @@ function parseArray<T extends string | number>(
   function append(vals: Array<T>) {
     return function (prev: Array<T>) {
       prev.push(...vals.map(norm));
-      return validator.normalize(option, name, prev);
+      return norm(prev);
     };
   }
   let result: Array<T> | Promise<Array<T>>;
@@ -686,7 +687,7 @@ function parseArray<T extends string | number>(
  * @param value The parameter value
  * @param convertFn The function to convert from string
  */
-function parseSingle<T extends boolean | string | number>(
+function parseSingle<T>(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   key: string,
@@ -696,8 +697,7 @@ function parseSingle<T extends boolean | string | number>(
   convertFn: (value: string) => T,
 ) {
   const result = option.parse ? option.parse(values, name, value) : convertFn(value);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setSingle(validator, values, key, option, name, result as any);
+  setSingle(validator, values, key, option, name, result);
 }
 
 /**
@@ -710,7 +710,7 @@ function parseSingle<T extends boolean | string | number>(
  * @param name The option name (as specified on the command-line)
  * @param value The parameter value
  */
-function setSingle<T extends boolean | string | number>(
+function setSingle<T>(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   key: string,
@@ -718,10 +718,11 @@ function setSingle<T extends boolean | string | number>(
   name: string,
   value: T | Promise<T>,
 ) {
-  values[key] =
-    value instanceof Promise
-      ? value.then((val) => validator.normalize(option, name, val))
-      : validator.normalize(option, name, value);
+  /** @ignore */
+  function norm<T>(val: T) {
+    return validator.normalize(option, name, val);
+  }
+  values[key] = value instanceof Promise ? value.then(norm) : norm(value);
 }
 
 /**
@@ -734,7 +735,7 @@ function setSingle<T extends boolean | string | number>(
  * @param name The option name (as specified on the command-line)
  * @param value The parameter value
  */
-function setArray<T extends string | number>(
+function setArray<T>(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   key: string,
@@ -775,7 +776,7 @@ function parseValue(
         ? (str: string) => str
         : Number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (parseFn as any)(validator, values, key, option, name, value, convertFn);
+  parseFn(validator, values, key, option, name, value, convertFn as any);
 }
 
 /**
@@ -804,7 +805,7 @@ function resetValue(values: OpaqueOptionValues, key: string, option: OpaqueOptio
  * @param spec The formatting specification
  * @returns True if the requirement was satisfied
  */
-function checkSingle<T extends boolean | string | number>(
+function checkSingle<T>(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   option: OpaqueOption,
@@ -845,7 +846,7 @@ function checkSingle<T extends boolean | string | number>(
  * @param spec The formatting specification
  * @returns True if the requirement was satisfied
  */
-function checkArray<T extends string | number>(
+function checkArray<T>(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   option: OpaqueOption,
@@ -891,13 +892,13 @@ function checkRequiredValue(
   negate: boolean,
   invert: boolean,
   key: string,
-  value: Exclude<RequiresVal[string], undefined | null>,
+  value: OptionValue,
   error: TerminalString,
 ): boolean {
   const checkFn = isArray(option) ? checkArray : checkSingle;
   const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : 'n';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (checkFn as any)(validator, values, option, negate, invert, key, value, error, spec);
+  return checkFn(validator, values, option, negate, invert, key, value as any, error, spec);
 }
 
 /**
@@ -921,8 +922,7 @@ function setDefaultValue(
       values[key] = value;
     } else {
       const setFn = isArray(option) ? setArray : setSingle;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (setFn as any)(validator, values, key, option, key, value);
+      setFn(validator, values, key, option, key, value);
     }
   }
 }
@@ -932,13 +932,13 @@ function setDefaultValue(
  * @param validator The option validator
  * @param values The option values
  * @param specifiedKeys The set of specified keys
+ * @param completing True if performing completion
+ * @param args The command-line arguments
+ * @param promises The list of promises
  * @param key The option key
  * @param option The option definition
  * @param name The option name (as specified in the command-line)
  * @param index The current argument index
- * @param completing True if performing completion
- * @param args The command-line arguments
- * @param promises The list of promises
  * @param progName The program name
  * @returns True if the parsing loop should be broken
  */
@@ -946,13 +946,13 @@ function handleNiladic(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
+  completing: boolean,
+  args: Array<string>,
+  promises: Array<Promise<void>>,
   key: string,
   option: OpaqueOption,
   name: string,
   index: number,
-  completing: boolean,
-  args: Array<string>,
-  promises: Array<Promise<void>>,
   progName?: string,
 ): boolean {
   switch (option.type) {
@@ -964,31 +964,31 @@ function handleNiladic(
         validator,
         values,
         specifiedKeys,
-        key,
-        option,
-        index,
         completing,
         args,
         promises,
+        key,
+        option,
+        index,
       );
     case 'command':
       return handleCommand(
         validator,
         values,
         specifiedKeys,
+        completing,
+        args,
+        promises,
         key,
         option,
         name,
         index,
-        completing,
-        args,
-        promises,
       );
     default:
       if (completing) {
         return false; // skip special options during completion
       }
-      return handleSpecial(validator, option, index, args, promises, progName);
+      return handleSpecial(validator, args, promises, option, index, progName);
   }
 }
 
@@ -997,24 +997,24 @@ function handleNiladic(
  * @param validator The option validator
  * @param values The option values
  * @param specifiedKeys The set of specified keys
- * @param key The option key
- * @param option The option definition
- * @param index The current argument index
  * @param completing True if performing completion
  * @param args The command-line arguments
  * @param promises The list of promises
+ * @param key The option key
+ * @param option The option definition
+ * @param index The current argument index
  * @returns True if the parsing loop should be broken
  */
 function handleFunction(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
-  key: string,
-  option: OpaqueOption,
-  index: number,
   completing: boolean,
   args: Array<string>,
   promises: Array<Promise<void>>,
+  key: string,
+  option: OpaqueOption,
+  index: number,
 ): boolean {
   const result = !!option.break && !completing;
   if (result) {
@@ -1056,26 +1056,26 @@ function handleFunction(
  * @param validator The option validator
  * @param values The option values
  * @param specifiedKeys The set of specified keys
+ * @param completing True if performing completion
+ * @param args The command-line arguments
+ * @param promises The list of promises
  * @param key The option key
  * @param option The option definition
  * @param name The option name (as specified in the command-line)
  * @param index The current argument index
- * @param completing True if performing completion
- * @param args The command-line arguments
- * @param promises The list of promises
  * @returns True to break parsing loop (always)
  */
 function handleCommand(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
+  completing: boolean,
+  args: Array<string>,
+  promises: Array<Promise<void>>,
   key: string,
   option: OpaqueOption,
   name: string,
   index: number,
-  completing: boolean,
-  args: Array<string>,
-  promises: Array<Promise<void>>,
 ): true {
   if (!completing) {
     checkRequired(validator, values, specifiedKeys);
@@ -1110,19 +1110,19 @@ function handleCommand(
 /**
  * Handles a special option.
  * @param validator The option validator
- * @param option The option definition
- * @param index The current argument index
  * @param args The command-line arguments
  * @param promises The list of promises
+ * @param option The option definition
+ * @param index The current argument index
  * @param progName The program name
  * @returns True if the parsing loop should be broken
  */
 function handleSpecial(
   validator: OptionValidator,
-  option: OpaqueOption,
-  index: number,
   args: Array<string>,
   promises: Array<Promise<void>>,
+  option: OpaqueOption,
+  index: number,
   progName?: string,
 ): boolean {
   if (option.type === 'help') {
@@ -1146,18 +1146,18 @@ function handleSpecial(
  * Handles the completion of an option that has a completion callback.
  * @param values The option values
  * @param complete The completion callback
- * @param index The current argument index
- * @param param The option parameter, if any
  * @param args The command-line arguments
  * @param promises The list of promises
+ * @param index The current argument index
+ * @param param The option parameter, if any
  */
 function handleComplete(
   values: OpaqueOptionValues,
   complete: CompleteCallback,
-  index: number,
-  param: string,
   args: Array<string>,
   promises: Array<Promise<void>>,
+  index: number,
+  param = '',
 ) {
   let result;
   try {

@@ -399,6 +399,14 @@ export class TerminalString {
   }
 
   /**
+   * Appends an SGR clear sequence to the list.
+   * @returns The terminal string instance
+   */
+  addClear(): this {
+    return this.addText(sgr(tf.clear), 0);
+  }
+
+  /**
    * Appends a text that may contain control characters or sequences to the list.
    * @param text The text to be appended
    * @param length The length of the text without control characters or sequences
@@ -439,7 +447,7 @@ export class TerminalString {
   /**
    * Formats a set of arguments.
    * @param styles The format styles
-   * @param phrase The format phrase
+   * @param phrase The custom phrase
    * @param args The format arguments
    * @param config The format config
    * @returns The terminal string instance

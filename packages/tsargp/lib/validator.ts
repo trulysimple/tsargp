@@ -548,8 +548,8 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
   }
   if (option.range) {
     const [min, max] = option.range;
+    // handles NaN as well
     if (!(min < max)) {
-      // handles NaN as well
       throw error(config, ErrorItem.invalidNumericRange, { o: key, n: option.range });
     }
   }

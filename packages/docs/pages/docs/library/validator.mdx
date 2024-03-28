@@ -285,7 +285,7 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `invalidClusterOption` - `'Option letter %o must be the last in a cluster.'{:ts}`
 - `invalidClusterLetter` - `'Option %o has invalid cluster letter %s.'{:ts}`
 - `tooSimilarOptionNames` - `'%o: Option name %s1 has too similar names %s2.'{:ts}`
-- `mixedNamingConvention` - `'%o: Name slot %n has mixed naming conventions %s.'{:ts}`
+- `mixedNamingConvention` - `'%o: Name slot %n has mixed naming conventions [%s].'{:ts}`
 - `invalidNumericRange` - `'Option %o has invalid numeric range [%n].'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
@@ -315,7 +315,7 @@ with a description of the corresponding value:
 | emptyEnumsDefinition       | `%o` = the option's key                                                                     |
 | duplicateOptionName        | `%o` = the option's key; `%s` = the duplicate name                                          |
 | duplicatePositionalOption  | `%o1` = the duplicate option's key; `%o2` = the previous option's key                       |
-| duplicateEnumValue         | `%o` = the option's key; `%s` or `%n` = the duplicate enum value                            |
+| duplicateEnumValue         | `%o` = the option's key; `%s`/`%n` = the duplicate enum value                               |
 | incompatibleRequiredValue  | `%o` = the option's key; `%v` = the incompatible value; `%s` = the expected type            |
 | enumsConstraintViolation   | `%o` = the option's key or name; `%s1`/`%n1` = the specified value; `%s2`/`%n2` = the enums |
 | regexConstraintViolation   | `%o` = the option's key or name; `%s` = the specified value; `%r` = the regex               |

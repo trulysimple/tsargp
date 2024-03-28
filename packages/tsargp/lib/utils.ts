@@ -181,6 +181,7 @@ export function getArgs(line: string, compIndex: number = NaN): Array<string> {
 
 /**
  * Checks the specified value of an array option against a required value.
+ * @template T The type of the array element
  * @param actual The specified value
  * @param expected The required value
  * @param negate True if the requirement should be negated
@@ -188,7 +189,7 @@ export function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * @returns True if the requirement was satisfied
  * @internal
  */
-export function checkRequiredArray<T extends string | number>(
+export function checkRequiredArray<T>(
   actual: ReadonlyArray<T>,
   expected: ReadonlyArray<T>,
   negate: boolean,

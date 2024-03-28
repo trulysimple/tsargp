@@ -182,14 +182,20 @@ export type CompleteCallback = (
 ) => Array<string> | Promise<Array<string>>;
 
 /**
- * Defines attributes common to all options.
+ * Defines the type of an option.
  * @template T The option type
  */
-export type WithBasic<T extends string> = {
+export type WithType<T extends string> = {
   /**
    * The option type.
    */
   readonly type: T;
+};
+
+/**
+ * Defines attributes common to all options.
+ */
+export type WithBasic = {
   /**
    * The option names, as they appear on the command-line (e.g. `-h` or `--help`).
    *
@@ -454,27 +460,30 @@ export type WithFlag = {
 /**
  * An option that throws a help message.
  */
-export type HelpOption = WithBasic<'help'> & WithHelp;
+export type HelpOption = WithType<'help'> & WithBasic & WithHelp;
 
 /**
  * An option that throws a version information.
  */
-export type VersionOption = WithBasic<'version'> & WithVersion & (WithVerInfo | WithResolve);
+export type VersionOption = WithType<'version'> &
+  WithBasic &
+  WithVersion &
+  (WithVerInfo | WithResolve);
 
 /**
  * An option that executes a callback function.
  */
-export type FunctionOption = WithBasic<'function'> &
+export type FunctionOption = WithType<'function'> &
+  WithBasic &
   WithFunction &
   WithValue<unknown> &
-  WithParam<unknown> &
-  (WithDefault | WithRequired) &
-  (WithExample | WithParamName);
+  (WithDefault | WithRequired);
 
 /**
  * An option that executes a command.
  */
-export type CommandOption = WithBasic<'command'> &
+export type CommandOption = WithType<'command'> &
+  WithBasic &
   WithCommand &
   WithValue<unknown> &
   (WithDefault | WithRequired);
@@ -482,7 +491,8 @@ export type CommandOption = WithBasic<'command'> &
 /**
  * An option that has a boolean value and is enabled if specified (or disabled if negated).
  */
-export type FlagOption = WithBasic<'flag'> &
+export type FlagOption = WithType<'flag'> &
+  WithBasic &
   WithMisc &
   WithFlag &
   WithValue<boolean> &
@@ -491,7 +501,8 @@ export type FlagOption = WithBasic<'flag'> &
 /**
  * An option that has a boolean value (accepts a single boolean parameter).
  */
-export type BooleanOption = WithBasic<'boolean'> &
+export type BooleanOption = WithType<'boolean'> &
+  WithBasic &
   WithMisc &
   WithValue<boolean> &
   WithParam<boolean> &
@@ -501,7 +512,8 @@ export type BooleanOption = WithBasic<'boolean'> &
 /**
  * An option that has a string value (accepts a single string parameter).
  */
-export type StringOption = WithBasic<'string'> &
+export type StringOption = WithType<'string'> &
+  WithBasic &
   WithMisc &
   WithString &
   WithValue<string> &
@@ -513,7 +525,8 @@ export type StringOption = WithBasic<'string'> &
 /**
  * An option that has a number value (accepts a single number parameter).
  */
-export type NumberOption = WithBasic<'number'> &
+export type NumberOption = WithType<'number'> &
+  WithBasic &
   WithMisc &
   WithNumber &
   WithValue<number> &
@@ -525,7 +538,8 @@ export type NumberOption = WithBasic<'number'> &
 /**
  * An option that has a string array value (may accept single or multiple parameters).
  */
-export type StringsOption = WithBasic<'strings'> &
+export type StringsOption = WithType<'strings'> &
+  WithBasic &
   WithMisc &
   WithString &
   WithArray &
@@ -538,7 +552,8 @@ export type StringsOption = WithBasic<'strings'> &
 /**
  * An option that has a number array value (may accept single or multiple parameters).
  */
-export type NumbersOption = WithBasic<'numbers'> &
+export type NumbersOption = WithType<'numbers'> &
+  WithBasic &
   WithMisc &
   WithNumber &
   WithArray &
@@ -601,7 +616,8 @@ type OptionTypes =
  * An internal option definition.
  * @internal
  */
-export type OpaqueOption = WithBasic<OptionTypes> &
+export type OpaqueOption = WithType<OptionTypes> &
+  WithBasic &
   WithValue<unknown> &
   WithParam<unknown> &
   WithHelp &
@@ -790,21 +806,21 @@ type ArrayDataType<T extends Option, D> = ParamDataType<T, D, Array<EnumsDataTyp
  * @template T The option definition type
  */
 type OptionDataType<T extends Option> =
-  T extends WithBasic<'function'>
+  T extends WithType<'function'>
     ? ReturnType<T['exec']> | DefaultDataType<T>
-    : T extends WithBasic<'command'>
+    : T extends WithType<'command'>
       ? ReturnType<T['cmd']> | DefaultDataType<T>
-      : T extends WithBasic<'flag'>
+      : T extends WithType<'flag'>
         ? boolean | DefaultDataType<T>
-        : T extends WithBasic<'boolean'>
+        : T extends WithType<'boolean'>
           ? SingleDataType<T, boolean> | DefaultDataType<T>
-          : T extends WithBasic<'string'>
+          : T extends WithType<'string'>
             ? SingleDataType<T, string> | DefaultDataType<T>
-            : T extends WithBasic<'number'>
+            : T extends WithType<'number'>
               ? SingleDataType<T, number> | DefaultDataType<T>
-              : T extends WithBasic<'strings'>
+              : T extends WithType<'strings'>
                 ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
-                : T extends WithBasic<'numbers'>
+                : T extends WithType<'numbers'>
                   ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
                   : never;
 
@@ -818,7 +834,7 @@ type OptionDataType<T extends Option> =
  * @internal
  */
 export function isNiladic(option: OpaqueOption): boolean {
-  return ['help', 'function', 'version', 'command', 'flag'].includes(option.type);
+  return ['help', 'version', 'function', 'command', 'flag'].includes(option.type);
 }
 
 /**
