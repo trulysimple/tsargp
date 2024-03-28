@@ -59,7 +59,7 @@ body:
       label: Relevant logs
       description: If you got an unexpected error, please paste the relevant log output here.
       placeholder: This will be automatically formatted, so no need for backticks.
-      render: shell
+      render: ansi
   - type: checkboxes
     id: flags
     attributes:
