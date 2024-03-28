@@ -657,7 +657,7 @@ type WithRequired = {
 };
 
 /**
- * Defines attributes for a default value.
+ * Removes mutually exclusive attributes from an option with a `default` value.
  */
 type WithDefault = {
   /**
@@ -667,7 +667,7 @@ type WithDefault = {
 };
 
 /**
- * Defines attributes for an example value.
+ * Removes mutually exclusive attributes from an option with an `example` value.
  */
 type WithExample = {
   /**
@@ -677,7 +677,7 @@ type WithExample = {
 };
 
 /**
- * Defines attributes for a parameter name.
+ * Removes mutually exclusive attributes from an option with a parameter name.
  */
 type WithParamName = {
   /**
@@ -687,7 +687,7 @@ type WithParamName = {
 };
 
 /**
- * Defines attributes for an enumeration constraint.
+ * Removes mutually exclusive attributes from an option with an `enums` constraint.
  */
 type WithEnums = {
   /**
@@ -701,7 +701,7 @@ type WithEnums = {
 };
 
 /**
- * Defines attributes for a regex constraint.
+ * Removes mutually exclusive attributes from an option with a `regex` constraint.
  */
 type WithRegex = {
   /**
@@ -711,7 +711,7 @@ type WithRegex = {
 };
 
 /**
- * Defines attributes for a range constraint.
+ * Removes mutually exclusive attributes from an option with a `range` constraint.
  */
 type WithRange = {
   /**
@@ -721,7 +721,7 @@ type WithRange = {
 };
 
 /**
- * Defines the version attribute of a version option.
+ * Removes mutually exclusive attributes from an option with a `version` information.
  */
 type WithVerInfo = {
   /**
@@ -731,7 +731,7 @@ type WithVerInfo = {
 };
 
 /**
- * Defines the resolve attribute of a version option.
+ * Removes mutually exclusive attributes from an option with a `resolve` callback..
  */
 type WithResolve = {
   /**

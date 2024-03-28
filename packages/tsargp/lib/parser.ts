@@ -397,27 +397,27 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
  * @param values The options' values to parse into
  * @param option The option definition
  * @param key The option key
+ * @param name The variable name
  * @returns True if the environment variable was found
  */
-function checkEnvVar(
+function readEnvVar(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   option: OpaqueOption,
   key: string,
+  name: string,
 ): boolean {
-  if (option.envVar) {
-    const value = process?.env[option.envVar];
-    if (value) {
-      if (option.type === 'flag') {
-        values[key] = isTrue(value);
-      } else {
-        if (isArray(option)) {
-          resetValue(values, key, option);
-        }
-        parseValue(validator, values, key, option, option.envVar, value);
+  const value = process?.env[name];
+  if (value !== undefined) {
+    if (option.type === 'flag') {
+      values[key] = isTrue(value);
+    } else {
+      if (isArray(option)) {
+        resetValue(values, key, option);
       }
-      return true;
+      parseValue(validator, values, key, option, name, value);
     }
+    return true;
   }
   return false;
 }
@@ -1197,35 +1197,33 @@ function checkRequired(
   for (const key in validator.options) {
     if (!specifiedKeys.has(key)) {
       const option = validator.options[key];
-      if (checkEnvVar(validator, values, option, key)) {
-        specifiedKeys.add(key); // need this for checking requirements in the second loop
-        continue;
-      }
-      const name = option.preferredName ?? '';
-      if (option.required) {
+      if (option.envVar && readEnvVar(validator, values, option, key, option.envVar)) {
+        specifiedKeys.add(key);
+      } else if (option.required) {
+        const name = option.preferredName ?? '';
         throw validator.error(ErrorItem.missingRequiredOption, { o: name });
-      }
-      if (option.requiredIf) {
-        const error = new TerminalString();
-        if (
-          !checkRequires(validator, values, specifiedKeys, option.requiredIf, error, true, true)
-        ) {
-          throw validator.error(ErrorItem.unsatisfiedCondRequirement, { o: name, p: error });
-        }
-      }
-      if ('default' in option) {
+      } else if ('default' in option) {
         setDefaultValue(validator, values, key, option);
       }
     }
   }
-  for (const key of specifiedKeys) {
+  for (const key in validator.options) {
     const option = validator.options[key];
-    if (option.requires) {
-      const error = new TerminalString();
-      if (!checkRequires(validator, values, specifiedKeys, option.requires, error, false, false)) {
-        const name = option.preferredName ?? '';
-        throw validator.error(ErrorItem.unsatisfiedRequirement, { o: name, p: error });
-      }
+    const specified = specifiedKeys.has(key);
+    const error = new TerminalString();
+    if (
+      (specified &&
+        option.requires &&
+        !checkRequires(validator, values, specifiedKeys, option.requires, error, false, false)) ||
+      (!specified &&
+        option.requiredIf &&
+        !checkRequires(validator, values, specifiedKeys, option.requiredIf, error, true, true))
+    ) {
+      const name = option.preferredName ?? '';
+      const kind = specified
+        ? ErrorItem.unsatisfiedRequirement
+        : ErrorItem.unsatisfiedCondRequirement;
+      throw validator.error(kind, { o: name, p: error });
     }
   }
 }
