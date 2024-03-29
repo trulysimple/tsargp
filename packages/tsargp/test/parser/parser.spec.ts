@@ -476,6 +476,17 @@ describe('ArgumentParser', () => {
         expect(() => parser.parse(['-ss'])).toThrow(`Missing parameter to -ss.`);
       });
 
+      it('should parse an inline value of a strings option as a single parameter', () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-ss=one', 'two'])).toThrow(`Unknown option two.`);
+      });
+
       it('should throw a name suggestion on parse failure from variadic strings option', () => {
         const message =
           `Option -ss has too many values (1). Should have at most 0.\n` +
@@ -545,6 +556,17 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         expect(() => parser.parse(['-ns'])).toThrow(`Missing parameter to -ns.`);
+      });
+
+      it('should parse an inline value of a numbers option as a single parameter', () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        expect(() => parser.parse(['-ns=1', '2'])).toThrow(`Unknown option 2.`);
       });
 
       it('should throw a name suggestion on parse failure from variadic numbers option', () => {

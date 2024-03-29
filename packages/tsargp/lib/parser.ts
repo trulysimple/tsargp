@@ -268,7 +268,13 @@ class ParserLoop {
       if (argKind === ArgKind.marker || singleParam) {
         value = arg;
       } else {
-        [argKind, current, value] = parseOption(this.validator, arg, comp !== undefined, current);
+        [argKind, current, value] = parseOption(
+          this.validator,
+          arg,
+          comp !== undefined,
+          this.completing,
+          current,
+        );
         if (argKind !== ArgKind.param) {
           if (!this.specifiedKeys.has(current.key)) {
             if (current.option.deprecated) {
@@ -332,7 +338,7 @@ class ParserLoop {
             throw err;
           }
         }
-        if (singleParam) {
+        if (singleParam || argKind === ArgKind.inline) {
           singleParam = false;
           current = undefined;
         }
@@ -454,6 +460,7 @@ function createLoop(
  * @param validator The option validator
  * @param arg The current argument
  * @param comp True if completing at the current iteration
+ * @param completing True if completing, but not at the current iteration
  * @param current The current option information, if any
  * @returns A tuple of [ArgKind, current, value]
  */
@@ -461,6 +468,7 @@ function parseOption(
   validator: OptionValidator,
   arg: string,
   comp: boolean,
+  completing: boolean,
   current?: OptionInfo,
 ): [ArgKind, OptionInfo, string | undefined] {
   const [name, value] = arg.split(/=(.*)/, 2);
@@ -473,7 +481,7 @@ function parseOption(
       if (comp) {
         throw new CompletionMessage();
       }
-      if (value !== undefined) {
+      if (!completing && value !== undefined) {
         throw validator.error(ErrorItem.disallowedInlineValue, { o: name }, { alt: 1 });
       }
       return [ArgKind.marker, validator.positional, undefined];

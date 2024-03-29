@@ -182,6 +182,7 @@ describe('ArgumentParser', () => {
       expect(() => parser.parse('cmd -- ', { compIndex: 7 })).toThrow(/^one\ntwo$/);
       expect(() => parser.parse('cmd -- o', { compIndex: 8 })).toThrow(/^one$/);
       expect(() => parser.parse('cmd --=', { compIndex: 7 })).toThrow(/^$/);
+      expect(() => parser.parse('cmd --= ', { compIndex: 8 })).toThrow(/^one\ntwo$/);
       expect(() => parser.parse('cmd -s ', { compIndex: 7 })).toThrow(/^one\ntwo$/);
     });
 
