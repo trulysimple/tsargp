@@ -5,7 +5,7 @@ import '../utils.spec'; // initialize globals
 describe('ArgumentParser', () => {
   describe('validate', () => {
     it('should validate', () => {
-      expect(new ArgumentParser({}).validate()).toEqual([]);
+      expect(new ArgumentParser({}).validate()).toEqual({});
     });
   });
 

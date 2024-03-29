@@ -110,9 +110,9 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const warnings = validator.validate();
-      expect(warnings).toHaveLength(1);
-      expect(warnings.message).toEqual(
+      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
         `: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,
       );
     });
@@ -133,9 +133,9 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const warnings = validator.validate();
-      expect(warnings).toHaveLength(3);
-      expect(warnings.message).toEqual(
+      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      expect(warning).toHaveLength(3);
+      expect(warning?.message).toEqual(
         `: Name slot 0 has mixed naming conventions ['lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'].\n` +
           `: Name slot 1 has mixed naming conventions ['noDash: abc', '-singleDash: -def', '--doubleDash: --ghi'].\n` +
           `: Name slot 2 has mixed naming conventions ['kebab-case: keb-ab', 'snake_case: sna_ke', 'colon:case: col:on'].\n`,
