@@ -4,7 +4,7 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
-    it('should handle a string option with trimming normalization', () => {
+    it('should handle a string option with trimming normalization', async () => {
       const options = {
         string: {
           type: 'string',
@@ -13,10 +13,10 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-s', ' one '])).toEqual({ string: 'one' });
+      await expect(parser.parse(['-s', ' one '])).resolves.toEqual({ string: 'one' });
     });
 
-    it('should handle a string option with lowercase normalization', () => {
+    it('should handle a string option with lowercase normalization', async () => {
       const options = {
         string: {
           type: 'string',
@@ -25,10 +25,10 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-s', 'OnE'])).toEqual({ string: 'one' });
+      await expect(parser.parse(['-s', 'OnE'])).resolves.toEqual({ string: 'one' });
     });
 
-    it('should handle a string option with uppercase normalization', () => {
+    it('should handle a string option with uppercase normalization', async () => {
       const options = {
         string: {
           type: 'string',
@@ -37,10 +37,10 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-s', 'oNe'])).toEqual({ string: 'ONE' });
+      await expect(parser.parse(['-s', 'oNe'])).resolves.toEqual({ string: 'ONE' });
     });
 
-    it('should handle a number option with math normalization', () => {
+    it('should handle a number option with math normalization', async () => {
       const options = {
         number: {
           type: 'number',
@@ -49,15 +49,15 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-n', '0.1'])).toEqual({ number: 0 });
-      expect(parser.parse(['-n', '0.5'])).toEqual({ number: 0 });
-      expect(parser.parse(['-n', '0.9'])).toEqual({ number: 0 });
-      expect(parser.parse(['-n', '-.1'])).toEqual({ number: -0 });
-      expect(parser.parse(['-n', '-.5'])).toEqual({ number: -0 });
-      expect(parser.parse(['-n', '-.9'])).toEqual({ number: -0 });
+      await expect(parser.parse(['-n', '0.1'])).resolves.toEqual({ number: 0 });
+      await expect(parser.parse(['-n', '0.5'])).resolves.toEqual({ number: 0 });
+      await expect(parser.parse(['-n', '0.9'])).resolves.toEqual({ number: 0 });
+      await expect(parser.parse(['-n', '-.1'])).resolves.toEqual({ number: -0 });
+      await expect(parser.parse(['-n', '-.5'])).resolves.toEqual({ number: -0 });
+      await expect(parser.parse(['-n', '-.9'])).resolves.toEqual({ number: -0 });
     });
 
-    it('should handle a strings option with trimming normalization', () => {
+    it('should handle a strings option with trimming normalization', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -67,10 +67,12 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-ss', ' one, two '])).toEqual({ strings: ['one', 'two'] });
+      await expect(parser.parse(['-ss', ' one, two '])).resolves.toEqual({
+        strings: ['one', 'two'],
+      });
     });
 
-    it('should handle a strings option with lowercase normalization', () => {
+    it('should handle a strings option with lowercase normalization', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -80,10 +82,12 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-ss', 'OnE,T O.'])).toEqual({ strings: ['one', 't o.'] });
+      await expect(parser.parse(['-ss', 'OnE,T O.'])).resolves.toEqual({
+        strings: ['one', 't o.'],
+      });
     });
 
-    it('should handle a strings option with uppercase normalization', () => {
+    it('should handle a strings option with uppercase normalization', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -93,10 +97,12 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-ss', 'o?Ne,2ki'])).toEqual({ strings: ['O?NE', '2KI'] });
+      await expect(parser.parse(['-ss', 'o?Ne,2ki'])).resolves.toEqual({
+        strings: ['O?NE', '2KI'],
+      });
     });
 
-    it('should handle a numbers option math normalization', () => {
+    it('should handle a numbers option math normalization', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -105,9 +111,9 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      expect(parser.parse(['-ns', '0.1', '-.1'])).toEqual({ numbers: [0, -0] });
-      expect(parser.parse(['-ns', '0.5', '-.5'])).toEqual({ numbers: [0, -0] });
-      expect(parser.parse(['-ns', '0.9', '-.9'])).toEqual({ numbers: [0, -0] });
+      await expect(parser.parse(['-ns', '0.1', '-.1'])).resolves.toEqual({ numbers: [0, -0] });
+      await expect(parser.parse(['-ns', '0.5', '-.5'])).resolves.toEqual({ numbers: [0, -0] });
+      await expect(parser.parse(['-ns', '0.9', '-.9'])).resolves.toEqual({ numbers: [0, -0] });
     });
   });
 });

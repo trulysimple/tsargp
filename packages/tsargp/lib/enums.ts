@@ -70,6 +70,15 @@ export const enum ErrorItem {
    */
   invalidRequiredOption,
   /**
+   * Raised by the validator when an option uses a nullish value in a requirement that references an
+   * option that is always required.
+   */
+  invalidRequiredValue,
+  /**
+   * Raised by the validator when an option uses a value of incompatible data type in a requirement.
+   */
+  incompatibleRequiredValue,
+  /**
    * Raised by the validator when an option has a zero-length enumeration array.
    */
   emptyEnumsDefinition,
@@ -85,10 +94,6 @@ export const enum ErrorItem {
    * Raised by the validator when a string or number enumeration constraint has duplicate values.
    */
   duplicateEnumValue,
-  /**
-   * Raised by the validator when an option is required with a value of incompatible data type.
-   */
-  incompatibleRequiredValue,
   /**
    * Raised by both the parser and validator when a value fails to satisfy either a string or a
    * number enumeration constraint.

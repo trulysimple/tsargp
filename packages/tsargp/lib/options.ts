@@ -100,6 +100,11 @@ export type OptionValue = boolean | string | number | Array<string> | Array<numb
 export type RequiresVal = { [key: string]: OptionValue | undefined | null };
 
 /**
+ * An entry from the required values object.
+ */
+export type RequiresEntry = [key: string, value: RequiresVal[string]];
+
+/**
  * An option requirement can be either:
  *
  * - an option key;
@@ -747,7 +752,9 @@ type WithResolve = {
 type DefaultDataType<T extends Option> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   T extends { default: (...args: any) => infer R }
-    ? R
+    ? R extends Promise<infer D>
+      ? D
+      : R
     : T extends { default: infer D }
       ? D extends undefined
         ? never
@@ -757,22 +764,20 @@ type DefaultDataType<T extends Option> =
         : undefined;
 
 /**
- * The data type of an option that has parameters.
+ * The data type of a function option.
  * @template T The option definition type
- * @template D The option value data type
- * @template E The effective data type
  */
-type ParamDataType<T extends Option, D, E> =
+type FunctionDataType<T extends Option> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends { parse: (...args: any) => infer R }
-    ? R extends D
-      ? E
-      : R extends Promise<D>
-        ? Promise<E>
-        : R extends D | Promise<D>
-          ? E | Promise<E>
-          : E
-    : E;
+  T extends { exec: (...args: any) => infer R } ? (R extends Promise<infer D> ? D : R) : never;
+
+/**
+ * The data type of a command option.
+ * @template T The option definition type
+ */
+type CommandDataType<T extends Option> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends { cmd: (...args: any) => infer R } ? (R extends Promise<infer D> ? D : R) : never;
 
 /**
  * The data type of an option with enumerated values.
@@ -788,40 +793,26 @@ type EnumsDataType<T extends Option, D> = T extends { enums: ReadonlyArray<infer
 type DelimitedDataType<T extends Option> = T extends { separator: string } ? never : [];
 
 /**
- * The data type of a single-valued option.
- * @template T The option definition type
- * @template D The option value data type
- */
-type SingleDataType<T extends Option, D> = ParamDataType<T, D, EnumsDataType<T, D>>;
-
-/**
- * The data type of an array-valued option.
- * @template T The option definition type
- * @template D The option value data type
- */
-type ArrayDataType<T extends Option, D> = ParamDataType<T, D, Array<EnumsDataType<T, D>>>;
-
-/**
  * The data type of an option value.
  * @template T The option definition type
  */
 type OptionDataType<T extends Option> =
   T extends WithType<'function'>
-    ? ReturnType<T['exec']> | DefaultDataType<T>
+    ? FunctionDataType<T> | DefaultDataType<T>
     : T extends WithType<'command'>
-      ? ReturnType<T['cmd']> | DefaultDataType<T>
+      ? CommandDataType<T> | DefaultDataType<T>
       : T extends WithType<'flag'>
         ? boolean | DefaultDataType<T>
         : T extends WithType<'boolean'>
-          ? SingleDataType<T, boolean> | DefaultDataType<T>
+          ? EnumsDataType<T, boolean> | DefaultDataType<T>
           : T extends WithType<'string'>
-            ? SingleDataType<T, string> | DefaultDataType<T>
+            ? EnumsDataType<T, string> | DefaultDataType<T>
             : T extends WithType<'number'>
-              ? SingleDataType<T, number> | DefaultDataType<T>
+              ? EnumsDataType<T, number> | DefaultDataType<T>
               : T extends WithType<'strings'>
-                ? ArrayDataType<T, string> | DelimitedDataType<T> | DefaultDataType<T>
+                ? Array<EnumsDataType<T, string>> | DelimitedDataType<T> | DefaultDataType<T>
                 : T extends WithType<'numbers'>
-                  ? ArrayDataType<T, number> | DelimitedDataType<T> | DefaultDataType<T>
+                  ? Array<EnumsDataType<T, number>> | DelimitedDataType<T> | DefaultDataType<T>
                   : never;
 
 //--------------------------------------------------------------------------------------------------

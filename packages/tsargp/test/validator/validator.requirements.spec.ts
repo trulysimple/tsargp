@@ -104,6 +104,82 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(`Invalid option required in requirement.`);
     });
 
+    it('should throw an error on option required to be present despite being always required', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requires: { required: undefined },
+        },
+        required: {
+          type: 'flag',
+          names: ['-f2'],
+          required: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option required has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
+    it('should throw an error on option required to be absent despite being always required', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requires: { required: null },
+        },
+        required: {
+          type: 'flag',
+          names: ['-f2'],
+          required: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option required has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
+    it('should throw an error on option required to be present despite having a default value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requires: { required: undefined },
+        },
+        required: {
+          type: 'flag',
+          names: ['-f2'],
+          default: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option required has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
+    it('should throw an error on option required to be absent despite having a default value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requires: { required: null },
+        },
+        required: {
+          type: 'flag',
+          names: ['-f2'],
+          default: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option required has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
     it('should allow a function option required to be present or absent', () => {
       const options = {
         flag: {
@@ -200,7 +276,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <abc>. Should be of type 'boolean'.`,
+        `Option required has incompatible required value <abc>. Should be of type 'boolean'.`,
       );
     });
 
@@ -218,7 +294,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <1>. Should be of type 'boolean'.`,
+        `Option required has incompatible required value <1>. Should be of type 'boolean'.`,
       );
     });
 
@@ -236,7 +312,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <1>. Should be of type 'string'.`,
+        `Option required has incompatible required value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -254,7 +330,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <1>. Should be of type 'number'.`,
+        `Option required has incompatible required value <1>. Should be of type 'number'.`,
       );
     });
 
@@ -272,7 +348,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <1>. Should be of type 'object'.`,
+        `Option required has incompatible required value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -290,7 +366,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <1>. Should be of type 'string'.`,
+        `Option required has incompatible required value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -308,7 +384,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <1>. Should be of type 'object'.`,
+        `Option required has incompatible required value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -326,7 +402,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option required has incompatible value <1>. Should be of type 'number'.`,
+        `Option required has incompatible required value <1>. Should be of type 'number'.`,
       );
     });
 
@@ -430,6 +506,82 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(`Invalid option other in requirement.`);
     });
 
+    it('should throw an error on option required if another is present despite being always required', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requiredIf: { other: undefined },
+        },
+        other: {
+          type: 'flag',
+          names: ['-f2'],
+          required: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option other has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
+    it('should throw an error on option required if another is absent despite being always required', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requiredIf: { other: null },
+        },
+        other: {
+          type: 'flag',
+          names: ['-f2'],
+          required: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option other has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
+    it('should throw an error on option required if another is present despite having a default value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requiredIf: { other: undefined },
+        },
+        other: {
+          type: 'flag',
+          names: ['-f2'],
+          default: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option other has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
+    it('should throw an error on option required if another is absent despite having a default value', () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requiredIf: { other: null },
+        },
+        other: {
+          type: 'flag',
+          names: ['-f2'],
+          default: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option other has invalid required value. Option is always required or has a default value.`,
+      );
+    });
+
     it('should allow an option required if a function option is present or absent', () => {
       const options = {
         requires: {
@@ -526,7 +678,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <abc>. Should be of type 'boolean'.`,
+        `Option other has incompatible required value <abc>. Should be of type 'boolean'.`,
       );
     });
 
@@ -544,7 +696,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <1>. Should be of type 'boolean'.`,
+        `Option other has incompatible required value <1>. Should be of type 'boolean'.`,
       );
     });
 
@@ -562,7 +714,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <1>. Should be of type 'string'.`,
+        `Option other has incompatible required value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -580,7 +732,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <1>. Should be of type 'number'.`,
+        `Option other has incompatible required value <1>. Should be of type 'number'.`,
       );
     });
 
@@ -598,7 +750,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <1>. Should be of type 'object'.`,
+        `Option other has incompatible required value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -616,7 +768,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <1>. Should be of type 'string'.`,
+        `Option other has incompatible required value <1>. Should be of type 'string'.`,
       );
     });
 
@@ -634,7 +786,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <1>. Should be of type 'object'.`,
+        `Option other has incompatible required value <1>. Should be of type 'object'.`,
       );
     });
 
@@ -652,7 +804,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option other has incompatible value <1>. Should be of type 'number'.`,
+        `Option other has incompatible required value <1>. Should be of type 'number'.`,
       );
     });
   });

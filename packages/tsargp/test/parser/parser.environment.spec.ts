@@ -4,7 +4,7 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
-    it('should handle a flag option with an environment variable', () => {
+    it('should handle a flag option with an environment variable', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -22,14 +22,14 @@ describe('ArgumentParser', () => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG2'];
       process.env['FLAG'] = '1';
-      expect(() => parser.parse([])).toThrow(`Option -f1 requires -f2.`);
+      await expect(parser.parse([])).rejects.toThrow(`Option -f1 requires -f2.`);
       process.env['FLAG2'] = '1';
-      expect(parser.parse([])).toEqual({ flag: true, required: true });
+      await expect(parser.parse([])).resolves.toEqual({ flag: true, required: true });
       process.env['FLAG'] = '0';
-      expect(parser.parse(['-f2'])).toEqual({ flag: false, required: true });
+      await expect(parser.parse(['-f2'])).resolves.toEqual({ flag: false, required: true });
     });
 
-    it('should handle a boolean option with an environment variable', () => {
+    it('should handle a boolean option with an environment variable', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -47,14 +47,14 @@ describe('ArgumentParser', () => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG'];
       process.env['BOOLEAN'] = '1';
-      expect(() => parser.parse([])).toThrow(`Option -b requires -f.`);
+      await expect(parser.parse([])).rejects.toThrow(`Option -b requires -f.`);
       process.env['FLAG'] = '1';
-      expect(parser.parse([])).toEqual({ boolean: true, required: true });
+      await expect(parser.parse([])).resolves.toEqual({ boolean: true, required: true });
       process.env['BOOLEAN'] = '0';
-      expect(parser.parse(['-f'])).toEqual({ boolean: false, required: true });
+      await expect(parser.parse(['-f'])).resolves.toEqual({ boolean: false, required: true });
     });
 
-    it('should handle a string option with an environment variable', () => {
+    it('should handle a string option with an environment variable', async () => {
       const options = {
         string: {
           type: 'string',
@@ -72,14 +72,14 @@ describe('ArgumentParser', () => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG'];
       process.env['STRING'] = '123';
-      expect(() => parser.parse([])).toThrow(`Option -s requires -f.`);
+      await expect(parser.parse([])).rejects.toThrow(`Option -s requires -f.`);
       process.env['FLAG'] = '1';
-      expect(parser.parse([])).toEqual({ string: '123', required: true });
+      await expect(parser.parse([])).resolves.toEqual({ string: '123', required: true });
       process.env['STRING'] = '';
-      expect(parser.parse([])).toEqual({ string: '', required: true });
+      await expect(parser.parse([])).resolves.toEqual({ string: '', required: true });
     });
 
-    it('should handle a number option with an environment variable', () => {
+    it('should handle a number option with an environment variable', async () => {
       const options = {
         number: {
           type: 'number',
@@ -97,14 +97,14 @@ describe('ArgumentParser', () => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG'];
       process.env['NUMBER'] = '123';
-      expect(() => parser.parse([])).toThrow(`Option -n requires -f.`);
+      await expect(parser.parse([])).rejects.toThrow(`Option -n requires -f.`);
       process.env['FLAG'] = '1';
-      expect(parser.parse([])).toEqual({ number: 123, required: true });
+      await expect(parser.parse([])).resolves.toEqual({ number: 123, required: true });
       process.env['NUMBER'] = '';
-      expect(parser.parse(['-f'])).toEqual({ number: 0, required: true });
+      await expect(parser.parse(['-f'])).resolves.toEqual({ number: 0, required: true });
     });
 
-    it('should handle a strings option with an environment variable', () => {
+    it('should handle a strings option with an environment variable', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -124,14 +124,14 @@ describe('ArgumentParser', () => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG'];
       process.env['STRINGS'] = 'one,two';
-      expect(() => parser.parse([])).toThrow(`Option -ss requires -f.`);
+      await expect(parser.parse([])).rejects.toThrow(`Option -ss requires -f.`);
       process.env['FLAG'] = '1';
-      expect(parser.parse([])).toEqual({ strings: ['ONE', 'TWO'], required: true });
+      await expect(parser.parse([])).resolves.toEqual({ strings: ['ONE', 'TWO'], required: true });
       process.env['STRINGS'] = '';
-      expect(parser.parse([])).toEqual({ strings: [''], required: true });
+      await expect(parser.parse([])).resolves.toEqual({ strings: [''], required: true });
     });
 
-    it('should handle a numbers option with an environment variable', () => {
+    it('should handle a numbers option with an environment variable', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -151,14 +151,14 @@ describe('ArgumentParser', () => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG'];
       process.env['NUMBERS'] = '1.1,2.2';
-      expect(() => parser.parse([])).toThrow(`Option -ns requires -f.`);
+      await expect(parser.parse([])).rejects.toThrow(`Option -ns requires -f.`);
       process.env['FLAG'] = '1';
-      expect(parser.parse([])).toEqual({ numbers: [1, 2], required: true });
+      await expect(parser.parse([])).resolves.toEqual({ numbers: [1, 2], required: true });
       process.env['NUMBERS'] = '';
-      expect(parser.parse([])).toEqual({ numbers: [0], required: true });
+      await expect(parser.parse([])).resolves.toEqual({ numbers: [0], required: true });
     });
 
-    it('should throw an error on option required if another is specified as an environment variable', () => {
+    it('should throw an error on option required if another is specified as an environment variable', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -176,10 +176,10 @@ describe('ArgumentParser', () => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG'];
       process.env['FLAG2'] = '1';
-      expect(() => parser.parse([])).toThrow(`Option -f1 is required if -f2.`);
+      await expect(parser.parse([])).rejects.toThrow(`Option -f1 is required if -f2.`);
     });
 
-    it('should throw an error on string option with env. variable that fails validation', () => {
+    it('should throw an error on string option with env. variable that fails validation', async () => {
       const options = {
         string: {
           type: 'string',
@@ -190,12 +190,12 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['STRING'] = 'abc';
-      expect(() => parser.parse([])).toThrow(
+      await expect(parser.parse([])).rejects.toThrow(
         `Invalid parameter to STRING: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
-    it('should throw an error on number option with env. variable that fails validation', () => {
+    it('should throw an error on number option with env. variable that fails validation', async () => {
       const options = {
         number: {
           type: 'number',
@@ -206,12 +206,12 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['NUMBER'] = '-3';
-      expect(() => parser.parse([])).toThrow(
+      await expect(parser.parse([])).rejects.toThrow(
         `Invalid parameter to NUMBER: -3. Value must be in the range [0, Infinity].`,
       );
     });
 
-    it('should throw an error on strings option with env. variable that fails validation', () => {
+    it('should throw an error on strings option with env. variable that fails validation', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -223,12 +223,12 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['STRINGS'] = '123,abc';
-      expect(() => parser.parse([])).toThrow(
+      await expect(parser.parse([])).rejects.toThrow(
         `Invalid parameter to STRINGS: 'abc'. Value must match the regex /\\d+/s.`,
       );
     });
 
-    it('should throw an error on numbers option with env. variable that fails validation', () => {
+    it('should throw an error on numbers option with env. variable that fails validation', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -240,7 +240,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       process.env['NUMBERS'] = '1,-3';
-      expect(() => parser.parse([])).toThrow(
+      await expect(parser.parse([])).rejects.toThrow(
         `Invalid parameter to NUMBERS: -3. Value must be in the range [0, Infinity].`,
       );
     });

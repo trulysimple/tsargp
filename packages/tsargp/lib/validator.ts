@@ -53,12 +53,14 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.invalidSelfRequirement]: 'Option %o requires itself.',
     [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
     [ErrorItem.invalidRequiredOption]: 'Invalid option %o in requirement.',
+    [ErrorItem.invalidRequiredValue]:
+      'Option %o has invalid required value. Option is always required or has a default value.',
+    [ErrorItem.incompatibleRequiredValue]:
+      'Option %o has incompatible required value %v. Should be of type %s.',
     [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Option %o has duplicate name %s.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o1: previous was %o2.',
     [ErrorItem.duplicateEnumValue]: 'Option %o has duplicate enum (%s|%n).',
-    [ErrorItem.incompatibleRequiredValue]:
-      'Option %o has incompatible value %v. Should be of type %s.',
     [ErrorItem.enumsConstraintViolation]:
       'Invalid parameter to %o: (%s1|%n1). Possible values are {(%s2|%n2)}.',
     [ErrorItem.regexConstraintViolation]:
@@ -516,12 +518,17 @@ function validateRequirement(
   if (isSpecial(option)) {
     throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
-  if (requiredValue !== undefined && requiredValue !== null) {
-    if (isUnknown(option)) {
-      throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
+  const noValue = {};
+  if ((requiredValue ?? noValue) === noValue) {
+    if (option.required || option.default !== undefined) {
+      throw error(config, ErrorItem.invalidRequiredValue, { o: prefix + requiredKey });
     }
-    validateValue(config, prefix + requiredKey, option, requiredValue);
+    return;
   }
+  if (isUnknown(option)) {
+    throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
+  }
+  validateValue(config, prefix + requiredKey, option, requiredValue);
 }
 
 /**

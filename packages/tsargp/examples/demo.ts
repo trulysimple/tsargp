@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { ArgumentParser, WarnMessage } from 'tsargp';
+import { ArgumentParser } from 'tsargp';
 import options from './demo.options.js';
 
 /**
@@ -20,18 +20,20 @@ interface Values {
   numbersEnum: Array<1 | 2> | undefined;
 }
 
-const values = {} as Values;
-const error = await new ArgumentParser(options).tryParse(values);
-if (error instanceof Error) {
-  console.error(`${error}`);
-  process.exitCode = 1;
-} else if (error instanceof WarnMessage) {
-  console.error(`${error}`);
+try {
+  const values = {} as Values;
+  const result = await new ArgumentParser(options).parseInto(values);
+  if (result.warning) {
+    console.log(`${result.warning}`);
+  }
   if (!values.command) {
     console.log(values);
   }
-} else if (error) {
-  console.log(`${error}`); // help, version or completion words
-} else if (!values.command) {
-  console.log(values);
+} catch (err) {
+  if (err instanceof Error) {
+    console.error(`${err}`);
+    process.exitCode = 1;
+  } else {
+    console.log(`${err}`); // help, version or completion words
+  }
 }
