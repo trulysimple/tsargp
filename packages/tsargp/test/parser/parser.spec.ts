@@ -133,7 +133,7 @@ describe('ArgumentParser', () => {
 
       it('should throw a version message on a version option with a resolve function', async () => {
         const options = {
-          function: {
+          version: {
             type: 'version',
             names: ['-v'],
             resolve: (str) => `file://${import.meta.dirname}/${str}`,
@@ -145,7 +145,7 @@ describe('ArgumentParser', () => {
 
       it('should throw an error on a version option that cannot resolve a package.json file', async () => {
         const options = {
-          function: {
+          version: {
             type: 'version',
             names: ['-v'],
             resolve: () => `file:///abc`,

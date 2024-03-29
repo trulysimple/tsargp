@@ -119,7 +119,7 @@ export type Requires = string | RequiresVal | RequiresExp | RequiresCallback;
  * @param values The option values
  * @returns True if the requirements were satisfied
  */
-export type RequiresCallback = (values: OpaqueOptionValues) => boolean;
+export type RequiresCallback = (values: OpaqueOptionValues) => boolean | Promise<boolean>;
 
 /**
  * A callback to parse the value of option parameters. Any specified normalization or constraint

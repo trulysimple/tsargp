@@ -507,6 +507,32 @@ describe('ArgumentParser', () => {
     });
   });
 
+  it('should throw an error on forward requirement not satisfied with an async callback', async () => {
+    const options = {
+      flag1: {
+        type: 'flag',
+        names: ['-f1'],
+      },
+      flag2: {
+        type: 'flag',
+        names: ['-f2'],
+      },
+      boolean: {
+        type: 'boolean',
+        names: ['-b'],
+        positional: true,
+        requires: async (values) => values['flag1'] === values['flag2'],
+      },
+    } as const satisfies Options;
+    options.boolean.requires.toString = () => 'fcn';
+    const parser = new ArgumentParser(options);
+    await expect(parser.parse([])).resolves.toMatchObject({});
+    await expect(parser.parse(['1'])).resolves.toMatchObject({});
+    await expect(parser.parse(['-f1', '1'])).rejects.toThrow(`Option -b requires <fcn>.`);
+    await expect(parser.parse(['-f2', '1'])).rejects.toThrow(`Option -b requires <fcn>.`);
+    await expect(parser.parse(['-f1', '-f2', '1'])).resolves.toMatchObject({});
+  });
+
   it('should throw an error on forward requirement not satisfied with a callback', async () => {
     const options = {
       flag1: {
@@ -917,6 +943,31 @@ describe('ArgumentParser', () => {
       `Option -f is required if -ns != [1].`,
     );
     await expect(parser.parse(['-n', '123', '-ns', '1'])).resolves.toMatchObject({});
+  });
+
+  it('should throw an error on conditional requirement not satisfied with an async callback', async () => {
+    const options = {
+      flag1: {
+        type: 'flag',
+        names: ['-f1'],
+      },
+      flag2: {
+        type: 'flag',
+        names: ['-f2'],
+      },
+      boolean: {
+        type: 'boolean',
+        names: ['-b'],
+        positional: true,
+        requiredIf: async (values) => values['flag1'] === values['flag2'],
+      },
+    } as const satisfies Options;
+    options.boolean.requiredIf.toString = () => 'fcn';
+    const parser = new ArgumentParser(options);
+    await expect(parser.parse([])).rejects.toThrow(`Option -b is required if <fcn>.`);
+    await expect(parser.parse(['-f1'])).resolves.toMatchObject({});
+    await expect(parser.parse(['-f2'])).resolves.toMatchObject({});
+    await expect(parser.parse(['-f1', '-f2'])).rejects.toThrow(`Option -b is required if <fcn>.`);
   });
 
   it('should throw an error on conditional requirement not satisfied with a callback', async () => {

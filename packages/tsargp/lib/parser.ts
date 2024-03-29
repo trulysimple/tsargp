@@ -466,14 +466,19 @@ function handleNameCompletion(validator: OptionValidator, prefix?: string): neve
  * @param and If true, return on the first error; else return on the first success
  * @returns True if the requirement was satisfied
  */
-function checkRequireItems<T>(
+async function checkRequireItems<T>(
   items: Array<T>,
-  itemFn: (item: T, error: TerminalString, negate: boolean, invert: boolean) => boolean,
+  itemFn: (
+    item: T,
+    error: TerminalString,
+    negate: boolean,
+    invert: boolean,
+  ) => boolean | Promise<boolean>,
   error: TerminalString,
   negate: boolean,
   invert: boolean,
   and: boolean,
-): boolean {
+): Promise<boolean> {
   if (!and && items.length > 1) {
     error.addOpening('(');
   }
@@ -484,7 +489,7 @@ function checkRequireItems<T>(
     } else {
       error.addWord(invert ? 'and' : 'or');
     }
-    const success = itemFn(item, error, negate, invert);
+    const success = await itemFn(item, error, negate, invert);
     if (success !== and) {
       return success;
     }
@@ -773,11 +778,11 @@ async function checkRequired(
   specifiedKeys: Set<string>,
 ) {
   /** @ignore */
-  async function checkEnv(key: string) {
+  function checkEnv(key: string) {
     return checkEnvVarAndDefaultValue(validator, values, specifiedKeys, key);
   }
   /** @ignore */
-  async function checkReq(key: string) {
+  function checkReq(key: string) {
     return checkRequiredOption(validator, values, specifiedKeys, key);
   }
   const keys = Object.keys(validator.options);
@@ -818,7 +823,7 @@ async function checkEnvVarAndDefaultValue(
  * @param specifiedKeys The set of specified keys
  * @param key The option key
  */
-function checkRequiredOption(
+async function checkRequiredOption(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
@@ -832,8 +837,8 @@ function checkRequiredOption(
   const specified = specifiedKeys.has(key);
   const error = new TerminalString();
   if (
-    (specified && option.requires && !check(option.requires, false, false)) ||
-    (!specified && option.requiredIf && !check(option.requiredIf, true, true))
+    (specified && option.requires && !(await check(option.requires, false, false))) ||
+    (!specified && option.requiredIf && !(await check(option.requiredIf, true, true)))
   ) {
     const name = option.preferredName ?? '';
     const kind = specified
@@ -854,7 +859,7 @@ function checkRequiredOption(
  * @param invert True if the requirements should be inverted
  * @returns True if the requirements were satisfied
  */
-function checkRequires(
+async function checkRequires(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
@@ -862,7 +867,7 @@ function checkRequires(
   error: TerminalString,
   negate: boolean,
   invert: boolean,
-): boolean {
+): Promise<boolean> {
   /** @ignore */
   function checkItem(requires: Requires, error: TerminalString, negate: boolean, invert: boolean) {
     return checkRequires(validator, values, specifiedKeys, requires, error, negate, invert);
@@ -890,7 +895,7 @@ function checkRequires(
     const entries = Object.entries(requires);
     return checkRequireItems(entries, checkEntry, error, negate, invert, !negate);
   }
-  if (requires(values) == negate) {
+  if ((await requires(values)) == negate) {
     if (negate != invert) {
       error.addWord('not');
     }
