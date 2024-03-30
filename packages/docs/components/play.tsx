@@ -41,14 +41,14 @@ class PlayCommand extends Command<PlayProps> {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
     const parser = new ArgumentParser(options);
-    const warnings = parser.validate();
-    if (warnings.length) {
-      this.println(warnings.wrap(this.state.width));
+    const { warning } = parser.validate();
+    if (warning) {
+      this.println(warning.wrap(this.state.width));
     }
     this.parser = parser;
   }
 
-  override run(line: string, compIndex?: number) {
+  override async run(line: string, compIndex?: number) {
     try {
       if (line.startsWith('init')) {
         if (!compIndex) {
@@ -56,7 +56,7 @@ class PlayCommand extends Command<PlayProps> {
         }
       } else if (this.parser) {
         const values = {};
-        this.parser.doParse(values, line, { compIndex });
+        await this.parser.parseInto(values, line, { compIndex });
         this.println(JSON.stringify(values, null, 2));
       } else {
         this.println(`Please call ${style(1)}init${style(0)} first.`);

@@ -124,7 +124,7 @@ export type ValidatorConfig = {
  */
 export type ValidationFlags = {
   /**
-   * Whether the validate procedure should try to detect naming inconsistencies.
+   * Whether the validation procedure should try to detect naming inconsistencies.
    */
   readonly detectNamingInconsistencies?: true;
 };

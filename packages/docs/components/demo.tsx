@@ -21,9 +21,9 @@ class DemoCommand extends Command {
     super(props, 'tsargp');
   }
 
-  override run(line: string, compIndex?: number) {
+  override async run(line: string, compIndex?: number) {
     try {
-      const values = this.parser.parse(line, { compIndex });
+      const values = await this.parser.parse(line, { compIndex });
       if (!values['command']) {
         this.println(JSON.stringify(values, null, 2));
       }

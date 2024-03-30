@@ -71,7 +71,7 @@ export const enum ErrorItem {
   invalidRequiredOption,
   /**
    * Raised by the validator when an option uses a nullish value in a requirement that references an
-   * option that is always required.
+   * option that is either always required or has a default value.
    */
   invalidRequiredValue,
   /**

@@ -25,8 +25,8 @@ There is a total of ten option types, as summarized in the table below:
 | [boolean]   | positional, monadic                     | `boolean{:ts}`     |                    |                     |
 | [string]    | positional, monadic                     | `string{:ts}`      | trim, case         | enums, regex        |
 | [number]    | positional, monadic                     | `number{:ts}`      | conv               | enums, range        |
-| [strings]   | positional, variadic, delimited, append | `string[]{:ts}`    | unique, trim, case | enums, regex, limit |
-| [numbers]   | positional, variadic, delimited, append | `number[]{:ts}`    | unique, conv       | enums, range, limit |
+| [strings]   | positional, delimited, variadic, append | `string[]{:ts}`    | unique, trim, case | enums, regex, limit |
+| [numbers]   | positional, delimited, variadic, append | `number[]{:ts}`    | unique, conv       | enums, range, limit |
 
 In the above table, _niladic_ means that the option expects zero parameters on the command-line;
 _monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
@@ -127,7 +127,7 @@ accepts one parameter:
 
 Notes about this callback:
 
-- if asynchronous, and is called, then the resulting option value will be a promise
+- if can be asynchronous
 - it may be configured with a custom `toString` method to render it in the help message
 
 #### Forward requirements
@@ -159,8 +159,8 @@ You can also specify a callback, which accepts the following parameter:
 
 Notes about this callback:
 
+- it can be asynchronous
 - it should return `true{:ts}` if the requirements were satisfied, or `false{:ts}` otherwise
-- it cannot be asynchronous, since it must be evaluated within the parsing loop
 - it may be configured with a custom `toString` method to render it in error and help messages
 
 <Callout type="info">
@@ -272,8 +272,8 @@ accepts three parameters:
 
 Notes about this callback:
 
+- it can be asynchronous
 - it should return the list of completion words and should not throw any errors
-- if asynchronous, you should await the result of [`parseAsync`]
 
 #### Parse callback
 
@@ -286,8 +286,8 @@ parameter. It accepts three parameters:
 
 Notes about this callback:
 
-- it should return a value of the data type expected by the option (this should not be an array)
-- if asynchronous, and is called, then the resulting option value will be a promise
+- it can be asynchronous
+- it should return a value compatible with the option type (this should not be an array)
 
 #### Enumeration
 
@@ -398,7 +398,7 @@ This option has the following optional attributes.
 
 #### Help format
 
-The `format` attribute specifies a custom [help format] configuration.
+The `format` attribute specifies a custom [formatter configuration] configuration.
 
 #### Help sections
 
@@ -441,7 +441,6 @@ file will be searched and read to extract its `version` field. You should use
 Notes about this callback:
 
 - for use in non-browser environments only
-- it results in an asynchronous operation, so you should await the result of [`parseAsync`]
 - mutually exclusive with [version info]
 
 ### Function option
@@ -467,8 +466,8 @@ accepts three parameters:
 
 Notes about this callback:
 
+- it can be asynchronous
 - it may return the option value or nothing at all
-- if asynchronous, you should await the result of [`parseAsync`]
 - altering the `rest` parameter will have _no_ effect on the original command-line arguments
 
 <Callout type="default">
@@ -529,8 +528,8 @@ accepts two parameters:
 
 Notes about this callback:
 
+- it can be asynchronous
 - it may return the option value or nothing at all
-- if asynchronous, you should await the result of [`parseAsync`]
 - when bash completion is in effect, this callback will _not_ be called
 - if called, the parser will exit the parsing loop immediately upon its return
 
@@ -688,7 +687,7 @@ The **numbers** option has these sets of attributes:
 [`doParse`]: parser#getting-warnings
 [`tryParse`]: parser#avoiding-trycatch
 [`shortStyle`]: parser#short-option-style
-[`parseAsync`]: parser#executing-callbacks
+[formatter configuration]: formatter#help-format
 [Math]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 [_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html

@@ -22,9 +22,9 @@ interface Values {
 
 try {
   const values = {} as Values;
-  const result = await new ArgumentParser(options).parseInto(values);
-  if (result.warning) {
-    console.log(`${result.warning}`);
+  const { warning } = await new ArgumentParser(options).parseInto(values);
+  if (warning) {
+    console.log(`${warning}`);
   }
   if (!values.command) {
     console.log(values);
