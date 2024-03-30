@@ -179,8 +179,9 @@ async function doParse(
   initValues(validator.options, values);
   const specifiedKeys = new Set<string>();
   const warning = new WarnMessage();
-  await parseArgs(validator, values, args, specifiedKeys, completing, warning, progName);
-  await checkRequired(validator, values, specifiedKeys); // assert(!completing);
+  if (await parseArgs(validator, values, args, specifiedKeys, completing, warning, progName)) {
+    await checkRequired(validator, values, specifiedKeys);
+  }
   return warning.length ? { warning } : {};
 }
 
@@ -269,7 +270,7 @@ async function readEnvVar(
  * @param completing True if performing completion
  * @param warning The warnings accumulated so far
  * @param progName The program name, if any
- * @returns A promise that must be awaited before continuing
+ * @returns True if requirements should be checked
  */
 async function parseArgs(
   validator: OptionValidator,
@@ -279,7 +280,7 @@ async function parseArgs(
   completing: boolean,
   warning: WarnMessage,
   progName?: string,
-): Promise<void> {
+): Promise<boolean> {
   /** @ignore */
   function addKey(info: OptionInfo) {
     const { key, name, option } = info;
@@ -343,7 +344,7 @@ async function parseArgs(
           );
           i += skip;
           if (breakLoop) {
-            return;
+            return false;
           }
           info = undefined;
           continue;
@@ -371,7 +372,8 @@ async function parseArgs(
     if (isComp) {
       const { option } = info;
       if (option.complete) {
-        return handleComplete(values, option.complete, args.slice(i + 1), param);
+        await handleComplete(values, option.complete, args.slice(i + 1), param);
+        return false;
       }
       handleCompletion(option, param);
       if (suggestNames) {
@@ -384,6 +386,7 @@ async function parseArgs(
       info = undefined;
     }
   }
+  return !completing;
 }
 
 /**
@@ -761,7 +764,7 @@ async function handleComplete(
   complete: CompleteCallback,
   rest: Array<string>,
   param = '',
-): Promise<void> {
+): Promise<never> {
   let words;
   try {
     words = await complete(values, param, rest);

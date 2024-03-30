@@ -13,8 +13,8 @@ option definitions. You should _not_ need to instantiate this class directly. In
 ## Option validation
 
 The term _validation_ here means verifying the sanity of the options' definitions. It is intended
-for use during development, _not_ in production where it would impose a needless performance penalty
-on your application. The validations behave like assertions: they assert that your options will work
+for use during _development_, not in production where it would impose a needless performance penalty
+on your application. The validations behave like assertions: they assert that your program will work
 as expected when delivered to end-users.
 
 To validate a set of option definitions, you must call the `validate` method on the parser instance.
@@ -283,8 +283,8 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `invalidSelfRequirement` - `'Option %o requires itself.'{:ts}`
 - `unknownRequiredOption` - `'Unknown option %o in requirement.'{:ts}`
 - `invalidRequiredOption` - `'Invalid option %o in requirement.'{:ts}`
-- `invalidRequiredValue`- `'Option %o has invalid required value. Option is always required or has a default value.'{:ts}`
-- `incompatibleRequiredValue` - `'Option %o has incompatible required value %v. Should be of type %s.'{:ts}`
+- `invalidRequiredValue`- `'Invalid required value for option %o. Option is always required or has a default value.'{:ts}`
+- `incompatibleRequiredValue` - `'Incompatible required value %v for option %o. Should be of type %s.'{:ts}`
 - `emptyEnumsDefinition` - `'Option %o has zero enum values.'{:ts}`
 - `duplicateOptionName` - `'Option %o has duplicate name %s.'{:ts}`
 - `duplicatePositionalOption` - `'Duplicate positional option %o1: previous was %o2.'{:ts}`
@@ -327,7 +327,7 @@ with a description of the corresponding value:
 | unknownRequiredOption      | `%o` = the required option's key                                                            |
 | invalidRequiredOption      | `%o` = the required option's key                                                            |
 | invalidRequiredValue       | `%o` = the required option's key                                                            |
-| incompatibleRequiredValue  | `%o` = the option's key; `%v` = the incompatible value; `%s` = the expected type            |
+| incompatibleRequiredValue  | `%o` = the required option's key; `%v` = the incompatible value; `%s` = the expected type   |
 | emptyEnumsDefinition       | `%o` = the option's key                                                                     |
 | duplicateOptionName        | `%o` = the option's key; `%s` = the duplicate name                                          |
 | duplicatePositionalOption  | `%o1` = the duplicate option's key; `%o2` = the previous option's key                       |

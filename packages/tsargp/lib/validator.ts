@@ -54,9 +54,9 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
     [ErrorItem.invalidRequiredOption]: 'Invalid option %o in requirement.',
     [ErrorItem.invalidRequiredValue]:
-      'Option %o has invalid required value. Option is always required or has a default value.',
+      'Invalid required value for option %o. Option is always required or has a default value.',
     [ErrorItem.incompatibleRequiredValue]:
-      'Option %o has incompatible required value %v. Should be of type %s.',
+      'Incompatible required value %v for option %o. Should be of type %s.',
     [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
     [ErrorItem.duplicateOptionName]: 'Option %o has duplicate name %s.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o1: previous was %o2.',

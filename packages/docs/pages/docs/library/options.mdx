@@ -28,8 +28,8 @@ There is a total of ten option types, as summarized in the table below:
 | [strings]   | positional, delimited, variadic, append | `string[]{:ts}`    | unique, trim, case | enums, regex, limit |
 | [numbers]   | positional, delimited, variadic, append | `number[]{:ts}`    | unique, conv       | enums, range, limit |
 
-In the above table, _niladic_ means that the option expects zero parameters on the command-line;
-_monadic_, that the option accepts a single parameter; and _variadic_, multiple parameters (possibly
+In the above table, _niladic_ means that the option expects no parameter on the command-line;
+_monadic_, that it accepts a single parameter; and _variadic_, variable number parameters (possibly
 zero). The data type indicates the base type of the option value in the [resulting object]. The
 meaning of the other attributes is explained in the next sections.
 
@@ -64,7 +64,7 @@ formatting] rules.
 
 <Callout type="info">
   Deprecated options specified on the command-line generate a [warning message], which you may want
-  to process by calling the parser's [`doParse`] or [`tryParse`] methods.
+  to obtain by calling the parser's [`parseInto`] method.
 </Callout>
 
 #### Group & hide
@@ -153,6 +153,8 @@ In the case of an expression, it is evaluated as follows:
   and `null{:ts}` values to signify required _absence_.
 </Callout>
 
+##### Requirement callback
+
 You can also specify a callback, which accepts the following parameter:
 
 - `values` - the parsed values
@@ -202,9 +204,10 @@ If they were defined in the `requiredIf` attribute, they would mean:
 
 #### Cluster letters
 
-The `clusterLetters` attribute, if present, specifies letters (or any Unicode characters) that can
-be used to cluster options in the first command-line argument. This is also known as [_short-option_
-style]. This feature can be enabled via the parser's [`shortStyle`] configuration property.
+The `clusterLetters` attribute, if present, specifies letters (or any Unicode characters except
+whitespace) that can be used to cluster options in the first command-line argument. This is also
+known as [_short-option_ style]. This feature can be enabled via the parser's [`shortStyle`]
+configuration flag.
 
 Here is an example that illustrates how it works. Suppose we have the following options:
 
@@ -230,7 +233,7 @@ my_cli --flag --str 'my string' --num 123
 Notes about this feature:
 
 - the order of the options in the cluster are preserved when converting to the canonical form
-- variadic array options and command options are supported, but must be the last option in a cluster
+- variadic array options and command options are supported, but they must be the last in a cluster
 - if a single dash is specified as the first character in a cluster argument, it is ignored
 - if `Tab`-completion is performed in a cluster argument, the default completion is thrown
 - positional options with no names are skipped in a cluster argument
@@ -348,8 +351,9 @@ either a string or a regular expression.
 #### Remove duplicates
 
 The `unique` attribute, if present, indicates that duplicate elements will be removed from the
-option value. This normalization is applied _before_ checking the [count limit]
-constraint.
+option value. Due to the nature of JavaScript's [Set] type, the order of array elements will reflect
+the order in which they were parsed. This normalization is applied _before_ checking the [count
+limit] constraint.
 
 #### Append values
 
@@ -381,7 +385,7 @@ option value will be read, in case the option is not specified on the command-li
 ## Niladic options
 
 Niladic options do not expect any parameter on the command-line. With the notable exception of the
-[flag option], these options may have _side-effects_, rather than an intrinsic value.
+[flag option], these options may have _side-effects_.
 
 <Callout type="info">
   When bash completion is in effect, help and version options are _not_ processed.
@@ -402,8 +406,8 @@ The `format` attribute specifies a custom [formatter configuration] configuratio
 
 #### Help sections
 
-The `sections` attribute specifies [help sections] to be rendered in the help message. The default
-is to include two:
+The `sections` attribute specifies [help sections] to be rendered in the help message. By default,
+two sections are included:
 
 - usage section - with `'Usage:'{:ts}` as heading - indented by 2 spaces
 - groups section - with `'Options'{:ts}` as default group heading - appending a colon to group
@@ -413,8 +417,9 @@ is to include two:
 
 The `useFilters` attribute is an opt-in feature that allows the remaining arguments to be used as
 option filters. For example, the invocation `cli --help flag` would only include in the help message
-those options whose names or synopsis match the regex `/flag/i{:ts}`. There can be as many arguments
-as the user wants.
+those options whose names or synopsis match the regex `/flag/i{:ts}`.
+
+If multiple patterns are provided, any matched one will suffice to include an option in the message.
 
 <Callout type="default">
   This is inherently different from what a text search utility like `grep` would produce. The
@@ -436,7 +441,7 @@ The `version` attribute specifies a semantic version or version information. Mut
 
 The `resolve` attribute specifies a resolution function scoped to the module where a `package.json`
 file will be searched and read to extract its `version` field. You should use
-[`import.meta.resolve`].
+[`import.meta.resolve`] for this attribute.
 
 Notes about this callback:
 
@@ -490,8 +495,8 @@ the callback.
 #### Skip count
 
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
-returns. You may only change this value inside a _synchronous_ callback. Otherwise, it should be
-left unchanged. The parser does not alter this value and ignores it during bash completion.
+returns. You may change this value inside the callback. The parser does not alter this value and
+ignores it during bash completion.
 
 Here is an example of how it might be used inside the callback:
 
@@ -508,8 +513,9 @@ Here is an example of how it might be used inside the callback:
 ### Command option
 
 The **command** option is yet another specialization of the [function option] that handles the
-execution of a "nested" command. It lets you specify the command's options in one of its attributes
-and parses the remaining arguments.
+execution of a "nested" command. It lets you specify the command's options in one of its attributes.
+The parser will process the remaining arguments and supply the parsed values to the command's
+callback, subsequently exiting the parsing loop.
 
 <Callout type="default">
   As you might have guessed, this option allows the definition of hierarchical commands, including
@@ -529,9 +535,8 @@ accepts two parameters:
 Notes about this callback:
 
 - it can be asynchronous
-- it may return the option value or nothing at all
+- the returned value, if any, will be saved as the option value
 - when bash completion is in effect, this callback will _not_ be called
-- if called, the parser will exit the parsing loop immediately upon its return
 
 <Callout type="default">
   The simplest implementation would just return `cmdValues`. This way, the values can be handled
@@ -547,7 +552,7 @@ Notes about this callback:
 #### Command options | callback
 
 The `options` attribute specifies the set of option definitions for the command, or a
-(non-asynchronous) callback that returns the option definitions (this allows the implementation of
+(non-asynchronous) callback that returns these definitions (which allows the implementation of
 [recursive commands]). This attribute is required.
 
 <Callout type="warning">
@@ -684,10 +689,10 @@ The **numbers** option has these sets of attributes:
 [default algorithm]: parser#completion-algorithm
 [help format]: formatter#help-format
 [help sections]: formatter#help-sections
-[`doParse`]: parser#getting-warnings
-[`tryParse`]: parser#avoiding-trycatch
+[`parseInto`]: parser#using-your-own-object
 [`shortStyle`]: parser#short-option-style
 [formatter configuration]: formatter#help-format
+[Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Math]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 [_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html

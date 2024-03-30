@@ -8,21 +8,20 @@ title: Introduction - Docs
 
 ## Features
 
-| Usability              | Functionality           | Presentation             |
-| ---------------------- | ----------------------- | ------------------------ |
-| Zero-dependency        | Bash completion         | Help message formatting  |
-| Fully declarative      | Value normalization     | Word wrapping            |
-| Type checking          | Value constraints       | Paragraphs and lists     |
-| Browser-compatible     | Option requirements     | Inline styles            |
-| Moderate footprint[^1] | Option name suggestions | [SGR] display attributes |
-| ESM-native             | Asynchronous callbacks  | Custom phrases           |
-| Online documentation   | Recursive commands      | Option grouping/hiding   |
-
-[^1]: ~34KB minified
+| Usability              | Functionality             | Presentation              |
+| ---------------------- | ------------------------- | ------------------------- |
+| Zero-dependency        | Bash completion           | Help message formatting   |
+| Fully declarative      | Option validation         | Text wrapping/alignment   |
+| Type-checked           | Option requirements       | Paragraphs and lists      |
+| Browser-compatible     | Option name suggestions   | [SGR] colors and styles   |
+| Moderate footprint[^1] | Asynchronous callbacks    | Custom error/help phrases |
+| ESM-native             | Nested/recursive commands | Option grouping/hiding    |
+| Online documentation   | Normalization/constraints | Default usage message     |
+| Community support      | GNU _short-option_ style  | Help sections             |
 
 ## Motivation
 
-Why use this library when there are already dozens of argument parsers on npm?
+Why use this library when there are already a plethora of argument parsers on npm?
 
 The most distinctive feature is its _declarative_ API. Very few libraries on npm that we know of at
 the time of writing have this feature (worth mentioning [meow] and [oclif]). Most
@@ -54,17 +53,16 @@ export default {
 
 Import them in your main script:
 
-```ts copy filename="<your_cli_name>.ts" {8-10} /<your_cli_name>/
+```ts copy filename="<your_cli_name>.ts" {8-9} /<your_cli_name>/
 #!/usr/bin/env node
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
 try {
   const parser = new ArgumentParser(options);
-  parser.validate(); // validate the options' definitions (you can skip this in production)
-  // const values = parser.parse();             // use this to get the options' values
-  // const values = await parser.parseAsync();  // use this if you declare async function options
-  // parser.parseInto(myValues);                // use this if your values are enclosed in a class
+  parser.validate(); // validate the option definitions (you can skip this in production)
+  const values = await parser.parse(); // use this to get the options' values
+  // await parser.parseInto(myValues);  // use this for an existing object or class instance
 } catch (err) {
   if (err instanceof Error) {
     console.error(`${err}`);
@@ -80,6 +78,8 @@ Optionally, enable bash completion:
 ```sh copy /<your_cli_name>/
 complete -o default -C <your_cli_name> <your_cli_name>
 ```
+
+[^1]: ~31KB minified
 
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 [meow]: https://www.npmjs.com/package/meow
