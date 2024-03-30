@@ -213,9 +213,9 @@ export type FormatStyles = Concrete<MessageStyles> & {
 };
 
 /**
- * Configuration for the formatting of arguments.
+ * The formatting flags.
  */
-export type FormatConfig = {
+export type FormattingFlags = {
   /**
    * The phrase alternative, if any.
    */
@@ -449,12 +449,17 @@ export class TerminalString {
    * @param styles The format styles
    * @param phrase The custom phrase
    * @param args The format arguments
-   * @param config The format config
+   * @param flags The formatting flags
    * @returns The terminal string instance
    */
-  formatArgs(styles: FormatStyles, phrase: string, args?: FormatArgs, config?: FormatConfig): this {
-    const formatFn = args && formatArgs(styles, args, config);
-    const alternative = config?.alt !== undefined ? selectAlternative(phrase, config.alt) : phrase;
+  formatArgs(
+    styles: FormatStyles,
+    phrase: string,
+    args?: FormatArgs,
+    flags?: FormattingFlags,
+  ): this {
+    const formatFn = args && formatArgs(styles, args, flags);
+    const alternative = flags?.alt !== undefined ? selectAlternative(phrase, flags.alt) : phrase;
     return this.splitText(alternative, formatFn);
   }
 
@@ -738,13 +743,13 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
  * Creates a formatting callback from a set of styles and arguments.
  * @param styles The format styles
  * @param args The format arguments
- * @param config The format config
+ * @param flags The formatting flags
  * @returns The formatting callback
  */
 function formatArgs(
   styles: FormatStyles,
   args: FormatArgs,
-  config: FormatConfig = { sep: ',' },
+  flags: FormattingFlags = { sep: ',' },
 ): FormatCallback {
   return function (this: TerminalString, spec: string) {
     const arg = spec.slice(1);
@@ -755,10 +760,10 @@ function formatArgs(
       if (Array.isArray(value)) {
         value.forEach((val, i) => {
           formatFn(val, styles, this);
-          if (config?.sep && i < value.length - 1) {
-            this.setMerge(config.mergePrev)
-              .addWord(config.sep)
-              .setMerge(config.mergeNext ?? false);
+          if (flags?.sep && i < value.length - 1) {
+            this.setMerge(flags.mergePrev)
+              .addWord(flags.sep)
+              .setMerge(flags.mergeNext ?? false);
           }
         });
       } else {

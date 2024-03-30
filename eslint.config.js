@@ -66,6 +66,7 @@ export default [
       ...hooks.configs.recommended.rules,
       ...next.configs.recommended.rules,
       ...next.configs['core-web-vitals'].rules,
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {

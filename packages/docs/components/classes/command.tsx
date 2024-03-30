@@ -194,13 +194,11 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
       if (pos <= cmd.length) {
         this.term.paste(`${cmd} `.slice(pos));
       } else if (cmd !== this.commands[0]) {
-        try {
-          this.run(line, pos);
-        } catch (comp) {
-          if (typeof comp === 'string' && comp) {
-            this.onComplete(comp.split('\n'), line, pos);
+        this.run(line, pos).then(null, (comp) => {
+          if (Array.isArray(comp) && comp.length) {
+            this.onComplete(comp, line, pos);
           }
-        }
+        });
       }
     }
   }
@@ -229,7 +227,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
    * Fires when the user enters a line.
    * @param line The command-line
    */
-  private onInput(line: string) {
+  private async onInput(line: string) {
     const cmdAndLine = processEnvVars(line.trimStart());
     if (cmdAndLine) {
       const [command, line] = cmdAndLine;
@@ -239,7 +237,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
             this.term.clear();
             break;
           default: {
-            this.run(line);
+            await this.run(line);
             break;
           }
         }
@@ -252,10 +250,10 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
 
   /**
    * Runs or completes a command.
-   * @param line The command-line
-   * @param compIndex The completion index, if any
+   * @param _line The command-line
+   * @param _compIndex The completion index, if any
    */
-  protected abstract run(line: string, compIndex?: number): void;
+  protected async run(_line: string, _compIndex?: number) {}
 
   /**
    * Prints a line on the terminal.

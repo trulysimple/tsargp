@@ -185,7 +185,7 @@ export function getArgs(line: string, compIndex: number = NaN): Array<string> {
  * @param actual The specified value
  * @param expected The required value
  * @param negate True if the requirement should be negated
- * @param unique True if array elements should be unique
+ * @param unique True if array elements should be considered in any order, ignoring duplicates
  * @returns True if the requirement was satisfied
  * @internal
  */

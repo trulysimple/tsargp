@@ -13,14 +13,20 @@ option definitions. You should _not_ need to instantiate this class directly. In
 ## Option validation
 
 The term _validation_ here means verifying the sanity of the options' definitions. It is intended
-for use during development, _not_ in production where it would impose a needless performance penalty
-on your application. The validations behave like assertions: they assert that your options will work
+for use during _development_, not in production where it would impose a needless performance penalty
+on your application. The validations behave like assertions: they assert that your program will work
 as expected when delivered to end-users.
 
 To validate a set of option definitions, you must call the `validate` method on the parser instance.
-This method accepts no argument and returns a list of warning messages that represent
-not-so-dangerous issues encountered in the option definitions. You may want to print this to see if
-they are important to your application.
+This method accepts a `ValidationFlags` argument with the following optional properties:
+
+- `detectNamingInconsistencies` - whether the validation procedure should try to detect naming
+  inconsistencies
+
+It returns a `ValidationResult` object with the following optional properties:
+
+- `warning` - A list of warning messages that represent not-so-dangerous issues encountered in the
+  option definitions. You may want to print this to see if they are important to your application.
 
 The following sections describe the various kinds of validation performed by this method. Unless
 otherwise noted, any option definition that does not satisfy one of these restrictions will raise an
@@ -125,6 +131,10 @@ the restrictions listed below:
 - **Invalid required option** -
   An option must not declare a requirement that references either a non-valued option (help and
   version) or an option with unknown values (function and command) in a requirement.
+- **Invalid required value** -
+  An option must not declare a requirement that references another option that is either [always
+  required] or has a [default value], if the required value is nullish (`null{:ts}` or
+  `undefined{:ts}`).
 - **Incompatible required value** -
   Since a requirement may be an object with values of any kind, the data type of these values must
   be validated at run-time. Thus, an option must not declare a requirement that references a valued
@@ -155,10 +165,10 @@ A version option is very simple and has only one restraint:
 - **Empty version string** -
   A version option must not contain an _empty_ version string.
 
-## Error configuration
+## Validator configuration
 
-Both the validation and the parsing methods may throw errors which can be customized with an
-`ErrorConfig` object. This object has some optional properties, as described below.
+Both the validation and parsing methods may throw errors which can be customized with a
+`ValidatorConfig` object. This object has some optional properties, as described below.
 
 ### Error styles
 
@@ -214,6 +224,11 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `invalidRequiredOption` -
   raised by the validator when an option references either a non-valued option or an option with
   unknown values in a requirement
+- `invalidRequiredValue` -
+  raised by the validator when an option uses a nullish value in a requirement that references an
+  option that is either always required or has a default value
+- `incompatibleRequiredValue` -
+  raised by the validator when an option is required with a value of incompatible data type
 - `emptyEnumsDefinition` -
   raised by the validator when an option has a zero-length enumeration array
 - `duplicateOptionName` -
@@ -222,8 +237,6 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
   raised by the validator when there are two or more positional options
 - `duplicateEnumValue` -
   raised by the validator when a string or number enumeration constraint has duplicate values
-- `incompatibleRequiredValue` -
-  raised by the validator when an option is required with a value of incompatible data type
 - `enumsConstraintViolation` -
   raised by both the parser and validator when a value fails to satisfy either a string or a number
   enumeration constraint
@@ -270,11 +283,12 @@ The `phrases` property specifies the phrases to be used for each kind of error m
 - `invalidSelfRequirement` - `'Option %o requires itself.'{:ts}`
 - `unknownRequiredOption` - `'Unknown option %o in requirement.'{:ts}`
 - `invalidRequiredOption` - `'Invalid option %o in requirement.'{:ts}`
+- `invalidRequiredValue`- `'Invalid required value for option %o. Option is always required or has a default value.'{:ts}`
+- `incompatibleRequiredValue` - `'Incompatible required value %v for option %o. Should be of type %s.'{:ts}`
 - `emptyEnumsDefinition` - `'Option %o has zero enum values.'{:ts}`
 - `duplicateOptionName` - `'Option %o has duplicate name %s.'{:ts}`
 - `duplicatePositionalOption` - `'Duplicate positional option %o1: previous was %o2.'{:ts}`
 - `duplicateEnumValue` - `'Option %o has duplicate enum (%s|%n).'{:ts}`
-- `incompatibleRequiredValue` - `'Option %o has incompatible value %v. Should be of type %s.'{:ts}`
 - `enumsConstraintViolation` - `'Invalid parameter to %o: (%s1|%n1). Possible values are {(%s2|%n2)}.'{:ts}`
 - `regexConstraintViolation` - `'Invalid parameter to %o: %s. Value must match the regex %r.'{:ts}`
 - `rangeConstraintViolation` - `'Invalid parameter to %o: %n1. Value must be in the range [%n2].'{:ts}`
@@ -312,11 +326,12 @@ with a description of the corresponding value:
 | invalidSelfRequirement     | `%o` = the option's key                                                                     |
 | unknownRequiredOption      | `%o` = the required option's key                                                            |
 | invalidRequiredOption      | `%o` = the required option's key                                                            |
+| invalidRequiredValue       | `%o` = the required option's key                                                            |
+| incompatibleRequiredValue  | `%o` = the required option's key; `%v` = the incompatible value; `%s` = the expected type   |
 | emptyEnumsDefinition       | `%o` = the option's key                                                                     |
 | duplicateOptionName        | `%o` = the option's key; `%s` = the duplicate name                                          |
 | duplicatePositionalOption  | `%o1` = the duplicate option's key; `%o2` = the previous option's key                       |
 | duplicateEnumValue         | `%o` = the option's key; `%s`/`%n` = the duplicate enum value                               |
-| incompatibleRequiredValue  | `%o` = the option's key; `%v` = the incompatible value; `%s` = the expected type            |
 | enumsConstraintViolation   | `%o` = the option's key or name; `%s1`/`%n1` = the specified value; `%s2`/`%n2` = the enums |
 | regexConstraintViolation   | `%o` = the option's key or name; `%s` = the specified value; `%r` = the regex               |
 | rangeConstraintViolation   | `%o` = the option's key or name; `%n1` = the specified value; `%n2` = the range             |
@@ -344,6 +359,8 @@ with a description of the corresponding value:
 [name slot]: formatter#names-column
 [nested command]: options#command-option
 [format specifiers]: styles#format-specifiers
+[always required]: options#always-required
+[default value]: options#default-value--callback
 
 [^1]:
     the command prefix is a series of option keys interspersed with periods, denoting the current

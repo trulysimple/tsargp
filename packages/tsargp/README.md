@@ -42,10 +42,9 @@ import options from './<your_cli_name>.options.js';
 
 try {
   const parser = new ArgumentParser(options);
-  parser.validate(); // validate the options' definitions (you can skip this in production)
-  // const values = parser.parse();             // use this to get the options' values
-  // const values = await parser.parseAsync();  // use this if you declare async function options
-  // parser.parseInto(myValues);                // use this if your values are enclosed in a class
+  parser.validate(); // validate the option definitions (you can skip this in production)
+  const values = await parser.parse(); // use this to get the options' values
+  // await parser.parseInto(myValues); // use this for an existing object or class instance
 } catch (err) {
   if (err instanceof Error) {
     console.error(`${err}`);
