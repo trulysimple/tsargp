@@ -25,7 +25,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).rejects.toThrow(`Option -f1 requires -f2.`);
       process.env['FLAG2'] = '1';
       await expect(parser.parse([])).resolves.toEqual({ flag: true, required: true });
-      process.env['FLAG'] = '0';
+      process.env['FLAG'] = '';
       await expect(parser.parse(['-f2'])).resolves.toEqual({ flag: false, required: true });
     });
 
@@ -50,7 +50,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).rejects.toThrow(`Option -b requires -f.`);
       process.env['FLAG'] = '1';
       await expect(parser.parse([])).resolves.toEqual({ boolean: true, required: true });
-      process.env['BOOLEAN'] = '0';
+      process.env['BOOLEAN'] = '';
       await expect(parser.parse(['-f'])).resolves.toEqual({ boolean: false, required: true });
     });
 

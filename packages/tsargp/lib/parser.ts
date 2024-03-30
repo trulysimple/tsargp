@@ -332,7 +332,7 @@ async function parseArgs(
           throw validator.error(ErrorItem.missingParameter, { o: info.name });
         }
         if (niladic) {
-          const [breakLoop, skip] = await handleNiladic(
+          const [breakLoop, skipCount] = await handleNiladic(
             validator,
             values,
             specifiedKeys,
@@ -342,7 +342,7 @@ async function parseArgs(
             warning,
             progName,
           );
-          i += skip;
+          i += skipCount;
           if (breakLoop) {
             return false;
           }
@@ -549,8 +549,7 @@ async function parseParam(
       value = values[key] as Array<unknown>;
       value.push(...res.map(norm));
     } else {
-      const result = parse ? await parse(values, name, param) : convertFn(param);
-      value = norm(result);
+      value = parse ? await parse(values, name, param) : convertFn(param);
     }
     values[key] = norm(value);
   } catch (err) {
@@ -640,8 +639,8 @@ async function handleNiladic(
       if (breakLoop) {
         await checkRequired(validator, values, specifiedKeys);
       }
-      const res = await handleFunction(values, completing, rest, info);
-      return [breakLoop, res];
+      const skipCount = await handleFunction(values, completing, rest, info);
+      return [breakLoop, skipCount];
     }
     case 'command': {
       if (!completing) {
@@ -983,12 +982,12 @@ function checkRequiredValue<T>(
   }
   const name = option.preferredName ?? '';
   const array = Array.isArray(value);
-  const expected = array ? norm(value.map(norm)) : norm(value);
+  const expected = array ? value.map(norm) : norm(value);
   if (array) {
     if (
       checkRequiredArray(
-        actual as ReadonlyArray<T>,
-        expected as ReadonlyArray<T>,
+        actual as ReadonlyArray<unknown>,
+        expected as ReadonlyArray<unknown>,
         negate,
         !!option.unique,
       )

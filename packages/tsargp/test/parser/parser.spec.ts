@@ -63,7 +63,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse([])).not.toHaveProperty('help');
+        await expect(parser.parse([])).resolves.not.toHaveProperty('help');
         await expect(parser.parse(['-h'], { progName: 'prog' })).rejects.toThrow(
           `Usage:\n\n  prog [-f] [-h]\n\nArgs:\n\n  -f\n\nOptions:\n\n  -h`,
         );
@@ -83,7 +83,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse([])).not.toHaveProperty('help');
+        await expect(parser.parse([])).resolves.not.toHaveProperty('help');
         await expect(parser.parse(['-h'], { progName: 'prog' })).rejects.toThrow(
           `usage heading\n\nprog [-h]\n\ngroup  heading\n\n-h`,
         );
@@ -127,7 +127,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse([])).not.toHaveProperty('version');
+        await expect(parser.parse([])).resolves.not.toHaveProperty('version');
         await expect(parser.parse(['-v'])).rejects.toThrow(/^0.1.0$/);
       });
 

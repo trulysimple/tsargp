@@ -352,6 +352,7 @@ function validateNames(
   prefix: string,
   result: WarnMessage,
 ) {
+  prefix = prefix.slice(0, -1);
   const visited = new Set<string>();
   for (const name of nameToKey.keys()) {
     if (visited.has(name)) {

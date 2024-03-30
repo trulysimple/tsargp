@@ -141,5 +141,35 @@ describe('OptionValidator', () => {
           `: Name slot 2 has mixed naming conventions ['kebab-case: keb-ab', 'snake_case: sna_ke', 'colon:case: col:on'].\n`,
       );
     });
+
+    it('should return a warning on nested command option name too similar to other names', () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            flag1: {
+              type: 'flag',
+              names: ['flag1'],
+            },
+            flag2: {
+              type: 'flag',
+              names: ['flag2'],
+            },
+            flag3: {
+              type: 'flag',
+              names: ['flag3'],
+            },
+          },
+          cmd() {},
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `command: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,
+      );
+    });
   });
 });
