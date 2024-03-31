@@ -239,6 +239,10 @@ export const enum HelpItem {
    * The option's cluster letters, if any.
    */
   clusterLetters,
+  /**
+   * The option's fallback value, if any.
+   */
+  fallback,
 }
 
 /**

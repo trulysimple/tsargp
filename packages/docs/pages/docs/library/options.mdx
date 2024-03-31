@@ -299,6 +299,16 @@ Any parameter that does not equal one of these values (after normalization) will
 be thrown. Explicitly _not_ available for the [boolean option]. Mutually exclusive with [regular
 expression] and [numeric range].
 
+#### Fallback value
+
+The `fallback` attribute, if present, specifies a value that is used in case the option is specified
+in the command-line _without_ any parameter. This makes the option parameter(s) optional, for both
+single-valued and array-valued options. If not specified, the option parameter(s) will be required.
+
+<Callout type="info">
+  This attribute is inherently different from the [default value] (they are not mutually exclusive).
+</Callout>
+
 ### String attributes
 
 String-valued option types share a set of attributes, as described below.

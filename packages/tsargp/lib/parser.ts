@@ -254,7 +254,7 @@ async function readEnvVar(
       if (isArray(option)) {
         resetValue(values, key, option);
       }
-      await parseParam(validator, values, info, value, false);
+      await parseParam(validator, values, info, value);
     }
     return true;
   }
@@ -296,17 +296,20 @@ async function parseArgs(
     } else {
       variadic = false;
     }
+    fallback = option.fallback !== undefined;
   }
   let info: OptionInfo | undefined;
   let marker = false;
   let variadic = false;
+  let fallback = false;
   let suggestNames = false;
+  let paramCount = 0;
   for (let i = 0; i < args.length; ++i) {
     const [arg, comp] = args[i].split('\0', 2);
     const isComp = comp !== undefined;
     const isLast = i + 1 === args.length;
     let param = arg;
-    if (!info || (variadic && !marker)) {
+    if (!info || ((variadic || fallback) && !marker)) {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = validator.names.get(name);
       const hasValue = value !== undefined;
@@ -314,6 +317,10 @@ async function parseArgs(
         if (isComp && !hasValue) {
           throw new CompletionMessage(name);
         }
+        if (info && paramCount == 0) {
+          values[info.key] = info.option.fallback;
+        }
+        paramCount = 0;
         const option = validator.options[key];
         const niladic = isNiladic(option);
         const isMarker = name === validator.positional?.marker;
@@ -328,7 +335,7 @@ async function parseArgs(
         }
         info = isMarker ? validator.positional : { key, name, option };
         addKey(info);
-        if (isLast && !hasValue && !niladic && !variadic) {
+        if (isLast && !hasValue && !niladic && !fallback) {
           throw validator.error(ErrorItem.missingParameter, { o: info.name });
         }
         if (niladic) {
@@ -351,7 +358,7 @@ async function parseArgs(
         }
         if (isMarker || !hasValue) {
           marker = isMarker;
-          suggestNames = !marker && variadic;
+          suggestNames = !marker && fallback;
           continue;
         }
         suggestNames = false;
@@ -381,10 +388,28 @@ async function parseArgs(
       }
       throw new CompletionMessage();
     }
-    await parseParam(validator, values, info, param, completing, suggestNames);
-    if (!variadic && !marker) {
-      info = undefined;
+    try {
+      await parseParam(validator, values, info, param);
+    } catch (err) {
+      // do not propagate errors during completion
+      if (!completing) {
+        if (err instanceof ErrorMessage && suggestNames) {
+          handleUnknown(validator, param, err);
+        }
+        throw err;
+      }
     }
+    if (!marker) {
+      if (variadic) {
+        suggestNames = true;
+      } else {
+        info = undefined;
+      }
+    }
+    paramCount++;
+  }
+  if (info && fallback && paramCount == 0) {
+    values[info.key] = info.option.fallback;
   }
   return !completing;
 }
@@ -519,16 +544,12 @@ async function checkRequireItems<T>(
  * @param values The option values
  * @param info The option information
  * @param param The option parameter
- * @param completing True if performing completion
- * @param suggestNames True if option names should be suggested on parse failures
  */
 async function parseParam(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   info: OptionInfo,
   param: string,
-  completing: boolean,
-  suggestNames = false,
 ): Promise<void> {
   /** @ignore */
   function norm<T>(val: T) {
@@ -537,30 +558,20 @@ async function parseParam(
   const { key, name, option } = info;
   const convertFn =
     option.type === 'boolean' ? isTrue : isString(option) ? (str: string) => str : Number;
-  try {
-    const parse = option.parse;
-    let value;
-    if (isArray(option)) {
-      const vals = option.separator ? param.split(option.separator) : [param];
-      const res = parse
-        ? await Promise.all(vals.map((val) => parse(values, name, val)))
-        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          vals.map(convertFn as any);
-      value = values[key] as Array<unknown>;
-      value.push(...res.map(norm));
-    } else {
-      value = parse ? await parse(values, name, param) : convertFn(param);
-    }
-    values[key] = norm(value);
-  } catch (err) {
-    // do not propagate errors during completion
-    if (!completing) {
-      if (err instanceof ErrorMessage && suggestNames) {
-        handleUnknown(validator, param, err);
-      }
-      throw err;
-    }
+  const parse = option.parse;
+  let value;
+  if (isArray(option)) {
+    const vals = option.separator ? param.split(option.separator) : [param];
+    const res = parse
+      ? await Promise.all(vals.map((val) => parse(values, name, val)))
+      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vals.map(convertFn as any);
+    value = values[key] as Array<unknown>;
+    value.push(...res.map(norm));
+  } else {
+    value = parse ? await parse(values, name, param) : convertFn(param);
   }
+  values[key] = norm(value);
 }
 
 /**
@@ -813,6 +824,9 @@ async function checkEnvVarAndDefaultValue(
   specifiedKeys: Set<string>,
   key: string,
 ): Promise<void> {
+  if (specifiedKeys.has(key)) {
+    return;
+  }
   const option = validator.options[key];
   const envVar = option.envVar;
   if (envVar && (await readEnvVar(validator, values, { key, option, name: envVar }))) {

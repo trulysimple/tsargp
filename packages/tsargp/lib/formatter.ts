@@ -277,6 +277,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.envVar,
     HelpItem.requiredIf,
     HelpItem.clusterLetters,
+    HelpItem.fallback,
   ],
   phrases: {
     [HelpItem.synopsis]: '%t',
@@ -301,6 +302,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.envVar]: 'Can be specified through the %o environment variable.',
     [HelpItem.requiredIf]: 'Required if %p.',
     [HelpItem.clusterLetters]: 'Can be clustered with %s.',
+    [HelpItem.fallback]: 'Falls back to (%b|%s|%n|[%s]|[%n]|%v) if specified without parameter.',
   },
 };
 
@@ -330,6 +332,7 @@ const helpItemFunctions: ReadonlyArray<HelpItemFunction> = [
   formatEnvVar,
   formatRequiredIf,
   formatClusterLetters,
+  formatFallback,
 ];
 
 //--------------------------------------------------------------------------------------------------
@@ -930,11 +933,14 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
     return formatExample(option, styles, result);
   }
   const ellipsis = isVariadic(option) ? '...' : '';
-  const param = option.paramName
-    ? option.paramName.includes('<')
-      ? option.paramName
-      : `<${option.paramName}>${ellipsis}`
+  const paramName = option.paramName;
+  const paramText = paramName
+    ? paramName.includes('<')
+      ? paramName
+      : `<${paramName}>${ellipsis}`
     : `<${option.type}>${ellipsis}`;
+  const optional = option.fallback !== undefined;
+  const param = optional ? `[${paramText}]` : paramText;
   result.addWord(param);
   return param.length;
 }
@@ -1261,22 +1267,40 @@ function formatDefault(
 ) {
   const value = option.default;
   if (value !== undefined) {
-    const [spec, alt] =
-      typeof value === 'function'
-        ? ['v', 5]
-        : typeof value === 'boolean'
-          ? ['b', 0]
-          : typeof value === 'string'
-            ? ['s', 1]
-            : typeof value === 'number'
-              ? ['n', 2]
-              : option.type === 'strings'
-                ? ['s', 3]
-                : option.type === 'numbers'
-                  ? ['n', 4]
-                  : ['v', 5];
-    result.formatArgs(styles, phrase, { [spec]: value }, { alt, sep: ',' });
+    formatValue(option, phrase, styles, result, value);
   }
+}
+
+/**
+ * Formats an option's default or fallback value to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param styles The set of styles
+ * @param result The resulting string
+ * @param value The default or fallback value
+ */
+function formatValue(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+  value: unknown,
+) {
+  const [spec, alt] =
+    typeof value === 'function'
+      ? ['v', 5]
+      : typeof value === 'boolean'
+        ? ['b', 0]
+        : typeof value === 'string'
+          ? ['s', 1]
+          : typeof value === 'number'
+            ? ['n', 2]
+            : option.type === 'strings'
+              ? ['s', 3]
+              : option.type === 'numbers'
+                ? ['n', 4]
+                : ['v', 5];
+  result.formatArgs(styles, phrase, { [spec]: value }, { alt, sep: ',' });
 }
 
 /**
@@ -1520,5 +1544,24 @@ function formatRequiredIf(
   const requiredIf = option.requiredIf;
   if (requiredIf) {
     result.splitText(phrase, () => formatRequirements(options, requiredIf, styles, result));
+  }
+}
+
+/**
+ * Formats an option's fallback value to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param styles The set of styles
+ * @param result The resulting string
+ */
+function formatFallback(
+  option: OpaqueOption,
+  phrase: string,
+  styles: FormatStyles,
+  result: TerminalString,
+) {
+  const value = option.fallback;
+  if (value !== undefined) {
+    formatValue(option, phrase, styles, result, value);
   }
 }

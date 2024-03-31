@@ -382,7 +382,7 @@ describe('ArgumentParser', () => {
         `Option -f requires -s = 'abc'.`,
       );
       await expect(parser.parse(['-f', '-s', 'abc'])).rejects.toThrow(`Option -f requires -ss.`);
-      await expect(parser.parse(['-f', '-s', 'abc', '-ss'])).rejects.toThrow(
+      await expect(parser.parse(['-f', '-s', 'abc', '-ss', ''])).rejects.toThrow(
         `Option -f requires -ss = ['a'].`,
       );
       await expect(parser.parse(['-f', '-s', 'abc', '-ss', 'a'])).resolves.toMatchObject({});
@@ -412,7 +412,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-f'])).rejects.toThrow(`Option -f requires -n.`);
       await expect(parser.parse(['-f', '-n', '1'])).rejects.toThrow(`Option -f requires -n = 123.`);
       await expect(parser.parse(['-f', '-n', '123'])).rejects.toThrow(`Option -f requires -ns.`);
-      await expect(parser.parse(['-f', '-n', '123', '-ns'])).rejects.toThrow(
+      await expect(parser.parse(['-f', '-n', '123', '-ns', ''])).rejects.toThrow(
         `Option -f requires -ns = [1].`,
       );
       await expect(parser.parse(['-f', '-n', '123', '-ns', '1'])).resolves.toMatchObject({});
@@ -471,7 +471,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-f'])).resolves.toMatchObject({});
       await expect(parser.parse(['-f', '-s', 'x'])).resolves.toMatchObject({});
       await expect(parser.parse(['-f', '-s', 'abc'])).resolves.toMatchObject({});
-      await expect(parser.parse(['-f', '-s', 'abc', '-ss'])).resolves.toMatchObject({});
+      await expect(parser.parse(['-f', '-s', 'abc', '-ss', ''])).resolves.toMatchObject({});
       await expect(parser.parse(['-f', '-s', 'abc', '-ss', 'a'])).rejects.toThrow(
         `Option -f requires (-s != 'abc' or -ss != ['a']).`,
       );
@@ -500,7 +500,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-f'])).resolves.toMatchObject({});
       await expect(parser.parse(['-f', '-n', '1'])).resolves.toMatchObject({});
       await expect(parser.parse(['-f', '-n', '123'])).resolves.toMatchObject({});
-      await expect(parser.parse(['-f', '-n', '123', '-ns'])).resolves.toMatchObject({});
+      await expect(parser.parse(['-f', '-n', '123', '-ns', ''])).resolves.toMatchObject({});
       await expect(parser.parse(['-f', '-n', '123', '-ns', '1'])).rejects.toThrow(
         `Option -f requires (-n != 123 or -ns != [1]).`,
       );
@@ -820,7 +820,7 @@ describe('ArgumentParser', () => {
     await expect(parser.parse([])).resolves.toMatchObject({});
     await expect(parser.parse(['-s', 'x'])).resolves.toMatchObject({});
     await expect(parser.parse(['-s', 'abc'])).resolves.toMatchObject({});
-    await expect(parser.parse(['-s', 'abc', '-ss'])).resolves.toMatchObject({});
+    await expect(parser.parse(['-s', 'abc', '-ss', ''])).resolves.toMatchObject({});
     await expect(parser.parse(['-s', 'abc', '-ss', 'a'])).rejects.toThrow(
       `Option -f is required if (-s = 'abc' and -ss = ['a']).`,
     );
@@ -849,7 +849,7 @@ describe('ArgumentParser', () => {
     await expect(parser.parse([])).resolves.toMatchObject({});
     await expect(parser.parse(['-n', '1'])).resolves.toMatchObject({});
     await expect(parser.parse(['-n', '123'])).resolves.toMatchObject({});
-    await expect(parser.parse(['-n', '123', '-ns'])).resolves.toMatchObject({});
+    await expect(parser.parse(['-n', '123', '-ns', ''])).resolves.toMatchObject({});
     await expect(parser.parse(['-n', '123', '-ns', '1'])).rejects.toThrow(
       `Option -f is required if (-n = 123 and -ns = [1]).`,
     );
@@ -910,7 +910,7 @@ describe('ArgumentParser', () => {
       `Option -f is required if -s != 'abc'.`,
     );
     await expect(parser.parse(['-s', 'abc'])).rejects.toThrow(`Option -f is required if no -ss.`);
-    await expect(parser.parse(['-s', 'abc', '-ss'])).rejects.toThrow(
+    await expect(parser.parse(['-s', 'abc', '-ss', ''])).rejects.toThrow(
       `Option -f is required if -ss != ['a'].`,
     );
     await expect(parser.parse(['-s', 'abc', '-ss', 'a'])).resolves.toMatchObject({});
@@ -939,7 +939,7 @@ describe('ArgumentParser', () => {
     await expect(parser.parse([])).rejects.toThrow(`Option -f is required if no -n.`);
     await expect(parser.parse(['-n', '1'])).rejects.toThrow(`Option -f is required if -n != 123.`);
     await expect(parser.parse(['-n', '123'])).rejects.toThrow(`Option -f is required if no -ns.`);
-    await expect(parser.parse(['-n', '123', '-ns'])).rejects.toThrow(
+    await expect(parser.parse(['-n', '123', '-ns', ''])).rejects.toThrow(
       `Option -f is required if -ns != [1].`,
     );
     await expect(parser.parse(['-n', '123', '-ns', '1'])).resolves.toMatchObject({});

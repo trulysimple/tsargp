@@ -245,7 +245,7 @@ export type WithBasic = {
 
 /**
  * Defines attributes common to options with values.
- * @template T The data type
+ * @template T The option value data type
  */
 export type WithValue<T> = {
   /**
@@ -255,9 +255,9 @@ export type WithValue<T> = {
   /**
    * The option default value or a callback that returns the default value.
    *
-   * The default value is set at the end of the parsing loop if the option was not specified on the
-   * command-line. You may use a callback to inspect parsed values and determine the default value
-   * based on those values.
+   * The default value is set at the end of the parsing loop if the option was specified neither on
+   * the command-line nor as an environment variable. You may use a callback to inspect parsed
+   * values and determine the default value based on those values.
    */
   readonly default?: Readonly<T> | DefaultCallback<T>;
   /**
@@ -310,6 +310,11 @@ export type WithParam<T> = {
    * The enumerated values.
    */
   readonly enums?: ReadonlyArray<Flatten<T>>;
+  /**
+   * A fallback value that is used if the option is specified, but without any parameter.
+   * This makes the option parameter(s) optional, both for single-valued and array-valued options.
+   */
+  readonly fallback?: Readonly<T>;
 };
 
 /**
