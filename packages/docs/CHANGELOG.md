@@ -1,5 +1,21 @@
 # @trulysimple/tsargp-docs
 
+## 0.3.0-dev.1
+
+### Minor Changes
+
+- [#89](https://github.com/trulysimple/tsargp/pull/89) [`1b6b17a`](https://github.com/trulysimple/tsargp/commit/1b6b17a4f0aed26118f33f88a2e8fa36237969ba) Thanks [@disog](https://github.com/disog)! - Added a sub-section called "Connective words" in the Validator page, to document the new `ConnectiveWords` enumeration.
+
+- [#88](https://github.com/trulysimple/tsargp/pull/88) [`b46a609`](https://github.com/trulysimple/tsargp/commit/b46a609d116167496b7ddce2a1a21ef98cee47ba) Thanks [@disog](https://github.com/disog)! - Documented the new `fallback` attribute in the Options page.
+
+- [#84](https://github.com/trulysimple/tsargp/pull/84) [`4c2587a`](https://github.com/trulysimple/tsargp/commit/4c2587a27142dd308549c8a788e66c9823ecb558) Thanks [@disog](https://github.com/disog)! - A whole section about asynchronous parsing was removed from the Parser page, according to changes made in the code. The Validator page was updated to document a new kind of validation, namely, `invalidRequiredValue`.
+
+- [#81](https://github.com/trulysimple/tsargp/pull/81) [`8070da4`](https://github.com/trulysimple/tsargp/commit/8070da460bef3ad735cd638228283eaa71a1ba50) Thanks [@disog](https://github.com/disog)! - Removed the `parseDelimited` attribute from the "Parameter attributes" in the Options page, to reflect changes in code. Moved some text about custom phrases and format specifiers from both Formatter and Validator pages to the Styles page, where the information on this subject is now centralized.
+
+  Updated the "Error items" section of the Validator page, to reflect changes in code. In the same page, the "Enums validation" section was renamed to "Constraints validation", where the new validation rule for numeric ranges was documented.
+
+  Updated the "Help phrases" of the Formatter page to reflect changes in code. Also added a table of format specifiers to document the available phrase specifiers for help items.
+
 ## 0.3.0-dev.0
 
 ### Minor Changes
