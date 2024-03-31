@@ -374,8 +374,6 @@ async function parseArgs(
         info = validator.positional;
         addKey(info);
         suggestNames = true;
-      } else {
-        fallback = false;
       }
     }
     if (isComp) {

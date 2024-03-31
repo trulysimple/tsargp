@@ -933,14 +933,14 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
     return formatExample(option, styles, result);
   }
   const ellipsis = isVariadic(option) ? '...' : '';
-  const optional = option.fallback !== undefined;
   const paramName = option.paramName;
-  let param = paramName
+  const paramText = paramName
     ? paramName.includes('<')
       ? paramName
       : `<${paramName}>${ellipsis}`
     : `<${option.type}>${ellipsis}`;
-  param = optional ? `[${param}]` : param;
+  const optional = option.fallback !== undefined;
+  const param = optional ? `[${paramText}]` : paramText;
   result.addWord(param);
   return param.length;
 }

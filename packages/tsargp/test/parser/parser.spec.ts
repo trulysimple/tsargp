@@ -620,7 +620,18 @@ describe('ArgumentParser', () => {
     });
 
     describe('strings', () => {
-      it('should throw an error on strings option with missing parameter', async () => {
+      it('should throw an error on variadic strings option with missing parameter', async () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-ss'])).rejects.toThrow(`Missing parameter to -ss.`);
+      });
+
+      it('should throw an error on delimited strings option with missing parameter', async () => {
         const options = {
           strings: {
             type: 'strings',
@@ -745,7 +756,18 @@ describe('ArgumentParser', () => {
     });
 
     describe('numbers', () => {
-      it('should throw an error on numbers option with missing parameter', async () => {
+      it('should throw an error on variadic numbers option with missing parameter', async () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-ns'])).rejects.toThrow(`Missing parameter to -ns.`);
+      });
+
+      it('should throw an error on delimited numbers option with missing parameter', async () => {
         const options = {
           numbers: {
             type: 'numbers',
