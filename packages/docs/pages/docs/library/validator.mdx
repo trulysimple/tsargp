@@ -267,7 +267,8 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 
 ### Error phrases
 
-The `phrases` property specifies the phrases to be used for each kind of error message:
+The `phrases` property specifies the phrases to be used for each kind of error message. It has the
+following optional properties, which are the enumerators from `ErrorItem`:
 
 - `parseError` - `'Did you mean to specify an option name instead of (%o|%o1)?(| Similar names are [%o2].)'{:ts}`
 - `unknownOption` - `'Unknown option (%o|%o1).(| Similar names are [%o2].)'{:ts}`
@@ -343,6 +344,19 @@ with a description of the corresponding value:
 | invalidClusterLetter       | `%o` = the option's key; `%s` = the invalid letter                                          |
 | tooSimilarOptionNames      | `%o` = the command prefix[^1]; `%s1` = the option name; `%s2` = the similar names           |
 | mixedNamingConvention      | `%o` = the command prefix[^1]; `%n` = the slot index; `%s` = the naming conventions         |
+
+### Connective words
+
+The `connectives` property specifies the connective words to be used in the formatting of option
+requirements, in both error and help messages. It has the following optional properties, which are
+the enumerators from `ConnectiveWords`:
+
+- `and` - the word used to connect two logical expressions in conjunction
+- `or` - the word used to connect two logical expressions in disjunction
+- `not` - the word used to connect a logical expression in negation
+- `no` - the word used to connect a logical expression in non-existence
+- `equals` - the word used to connect two expressions in equality comparison
+- `notEquals` - the word used to connect two expressions in non-equality comparison
 
 [value validation]: #value-validation
 [negation names]: options#negation-names

@@ -91,7 +91,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req = 'abc'.\n`);
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req == 'abc'.\n`);
     });
 
     it('should handle an option with a forward requirement expression', () => {
@@ -120,7 +120,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -f, --flag    A flag option. Requires (-req1 and (-req2 = 1 or -req3 != '2')).\n`,
+        `  -f, --flag    A flag option. Requires (-req1 and (-req2 == 1 or -req3 != '2')).\n`,
       );
     });
 
@@ -239,7 +239,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req = 'abc'.\n`);
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req == 'abc'.\n`);
     });
 
     it('should handle an option with a conditional requirement expression', () => {
@@ -268,7 +268,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -f, --flag    A flag option. Required if (-req1 and (-req2 = 1 or -req3 != '2')).\n`,
+        `  -f, --flag    A flag option. Required if (-req1 and (-req2 == 1 or -req3 != '2')).\n`,
       );
     });
 

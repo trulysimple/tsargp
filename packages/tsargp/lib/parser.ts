@@ -20,7 +20,7 @@ import type {
   ValidationResult,
 } from './validator';
 
-import { ErrorItem } from './enums';
+import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter } from './formatter';
 import {
   RequiresAll,
@@ -101,6 +101,7 @@ export class ArgumentParser<T extends Options = Options> {
     const concreteConfig: ConcreteConfig = {
       styles: Object.assign({}, defaultConfig.styles, config.styles),
       phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
+      connectives: Object.assign({}, defaultConfig.connectives, config.connectives),
     };
     this.validator = new OptionValidator(options, concreteConfig);
   }
@@ -493,6 +494,7 @@ function handleNameCompletion(validator: OptionValidator, prefix?: string): neve
 
 /**
  * Checks the items of a requirement expression or object.
+ * @param validator The option validator
  * @param items The list of requirement items
  * @param itemFn The callback to execute on each item
  * @param error The terminal string error
@@ -502,6 +504,7 @@ function handleNameCompletion(validator: OptionValidator, prefix?: string): neve
  * @returns True if the requirement was satisfied
  */
 async function checkRequireItems<T>(
+  validator: OptionValidator,
   items: Array<T>,
   itemFn: (
     item: T,
@@ -517,12 +520,16 @@ async function checkRequireItems<T>(
   if (!and && items.length > 1) {
     error.addOpening('(');
   }
+  const config = validator.config;
+  const connective = invert
+    ? config.connectives[ConnectiveWords.and]
+    : config.connectives[ConnectiveWords.or];
   let first = true;
   for (const item of items) {
     if (and || first) {
       first = false;
     } else {
-      error.addWord(invert ? 'and' : 'or');
+      error.addWord(connective);
     }
     const success = await itemFn(item, error, negate, invert);
     if (success !== and) {
@@ -912,15 +919,15 @@ async function checkRequires(
   }
   if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
     const and = requires instanceof RequiresAll !== negate;
-    return checkRequireItems(requires.items, checkItem, error, negate, invert, and);
+    return checkRequireItems(validator, requires.items, checkItem, error, negate, invert, and);
   }
   if (typeof requires === 'object') {
     const entries = Object.entries(requires);
-    return checkRequireItems(entries, checkEntry, error, negate, invert, !negate);
+    return checkRequireItems(validator, entries, checkEntry, error, negate, invert, !negate);
   }
   if ((await requires(values)) == negate) {
     if (negate != invert) {
-      error.addWord('not');
+      error.addWord(validator.config.connectives[ConnectiveWords.not]);
     }
     format.v(requires, validator.config.styles, error);
     return false;
@@ -958,7 +965,7 @@ function checkRequirement(
       return true;
     }
     if (specified != invert) {
-      error.addWord('no');
+      error.addWord(validator.config.connectives[ConnectiveWords.no]);
     }
     format.o(option.preferredName ?? '', validator.config.styles, error);
     return false;
@@ -1011,10 +1018,13 @@ function checkRequiredValue<T>(
   } else if ((actual === expected) !== negate) {
     return true;
   }
-  const styles = validator.config.styles;
-  format.o(name, styles, error);
-  error.addWord(negate != invert ? '!=' : '=');
+  const config = validator.config;
+  const connective =
+    negate != invert
+      ? config.connectives[ConnectiveWords.notEquals]
+      : config.connectives[ConnectiveWords.equals];
   const phrase = array ? `[%${spec}]` : `%${spec}`;
-  error.formatArgs(styles, phrase, { [spec]: expected });
+  format.o(name, config.styles, error);
+  error.addWord(connective).formatArgs(config.styles, phrase, { [spec]: expected });
   return false;
 }
