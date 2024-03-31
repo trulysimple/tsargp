@@ -246,6 +246,36 @@ export const enum HelpItem {
 }
 
 /**
+ * The kind of connective words used in option requirements.
+ */
+export const enum ConnectiveWords {
+  /**
+   * The word used to connect two logical expressions in conjunction.
+   */
+  and,
+  /**
+   * The word used to connect two logical expressions in disjunction.
+   */
+  or,
+  /**
+   * The word used to connect a logical expression in negation.
+   */
+  not,
+  /**
+   * The word used to connect a logical expression in non-existence.
+   */
+  no,
+  /**
+   * The word used to connect two expressions in equality comparison.
+   */
+  equals,
+  /**
+   * The word used to connect two expressions in non-equality comparison.
+   */
+  notEquals,
+}
+
+/**
  * A control sequence introducer command.
  * @see https://xtermjs.org/docs/api/vtfeatures/#csi
  */

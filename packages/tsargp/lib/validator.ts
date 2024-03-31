@@ -5,7 +5,7 @@ import type { OpaqueOption, Options, Requires, RequiresVal, OpaqueOptions } from
 import type { FormatArgs, FormattingFlags, FormatStyles, MessageStyles } from './styles';
 import type { Concrete, NamingRules } from './utils';
 
-import { tf, fg, ErrorItem } from './enums';
+import { tf, fg, ErrorItem, ConnectiveWords } from './enums';
 import {
   RequiresAll,
   RequiresOne,
@@ -78,6 +78,14 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions [%s].',
     [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range [%n].',
   },
+  connectives: {
+    [ConnectiveWords.and]: 'and',
+    [ConnectiveWords.or]: 'or',
+    [ConnectiveWords.not]: 'not',
+    [ConnectiveWords.no]: 'no',
+    [ConnectiveWords.equals]: '==',
+    [ConnectiveWords.notEquals]: '!=',
+  },
 };
 
 /**
@@ -110,13 +118,17 @@ const namingConventions: NamingRules = {
  */
 export type ValidatorConfig = {
   /**
-   * The message styles
+   * The message styles.
    */
   readonly styles?: MessageStyles;
   /**
-   * The message phrases
+   * The message phrases.
    */
   readonly phrases?: Readonly<Partial<Record<ErrorItem, string>>>;
+  /**
+   * The connective words.
+   */
+  readonly connectives?: Readonly<Partial<Record<ConnectiveWords, string>>>;
 };
 
 /**

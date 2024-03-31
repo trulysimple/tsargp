@@ -4,9 +4,9 @@
 import type { OpaqueOption, OpaqueOptions, Requires, RequiresVal } from './options';
 import type { Style, FormatStyles } from './styles';
 import type { Concrete } from './utils';
-import type { OptionValidator } from './validator';
+import type { ConcreteConfig, OptionValidator } from './validator';
 
-import { tf, HelpItem } from './enums';
+import { tf, HelpItem, ConnectiveWords } from './enums';
 import {
   RequiresAll,
   RequiresNot,
@@ -232,6 +232,7 @@ type HelpItemFunction = (
   styles: FormatStyles,
   result: TerminalString,
   options: OpaqueOptions,
+  connectives: ConcreteConfig['connectives'],
 ) => void;
 
 //--------------------------------------------------------------------------------------------------
@@ -344,6 +345,7 @@ const helpItemFunctions: ReadonlyArray<HelpItemFunction> = [
 export class HelpFormatter {
   private readonly options: OpaqueOptions;
   private readonly styles: FormatStyles;
+  private readonly connectives: ConcreteConfig['connectives'];
   private readonly groups = new Map<string, Array<HelpEntry>>();
   private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number> | number;
@@ -368,6 +370,7 @@ export class HelpFormatter {
     }
     this.options = validator.options;
     this.styles = validator.config.styles;
+    this.connectives = validator.config.connectives;
     this.config = mergeConfig(config);
     this.nameWidths = this.config.names.hidden
       ? 0
@@ -383,6 +386,7 @@ export class HelpFormatter {
           this.styles,
           this.options,
           this.nameWidths,
+          this.connectives,
           option,
         );
         this.paramWidth = Math.max(this.paramWidth, paramLen);
@@ -450,6 +454,7 @@ export class HelpFormatter {
  * @param styles The set of styles
  * @param options The option definitions
  * @param nameWidths The name slot widths
+ * @param connectives The connective words
  * @param option The option definition
  * @returns The length of the option parameter
  */
@@ -459,13 +464,14 @@ function formatOption(
   styles: FormatStyles,
   options: OpaqueOptions,
   nameWidths: Array<number> | number,
+  connectives: ConcreteConfig['connectives'],
   option: OpaqueOption,
 ): number {
   const names = formatNames(config, styles, option, nameWidths);
   const param = new TerminalString();
   const paramLen = formatParams(config, styles, option, param);
   const descr = new TerminalString();
-  formatDescription(config, styles, option, descr, options);
+  formatDescription(config, styles, option, descr, options, connectives);
   const entry: HelpEntry = { names, param, descr };
   const group = groups.get(option.group ?? '');
   if (!group) {
@@ -530,6 +536,7 @@ function formatParams(
  * @param option The option definition
  * @param result The resulting string
  * @param options The option definitions
+ * @param connectives The connective words
  * @returns A terminal string with the formatted option description
  */
 function formatDescription(
@@ -538,6 +545,7 @@ function formatDescription(
   option: OpaqueOption,
   result: TerminalString,
   options: OpaqueOptions,
+  connectives: ConcreteConfig['connectives'],
 ) {
   if (config.descr.hidden || !config.items.length) {
     return result.addBreak(1);
@@ -549,7 +557,7 @@ function formatDescription(
   const count = result.count;
   for (const item of config.items) {
     const phrase = config.phrases[item];
-    helpItemFunctions[item](option, phrase, styles, result, options);
+    helpItemFunctions[item](option, phrase, styles, result, options, connectives);
   }
   if (result.count == count) {
     result.pop(count).addBreak(1); // this string does not contain any word
@@ -1386,6 +1394,7 @@ function formatClusterLetters(
  * @param requires The option requirements
  * @param styles The set of styles
  * @param result The resulting string
+ * @param connectives The connective words
  * @param negate True if the requirement should be negated
  */
 function formatRequirements(
@@ -1393,23 +1402,24 @@ function formatRequirements(
   requires: Requires,
   styles: FormatStyles,
   result: TerminalString,
+  connectives: ConcreteConfig['connectives'],
   negate: boolean = false,
 ) {
   if (typeof requires === 'string') {
     if (negate) {
-      result.addWord('no');
+      result.addWord(connectives[ConnectiveWords.no]);
     }
     const name = options[requires].preferredName ?? '';
     format.o(name, styles, result);
   } else if (requires instanceof RequiresNot) {
-    formatRequirements(options, requires.item, styles, result, !negate);
+    formatRequirements(options, requires.item, styles, result, connectives, !negate);
   } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-    formatRequiresExp(options, requires, styles, result, negate);
+    formatRequiresExp(options, requires, styles, result, connectives, negate);
   } else if (typeof requires === 'object') {
-    formatRequiresVal(options, requires, styles, result, negate);
+    formatRequiresVal(options, requires, styles, result, connectives, negate);
   } else {
     if (negate) {
-      result.addWord('not');
+      result.addWord(connectives[ConnectiveWords.not]);
     }
     format.v(requires, styles, result);
   }
@@ -1422,6 +1432,7 @@ function formatRequirements(
  * @param requires The requirement expression
  * @param styles The set of styles
  * @param result The resulting string
+ * @param connectives The connective words
  * @param negate True if the requirement should be negated
  */
 function formatRequiresExp(
@@ -1429,14 +1440,18 @@ function formatRequiresExp(
   requires: RequiresAll | RequiresOne,
   styles: FormatStyles,
   result: TerminalString,
+  connectives: ConcreteConfig['connectives'],
   negate: boolean,
 ) {
-  const op = requires instanceof RequiresAll === negate ? 'or' : 'and';
+  const op =
+    requires instanceof RequiresAll === negate
+      ? connectives[ConnectiveWords.or]
+      : connectives[ConnectiveWords.and];
   if (requires.items.length > 1) {
     result.addOpening('(');
   }
   requires.items.forEach((item, i) => {
-    formatRequirements(options, item, styles, result, negate);
+    formatRequirements(options, item, styles, result, connectives, negate);
     if (i < requires.items.length - 1) {
       result.addWord(op);
     }
@@ -1453,6 +1468,7 @@ function formatRequiresExp(
  * @param requires The requirement object
  * @param styles The set of styles
  * @param result The resulting string
+ * @param connectives The connective words
  * @param negate True if the requirement should be negated
  */
 function formatRequiresVal(
@@ -1460,6 +1476,7 @@ function formatRequiresVal(
   requires: RequiresVal,
   styles: FormatStyles,
   result: TerminalString,
+  connectives: ConcreteConfig['connectives'],
   negate: boolean,
 ) {
   const entries = Object.entries(requires);
@@ -1467,9 +1484,9 @@ function formatRequiresVal(
     result.addOpening('(');
   }
   entries.forEach(([key, value], i) => {
-    formatRequiredValue(options[key], value, styles, result, negate);
+    formatRequiredValue(options[key], value, styles, result, connectives, negate);
     if (i < entries.length - 1) {
-      result.addWord('and');
+      result.addWord(connectives[ConnectiveWords.and]);
     }
   });
   if (entries.length > 1) {
@@ -1484,6 +1501,7 @@ function formatRequiresVal(
  * @param value The option value
  * @param styles The set of styles
  * @param result The resulting string
+ * @param connectives The connective words
  * @param negate True if the requirement should be negated
  */
 function formatRequiredValue(
@@ -1491,17 +1509,20 @@ function formatRequiredValue(
   value: RequiresVal[string],
   styles: FormatStyles,
   result: TerminalString,
+  connectives: ConcreteConfig['connectives'],
   negate: boolean,
 ) {
   if ((value === null && !negate) || (value === undefined && negate)) {
-    result.addWord('no');
+    result.addWord(connectives[ConnectiveWords.no]);
   }
   format.o(option.preferredName ?? '', styles, result);
   if (value !== null && value !== undefined) {
-    result.addWord(negate ? '!=' : '=');
+    const connective = negate
+      ? connectives[ConnectiveWords.notEquals]
+      : connectives[ConnectiveWords.equals];
     const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
     const phrase = isArray(option) ? `[%${spec}]` : `%${spec}`;
-    result.formatArgs(styles, phrase, { [spec]: value });
+    result.addWord(connective).formatArgs(styles, phrase, { [spec]: value });
   }
 }
 
@@ -1512,6 +1533,7 @@ function formatRequiredValue(
  * @param styles The set of styles
  * @param result The resulting string
  * @param options The option definitions
+ * @param connectives The connective words
  */
 function formatRequires(
   option: OpaqueOption,
@@ -1519,10 +1541,13 @@ function formatRequires(
   styles: FormatStyles,
   result: TerminalString,
   options: OpaqueOptions,
+  connectives: ConcreteConfig['connectives'],
 ) {
   const requires = option.requires;
   if (requires) {
-    result.splitText(phrase, () => formatRequirements(options, requires, styles, result));
+    result.splitText(phrase, () =>
+      formatRequirements(options, requires, styles, result, connectives),
+    );
   }
 }
 
@@ -1533,6 +1558,7 @@ function formatRequires(
  * @param styles The set of styles
  * @param result The resulting string
  * @param options The option definitions
+ * @param connectives The connective words
  */
 function formatRequiredIf(
   option: OpaqueOption,
@@ -1540,10 +1566,13 @@ function formatRequiredIf(
   styles: FormatStyles,
   result: TerminalString,
   options: OpaqueOptions,
+  connectives: ConcreteConfig['connectives'],
 ) {
   const requiredIf = option.requiredIf;
   if (requiredIf) {
-    result.splitText(phrase, () => formatRequirements(options, requiredIf, styles, result));
+    result.splitText(phrase, () =>
+      formatRequirements(options, requiredIf, styles, result, connectives),
+    );
   }
 }
 
