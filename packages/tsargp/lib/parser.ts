@@ -296,17 +296,20 @@ async function parseArgs(
     } else {
       variadic = false;
     }
+    fallback = option.fallback !== undefined;
   }
   let info: OptionInfo | undefined;
   let marker = false;
   let variadic = false;
+  let fallback = false;
   let suggestNames = false;
+  let paramCount = 0;
   for (let i = 0; i < args.length; ++i) {
     const [arg, comp] = args[i].split('\0', 2);
     const isComp = comp !== undefined;
     const isLast = i + 1 === args.length;
     let param = arg;
-    if (!info || (variadic && !marker)) {
+    if (!info || ((variadic || fallback) && !marker)) {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = validator.names.get(name);
       const hasValue = value !== undefined;
@@ -314,6 +317,10 @@ async function parseArgs(
         if (isComp && !hasValue) {
           throw new CompletionMessage(name);
         }
+        if (info && paramCount == 0) {
+          values[info.key] = info.option.fallback;
+        }
+        paramCount = 0;
         const option = validator.options[key];
         const niladic = isNiladic(option);
         const isMarker = name === validator.positional?.marker;
@@ -328,7 +335,7 @@ async function parseArgs(
         }
         info = isMarker ? validator.positional : { key, name, option };
         addKey(info);
-        if (isLast && !hasValue && !niladic && !variadic) {
+        if (isLast && !hasValue && !niladic && !fallback) {
           throw validator.error(ErrorItem.missingParameter, { o: info.name });
         }
         if (niladic) {
@@ -351,7 +358,7 @@ async function parseArgs(
         }
         if (isMarker || !hasValue) {
           marker = isMarker;
-          suggestNames = !marker && variadic;
+          suggestNames = !marker && fallback;
           continue;
         }
         suggestNames = false;
@@ -367,6 +374,8 @@ async function parseArgs(
         info = validator.positional;
         addKey(info);
         suggestNames = true;
+      } else {
+        fallback = false;
       }
     }
     if (isComp) {
@@ -382,9 +391,17 @@ async function parseArgs(
       throw new CompletionMessage();
     }
     await parseParam(validator, values, info, param, completing, suggestNames);
-    if (!variadic && !marker) {
-      info = undefined;
+    if (!marker) {
+      if (variadic) {
+        suggestNames = true;
+      } else {
+        info = undefined;
+      }
     }
+    paramCount++;
+  }
+  if (info && fallback && paramCount == 0) {
+    values[info.key] = info.option.fallback;
   }
   return !completing;
 }
@@ -813,6 +830,9 @@ async function checkEnvVarAndDefaultValue(
   specifiedKeys: Set<string>,
   key: string,
 ): Promise<void> {
+  if (specifiedKeys.has(key)) {
+    return;
+  }
   const option = validator.options[key];
   const envVar = option.envVar;
   if (envVar && (await readEnvVar(validator, values, { key, option, name: envVar }))) {

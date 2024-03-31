@@ -96,8 +96,6 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-ss'])).resolves.toEqual({ strings: [] });
-      expect(options.strings.parse).not.toHaveBeenCalled();
       await expect(parser.parse(['-ss', 'sync', 'sync'])).resolves.toEqual({ strings: ['SYNC'] });
       expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'sync');
       expect(options.strings.parse).toHaveBeenCalledTimes(2);
@@ -111,8 +109,8 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-ss', 'async', 'async'])).resolves.toEqual({
         strings: ['ASYNC'],
       });
-      await expect(parser.parse(['-ss', 'sync', '-ss'])).resolves.toEqual({ strings: [] });
-      await expect(parser.parse(['-ss', 'async', '-ss'])).resolves.toEqual({ strings: [] });
+      await expect(parser.parse(['-ss', 'sync', '-ss', ''])).resolves.toEqual({ strings: [''] });
+      await expect(parser.parse(['-ss', 'async', '-ss', ''])).resolves.toEqual({ strings: [''] });
     });
 
     it('should handle a strings option with mixed-async custom parsing in conjunction with a separator', async () => {
@@ -176,8 +174,6 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-ns'])).resolves.toEqual({ numbers: [] });
-      expect(options.numbers.parse).not.toHaveBeenCalled();
       await expect(parser.parse(['-ns', '1.2', '1.7'])).resolves.toEqual({ numbers: [2] });
       expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.2');
       expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.7');
@@ -186,8 +182,8 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-ns', '1.2', '2.2'])).resolves.toEqual({ numbers: [2, 3] });
       await expect(parser.parse(['-ns', '2.2', '1.2'])).resolves.toEqual({ numbers: [3, 2] });
       await expect(parser.parse(['-ns', '2.2', '2.7'])).resolves.toEqual({ numbers: [3] });
-      await expect(parser.parse(['-ns', '1.2', '-ns'])).resolves.toEqual({ numbers: [] });
-      await expect(parser.parse(['-ns', '2.2', '-ns'])).resolves.toEqual({ numbers: [] });
+      await expect(parser.parse(['-ns', '1.2', '-ns', ''])).resolves.toEqual({ numbers: [0] });
+      await expect(parser.parse(['-ns', '2.2', '-ns', ''])).resolves.toEqual({ numbers: [0] });
     });
 
     it('should handle a numbers option with mixed-async custom parsing in conjunction with a separator', async () => {

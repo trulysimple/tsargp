@@ -450,7 +450,8 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-ss$/);
       await expect(parser.parse('cmd -s', { compIndex: 6 })).rejects.toThrow(/^-ss$/);
       await expect(parser.parse('cmd -ss', { compIndex: 7 })).rejects.toThrow(/^-ss$/);
-      await expect(parser.parse('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^-ss$/);
+      await expect(parser.parse('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -ss 1 ', { compIndex: 10 })).rejects.toThrow(/^-ss$/);
       await expect(parser.parse('cmd -ss=', { compIndex: 8 })).rejects.toThrow(/^$/);
     });
 
@@ -501,7 +502,8 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-ns$/);
       await expect(parser.parse('cmd -n', { compIndex: 6 })).rejects.toThrow(/^-ns$/);
       await expect(parser.parse('cmd -ns', { compIndex: 7 })).rejects.toThrow(/^-ns$/);
-      await expect(parser.parse('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^-ns$/);
+      await expect(parser.parse('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -ns 1 ', { compIndex: 10 })).rejects.toThrow(/^-ns$/);
       await expect(parser.parse('cmd -ns=', { compIndex: 8 })).rejects.toThrow(/^$/);
     });
 

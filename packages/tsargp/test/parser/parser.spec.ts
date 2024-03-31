@@ -517,6 +517,18 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-s'])).rejects.toThrow(`Missing parameter to -s.`);
       });
 
+      it('should set the fallback value of a string option when specified without parameters', async () => {
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            fallback: '1',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-s'])).resolves.toEqual({ string: '1' });
+      });
+
       it('should handle a string option', async () => {
         const options = {
           string: {
@@ -529,6 +541,24 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-s', '123'])).resolves.toEqual({ string: '123' });
         await expect(parser.parse(['--string', ''])).resolves.toEqual({ string: '' });
         await expect(parser.parse(['-s=1', '-s==2'])).resolves.toEqual({ string: '=2' });
+      });
+
+      it('should throw a name suggestion on parse failure from string option with fallback', async () => {
+        const message =
+          `Invalid parameter to -s: 's'. Value must match the regex /\\d+/.\n` +
+          `Did you mean to specify an option name instead of s? Similar names are [-s].\n`;
+        const options = {
+          string: {
+            type: 'string',
+            names: ['-s'],
+            regex: /\d+/,
+            positional: true,
+            fallback: '',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['s'])).rejects.toThrow(message);
+        await expect(parser.parse(['-s', 's'])).rejects.toThrow(message);
       });
     });
 
@@ -544,6 +574,18 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-n'])).rejects.toThrow(`Missing parameter to -n.`);
       });
 
+      it('should set the fallback value of a number option when specified without parameters', async () => {
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            fallback: 1,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-n'])).resolves.toEqual({ number: 1 });
+      });
+
       it('should handle a number option', async () => {
         const options = {
           number: {
@@ -556,6 +598,24 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-n', '123'])).resolves.toEqual({ number: 123 });
         await expect(parser.parse(['--number', '0'])).resolves.toEqual({ number: 0 });
         await expect(parser.parse(['-n=1', '-n=2'])).resolves.toEqual({ number: 2 });
+      });
+
+      it('should throw a name suggestion on parse failure from number option with fallback', async () => {
+        const message =
+          `Invalid parameter to -n: NaN. Value must be in the range [0, 1].\n` +
+          `Did you mean to specify an option name instead of n? Similar names are [-n].\n`;
+        const options = {
+          number: {
+            type: 'number',
+            names: ['-n'],
+            range: [0, 1],
+            positional: true,
+            fallback: 0,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['n'])).rejects.toThrow(message);
+        await expect(parser.parse(['-n', 'n'])).rejects.toThrow(message);
       });
     });
 
@@ -572,6 +632,19 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ss'])).rejects.toThrow(`Missing parameter to -ss.`);
       });
 
+      it('should set the fallback value of a strings option when specified without parameters', async () => {
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            fallback: ['1'],
+            default: ['abc'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-ss'])).resolves.toEqual({ strings: ['1'] });
+      });
+
       it('should parse an inline value of a strings option as a single parameter', async () => {
         const options = {
           strings: {
@@ -585,6 +658,23 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic strings option', async () => {
         const message =
+          `Option -ss has too many values (2). Should have at most 1.\n` +
+          `Did you mean to specify an option name instead of ss? Similar names are [-ss].\n`;
+        const options = {
+          strings: {
+            type: 'strings',
+            names: ['-ss'],
+            limit: 1,
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['ss', 'ss'])).rejects.toThrow(message);
+        await expect(parser.parse(['-ss', 'ss', 'ss'])).rejects.toThrow(message);
+      });
+
+      it('should throw a name suggestion on parse failure from variadic strings option with fallback', async () => {
+        const message =
           `Option -ss has too many values (1). Should have at most 0.\n` +
           `Did you mean to specify an option name instead of ss? Similar names are [-ss].\n`;
         const options = {
@@ -593,6 +683,7 @@ describe('ArgumentParser', () => {
             names: ['-ss'],
             limit: 0,
             positional: true,
+            fallback: [],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -613,8 +704,9 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ss', '123', '456'])).resolves.toEqual({
           strings: ['123', '456'],
         });
-        await expect(parser.parse(['--strings'])).resolves.toEqual({ strings: [] });
-        await expect(parser.parse(['--strings', '   '])).resolves.toEqual({ strings: ['   '] });
+        await expect(parser.parse(['--strings', '', '   '])).resolves.toEqual({
+          strings: ['', '   '],
+        });
         await expect(parser.parse(['-ss=123', '-ss==456'])).resolves.toEqual({
           strings: ['123', '=456'],
         });
@@ -665,6 +757,19 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ns'])).rejects.toThrow(`Missing parameter to -ns.`);
       });
 
+      it('should set the fallback value of a numbers option when specified without parameters', async () => {
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            fallback: [1],
+            default: [123],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-ns'])).resolves.toEqual({ numbers: [1] });
+      });
+
       it('should parse an inline value of a numbers option as a single parameter', async () => {
         const options = {
           numbers: {
@@ -678,6 +783,23 @@ describe('ArgumentParser', () => {
 
       it('should throw a name suggestion on parse failure from variadic numbers option', async () => {
         const message =
+          `Option -ns has too many values (2). Should have at most 1.\n` +
+          `Did you mean to specify an option name instead of ns? Similar names are [-ns].\n`;
+        const options = {
+          numbers: {
+            type: 'numbers',
+            names: ['-ns'],
+            limit: 1,
+            positional: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['ns', 'ns'])).rejects.toThrow(message);
+        await expect(parser.parse(['-ns', 'ns', 'ns'])).rejects.toThrow(message);
+      });
+
+      it('should throw a name suggestion on parse failure from variadic numbers option with fallback', async () => {
+        const message =
           `Option -ns has too many values (1). Should have at most 0.\n` +
           `Did you mean to specify an option name instead of ns? Similar names are [-ns].\n`;
         const options = {
@@ -686,6 +808,7 @@ describe('ArgumentParser', () => {
             names: ['-ns'],
             limit: 0,
             positional: true,
+            fallback: [],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -706,8 +829,7 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ns', '456', ' 123 '])).resolves.toEqual({
           numbers: [456, 123],
         });
-        await expect(parser.parse(['--numbers'])).resolves.toEqual({ numbers: [] });
-        await expect(parser.parse(['--numbers', '   '])).resolves.toEqual({ numbers: [0] });
+        await expect(parser.parse(['--numbers', '', '   '])).resolves.toEqual({ numbers: [0, 0] });
         await expect(parser.parse(['-ns=456', '-ns=123'])).resolves.toEqual({
           numbers: [456, 123],
         });
