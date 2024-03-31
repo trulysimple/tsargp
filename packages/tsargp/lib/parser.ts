@@ -254,7 +254,7 @@ async function readEnvVar(
       if (isArray(option)) {
         resetValue(values, key, option);
       }
-      await parseParam(validator, values, info, value, false);
+      await parseParam(validator, values, info, value);
     }
     return true;
   }
@@ -388,7 +388,17 @@ async function parseArgs(
       }
       throw new CompletionMessage();
     }
-    await parseParam(validator, values, info, param, completing, suggestNames);
+    try {
+      await parseParam(validator, values, info, param);
+    } catch (err) {
+      // do not propagate errors during completion
+      if (!completing) {
+        if (err instanceof ErrorMessage && suggestNames) {
+          handleUnknown(validator, param, err);
+        }
+        throw err;
+      }
+    }
     if (!marker) {
       if (variadic) {
         suggestNames = true;
@@ -534,16 +544,12 @@ async function checkRequireItems<T>(
  * @param values The option values
  * @param info The option information
  * @param param The option parameter
- * @param completing True if performing completion
- * @param suggestNames True if option names should be suggested on parse failures
  */
 async function parseParam(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   info: OptionInfo,
   param: string,
-  completing: boolean,
-  suggestNames = false,
 ): Promise<void> {
   /** @ignore */
   function norm<T>(val: T) {
@@ -552,30 +558,20 @@ async function parseParam(
   const { key, name, option } = info;
   const convertFn =
     option.type === 'boolean' ? isTrue : isString(option) ? (str: string) => str : Number;
-  try {
-    const parse = option.parse;
-    let value;
-    if (isArray(option)) {
-      const vals = option.separator ? param.split(option.separator) : [param];
-      const res = parse
-        ? await Promise.all(vals.map((val) => parse(values, name, val)))
-        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          vals.map(convertFn as any);
-      value = values[key] as Array<unknown>;
-      value.push(...res.map(norm));
-    } else {
-      value = parse ? await parse(values, name, param) : convertFn(param);
-    }
-    values[key] = norm(value);
-  } catch (err) {
-    // do not propagate errors during completion
-    if (!completing) {
-      if (err instanceof ErrorMessage && suggestNames) {
-        handleUnknown(validator, param, err);
-      }
-      throw err;
-    }
+  const parse = option.parse;
+  let value;
+  if (isArray(option)) {
+    const vals = option.separator ? param.split(option.separator) : [param];
+    const res = parse
+      ? await Promise.all(vals.map((val) => parse(values, name, val)))
+      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vals.map(convertFn as any);
+    value = values[key] as Array<unknown>;
+    value.push(...res.map(norm));
+  } else {
+    value = parse ? await parse(values, name, param) : convertFn(param);
   }
+  values[key] = norm(value);
 }
 
 /**

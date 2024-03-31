@@ -120,12 +120,12 @@ describe('HelpFormatter', () => {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          fallback: ['one', 'two'],
+          fallback: ['1', '2'],
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  [<strings>...]  A strings option. Accepts multiple parameters. Falls back to ['one', 'two'] if specified without parameter.\n`,
+        `  -ss, --strings  [<strings>...]  A strings option. Accepts multiple parameters. Falls back to ['1', '2'] if specified without parameter.\n`,
       );
     });
 
