@@ -520,11 +520,8 @@ function formatParams(
   if (config.param.hidden || isNiladic(option)) {
     return 0;
   }
-  const paramStyle = option.styles?.param ?? styles.value;
-  styles.current = paramStyle;
-  result.addBreak(config.param.breaks).addSequence(paramStyle);
+  result.addBreak(config.param.breaks);
   const len = formatParam(option, styles, result);
-  result.addClear();
   return (result.indent = len); // hack: save the length, since we will need it in `adjustEntries`
 }
 
@@ -551,13 +548,17 @@ function formatDescription(
     return result.addBreak(1);
   }
   const descrStyle = option.styles?.descr ?? styles.text;
-  styles.current = descrStyle;
   result.rightAlign = config.descr.align === 'right';
   result.addBreak(config.descr.breaks).addSequence(descrStyle);
+  styles.current = descrStyle;
   const count = result.count;
-  for (const item of config.items) {
-    const phrase = config.phrases[item];
-    helpItemFunctions[item](option, phrase, styles, result, options, connectives);
+  try {
+    for (const item of config.items) {
+      const phrase = config.phrases[item];
+      helpItemFunctions[item](option, phrase, styles, result, options, connectives);
+    }
+  } finally {
+    delete styles.current;
   }
   if (result.count == count) {
     result.pop(count).addBreak(1); // this string does not contain any word
@@ -940,6 +941,7 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
   if (option.example !== undefined) {
     return formatExample(option, styles, result);
   }
+  const paramStyle = option.styles?.param ?? styles.value;
   const ellipsis = isVariadic(option) ? '...' : '';
   const paramName = option.paramName;
   const paramText = paramName
@@ -949,7 +951,7 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
     : `<${option.type}>${ellipsis}`;
   const optional = option.fallback !== undefined;
   const param = optional ? `[${paramText}]` : paramText;
-  result.addWord(param);
+  result.addAndRevert(paramStyle, param, styles.text);
   return param.length;
 }
 

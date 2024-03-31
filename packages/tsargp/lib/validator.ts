@@ -2,7 +2,7 @@
 // Imports
 //--------------------------------------------------------------------------------------------------
 import type { OpaqueOption, Options, Requires, RequiresVal, OpaqueOptions } from './options';
-import type { FormatArgs, FormattingFlags, FormatStyles, MessageStyles } from './styles';
+import type { FormatArgs, FormattingFlags, MessageStyles } from './styles';
 import type { Concrete, NamingRules } from './utils';
 
 import { tf, fg, ErrorItem, ConnectiveWords } from './enums';
@@ -406,11 +406,9 @@ function format(
   args?: FormatArgs,
   flags?: FormattingFlags,
 ): TerminalString {
-  const styles: FormatStyles = config.styles;
-  delete styles.current;
   return new TerminalString()
-    .addSequence(styles.text)
-    .formatArgs(styles, config.phrases[kind], args, flags)
+    .addSequence(config.styles.text)
+    .formatArgs(config.styles, config.phrases[kind], args, flags)
     .addBreak();
 }
 
