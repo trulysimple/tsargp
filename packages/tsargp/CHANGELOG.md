@@ -1,5 +1,25 @@
 # tsargp
 
+## 0.4.0-dev.1
+
+### Minor Changes
+
+- [#89](https://github.com/trulysimple/tsargp/pull/89) [`1b6b17a`](https://github.com/trulysimple/tsargp/commit/1b6b17a4f0aed26118f33f88a2e8fa36237969ba) Thanks [@disog](https://github.com/disog)! - Added the `ConnectiveWords` enumeration to be used together with the `connectives` property of the validator configuration, in order to customize the formatting of option requirements.
+
+- [#81](https://github.com/trulysimple/tsargp/pull/81) [`8070da4`](https://github.com/trulysimple/tsargp/commit/8070da460bef3ad735cd638228283eaa71a1ba50) Thanks [@disog](https://github.com/disog)! - Removed the `parseDelimited` attribute in anticipation for a new and better feature yet to be implemented. This parsing callback was not really important, whereas the same effect can be achieved with the `parse` callback by modifying the previous option value.
+
+  Improved the formatting of custom phrases for both error and help messages. Now they can contain multiple groups referencing the same phrase alternatives across groups. This also allowed the help item phrases to use specifiers for different value data types.
+
+  Added a new kind of validation, `invalidNumericRange`, for the option's numeric range definition. Some other enumerators were merged into one that uses a phrase containing different format specifiers for each alternative.
+
+  Refactored the `ul` enumeration into a constant that holds underline styles instead of underline colors (since it had just one color that was not strictly necessary).
+
+- [#88](https://github.com/trulysimple/tsargp/pull/88) [`b46a609`](https://github.com/trulysimple/tsargp/commit/b46a609d116167496b7ddce2a1a21ef98cee47ba) Thanks [@disog](https://github.com/disog)! - Added the `fallback` attribute for non-niladic options. It specifies a value that is used if the option is specified in the command-line without any parameter.
+
+- [#84](https://github.com/trulysimple/tsargp/pull/84) [`4c2587a`](https://github.com/trulysimple/tsargp/commit/4c2587a27142dd308549c8a788e66c9823ecb558) Thanks [@disog](https://github.com/disog)! - The parser was refactored to more easily handle asynchronous callbacks. As a consequence, it no longer supports a synchronous parsing method.
+
+  A new kind of validation, `invalidRequiredValue`, was implemented for the verification of required option values in the case of options that are either always required or have a default value.
+
 ## 0.4.0-dev.0
 
 ### Minor Changes
