@@ -98,22 +98,22 @@ Constraint definitions are subject to the restrictions listed below:
 
 ### Value validation
 
-Valued options may define a default value, while non-niladic options may define an example value. If
-present, these attributes are subject to the same set of constraints as that of the command-line
-arguments, which are listed below:
+Valued options may define a default value, and non-niladic options may define example and fallback
+values. If present, these attributes are subject to the same set of constraints as that of the
+command-line arguments, which is listed below:
 
 - **Enums constraint violation** -
-  If the [enums] attribute is present, then default and example values must equal one of the
-  enumerated values after being normalized. (The enumerated values themselves are not normalized.)
+  If the [enums] attribute is present, then the default, example and fallback values must equal one
+  of the enumerated values after being normalized. (The latter are _not_ normalized.)
 - **Regex constraint violation** -
-  In a string-valued option, if the [regex] attribute is present, then default and example values
-  must match the regular expression after being normalized.
+  In a string-valued option, if the [regex] attribute is present, then the default, example and
+  fallback values must match the regular expression after being normalized.
 - **Range constraint violation** -
-  In a number-valued option, if the [range] attribute is present, then default and example values
-  must be within this range after being normalized.
+  In a number-valued option, if the [range] attribute is present, then the default, example and
+  fallback values must be within this range after being normalized.
 - **Limit constraint violation** -
-  In an array-valued option, if the [limit] attribute is present, then default and example values
-  must have a length that does not exceed the given limit after being normalized.
+  In an array-valued option, if the [limit] attribute is present, then the default, example and
+  fallback values must have a length that does not exceed the given limit after being normalized.
 
 <Callout type="info">
   This does not apply to [default callbacks]. They are ignored during validation.
@@ -365,7 +365,7 @@ the enumerators from `ConnectiveWords`:
 [regex]: options#regular-expression
 [range]: options#numeric-range
 [limit]: options#count-limit
-[default callbacks]: options#default-value--callback
+[default callbacks]: options#default-callback
 [requirement callbacks]: options#forward-requirements
 [positional]: options#positional--marker
 [text formatting]: styles#text-splitting
@@ -374,7 +374,7 @@ the enumerators from `ConnectiveWords`:
 [nested command]: options#command-option
 [format specifiers]: styles#format-specifiers
 [always required]: options#always-required
-[default value]: options#default-value--callback
+[default value]: options#default-value
 
 [^1]:
     the command prefix is a series of option keys interspersed with periods, denoting the current

@@ -57,7 +57,7 @@ describe('ArgumentParser', () => {
       expect(options.function.exec).not.toHaveBeenCalled();
     });
 
-    it('should handle a function option with a default callback', async () => {
+    it('should handle a function option with a default value callback', async () => {
       const options = {
         function: {
           type: 'function',
@@ -71,7 +71,7 @@ describe('ArgumentParser', () => {
       expect(options.function.exec).not.toHaveBeenCalled();
     });
 
-    it('should handle a function option with an async default callback', async () => {
+    it('should handle a function option with an async default value callback', async () => {
       const options = {
         function: {
           type: 'function',
@@ -120,7 +120,7 @@ describe('ArgumentParser', () => {
       expect(options.command.cmd).not.toHaveBeenCalled();
     });
 
-    it('should handle a command option with a default callback', async () => {
+    it('should handle a command option with a default value callback', async () => {
       const options = {
         command: {
           type: 'command',
@@ -135,7 +135,7 @@ describe('ArgumentParser', () => {
       expect(options.command.cmd).not.toHaveBeenCalled();
     });
 
-    it('should handle a command option with an async default callback', async () => {
+    it('should handle a command option with an async default value callback', async () => {
       const options = {
         command: {
           type: 'command',
@@ -162,7 +162,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ flag: false });
     });
 
-    it('should handle a flag option with a default callback', async () => {
+    it('should handle a flag option with a default value callback', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -175,7 +175,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ flag: false });
     });
 
-    it('should handle a flag option with an async default callback', async () => {
+    it('should handle a flag option with an async default value callback', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -200,7 +200,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ boolean: true });
     });
 
-    it('should handle a boolean option with a default callback', async () => {
+    it('should handle a boolean option with a default value callback', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -212,7 +212,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ boolean: true });
     });
 
-    it('should handle a boolean option with an async default callback', async () => {
+    it('should handle a boolean option with an async default value callback', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -222,6 +222,42 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ boolean: true });
+    });
+
+    it('should handle a boolean option with a fallback value', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          fallback: true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-b'])).resolves.toEqual({ boolean: true });
+    });
+
+    it('should handle a boolean option with a fallback value callback', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          fallback: () => true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-b'])).resolves.toEqual({ boolean: true });
+    });
+
+    it('should handle a boolean option with an async fallback value callback', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          fallback: async () => true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-b'])).resolves.toEqual({ boolean: true });
     });
 
     it('should handle a string option with a default value', async () => {
@@ -236,7 +272,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ string: '123' });
     });
 
-    it('should handle a string option with a default callback', async () => {
+    it('should handle a string option with a default value callback', async () => {
       const options = {
         string: {
           type: 'string',
@@ -248,7 +284,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ string: '123' });
     });
 
-    it('should handle a string option with an async default callback', async () => {
+    it('should handle a string option with an async default value callback', async () => {
       const options = {
         string: {
           type: 'string',
@@ -258,6 +294,42 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ string: '123' });
+    });
+
+    it('should handle a string option with a fallback value', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          fallback: '123',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-s'])).resolves.toEqual({ string: '123' });
+    });
+
+    it('should handle a string option with a fallback value callback', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          fallback: () => '123',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-s'])).resolves.toEqual({ string: '123' });
+    });
+
+    it('should handle a string option with an async fallback value callback', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          fallback: async () => '123',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-s'])).resolves.toEqual({ string: '123' });
     });
 
     it('should handle a number option with a default value', async () => {
@@ -272,7 +344,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ number: 123 });
     });
 
-    it('should handle a number option with a default callback', async () => {
+    it('should handle a number option with a default value callback', async () => {
       const options = {
         number: {
           type: 'number',
@@ -284,7 +356,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ number: 123 });
     });
 
-    it('should handle a number option with an async default callback', async () => {
+    it('should handle a number option with an async default value callback', async () => {
       const options = {
         number: {
           type: 'number',
@@ -294,6 +366,42 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ number: 123 });
+    });
+
+    it('should handle a number option with a fallback value', async () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          fallback: 123,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-n'])).resolves.toEqual({ number: 123 });
+    });
+
+    it('should handle a number option with a fallback value callback', async () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          fallback: () => 123,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-n'])).resolves.toEqual({ number: 123 });
+    });
+
+    it('should handle a number option with an async fallback value callback', async () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          fallback: async () => 123,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-n'])).resolves.toEqual({ number: 123 });
     });
 
     it('should handle a strings option with a default value', async () => {
@@ -309,7 +417,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ strings: ['ONE', 'TWO'] });
     });
 
-    it('should handle a strings option with a default callback', async () => {
+    it('should handle a strings option with a default value callback', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -322,7 +430,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ strings: ['ONE', 'TWO'] });
     });
 
-    it('should handle a strings option with an async default callback', async () => {
+    it('should handle a strings option with an async default value callback', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -333,6 +441,45 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ strings: ['ONE', 'TWO'] });
+    });
+
+    it('should handle a strings option with a fallback value', async () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          fallback: ['one', 'two'],
+          case: 'upper',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-ss'])).resolves.toEqual({ strings: ['ONE', 'TWO'] });
+    });
+
+    it('should handle a strings option with a fallback value callback', async () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          fallback: () => ['one', 'two'],
+          case: 'upper',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-ss'])).resolves.toEqual({ strings: ['ONE', 'TWO'] });
+    });
+
+    it('should handle a strings option with an async fallback value callback', async () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          fallback: async () => ['one', 'two'],
+          case: 'upper',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-ss'])).resolves.toEqual({ strings: ['ONE', 'TWO'] });
     });
 
     it('should handle a numbers option with a default value', async () => {
@@ -348,7 +495,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ numbers: [1, 2] });
     });
 
-    it('should handle a numbers option with a default callback', async () => {
+    it('should handle a numbers option with a default value callback', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -361,7 +508,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse([])).resolves.toEqual({ numbers: [1, 2] });
     });
 
-    it('should handle a numbers option with an async default callback', async () => {
+    it('should handle a numbers option with an async default value callback', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -372,6 +519,45 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ numbers: [1, 2] });
+    });
+
+    it('should handle a numbers option with a fallback value', async () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          fallback: [1.1, 2.2],
+          conv: 'trunc',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-ns'])).resolves.toEqual({ numbers: [1, 2] });
+    });
+
+    it('should handle a numbers option with a fallback value callback', async () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          fallback: () => [1.1, 2.2],
+          conv: 'trunc',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-ns'])).resolves.toEqual({ numbers: [1, 2] });
+    });
+
+    it('should handle a numbers option with an async fallback value callback', async () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          fallback: async () => [1.1, 2.2],
+          conv: 'trunc',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-ns'])).resolves.toEqual({ numbers: [1, 2] });
     });
   });
 });

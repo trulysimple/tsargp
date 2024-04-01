@@ -33,7 +33,7 @@ Normally you should _not_ need to pass these parameters, as they have sensible d
 - `flags.progName` - command name from `command` or `process.argv[1].split(/[\\/]/).at(-1){:ts}`
 - `flags.compIndex` - `Number(process.env['COMP_POINT']){:ts}` or `undefined{:ts}`
 
-If you feel the need to configure the parsing procedure, make sure to first understand how [bash
+If you feel the need to configure the parsing procedure, make sure to first understand how [word
 completion] works.
 
 <Callout type="info">
@@ -78,7 +78,7 @@ to the command name (in case a raw command-line string is provided).
 ### Completion index
 
 The `compIndex` property is the completion index of a raw command line. When supplying the parsing
-methods with a command-line string, this value instructs the parser to perform bash completion when
+methods with a command-line string, this value instructs the parser to perform word completion when
 parsing the argument that overlaps this position in the string.
 
 ### Short-option style
@@ -86,9 +86,13 @@ parsing the argument that overlaps this position in the string.
 The `shortStyle` property indicates whether the first argument is expected to be an option cluster.
 This must be used in conjunction with the [cluster letters] attribute.
 
-## Asynchronous parsing
+## Parsing features
 
-The parser supports asynchronous operations in any of the following kinds of callbacks:
+The parser supports a number of different features to support most use cases. They are listed below.
+
+### Custom callbacks
+
+Custom parsing operations are supported through the following kinds of callbacks:
 
 - [requirement callback]
 - [default callback]
@@ -97,7 +101,20 @@ The parser supports asynchronous operations in any of the following kinds of cal
 - [execute callback]
 - [command callback]
 
-## Bash completion
+All of these can be asynchronous, and the parser always awaits the resolution of returned promises,
+either because it needs their result or to avoid a data race when reading and modifying the option
+values.
+
+Note that there is no synchronous version of the parsing procedure. This is a design choice: in
+order to support a fully synchronous `parse` method using the same code base, the parser would have
+to deal with returned promises in a way that would make the code hard to maintain (remember the
+classic [callback hell]).
+
+Besides, the asynchronous version has the benefit of allowing us to perform some operations
+concurrently, such as the requirements verification. This should not be a problem for most CLI
+applications, since argument parsing is usually done at the top-level of a module or script.
+
+### Word completion
 
 Quoting the [Bash docs]:
 
@@ -125,7 +142,7 @@ printed on the terminal so that the `complete` builtin can perform the final com
   completion callback, the default completion message (an empty list) will be used instead.
 </Callout>
 
-### Completion algorithm
+#### Completion algorithm
 
 The completion algorithm implemented by the library is explained below. In what follows, _comp_ is
 the word being completed, i.e., the command-line argument ending at the completion index (it may be
@@ -146,13 +163,14 @@ an empty string):
    - If it is a variadic array option, and the parameter was specified neither with a positional
      marker nor as an [inline parameter], the available option names are filtered by the prefix
      _comp_ and returned; else
-   - No words are returned, and the default bash completion (if enabled with `-o`) will be attempted
+   - No words are returned, and the default completion (if enabled with `complete -o`) will be
+     attempted
 
 During completion, both the help and version options as well as the [command callback] are skipped,
 while other options are processed as usual. This means that a completion callback can inspect the
 values parsed before it, in order to make better suggestions based on those values.
 
-## Requirements checking
+### Requirements checking
 
 Generally, option requirements are evaluated after all arguments have been parsed. During this
 analysis, an option's value is compared against any value required by other options. This check may
@@ -161,11 +179,11 @@ also be performed in two more situations:
 - before calling an [execute callback], if the function option's [`break`] attribute was set
 - before calling a [command callback]
 
-However, requirements are not checked when performing bash completion. This is due to the fact that
+However, requirements are not checked when performing word completion. This is due to the fact that
 the completion builtin always expects a list of words as result. Hence, the library must suppress
 any errors that occur during parsing and it does not make sense to verify requirements in that case.
 
-## Name suggestions
+### Name suggestions
 
 During parsing, there are two situations in which the parser might suggest option names:
 
@@ -177,8 +195,6 @@ During parsing, there are two situations in which the parser might suggest optio
 
 In these cases, the parser selects option names that are similar to the current argument using the
 [Gestalt algorithm], and includes them in the error message.
-
-## Miscellaneous
 
 ### Error messages
 
@@ -212,7 +228,7 @@ The title will remain unchanged after the parser returns. Other option names are
 they would pollute the output of process management utilities such as `ps`.
 
 [parsing flags]: #parsing-flags
-[bash completion]: #bash-completion
+[word completion]: #word-completion
 [inline parameter]: #inline-parameters
 [valued option]: options#value-attributes
 [message]: styles#terminal-messages
@@ -222,7 +238,7 @@ they would pollute the output of process management utilities such as `ps`.
 [remove duplicates]: options#remove-duplicates
 [validator configuration]: validator#validator-configuration
 [requirement callback]: options#requirement-callback
-[default callback]: options#default-value--callback
+[default callback]: options#default-callback
 [parse callback]: options#parse-callback
 [complete callback]: options#complete-callback
 [execute callback]: options#execute-callback
@@ -232,3 +248,4 @@ they would pollute the output of process management utilities such as `ps`.
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
 [Gestalt algorithm]: https://www.wikiwand.com/en/Gestalt_pattern_matching
+[callback hell]: http://callbackhell.com/

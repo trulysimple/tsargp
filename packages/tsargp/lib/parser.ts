@@ -21,7 +21,7 @@ import type {
 } from './validator';
 
 import { ConnectiveWords, ErrorItem } from './enums';
-import { HelpFormatter } from './formatter';
+import { HelpFormatter, HelpSections } from './formatter';
 import {
   RequiresAll,
   RequiresNot,
@@ -47,6 +47,17 @@ import { format } from './styles';
 import { checkRequiredArray, findSimilarNames, getArgs, isTrue } from './utils';
 
 //--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+/**
+ * The default help sections.
+ */
+const defaultSections: HelpSections = [
+  { type: 'usage', title: 'Usage:', indent: 2 },
+  { type: 'groups', title: 'Options', phrase: '%s:' },
+];
+
+//--------------------------------------------------------------------------------------------------
 // Public types
 //--------------------------------------------------------------------------------------------------
 /**
@@ -64,7 +75,7 @@ export type ParsingFlags = {
   /**
    * True if the first argument is expected to be an option cluster (i.e., short-option style).
    */
-  readonly shortStyle?: true;
+  readonly shortStyle?: boolean;
 };
 
 /**
@@ -319,7 +330,7 @@ async function parseArgs(
           throw new CompletionMessage(name);
         }
         if (info && paramCount == 0) {
-          values[info.key] = info.option.fallback;
+          await setValue(validator, values, info.key, info.option, info.option.fallback);
         }
         paramCount = 0;
         const option = validator.options[key];
@@ -329,7 +340,11 @@ async function parseArgs(
           if (isComp) {
             throw new CompletionMessage();
           }
-          if (!completing && hasValue) {
+          if (hasValue) {
+            if (completing) {
+              // ignore inline parameters of niladic options or positional marker while completing
+              continue;
+            }
             const alt = isMarker ? 1 : 0;
             throw validator.error(ErrorItem.disallowedInlineValue, { o: name }, { alt });
           }
@@ -370,7 +385,7 @@ async function parseArgs(
           if (isComp) {
             handleNameCompletion(validator, arg);
           }
-          handleUnknown(validator, name);
+          handleUnknownName(validator, name);
         }
         info = validator.positional;
         addKey(info);
@@ -395,7 +410,7 @@ async function parseArgs(
       // do not propagate errors during completion
       if (!completing) {
         if (err instanceof ErrorMessage && suggestNames) {
-          handleUnknown(validator, param, err);
+          handleUnknownName(validator, param, err);
         }
         throw err;
       }
@@ -410,7 +425,7 @@ async function parseArgs(
     paramCount++;
   }
   if (info && fallback && paramCount == 0) {
-    values[info.key] = info.option.fallback;
+    await setValue(validator, values, info.key, info.option, info.option.fallback);
   }
   return !completing;
 }
@@ -464,12 +479,12 @@ function handleCompletion(option: OpaqueOption, param?: string) {
 }
 
 /**
- * Handles an unknown option.
+ * Handles an unknown option name.
  * @param validator The option validator
  * @param name The unknown option name
  * @param err The previous error message, if any
  */
-function handleUnknown(validator: OptionValidator, name: string, err?: ErrorMessage): never {
+function handleUnknownName(validator: OptionValidator, name: string, err?: ErrorMessage): never {
   const similar = findSimilarNames(name, [...validator.names.keys()], 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
   const flags: FormattingFlags = { alt, sep: ',' };
@@ -563,7 +578,7 @@ async function parseParam(
     return validator.normalize(option, name, val);
   }
   const { key, name, option } = info;
-  const convertFn =
+  const convertFn: (val: string) => unknown =
     option.type === 'boolean' ? isTrue : isString(option) ? (str: string) => str : Number;
   const parse = option.parse;
   let value;
@@ -571,8 +586,7 @@ async function parseParam(
     const vals = option.separator ? param.split(option.separator) : [param];
     const res = parse
       ? await Promise.all(vals.map((val) => parse(values, name, val)))
-      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        vals.map(convertFn as any);
+      : vals.map(convertFn);
     value = values[key] as Array<unknown>;
     value.push(...res.map(norm));
   } else {
@@ -594,34 +608,31 @@ function resetValue(values: OpaqueOptionValues, key: string, option: OpaqueOptio
 }
 
 /**
- * Sets the normalized default value of an option.
+ * Sets the normalized value of an option.
  * @param validator The option validator
  * @param values The option values
  * @param key The option key
  * @param option The option definition
+ * @param value The option value
  */
-async function setDefaultValue(
+async function setValue(
   validator: OptionValidator,
   values: OpaqueOptionValues,
   key: string,
   option: OpaqueOption,
-): Promise<void> {
+  value: unknown,
+) {
   /** @ignore */
   function norm<T>(val: T) {
     return validator.normalize(option, key, val);
   }
-  const def = option.default;
-  if (def === undefined) {
-    values[key] = undefined;
-    return;
-  }
-  const value = await (typeof def === 'function' ? def(values) : def);
+  const val = typeof value === 'function' ? await value(values) : value;
   values[key] =
     isUnknown(option) || isBoolean(option)
-      ? value
+      ? val
       : isArray(option)
-        ? norm(value.map(norm))
-        : norm(value);
+        ? norm(val.map(norm))
+        : norm(val);
 }
 
 /**
@@ -728,14 +739,13 @@ async function handleCommand(
   const cmdOptions = typeof options === 'function' ? options() : options;
   const cmdValidator = new OptionValidator(cmdOptions, validator.config);
   const cmdValues: OpaqueOptionValues = {};
-  const result = doParse(cmdValidator, cmdValues, rest, {
+  const result = await doParse(cmdValidator, cmdValues, rest, {
     compIndex: completing ? 1 : -1,
     progName: name,
     shortStyle,
   });
-  if (!completing) {
-    values[key] = await option.cmd(values, cmdValues);
-  }
+  // if comp === true, completion will have taken place by now
+  values[key] = await option.cmd(values, cmdValues);
   return result;
 }
 
@@ -754,12 +764,12 @@ function handleSpecial(
   progName?: string,
 ): void | Promise<void> {
   if (option.type === 'help') {
-    const filters = option.useFilters && rest.map((arg) => RegExp(arg, 'i'));
-    const formatter = new HelpFormatter(validator, option.format, filters);
-    const sections = option.sections ?? [
-      { type: 'usage', title: 'Usage:', indent: 2 },
-      { type: 'groups', title: 'Options', phrase: '%s:' },
-    ];
+    const format = option.format ?? {};
+    if (option.useFilters) {
+      format.filters = rest.map((arg) => RegExp(arg, 'i'));
+    }
+    const formatter = new HelpFormatter(validator, format);
+    const sections = option.sections ?? defaultSections;
     throw formatter.formatSections(sections, progName);
   } else if (option.version) {
     throw new VersionMessage(option.version);
@@ -830,7 +840,7 @@ async function checkEnvVarAndDefaultValue(
   values: OpaqueOptionValues,
   specifiedKeys: Set<string>,
   key: string,
-): Promise<void> {
+) {
   if (specifiedKeys.has(key)) {
     return;
   }
@@ -842,7 +852,11 @@ async function checkEnvVarAndDefaultValue(
     const name = option.preferredName ?? '';
     throw validator.error(ErrorItem.missingRequiredOption, { o: name });
   } else if ('default' in option) {
-    return setDefaultValue(validator, values, key, option);
+    if (option.default === undefined) {
+      values[key] = undefined;
+    } else {
+      return setValue(validator, values, key, option, option.default);
+    }
   }
 }
 

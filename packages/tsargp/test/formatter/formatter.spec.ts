@@ -25,8 +25,8 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const config = { descr: { absolute: true } };
-      const message = new HelpFormatter(validator, config, [/flag/]).formatHelp();
+      const config = { descr: { absolute: true }, filters: [/flag/] };
+      const message = new HelpFormatter(validator, config).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag\n  A flag option\n`);
     });
 
@@ -42,12 +42,14 @@ describe('HelpFormatter', () => {
         },
         boolean: {
           type: 'boolean',
-          names: ['-b', '--boolean'],
+          names: ['-b'],
+          envVar: 'BOOLEAN',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const message = new HelpFormatter(validator, {}, [/^-f/, /^-b/]).formatHelp();
-      expect(message.wrap()).toEqual(`  -f, --flag\n  -b, --boolean  <boolean>\n`);
+      const config = { items: [], filters: [/^-f/, /bool/i] };
+      const message = new HelpFormatter(validator, config).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --flag\n  -b          <boolean>\n`);
     });
 
     it('should handle a function option', () => {

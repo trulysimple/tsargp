@@ -20,8 +20,7 @@ can be printed in a terminal. Visually, it can be divided into the following pie
 - group - a set of entries corresponding to an option group
 - column - a horizontal division (as formed by a vertical ruler) across all entries of all groups
 
-There are
-different ways of obtaining help messages, as described below.
+There are different ways of obtaining help messages, as described below.
 
 ### Default help
 
@@ -301,6 +300,19 @@ description of the corresponding value:
 | envVar         | `%o` = the variable name                |
 | requiredIf     | `%p` = the requirements                 |
 | clusterLetters | `%s` = the cluster letters              |
+
+### Option filters
+
+The `filters` property specifies a list of regular expressions that can be used to filter the
+options that will appear in the help message. The filter matches an option's names, synopsis and
+environment variable name, if any. If multiple patterns are provided, any matched one will suffice
+to include an option in the message.
+
+<Callout type="default">
+  This is inherently different from what a text search utility like `grep` would produce. The
+  formatter will render the _whole_ help entry of options matching the given patterns, not just the
+  matching lines.
+</Callout>
 
 ## Help styles
 

@@ -34,6 +34,21 @@ describe('OptionValidator', () => {
       );
     });
 
+    it('should throw an error on string fallback value not matching regex', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          regex: /\d+/s,
+          fallback: 'abc',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to string: 'abc'. Value must match the regex /\\d+/s.`,
+      );
+    });
+
     it('should throw an error on string required value not matching regex', () => {
       const options = {
         requires: {
@@ -75,6 +90,21 @@ describe('OptionValidator', () => {
           names: ['-s'],
           enums: ['one', 'two'],
           default: 'abc',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to string: 'abc'. Possible values are {'one', 'two'}.`,
+      );
+    });
+
+    it('should throw an error on string fallback value not in enumeration', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          enums: ['one', 'two'],
+          fallback: 'abc',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -158,6 +188,21 @@ describe('OptionValidator', () => {
       );
     });
 
+    it('should throw an error on number fallback value not in range', () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          range: [0, Infinity],
+          fallback: -3,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to number: -3. Value must be in the range [0, Infinity].`,
+      );
+    });
+
     it('should throw an error on number required value not in range', () => {
       const options = {
         requires: {
@@ -207,6 +252,21 @@ describe('OptionValidator', () => {
       );
     });
 
+    it('should throw an error on number fallback value not in enumeration', () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          enums: [1, 2],
+          fallback: 3,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to number: 3. Possible values are {1, 2}.`,
+      );
+    });
+
     it('should throw an error on number required value not in enumeration', () => {
       const options = {
         requires: {
@@ -233,7 +293,6 @@ describe('OptionValidator', () => {
           names: ['-ss'],
           regex: /\d+/s,
           example: ['abc'],
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -249,7 +308,21 @@ describe('OptionValidator', () => {
           names: ['-ss'],
           regex: /\d+/s,
           default: ['abc'],
-          separator: ',',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to strings: 'abc'. Value must match the regex /\\d+/s.`,
+      );
+    });
+
+    it('should throw an error on strings fallback value not matching regex', () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          regex: /\d+/s,
+          fallback: ['abc'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -269,7 +342,6 @@ describe('OptionValidator', () => {
           type: 'strings',
           names: ['-ss'],
           regex: /\d+/s,
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -285,7 +357,6 @@ describe('OptionValidator', () => {
           names: ['-s'],
           enums: ['one', 'two'],
           example: ['abc'],
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -301,7 +372,21 @@ describe('OptionValidator', () => {
           names: ['-s'],
           enums: ['one', 'two'],
           default: ['abc'],
-          separator: ',',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to strings: 'abc'. Possible values are {'one', 'two'}.`,
+      );
+    });
+
+    it('should throw an error on strings fallback value not in enumeration', () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-s'],
+          enums: ['one', 'two'],
+          fallback: ['abc'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -321,7 +406,6 @@ describe('OptionValidator', () => {
           type: 'strings',
           names: ['-s'],
           enums: ['one', 'two'],
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -360,6 +444,21 @@ describe('OptionValidator', () => {
       );
     });
 
+    it('should throw an error on strings fallback value with too many values', () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          fallback: ['one', 'two', 'three'],
+          limit: 2,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option strings has too many values (3). Should have at most 2.`,
+      );
+    });
+
     it('should throw an error on strings required value with too many values', () => {
       const options = {
         requires: {
@@ -386,7 +485,6 @@ describe('OptionValidator', () => {
           names: ['-ns'],
           range: [0, Infinity],
           example: [-3],
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -402,7 +500,21 @@ describe('OptionValidator', () => {
           names: ['-ns'],
           range: [0, Infinity],
           default: [-3],
-          separator: ',',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to numbers: -3. Value must be in the range [0, Infinity].`,
+      );
+    });
+
+    it('should throw an error on numbers fallback value not in range', () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          range: [0, Infinity],
+          fallback: [-3],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -422,7 +534,6 @@ describe('OptionValidator', () => {
           type: 'numbers',
           names: ['-ns'],
           range: [0, Infinity],
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -438,7 +549,6 @@ describe('OptionValidator', () => {
           names: ['-ns'],
           enums: [1, 2],
           example: [3],
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -454,7 +564,21 @@ describe('OptionValidator', () => {
           names: ['-ns'],
           enums: [1, 2],
           default: [3],
-          separator: ',',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Invalid parameter to numbers: 3. Possible values are {1, 2}.`,
+      );
+    });
+
+    it('should throw an error on numbers fallback value not in enumeration', () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          enums: [1, 2],
+          fallback: [3],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -474,7 +598,6 @@ describe('OptionValidator', () => {
           type: 'numbers',
           names: ['-ns'],
           enums: [1, 2],
-          separator: ',',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -504,6 +627,21 @@ describe('OptionValidator', () => {
           type: 'numbers',
           names: ['-ns'],
           default: [1, 2, 3],
+          limit: 2,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option numbers has too many values (3). Should have at most 2.`,
+      );
+    });
+
+    it('should throw an error on numbers fallback value with too many values', () => {
+      const options = {
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          fallback: [1, 2, 3],
           limit: 2,
         },
       } as const satisfies Options;

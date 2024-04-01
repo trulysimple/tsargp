@@ -241,7 +241,8 @@ export class OptionValidator {
   }
 
   /**
-   * Normalizes the value of a verifiable option and checks its validity against any constraint.
+   * Normalizes the value of an option and checks its validity against any constraint.
+   * @template T The option value data type
    * @param option The option definition
    * @param name The option name (as specified on the command-line)
    * @param value The option value
@@ -460,7 +461,7 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
  * @param option The option definition
  * @param visited The set of visited option definitions
  * @param warning The warnings to append to
- * @throws On invalid enums definition, invalid default value or invalid example value
+ * @throws On invalid constraint definition, invalid default, example or fallback value
  */
 function validateOption(
   flags: ValidationFlags,
@@ -478,6 +479,7 @@ function validateOption(
       validateValue(config, prefix + key, option, option.default);
     }
     validateValue(config, prefix + key, option, option.example);
+    validateValue(config, prefix + key, option, option.fallback);
   }
   // no need to verify flag option default value
   if (option.requires) {

@@ -64,35 +64,33 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a delimited strings option with a regex constraint', () => {
+    it('should handle a variadic strings option with a regex constraint', () => {
       const options = {
         stringsRegex: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
           regex: /\d+/s,
-          separator: ',',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values must match the regex /\\d+/s.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values must match the regex /\\d+/s.\n`,
       );
     });
 
-    it('should handle a delimited numbers option with a range constraint', () => {
+    it('should handle a variadic numbers option with a range constraint', () => {
       const options = {
         numbersRange: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
           range: [0, Infinity],
-          separator: ',',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values must be in the range [0, Infinity].\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Values must be in the range [0, Infinity].\n`,
       );
     });
 

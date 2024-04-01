@@ -174,7 +174,7 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a delimited strings option with an example value', () => {
+    it('should handle a strings option delimited by a string with an example value', () => {
       const options = {
         strings: {
           type: 'strings',
@@ -190,7 +190,7 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a delimited strings option with an example value with a regex', () => {
+    it('should handle a strings option delimited by a regex with an example value', () => {
       const options = {
         strings: {
           type: 'strings',
@@ -206,7 +206,7 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a delimited numbers option with an example value', () => {
+    it('should handle a numbers delimited by a string option with an example value', () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -222,7 +222,7 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a delimited numbers option with an example value with a regex', () => {
+    it('should handle a numbers option delimited by a regex with an example value', () => {
       const options = {
         numbers: {
           type: 'numbers',

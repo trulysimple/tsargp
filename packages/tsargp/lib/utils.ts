@@ -38,23 +38,22 @@ export type Resolve<T> = T & unknown;
 
 /**
  * A helper type to enumerate numbers.
- * @template N The type of last enumerated number
+ * @template N The last enumerated number
+ * @template A The type of the helper array
  */
-export type Enumerate<N extends number, Acc extends Array<number> = []> = Acc['length'] extends N
-  ? Acc[number]
-  : Enumerate<N, [...Acc, Acc['length']]>;
+export type Enumerate<N extends number, A extends Array<number> = []> = A['length'] extends N
+  ? A[number]
+  : Enumerate<N, [...A, A['length']]>;
 
 /**
  * A helper type to remove optionality from types and properties.
  * @template T The source type
+ * @template N The maximum recursion depth
+ * @template A The type of the helper array
  */
-export type Concrete<T> = { [K in keyof T]-?: Concrete<T[K]> };
-
-/**
- * A helper type to remove the readonly attribute from a type.
- * @template T The source type
- */
-export type Writable<T> = { -readonly [P in keyof T]: Writable<T[P]> };
+export type Concrete<T, N extends number = 1, A extends Array<number> = []> = A['length'] extends N
+  ? { [K in keyof T]-?: T[K] }
+  : { [K in keyof T]-?: Concrete<T[K], N, [...A, 1]> };
 
 /**
  * A helper type to get the keys of a type depending on a value constraint.
@@ -355,7 +354,7 @@ export function selectAlternative(phrase: string, alt = 0): string {
  * @internal
  */
 export function isTrue(str: string): boolean {
-  return !(Number(str) == 0 || str.trim().match(/^\s*false\s*$/i));
+  return !(Number(str) == 0 || str.trim().match(/^(false|no|off)$/i));
 }
 
 /**
