@@ -387,3 +387,14 @@ export function matchNamingRules<T extends NamingRules>(
   }
   return result as NamingMatch<T>;
 }
+
+/**
+ * Checks whether an argument is a word to be completed.
+ * @param arg The command-line argument
+ * @returns The word being completed; else undefined
+ * @internal
+ */
+export function isComp(arg: string): string | undefined {
+  const [a, b] = arg.split('\0', 2);
+  return b !== undefined ? a : undefined;
+}

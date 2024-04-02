@@ -28,21 +28,21 @@ import {
   isArray,
   isVariadic,
   isNiladic,
-  isSpecial,
+  isMessage,
   isString,
   isBoolean,
   isUnknown,
 } from './options';
 import {
+  HelpMessage,
   WarnMessage,
-  VersionMessage,
   CompletionMessage,
   TerminalString,
   FormattingFlags,
 } from './styles';
 import { OptionValidator, defaultConfig } from './validator';
 import { format } from './styles';
-import { checkRequiredArray, findSimilarNames, getArgs, isTrue } from './utils';
+import { checkRequiredArray, findSimilarNames, getArgs, isTrue, isComp } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -101,8 +101,8 @@ type ParseEntry = [
   index: number,
   info?: OptionInfo,
   value?: string,
-  isComp?: boolean,
-  isMarker?: boolean,
+  comp?: boolean,
+  marker?: boolean,
   lookFor?: boolean,
 ];
 
@@ -217,7 +217,8 @@ async function doParse(
  */
 function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
   for (const key in options) {
-    if (!(key in values) && !isSpecial(options[key])) {
+    const option = options[key];
+    if (!(key in values) && (!isMessage(option) || option.saveMessage)) {
       values[key] = undefined;
     }
   }
@@ -307,7 +308,7 @@ async function parseArgs(
   let positional = false;
   for (let i = 0, k = 0; i < args.length; i = prev[0]) {
     const next = findNext(validator, args, prev);
-    const [j, info, value, isComp, isMarker] = next;
+    const [j, info, value, comp, marker] = next;
     if (prev[1] !== info) {
       if (prev[1]) {
         await handleNonNiladic(validator, values, completing, prev[1], i, args.slice(k, j));
@@ -319,8 +320,8 @@ async function parseArgs(
       const { key, name, option } = info;
       const niladic = isNiladic(option);
       const hasValue = value !== undefined;
-      if (niladic || isMarker) {
-        if (isComp) {
+      if (niladic || marker) {
+        if (comp) {
           throw new CompletionMessage();
         }
         if (hasValue) {
@@ -330,8 +331,8 @@ async function parseArgs(
             prev[4] = false;
             continue;
           }
-          const alt = isMarker ? 1 : 0;
-          const name2 = isMarker ? info.marker : name;
+          const alt = marker ? 1 : 0;
+          const name2 = marker ? info.marker : name;
           throw validator.error(ErrorItem.disallowedInlineValue, { o: name2 }, { alt });
         }
       }
@@ -342,7 +343,7 @@ async function parseArgs(
         specifiedKeys.add(key);
       }
       if (niladic) {
-        // isComp === false
+        // comp === false
         const [breakLoop, skipCount] = await handleNiladic(
           validator,
           values,
@@ -363,7 +364,7 @@ async function parseArgs(
       }
       // don't use option.positional for this check
       positional = info === validator.positional;
-      if (!isComp) {
+      if (!comp) {
         if (positional || !hasValue) {
           // positional marker, first positional parameter or option name
           k = hasValue ? j : j + 1;
@@ -380,10 +381,10 @@ async function parseArgs(
     if (!info) {
       break; // finished
     }
-    // isComp === true
+    // comp === true
     await handleComplete(values, info, i, args.slice(k, j), value);
     handleCompletion(info.option, value);
-    if (!isMarker && (positional || k < j || info.option.fallback !== undefined)) {
+    if (!marker && (positional || k < j || info.option.fallback !== undefined)) {
       handleNameCompletion(validator, value);
     }
     throw new CompletionMessage();
@@ -403,38 +404,38 @@ function findNext(
   args: ReadonlyArray<string>,
   prev: ParseEntry,
 ): ParseEntry {
-  let [index, info, , , isMarker, lookFor] = prev;
+  let [index, info, , , marker, lookFor] = prev;
   const positional = validator.positional;
   const variadic = info ? isVariadic(info.option) : false;
   for (++index; index < args.length; ++index) {
-    const [arg, comp] = args[index].split('\0', 2);
-    const isComp = comp !== undefined;
+    const [arg, rest] = args[index].split('\0', 2);
+    const comp = rest !== undefined;
     if (!info || lookFor) {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = validator.names.get(name);
       if (key) {
-        if (isComp && value === undefined) {
+        if (comp && value === undefined) {
           throw new CompletionMessage(name);
         }
         const isMarker = name === positional?.marker;
         info = isMarker ? positional : { key, name, option: validator.options[key] };
         lookFor = !isMarker && info.option.fallback !== undefined;
-        return [index, info, value, isComp, isMarker, lookFor];
+        return [index, info, value, comp, isMarker, lookFor];
       }
       if (!info) {
         if (!positional) {
-          if (isComp) {
+          if (comp) {
             handleNameCompletion(validator, arg);
           }
           handleUnknownName(validator, name);
         }
-        return [index, positional, arg, isComp, false, true];
+        return [index, positional, arg, comp, false, true];
       }
     }
-    if (isComp) {
-      return [index, info, arg, isComp, isMarker];
+    if (comp) {
+      return [index, info, arg, comp, marker];
     }
-    if (!isMarker) {
+    if (!marker) {
       if (variadic) {
         lookFor = true;
       } else {
@@ -463,23 +464,14 @@ async function handleNonNiladic(
   index: number,
   params: Array<string>,
 ) {
-  if (params.length) {
-    try {
-      // use await here instead of return, in order to catch errors
-      await parseParam(validator, values, comp, index, info, params);
-    } catch (err) {
-      // do not propagate errors during completion
-      if (!comp) {
-        throw err;
-      }
+  try {
+    // use await here instead of return, in order to catch errors
+    await parseParam(validator, values, comp, index, info, params);
+  } catch (err) {
+    // do not propagate errors during completion
+    if (!comp) {
+      throw err;
     }
-  } else {
-    const fallback = info.option.fallback;
-    if (fallback === undefined) {
-      throw validator.error(ErrorItem.missingParameter, { o: info.name });
-    }
-    const { key, option } = info;
-    return setValue(validator, values, key, option, fallback);
   }
 }
 
@@ -487,11 +479,12 @@ async function handleNonNiladic(
  * Resolve a package version using a module-resolve function.
  * @param validator The option validator
  * @param resolve The resolve callback
+ * @returns The version string
  */
 async function resolveVersion(
   validator: OptionValidator,
   resolve: ResolveCallback,
-): Promise<never> {
+): Promise<string> {
   const { promises } = await import('fs');
   for (
     let path = './package.json', lastResolved = '', resolved = resolve(path);
@@ -501,7 +494,7 @@ async function resolveVersion(
     try {
       const jsonData = await promises.readFile(new URL(resolved));
       const { version } = JSON.parse(jsonData.toString());
-      throw new VersionMessage(version);
+      return version;
     } catch (err) {
       if ((err as ErrnoException).code != 'ENOENT') {
         throw err;
@@ -615,6 +608,7 @@ async function checkRequireItems<T>(
  * @param index The starting index of the argument sequence
  * @param info The option information
  * @param params The option parameter(s)
+ * @returns A promise that must be awaited before continuing
  */
 async function parseParam(
   validator: OptionValidator,
@@ -629,6 +623,13 @@ async function parseParam(
     return validator.normalize(option, name, val);
   }
   const { key, name, option } = info;
+  if (!params.length) {
+    const fallback = option.fallback;
+    if (fallback === undefined) {
+      throw validator.error(ErrorItem.missingParameter, { o: name });
+    }
+    return setValue(validator, values, key, option, fallback);
+  }
   const convertFn: (val: string) => unknown =
     option.type === 'boolean' ? isTrue : isString(option) ? (str: string) => str : Number;
   const parse = option.parse;
@@ -727,9 +728,9 @@ async function handleNiladic(
       return [true, 0];
     }
     default: {
-      // skip special options during completion
+      // skip message-valued options during completion
       if (!comp) {
-        await handleSpecial(validator, rest, option, progName);
+        await handleMessage(validator, values, rest, option, key, progName);
       }
       return [!comp, 0];
     }
@@ -753,16 +754,18 @@ async function handleFunction(
   info: OptionInfo,
 ): Promise<number> {
   const { key, option, name } = info;
-  try {
-    values[key] = await option.exec({ values, index, name, param, comp });
-    return comp ? 0 : Math.max(0, option.skipCount ?? 0);
-  } catch (err) {
-    // do not propagate errors during completion
-    if (!comp) {
-      throw err;
+  if (option.exec) {
+    try {
+      values[key] = await option.exec({ values, index, name, param, comp, isComp });
+    } catch (err) {
+      // do not propagate common errors during completion
+      if (!comp || err instanceof CompletionMessage) {
+        throw err;
+      }
+      return 0;
     }
-    return 0;
   }
+  return comp ? 0 : Math.max(0, option.skipCount ?? 0);
 }
 
 /**
@@ -785,7 +788,7 @@ async function handleCommand(
 ): Promise<ParsingResult> {
   const { key, option, name } = info;
   const { options, shortStyle } = option;
-  const cmdOptions = typeof options === 'function' ? options() : options;
+  const cmdOptions = typeof options === 'function' ? options() : options ?? {};
   const cmdValidator = new OptionValidator(cmdOptions, validator.config);
   const param: OpaqueOptionValues = {};
   const result = await doParse(cmdValidator, param, rest, {
@@ -793,38 +796,65 @@ async function handleCommand(
     progName: name,
     shortStyle,
   });
-  // if comp === true, completion will have taken place by now
-  values[key] = await option.exec({ values, index, name, param, comp });
+  // comp === false, otherwise completion will have taken place by now
+  if (option.exec) {
+    values[key] = await option.exec({ values, index, name, param });
+  }
   return result;
 }
 
 /**
- * Handles a special option.
+ * Handles a message-valued option.
+ * @param validator The option validator
+ * @param values The option values
+ * @param rest The remaining command-line arguments
+ * @param option The option definition
+ * @param key The option key
+ * @param progName The program name
+ * @throws The help or version message
+ */
+async function handleMessage(
+  validator: OptionValidator,
+  values: OpaqueOptionValues,
+  rest: Array<string>,
+  option: OpaqueOption,
+  key: string,
+  progName?: string,
+) {
+  const message =
+    option.type === 'help'
+      ? handleHelp(validator, rest, option, progName)
+      : option.resolve
+        ? await resolveVersion(validator, option.resolve)
+        : option.version ?? '';
+  if (option.saveMessage) {
+    values[key] = message;
+  } else {
+    throw message;
+  }
+}
+
+/**
+ * Handles a help option.
  * @param validator The option validator
  * @param rest The remaining command-line arguments
  * @param option The option definition
  * @param progName The program name
- * @returns A promise that must be awaited before continuing
+ * @returns The help message
  */
-function handleSpecial(
+function handleHelp(
   validator: OptionValidator,
   rest: Array<string>,
   option: OpaqueOption,
   progName?: string,
-): void | Promise<void> {
-  if (option.type === 'help') {
-    const format = option.format ?? {};
-    if (option.useFilters) {
-      format.filters = rest.map((arg) => RegExp(arg, 'i'));
-    }
-    const formatter = new HelpFormatter(validator, format);
-    const sections = option.sections ?? defaultSections;
-    throw formatter.formatSections(sections, progName);
-  } else if (option.version) {
-    throw new VersionMessage(option.version);
-  } else if (option.resolve) {
-    return resolveVersion(validator, option.resolve);
+): HelpMessage {
+  const format = option.format ?? {};
+  if (option.useFilters) {
+    format.filters = rest.map((arg) => RegExp(arg, 'i'));
   }
+  const formatter = new HelpFormatter(validator, format);
+  const sections = option.sections ?? defaultSections;
+  return formatter.formatSections(sections, progName);
 }
 
 /**
@@ -1027,7 +1057,7 @@ function checkRequirement(
   const option = validator.options[key];
   const specified = specifiedKeys.has(key) || actual !== undefined; // consider default values
   const required = value !== null;
-  if (isSpecial(option) || isUnknown(option) || !specified || !required || value === undefined) {
+  if (isMessage(option) || isUnknown(option) || !specified || !required || value === undefined) {
     if ((specified == required) != negate) {
       return true;
     }

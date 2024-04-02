@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type Options, ArgumentParser } from '../../lib';
+import { type Options, ArgumentParser, CompletionMessage } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
@@ -15,6 +15,21 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse('cmd -s a ', { compIndex: 9 })).rejects.toThrow(/^-s$/);
       await expect(parser.parse('cmd -s a -s ', { compIndex: 12 })).rejects.toThrow(/^abc$/);
+    });
+
+    it('should ignore an error thrown by a fallback callback during completion', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          fallback: vi.fn().mockImplementation(() => {
+            throw 'abc';
+          }),
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd -s -s ', { compIndex: 10 })).rejects.toThrow(/^-s$/);
+      expect(options.string.fallback).toHaveBeenCalled();
     });
 
     it('should ignore errors thrown by a function option callback during completion', async () => {
@@ -35,7 +50,41 @@ describe('ArgumentParser', () => {
         name: '-f',
         param: ['\0'],
         comp: true,
+        isComp: expect.anything(),
       });
+    });
+
+    it('can check whether any remaining argument is a word to be completed', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let savedParam: any, savedIsComp: any;
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          exec({ param, isComp }) {
+            savedParam = param;
+            savedIsComp = isComp;
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd -f ab cd', { compIndex: 8 })).rejects.toThrow(/^$/);
+      expect(savedIsComp(savedParam[0])).toEqual('a');
+      expect(savedIsComp(savedParam[1])).toBeUndefined();
+    });
+
+    it('can throw completion words from a function callback during completion', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          exec() {
+            throw new CompletionMessage('abc');
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd -f ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
     });
 
     it('should ignore the skip count of a function option during completion', async () => {
@@ -105,6 +154,7 @@ describe('ArgumentParser', () => {
         name: '-f',
         param: ['\0'],
         comp: true,
+        isComp: expect.anything(),
       });
       options.function.exec.mockClear();
       await expect(parser.parse('cmd -f=', { compIndex: 7 })).rejects.toThrow(/^$/);
@@ -130,6 +180,7 @@ describe('ArgumentParser', () => {
         name: '-f',
         param: ['\0'],
         comp: true,
+        isComp: expect.anything(),
       });
     });
 

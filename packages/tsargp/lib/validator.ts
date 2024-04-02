@@ -11,7 +11,7 @@ import {
   RequiresOne,
   RequiresNot,
   isNiladic,
-  isSpecial,
+  isMessage,
   isString,
   isUnknown,
 } from './options';
@@ -491,7 +491,7 @@ function validateOption(
   }
   if (option.type === 'command') {
     const options = typeof option.options === 'function' ? option.options() : option.options;
-    if (!visited.has(options as OpaqueOptions)) {
+    if (options && !visited.has(options as OpaqueOptions)) {
       visited.add(options as OpaqueOptions);
       const validator = new OptionValidator(options, config);
       const result = validator.validate(flags, prefix + key + '.', visited);
@@ -558,7 +558,7 @@ function validateRequirement(
     throw error(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
   }
   const option = options[requiredKey];
-  if (isSpecial(option)) {
+  if (isMessage(option)) {
     throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
   const noValue = {};
@@ -582,13 +582,14 @@ function validateRequirement(
  * @throws On zero or duplicate enumerated values or invalid numeric range
  */
 function validateConstraints(config: ConcreteConfig, key: string, option: OpaqueOption) {
-  if (option.enums) {
-    if (!option.enums.length) {
+  const enums = option.enums;
+  if (enums) {
+    if (!enums.length) {
       throw error(config, ErrorItem.emptyEnumsDefinition, { o: key });
     }
-    const set = new Set(option.enums);
-    if (set.size !== option.enums.length) {
-      for (const value of option.enums) {
+    const set = new Set(enums);
+    if (set.size !== enums.length) {
+      for (const value of enums) {
         if (!set.delete(value)) {
           const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
           throw error(config, ErrorItem.duplicateEnumValue, { o: key, [spec]: value }, { alt });
@@ -596,11 +597,12 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
       }
     }
   }
-  if (option.range) {
-    const [min, max] = option.range;
+  const range = option.range;
+  if (range) {
+    const [min, max] = range;
     // handles NaN as well
     if (!(min < max)) {
-      throw error(config, ErrorItem.invalidNumericRange, { o: key, n: option.range });
+      throw error(config, ErrorItem.invalidNumericRange, { o: key, n: range });
     }
   }
 }

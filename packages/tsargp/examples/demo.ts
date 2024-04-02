@@ -6,6 +6,8 @@ import options from './demo.options.js';
  * An interface for the option values. (To make sure that they comply with it.)
  */
 interface Values {
+  help: never;
+  version: never;
   helpCmd: undefined;
   flag: boolean | undefined;
   command: number | undefined;
