@@ -41,7 +41,7 @@ describe('HelpFormatter', () => {
           names: ['-f', '--command'],
           desc: 'A command option.',
           options: {},
-          cmd() {},
+          exec() {},
           default: true,
         },
       } as const satisfies Options;
@@ -56,7 +56,7 @@ describe('HelpFormatter', () => {
           names: ['-f', '--command'],
           desc: 'A command option.',
           options: {},
-          cmd() {},
+          exec() {},
           default: () => 0,
         },
       } as const satisfies Options;

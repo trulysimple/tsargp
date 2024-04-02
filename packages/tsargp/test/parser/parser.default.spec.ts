@@ -10,7 +10,7 @@ describe('ArgumentParser', () => {
           type: 'function',
           names: ['-f1'],
           break: true,
-          exec(values) {
+          exec({ values }) {
             expect((values as OptionValues<typeof options>).flag).toBeTruthy();
           },
         },
@@ -29,7 +29,7 @@ describe('ArgumentParser', () => {
         function: {
           type: 'function',
           names: ['-f1'],
-          exec(values) {
+          exec({ values }) {
             expect((values as OptionValues<typeof options>).flag).toBeUndefined();
           },
         },
@@ -91,7 +91,7 @@ describe('ArgumentParser', () => {
           type: 'command',
           names: ['-c'],
           options: {},
-          cmd(values) {
+          exec({ values }) {
             expect((values as OptionValues<typeof options>).flag).toBeTruthy();
           },
         },
@@ -112,12 +112,12 @@ describe('ArgumentParser', () => {
           names: ['-c'],
           default: false,
           options: {},
-          cmd: vi.fn(),
+          exec: vi.fn(),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ command: false });
-      expect(options.command.cmd).not.toHaveBeenCalled();
+      expect(options.command.exec).not.toHaveBeenCalled();
     });
 
     it('should handle a command option with a default value callback', async () => {
@@ -127,12 +127,12 @@ describe('ArgumentParser', () => {
           names: ['-c'],
           default: () => false,
           options: {},
-          cmd: vi.fn(),
+          exec: vi.fn(),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ command: false });
-      expect(options.command.cmd).not.toHaveBeenCalled();
+      expect(options.command.exec).not.toHaveBeenCalled();
     });
 
     it('should handle a command option with an async default value callback', async () => {
@@ -142,12 +142,12 @@ describe('ArgumentParser', () => {
           names: ['-c'],
           default: async () => false,
           options: {},
-          cmd: vi.fn(),
+          exec: vi.fn(),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse([])).resolves.toEqual({ command: false });
-      expect(options.command.cmd).not.toHaveBeenCalled();
+      expect(options.command.exec).not.toHaveBeenCalled();
     });
 
     it('should handle a flag option with a default value', async () => {

@@ -97,7 +97,7 @@ describe('OptionValidator', () => {
           type: 'command',
           names: ['-c'],
           options: {},
-          cmd: () => {},
+          exec: () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -213,13 +213,13 @@ describe('OptionValidator', () => {
           type: 'command',
           names: ['-c1'],
           options: {},
-          cmd: () => {},
+          exec: () => {},
         },
         required2: {
           type: 'command',
           names: ['-c2'],
           options: {},
-          cmd: () => {},
+          exec: () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -499,7 +499,7 @@ describe('OptionValidator', () => {
           type: 'command',
           names: ['-c'],
           options: {},
-          cmd: () => {},
+          exec: () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -615,13 +615,13 @@ describe('OptionValidator', () => {
           type: 'command',
           names: ['-c1'],
           options: {},
-          cmd: () => {},
+          exec: () => {},
         },
         other2: {
           type: 'command',
           names: ['-c2'],
           options: {},
-          cmd: () => {},
+          exec: () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);

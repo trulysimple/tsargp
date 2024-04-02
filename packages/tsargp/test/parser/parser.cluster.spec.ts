@@ -169,7 +169,7 @@ describe('ArgumentParser', () => {
           type: 'command',
           names: ['-c'],
           options: {},
-          cmd() {},
+          exec() {},
           clusterLetters: 'c',
         },
       } as const satisfies Options;
@@ -201,7 +201,7 @@ describe('ArgumentParser', () => {
               clusterLetters: 'n',
             },
           },
-          cmd: (_, values) => values,
+          exec: ({ param }) => param,
           shortStyle: true,
           clusterLetters: 'c',
         },
