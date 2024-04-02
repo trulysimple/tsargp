@@ -17,7 +17,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -s a -s ', { compIndex: 12 })).rejects.toThrow(/^abc$/);
     });
 
-    it('should not execute a fallback callback during completion', async () => {
+    it('should ignore an error thrown by a fallback callback during completion', async () => {
       const options = {
         string: {
           type: 'string',
@@ -28,8 +28,8 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^-s$/);
-      expect(options.string.fallback).not.toHaveBeenCalled();
+      await expect(parser.parse('cmd -s -s ', { compIndex: 10 })).rejects.toThrow(/^-s$/);
+      expect(options.string.fallback).toHaveBeenCalled();
     });
 
     it('should ignore errors thrown by a function option callback during completion', async () => {

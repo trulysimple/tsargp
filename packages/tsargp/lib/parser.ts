@@ -464,23 +464,13 @@ async function handleNonNiladic(
   index: number,
   params: Array<string>,
 ) {
-  if (params.length) {
-    try {
-      // use await here instead of return, in order to catch errors
-      await parseParam(validator, values, comp, index, info, params);
-    } catch (err) {
-      // do not propagate errors during completion
-      if (!comp) {
-        throw err;
-      }
-    }
-  } else {
-    const { key, option, name } = info;
-    const fallback = option.fallback;
-    if (fallback !== undefined) {
-      return setValue(validator, values, key, option, fallback);
-    } else if (!comp) {
-      throw validator.error(ErrorItem.missingParameter, { o: name });
+  try {
+    // use await here instead of return, in order to catch errors
+    await parseParam(validator, values, comp, index, info, params);
+  } catch (err) {
+    // do not propagate errors during completion
+    if (!comp) {
+      throw err;
     }
   }
 }
@@ -618,6 +608,7 @@ async function checkRequireItems<T>(
  * @param index The starting index of the argument sequence
  * @param info The option information
  * @param params The option parameter(s)
+ * @returns A promise that must be awaited before continuing
  */
 async function parseParam(
   validator: OptionValidator,
@@ -632,6 +623,13 @@ async function parseParam(
     return validator.normalize(option, name, val);
   }
   const { key, name, option } = info;
+  if (!params.length) {
+    const fallback = option.fallback;
+    if (fallback === undefined) {
+      throw validator.error(ErrorItem.missingParameter, { o: name });
+    }
+    return setValue(validator, values, key, option, fallback);
+  }
   const convertFn: (val: string) => unknown =
     option.type === 'boolean' ? isTrue : isString(option) ? (str: string) => str : Number;
   const parse = option.parse;
