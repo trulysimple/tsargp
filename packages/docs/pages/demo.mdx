@@ -27,11 +27,6 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 - check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`)
 - check if an option parameter gets completed (e.g., `o<Tab>`, `-se <Tab>`, `--ne <Tab>`)
 
-### Option names
-
-- check if similar names are suggested for unkown options (e.g., `-nof`)
-- check if option names can be used as option parameters (e.g., `-ss -s`)
-
 ### Positional arguments
 
 - check if positional arguments can be specified before named ones (e.g., `one -s 0`)

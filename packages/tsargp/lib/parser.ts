@@ -42,7 +42,7 @@ import {
 } from './styles';
 import { OptionValidator, defaultConfig } from './validator';
 import { format } from './styles';
-import { checkRequiredArray, findSimilarNames, getArgs, isTrue } from './utils';
+import { checkRequiredArray, findSimilarNames, getArgs, isTrue, isComp } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -101,8 +101,8 @@ type ParseEntry = [
   index: number,
   info?: OptionInfo,
   value?: string,
-  isComp?: boolean,
-  isMarker?: boolean,
+  comp?: boolean,
+  marker?: boolean,
   lookFor?: boolean,
 ];
 
@@ -308,7 +308,7 @@ async function parseArgs(
   let positional = false;
   for (let i = 0, k = 0; i < args.length; i = prev[0]) {
     const next = findNext(validator, args, prev);
-    const [j, info, value, isComp, isMarker] = next;
+    const [j, info, value, comp, marker] = next;
     if (prev[1] !== info) {
       if (prev[1]) {
         await handleNonNiladic(validator, values, completing, prev[1], i, args.slice(k, j));
@@ -320,8 +320,8 @@ async function parseArgs(
       const { key, name, option } = info;
       const niladic = isNiladic(option);
       const hasValue = value !== undefined;
-      if (niladic || isMarker) {
-        if (isComp) {
+      if (niladic || marker) {
+        if (comp) {
           throw new CompletionMessage();
         }
         if (hasValue) {
@@ -331,8 +331,8 @@ async function parseArgs(
             prev[4] = false;
             continue;
           }
-          const alt = isMarker ? 1 : 0;
-          const name2 = isMarker ? info.marker : name;
+          const alt = marker ? 1 : 0;
+          const name2 = marker ? info.marker : name;
           throw validator.error(ErrorItem.disallowedInlineValue, { o: name2 }, { alt });
         }
       }
@@ -343,7 +343,7 @@ async function parseArgs(
         specifiedKeys.add(key);
       }
       if (niladic) {
-        // isComp === false
+        // comp === false
         const [breakLoop, skipCount] = await handleNiladic(
           validator,
           values,
@@ -364,7 +364,7 @@ async function parseArgs(
       }
       // don't use option.positional for this check
       positional = info === validator.positional;
-      if (!isComp) {
+      if (!comp) {
         if (positional || !hasValue) {
           // positional marker, first positional parameter or option name
           k = hasValue ? j : j + 1;
@@ -381,10 +381,10 @@ async function parseArgs(
     if (!info) {
       break; // finished
     }
-    // isComp === true
+    // comp === true
     await handleComplete(values, info, i, args.slice(k, j), value);
     handleCompletion(info.option, value);
-    if (!isMarker && (positional || k < j || info.option.fallback !== undefined)) {
+    if (!marker && (positional || k < j || info.option.fallback !== undefined)) {
       handleNameCompletion(validator, value);
     }
     throw new CompletionMessage();
@@ -404,38 +404,38 @@ function findNext(
   args: ReadonlyArray<string>,
   prev: ParseEntry,
 ): ParseEntry {
-  let [index, info, , , isMarker, lookFor] = prev;
+  let [index, info, , , marker, lookFor] = prev;
   const positional = validator.positional;
   const variadic = info ? isVariadic(info.option) : false;
   for (++index; index < args.length; ++index) {
-    const [arg, comp] = args[index].split('\0', 2);
-    const isComp = comp !== undefined;
+    const [arg, rest] = args[index].split('\0', 2);
+    const comp = rest !== undefined;
     if (!info || lookFor) {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = validator.names.get(name);
       if (key) {
-        if (isComp && value === undefined) {
+        if (comp && value === undefined) {
           throw new CompletionMessage(name);
         }
         const isMarker = name === positional?.marker;
         info = isMarker ? positional : { key, name, option: validator.options[key] };
         lookFor = !isMarker && info.option.fallback !== undefined;
-        return [index, info, value, isComp, isMarker, lookFor];
+        return [index, info, value, comp, isMarker, lookFor];
       }
       if (!info) {
         if (!positional) {
-          if (isComp) {
+          if (comp) {
             handleNameCompletion(validator, arg);
           }
           handleUnknownName(validator, name);
         }
-        return [index, positional, arg, isComp, false, true];
+        return [index, positional, arg, comp, false, true];
       }
     }
-    if (isComp) {
-      return [index, info, arg, isComp, isMarker];
+    if (comp) {
+      return [index, info, arg, comp, marker];
     }
-    if (!isMarker) {
+    if (!marker) {
       if (variadic) {
         lookFor = true;
       } else {
@@ -475,12 +475,13 @@ async function handleNonNiladic(
       }
     }
   } else {
-    const fallback = info.option.fallback;
-    if (fallback === undefined) {
-      throw validator.error(ErrorItem.missingParameter, { o: info.name });
+    const { key, option, name } = info;
+    const fallback = option.fallback;
+    if (fallback !== undefined) {
+      return setValue(validator, values, key, option, fallback);
+    } else if (!comp) {
+      throw validator.error(ErrorItem.missingParameter, { o: name });
     }
-    const { key, option } = info;
-    return setValue(validator, values, key, option, fallback);
   }
 }
 
@@ -756,12 +757,11 @@ async function handleFunction(
 ): Promise<number> {
   const { key, option, name } = info;
   if (option.exec) {
-    const isComp = (param: string) => param.split('\0', 1)[0];
     try {
       values[key] = await option.exec({ values, index, name, param, comp, isComp });
     } catch (err) {
-      // do not propagate errors during completion
-      if (!comp) {
+      // do not propagate common errors during completion
+      if (!comp || err instanceof CompletionMessage) {
         throw err;
       }
       return 0;

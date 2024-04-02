@@ -123,7 +123,6 @@ export type RequiresCallback = (values: OpaqueOptionValues) => boolean | Promise
 
 /**
  * A callback to parse the value of option parameters or to perform word completion.
- * In case of parsing, normalization and constraints will be applied to the returned value.
  * @template T The information data type
  * @template R The return data type
  * @param info The callback information
@@ -148,7 +147,7 @@ export type ResolveCallback = (specifier: string) => string;
 export type DefaultCallback<T> = (values: OpaqueOptionValues) => T | Promise<T>;
 
 /**
- * A custom callback for parsing of option parameter(s).
+ * A custom callback for parsing option parameter(s).
  * @see CustomCallback
  */
 export type ParseCallback<P, T> = CustomCallback<ParseInfo<P> & WithComp<boolean>, T>;
@@ -219,7 +218,7 @@ export type WithComp<C> = {
  */
 export type WithIsComp = {
   /**
-   * Checks if an option parameter is a word to be completed.
+   * Checks whether an option parameter is a word to be completed.
    * You can `throw new CompletionMessage(...words)` inside the function callback, if needed.
    * @param param The option parameter
    * @returns The word being completed, if any
@@ -349,6 +348,7 @@ export type WithParam<P, T> = {
   /**
    * A custom callback to parse the value of the option parameter(s).
    * It should return the new option value.
+   * Normalization and constraints will be applied to the returned value.
    */
   readonly parse?: ParseCallback<P, T>;
   /**
@@ -893,9 +893,7 @@ type OptionDataType<T extends Option> =
  * @internal
  */
 export function isNiladic(option: OpaqueOption): boolean {
-  return ['help', 'version', 'function', 'command', 'flag'].includes(option.type); // ||
-  // option.paramCount === undefined ||
-  // option.paramCount === 0
+  return ['help', 'version', 'function', 'command', 'flag'].includes(option.type);
 }
 
 /**

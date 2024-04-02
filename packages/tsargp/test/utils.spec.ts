@@ -9,6 +9,7 @@ import {
   isTrue,
   matchNamingRules,
   type NamingRules,
+  isComp,
 } from '../lib/utils';
 
 /*
@@ -242,6 +243,18 @@ describe('isTrue', () => {
     expect(isTrue('/false')).toBeTruthy();
     expect(isTrue('/no')).toBeTruthy();
     expect(isTrue('/off')).toBeTruthy();
+  });
+});
+
+describe('isComp', () => {
+  it('should return undefined on normal argument', () => {
+    expect(isComp('')).toBeUndefined();
+    expect(isComp('abc')).toBeUndefined();
+  });
+
+  it('should return the word being completed on completion argument', () => {
+    expect(isComp('\0')).toEqual('');
+    expect(isComp('a\0bc')).toEqual('a');
   });
 });
 

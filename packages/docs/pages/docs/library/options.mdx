@@ -517,9 +517,11 @@ In addition to the set of [value attributes], it has the following attributes.
 The `exec` attribute specifies the [custom callback] that should be executed.
 
 It accepts a single parameter that contains the current [argument information], in which `param`
-holds the remaining command-line arguments. The `comp` property indicates whether word completion is
-in effect (but not in the current iteration). The `isComp` property can be used to check whether any
-of the remaining arguments is to be completed, when `comp` is true.
+holds the remaining command-line arguments and `comp` indicates whether word completion is in effect
+(but not in the current iteration).
+
+In the above object, `isComp` can be used to check whether any of the remaining arguments is to be
+completed, when `comp` is true. If so, you can throw a new [completion message] inside the callback.
 
 Notes about this callback:
 
@@ -753,6 +755,7 @@ attributes:
 [option filters]: formatter#option-filters
 [custom callback]: parser#custom-callbacks
 [argument information]: parser#argument-information
+[completion message]: styles#completion-words
 [`parseInto`]: parser#using-your-own-object
 [`shortStyle`]: parser#short-option-style
 [formatter configuration]: formatter#help-format
