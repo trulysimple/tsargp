@@ -16,7 +16,8 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['0123'])).resolves.toEqual({ boolean: true });
       expect(options.boolean.parse).toHaveBeenCalledWith({
-        values: { boolean: true }, // should be { boolean: undefined } at the time of call
+        // should have been { boolean: undefined } at the time of call
+        values: { boolean: true },
         index: 0,
         name: 'bool',
         param: '0123',
@@ -37,7 +38,8 @@ describe('ArgumentParser', () => {
       process.env['BOOLEAN'] = '1';
       await expect(parser.parse([])).resolves.toEqual({ boolean: true });
       expect(options.boolean.parse).toHaveBeenCalledWith({
-        values: { boolean: true }, // should be { boolean: undefined } at the time of call
+        // should have been { boolean: undefined } at the time of call
+        values: { boolean: true },
         index: NaN,
         name: 'BOOLEAN',
         param: '1',
@@ -70,7 +72,8 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-s', 'abcde'])).resolves.toEqual({ string: 'CDE' });
       expect(options.string.parse).toHaveBeenCalledWith({
-        values: { string: 'CDE' }, // should be { string: undefined } at the time of call
+        // should have been { string: undefined } at the time of call
+        values: { string: 'CDE' },
         index: 0,
         name: '-s',
         param: 'abcde',
@@ -103,7 +106,8 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-n', '1.2'])).resolves.toEqual({ number: 2 });
       expect(options.number.parse).toHaveBeenCalledWith({
-        values: { number: 2 }, // should be { number: undefined } at the time of call
+        // should have been { number: undefined } at the time of call
+        values: { number: 2 },
         index: 0,
         name: '-n',
         param: '1.2',
@@ -136,7 +140,8 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-ss', 'a', 'b'])).resolves.toEqual({ strings: ['A', 'B'] });
       expect(options.strings.parse).toHaveBeenCalledWith({
-        values: { strings: ['A', 'B'] }, // should be { strings: undefined } at the time of call
+        // should have been { strings: undefined } at the time of call
+        values: { strings: ['A', 'B'] },
         index: 0,
         name: '-ss',
         param: ['a', 'b'],
@@ -171,7 +176,8 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-ns', '1.2', '1.7'])).resolves.toEqual({ numbers: [2, 2] });
       expect(options.numbers.parse).toHaveBeenCalledWith({
-        values: { numbers: [2, 2] }, // should be { numbers: undefined } at the time of call
+        // should have been { numbers: undefined } at the time of call
+        values: { numbers: [2, 2] },
         index: 0,
         name: '-ns',
         param: ['1.2', '1.7'],

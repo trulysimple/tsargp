@@ -282,7 +282,7 @@ Notes about this callback:
 
 #### Parse callback
 
-The `parse` attribute, if present, specifies a custom callback to parse the value of the option
+The `parse` attribute, if present, specifies a [custom callback] to parse the value of the option
 parameter(s).
 
 It accepts a single parameter that contains the current [argument information], in which `param`
@@ -472,7 +472,7 @@ In addition to the set of [value attributes], it has the following attributes.
 
 #### Execute callback
 
-The `exec` attribute specifies the callback function that should be executed.
+The `exec` attribute specifies the [custom callback] function that should be executed.
 
 It accepts a single parameter that contains the current [argument information], in which `param`
 holds the remaining command-line arguments. The `comp` property indicates whether word completion is
@@ -535,11 +535,11 @@ In addition to the set of [value attributes], it has the following attributes.
 
 #### Command callback
 
-The `exec` attribute specifies the callback function that should be executed.
+The `exec` attribute specifies the [custom callback] function that should be executed.
 
 It accepts a single parameter that contains the current [argument information], in which `param`
 holds the values parsed for the command. The `comp` property will always be `false{:ts}` in the case
-of a nested command, since word completion.
+of a nested command, since word completion is handled during the parsing of the remaining arguments.
 
 Notes about this callback:
 

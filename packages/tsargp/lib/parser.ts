@@ -512,34 +512,6 @@ async function resolveVersion(
 }
 
 /**
- * Handles the completion of an option with a custom completion callback.
- * @param values The option values
- * @param info The option information
- * @param index The starting index of the argument sequence
- * @param param The preceding parameters, if any
- * @param comp The word being completed
- */
-async function handleComplete(
-  values: OpaqueOptionValues,
-  info: OptionInfo,
-  index: number,
-  param: Array<string>,
-  comp = '',
-) {
-  const { name, option } = info;
-  if (option.complete) {
-    let words;
-    try {
-      words = await option.complete({ values, index, name, param, comp });
-    } catch (err) {
-      // do not propagate errors during completion
-      throw new CompletionMessage();
-    }
-    throw new CompletionMessage(...words);
-  }
-}
-
-/**
  * Handles the completion of an option with a parameter.
  * @param option The option definition
  * @param comp The word being completed
@@ -852,6 +824,34 @@ function handleSpecial(
     throw new VersionMessage(option.version);
   } else if (option.resolve) {
     return resolveVersion(validator, option.resolve);
+  }
+}
+
+/**
+ * Handles the completion of an option with a custom completion callback.
+ * @param values The option values
+ * @param info The option information
+ * @param index The starting index of the argument sequence
+ * @param param The preceding parameters, if any
+ * @param comp The word being completed
+ */
+async function handleComplete(
+  values: OpaqueOptionValues,
+  info: OptionInfo,
+  index: number,
+  param: Array<string>,
+  comp = '',
+) {
+  const { name, option } = info;
+  if (option.complete) {
+    let words;
+    try {
+      words = await option.complete({ values, index, name, param, comp });
+    } catch (err) {
+      // do not propagate errors during completion
+      throw new CompletionMessage();
+    }
+    throw new CompletionMessage(...words);
   }
 }
 

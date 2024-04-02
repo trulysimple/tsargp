@@ -253,7 +253,8 @@ describe('ArgumentParser', () => {
         expect(options.function.exec).not.toHaveBeenCalled();
         await expect(parser.parse(['-f'])).resolves.toEqual({ function: 'abc' });
         expect(options.function.exec).toHaveBeenCalledWith({
-          values: { function: 'abc' }, // should be { function: undefined } at the time of call
+          // should have been { function: undefined } at the time of call
+          values: { function: 'abc' },
           index: 0,
           name: '-f',
           param: [],
@@ -262,7 +263,8 @@ describe('ArgumentParser', () => {
         options.function.exec.mockClear();
         await expect(parser.parse(['-f', '-f'])).resolves.toEqual({ function: 'abc' });
         expect(options.function.exec).toHaveBeenCalledWith({
-          values: { function: 'abc' }, // should be { function: undefined } at the time of call
+          // should have been { function: undefined } at the time of call
+          values: { function: 'abc' },
           index: 0,
           name: '-f',
           param: ['-f'],
@@ -428,7 +430,8 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-c'])).resolves.toEqual({ command: { flag: undefined } });
         expect(options.command.exec).toHaveBeenCalledWith({
-          values: { command: { flag: undefined } }, // should be { function: undefined } at the time of call
+          // should have been { command: undefined } at the time of call
+          values: { command: { flag: undefined } },
           index: 0,
           name: '-c',
           param: { flag: undefined },
@@ -437,7 +440,8 @@ describe('ArgumentParser', () => {
         options.command.exec.mockClear();
         await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: { flag: true } });
         expect(options.command.exec).toHaveBeenCalledWith({
-          values: { command: { flag: true } }, // should be { function: undefined } at the time of call
+          // should have been { command: undefined } at the time of call
+          values: { command: { flag: true } },
           index: 0,
           name: '-c',
           param: { flag: true },
@@ -463,7 +467,8 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: 'abc' });
         expect(options.command.options).toHaveBeenCalled();
         expect(options.command.exec).toHaveBeenCalledWith({
-          values: { command: 'abc' }, // should be { function: undefined } at the time of call
+          // should have been { command: undefined } at the time of call
+          values: { command: 'abc' },
           index: 0,
           name: '-c',
           param: { flag: true },

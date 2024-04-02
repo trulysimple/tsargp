@@ -751,7 +751,7 @@ type WithResolve = {
  */
 type WithAppend = {
   /**
-   * @deprecated mutually exclusive with {@link WithVersion.append}
+   * @deprecated mutually exclusive with {@link WithArray.append}
    */
   readonly parse?: never;
 };
@@ -761,7 +761,7 @@ type WithAppend = {
  */
 type WithParse = {
   /**
-   * @deprecated mutually exclusive with {@link WithVersion.parse}
+   * @deprecated mutually exclusive with {@link WithParam.parse}
    */
   readonly append?: never;
 };

@@ -4,7 +4,7 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
-    it('should set default values when breaking the parsing loop', async () => {
+    it('should set default values before calling a function callback that breaks the parsing loop', async () => {
       const options = {
         function: {
           type: 'function',
@@ -24,7 +24,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-f1'])).resolves.toEqual({ function: undefined, flag: true });
     });
 
-    it('should not set default values during parsing', async () => {
+    it('should not set default values before calling a function callback that does not break the parsing loop', async () => {
       const options = {
         function: {
           type: 'function',
