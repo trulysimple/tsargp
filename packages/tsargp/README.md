@@ -55,7 +55,7 @@ try {
 }
 ```
 
-Optionally, enable bash completion:
+Optionally, enable word completion:
 
 ```sh
 complete -o default -C <your_cli_name> <your_cli_name>

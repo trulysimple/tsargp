@@ -10,7 +10,7 @@ title: Introduction - Docs
 
 | Usability              | Functionality             | Presentation              |
 | ---------------------- | ------------------------- | ------------------------- |
-| Zero-dependency        | Bash completion           | Help message formatting   |
+| Zero-dependency        | Word completion           | Help message formatting   |
 | Fully declarative      | Option validation         | Text wrapping/alignment   |
 | Type-checked           | Option requirements       | Paragraphs and lists      |
 | Browser-compatible     | Option name suggestions   | [SGR] colors and styles   |
@@ -24,7 +24,7 @@ title: Introduction - Docs
 Why use this library when there are already a plethora of argument parsers on npm?
 
 The most distinctive feature is its _declarative_ API. Very few libraries on npm that we know of at
-the time of writing have this feature (worth mentioning [meow] and [oclif]). Most
+the time of writing have this feature (worth mentioning [meow], [yargs] and [oclif]). Most
 others have either imperative or fluent interface, whereas **tsargp** offers a way to declare all of
 your command-line options in a single `object`.
 
@@ -73,7 +73,7 @@ try {
 }
 ```
 
-Optionally, enable bash completion:
+Optionally, enable word completion:
 
 ```sh copy /<your_cli_name>/
 complete -o default -C <your_cli_name> <your_cli_name>
@@ -83,4 +83,5 @@ complete -o default -C <your_cli_name> <your_cli_name>
 
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 [meow]: https://www.npmjs.com/package/meow
+[yargs]: https://yargs.js.org/
 [oclif]: https://oclif.io/

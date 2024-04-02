@@ -304,7 +304,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['--'])).rejects.toThrow(`Missing parameter to abc.`);
     });
 
-    it('should handle a strings option with positional arguments', async () => {
+    it('should handle a variadic strings option with positional arguments', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -332,7 +332,7 @@ describe('ArgumentParser', () => {
       });
     });
 
-    it('should handle a strings option with positional arguments after marker', async () => {
+    it('should handle a variadic strings option with positional arguments after marker', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -360,6 +360,38 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-ss', '0', '--', '1'])).resolves.toEqual({
         flag: undefined,
         strings: ['1'],
+      });
+    });
+
+    it('should handle a delimited strings option with positional arguments', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+        },
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          positional: true,
+          separator: ',',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['0,1', '1,2'])).resolves.toEqual({
+        flag: undefined,
+        strings: ['1', '2'],
+      });
+      await expect(parser.parse(['-f', '0,1', '1,2'])).resolves.toEqual({
+        flag: true,
+        strings: ['1', '2'],
+      });
+      await expect(parser.parse(['0,1', '-f', '1,2'])).resolves.toEqual({
+        flag: true,
+        strings: ['1', '2'],
+      });
+      await expect(parser.parse(['0,1', '1,2', '-f'])).resolves.toEqual({
+        flag: true,
+        strings: ['1', '2'],
       });
     });
 
@@ -402,7 +434,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['--'])).rejects.toThrow(`Missing parameter to abc.`);
     });
 
-    it('should handle a numbers option with positional arguments', async () => {
+    it('should handle a variadic numbers option with positional arguments', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -427,7 +459,7 @@ describe('ArgumentParser', () => {
       });
     });
 
-    it('should handle a numbers option with positional arguments after marker', async () => {
+    it('should handle a variadic numbers option with positional arguments after marker', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -452,6 +484,38 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-ns', '0', '--', '1'])).resolves.toEqual({
         flag: undefined,
         numbers: [1],
+      });
+    });
+
+    it('should handle a delimited numbers option with positional arguments', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+        },
+        numbers: {
+          type: 'numbers',
+          names: ['-ns'],
+          positional: true,
+          separator: ',',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['0,1', '1,2'])).resolves.toEqual({
+        flag: undefined,
+        numbers: [1, 2],
+      });
+      await expect(parser.parse(['-f', '0,1', '1,2'])).resolves.toEqual({
+        flag: true,
+        numbers: [1, 2],
+      });
+      await expect(parser.parse(['0,1', '-f', '1,2'])).resolves.toEqual({
+        flag: true,
+        numbers: [1, 2],
+      });
+      await expect(parser.parse(['0,1', '1,2', '-f'])).resolves.toEqual({
+        flag: true,
+        numbers: [1, 2],
       });
     });
 

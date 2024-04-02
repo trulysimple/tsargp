@@ -218,23 +218,30 @@ describe('splitPhrase', () => {
 describe('isTrue', () => {
   it('should return false on zero', () => {
     expect(isTrue('')).toBeFalsy();
-    expect(isTrue('0')).toBeFalsy();
-    expect(isTrue(' 0 ')).toBeFalsy();
-    expect(isTrue('0.0')).toBeFalsy();
+    expect(isTrue('00')).toBeFalsy();
+    expect(isTrue(' +0.0 ')).toBeFalsy();
   });
 
   it('should return false on false', () => {
     expect(isTrue('false')).toBeFalsy();
-    expect(isTrue(' false ')).toBeFalsy();
-    expect(isTrue('FalsE')).toBeFalsy();
     expect(isTrue(' FalsE ')).toBeFalsy();
   });
 
+  it('should return false on no', () => {
+    expect(isTrue('no')).toBeFalsy();
+    expect(isTrue(' No ')).toBeFalsy();
+  });
+
+  it('should return false on off', () => {
+    expect(isTrue('off')).toBeFalsy();
+    expect(isTrue(' oFF ')).toBeFalsy();
+  });
+
   it('should return true on any other string', () => {
-    expect(isTrue('1')).toBeTruthy();
-    expect(isTrue(' 1 ')).toBeTruthy();
-    expect(isTrue('a')).toBeTruthy();
-    expect(isTrue(' A ')).toBeTruthy();
+    expect(isTrue('/0.0')).toBeTruthy();
+    expect(isTrue('/false')).toBeTruthy();
+    expect(isTrue('/no')).toBeTruthy();
+    expect(isTrue('/off')).toBeTruthy();
   });
 });
 

@@ -145,10 +145,10 @@ export type ParseCallback<T> = (
 export type ResolveCallback = (specifier: string) => string;
 
 /**
- * A callback for default values.
+ * A callback for default and fallback values.
  * @template T The return data type
  * @param values The values parsed so far
- * @returns The default value
+ * @returns The default or fallback value
  */
 export type DefaultCallback<T> = (values: OpaqueOptionValues) => T | Promise<T>;
 
@@ -288,7 +288,8 @@ export type WithParam<T> = {
    */
   readonly paramName?: string;
   /**
-   * Allows positional arguments. There may be at most one option with this setting.
+   * Whether the option accepts positional arguments.
+   * There may be at most one option with this setting.
    *
    * If set, then any argument not recognized as an option name will be considered positional.
    * Additionally, if a string is specified as positional marker, then all arguments beyond this
@@ -298,12 +299,13 @@ export type WithParam<T> = {
    */
   readonly positional?: true | string;
   /**
-   * A custom completion callback. It should not throw. If asynchronous, you should call
-   * `ArgumentParser.parseAsync` and await its result.
+   * A custom callback for word completion.
+   * It should return the list of completion words.
+   * If it throws an error, it is ignored, and the default completion message is thrown instead.
    */
   readonly complete?: CompleteCallback;
   /**
-   * A custom function to parse the value of the option parameter.
+   * A custom callback to parse the value of the option parameter.
    */
   readonly parse?: ParseCallback<Flatten<T>>;
   /**
@@ -314,7 +316,7 @@ export type WithParam<T> = {
    * A fallback value that is used if the option is specified, but without any parameter.
    * This makes the option parameter(s) optional, both for single-valued and array-valued options.
    */
-  readonly fallback?: Readonly<T>;
+  readonly fallback?: Readonly<T> | DefaultCallback<T>;
 };
 
 /**
@@ -395,7 +397,7 @@ export type WithHelp = {
    */
   readonly sections?: HelpSections;
   /**
-   * Opt-in feature: set this to true to allow the remaining arguments to be used as option filters.
+   * Whether to use the remaining arguments as option filters.
    */
   readonly useFilters?: true;
 };
@@ -411,8 +413,7 @@ export type WithVersion = {
   readonly version?: string;
   /**
    * A resolution function scoped to the module where a `package.json` file should be searched. Use
-   * `import.meta.resolve`. Use in non-browser environments only. This results in an asynchronous
-   * operation, so you should call `ArgumentParser.parseAsync` and await its result.
+   * `import.meta.resolve`. Use in non-browser environments only.
    */
   readonly resolve?: ResolveCallback;
 };
@@ -422,8 +423,7 @@ export type WithVersion = {
  */
 export type WithFunction = {
   /**
-   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-   * its result.
+   * The function callback.
    */
   readonly exec: ExecuteCallback;
   /**
@@ -433,7 +433,7 @@ export type WithFunction = {
   /**
    * The number of remaining arguments to skip. You may change this value inside a synchronous
    * callback. Otherwise, you should leave it unchanged. The parser does not alter this value.
-   * During bash completion, it is ignored.
+   * During word completion, it is ignored.
    */
   skipCount?: number;
 };
@@ -443,8 +443,7 @@ export type WithFunction = {
  */
 export type WithCommand = {
   /**
-   * The callback function. If asynchronous, you should call `ArgumentParser.parseAsync` and await
-   * its result.
+   * The command callback.
    */
   readonly cmd: CommandCallback;
   /**
@@ -741,7 +740,7 @@ type WithVerInfo = {
 };
 
 /**
- * Removes mutually exclusive attributes from an option with a `resolve` callback..
+ * Removes mutually exclusive attributes from an option with a `resolve` callback.
  */
 type WithResolve = {
   /**
@@ -754,19 +753,13 @@ type WithResolve = {
  * The data type of an option that may have a default value.
  * @template T The option definition type
  */
-type DefaultDataType<T extends Option> =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends { default: (...args: any) => infer R }
-    ? R extends Promise<infer D>
-      ? D
-      : R
-    : T extends { default: infer D }
-      ? D extends undefined
-        ? never
-        : D
-      : T extends { required: true }
-        ? never
-        : undefined;
+type DefaultDataType<T extends Option> = T extends { required: true }
+  ? never
+  : T extends { default: infer D }
+    ? D extends undefined
+      ? undefined
+      : never
+    : undefined;
 
 /**
  * The data type of a function option.
@@ -792,12 +785,6 @@ type CommandDataType<T extends Option> =
 type EnumsDataType<T extends Option, D> = T extends { enums: ReadonlyArray<infer E> } ? E : D;
 
 /**
- * The data type of a (possibly) delimited array-valued option.
- * @template T The option definition type
- */
-type DelimitedDataType<T extends Option> = T extends { separator: string } ? never : [];
-
-/**
  * The data type of an option value.
  * @template T The option definition type
  */
@@ -815,9 +802,9 @@ type OptionDataType<T extends Option> =
             : T extends WithType<'number'>
               ? EnumsDataType<T, number> | DefaultDataType<T>
               : T extends WithType<'strings'>
-                ? Array<EnumsDataType<T, string>> | DelimitedDataType<T> | DefaultDataType<T>
+                ? Array<EnumsDataType<T, string>> | DefaultDataType<T>
                 : T extends WithType<'numbers'>
-                  ? Array<EnumsDataType<T, number>> | DelimitedDataType<T> | DefaultDataType<T>
+                  ? Array<EnumsDataType<T, number>> | DefaultDataType<T>
                   : never;
 
 //--------------------------------------------------------------------------------------------------

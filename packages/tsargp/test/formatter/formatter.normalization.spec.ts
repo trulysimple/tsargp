@@ -64,99 +64,93 @@ describe('HelpFormatter', () => {
       );
     });
 
-    it('should handle a delimited strings option whose values will be trimmed', () => {
+    it('should handle a variadic strings option whose values will be trimmed', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           trim: true,
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be trimmed.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be trimmed.\n`,
       );
     });
 
-    it('should handle a delimited strings option whose values will be converted to lowercase', () => {
+    it('should handle a variadic strings option whose values will be converted to lowercase', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           case: 'lower',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be converted to lowercase.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be converted to lowercase.\n`,
       );
     });
 
-    it('should handle a delimited strings option whose values will be converted to uppercase', () => {
+    it('should handle a variadic strings option whose values will be converted to uppercase', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           case: 'upper',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be converted to uppercase.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be converted to uppercase.\n`,
       );
     });
 
-    it('should handle a delimited strings option whose values are unique', () => {
+    it('should handle a variadic strings option whose values are unique', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           unique: true,
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Duplicate values will be removed.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Duplicate values will be removed.\n`,
       );
     });
 
-    it('should handle a delimited numbers option whose values are unique', () => {
+    it('should handle a variadic numbers option whose values are unique', () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
-          separator: ',',
           unique: true,
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Duplicate values will be removed.\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Duplicate values will be removed.\n`,
       );
     });
 
-    it('should handle a delimited numbers option with math conversion', () => {
+    it('should handle a variadic numbers option with math conversion', () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
-          separator: ',',
           conv: 'trunc',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be converted with Math.trunc.\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Values will be converted with Math.trunc.\n`,
       );
     });
   });

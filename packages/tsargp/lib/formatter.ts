@@ -92,6 +92,10 @@ export type FormatterConfig = {
    * `'Values will be converted to (lowercase|uppercase)'`.
    */
   readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
+  /**
+   * A list of regular expressions to filter options.
+   */
+  filters?: ReadonlyArray<RegExp>;
 };
 
 /**
@@ -305,6 +309,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.clusterLetters]: 'Can be clustered with %s.',
     [HelpItem.fallback]: 'Falls back to (%b|%s|%n|[%s]|[%n]|%v) if specified without parameter.',
   },
+  filters: [],
 };
 
 /**
@@ -354,20 +359,9 @@ export class HelpFormatter {
   /**
    * Creates a help message formatter.
    * @param validator The validator instance
-   * @param config The format configuration
-   * @param filters The option filters
+   * @param config The formatter configuration
    */
-  constructor(validator: OptionValidator, config?: FormatterConfig, filters?: Array<RegExp>) {
-    /** @ignore */
-    function exclude(option: OpaqueOption) {
-      return (
-        filters?.length &&
-        !filters.find(
-          (filter) =>
-            option.names?.find((name) => name && name.match(filter)) || option.desc?.match(filter),
-        )
-      );
-    }
+  constructor(validator: OptionValidator, config?: FormatterConfig) {
     this.options = validator.options;
     this.styles = validator.config.styles;
     this.connectives = validator.config.connectives;
@@ -379,7 +373,7 @@ export class HelpFormatter {
         : getMaxNamesWidth(this.options);
     for (const key in this.options) {
       const option = this.options[key];
-      if (!option.hide && !exclude(option)) {
+      if (!option.hide && !excludeOption(option, this.config.filters)) {
         const paramLen = formatOption(
           this.groups,
           this.config,
@@ -447,6 +441,24 @@ export class HelpFormatter {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Checks if an option should be excluded from the help message.
+ * @param option The option definition
+ * @param filters The option filters
+ * @returns True if the option should be excluded
+ */
+function excludeOption(option: OpaqueOption, filters: ReadonlyArray<RegExp>): boolean {
+  return (
+    !!filters.length &&
+    !filters.find(
+      (filter): boolean =>
+        !!option.names?.find((name) => name?.match(filter)) ||
+        !!option.desc?.match(filter) ||
+        !!option.envVar?.match(filter),
+    )
+  );
+}
+
 /**
  * Formats an option to be printed on the terminal.
  * @param groups The option groups
@@ -579,6 +591,7 @@ function mergeConfig(config: FormatterConfig = {}): ConcreteFormat {
     descr: { ...defaultConfig.descr, ...config.descr },
     items: config.items ?? defaultConfig.items,
     phrases: { ...defaultConfig.phrases, ...config.phrases },
+    filters: config.filters ?? defaultConfig.filters,
   };
 }
 

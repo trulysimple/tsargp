@@ -101,23 +101,25 @@ All option types that may have a value share a set of attributes, which are desc
 The `required` attribute indicates that the option is _always_ required, regardless of other
 options. Mutually exclusive with [default value] and [conditional requirements].
 
-#### Default value | callback
+#### Default value
 
-The `default` attribute, if present, specifies the option's default value or a callback that returns
-the default value. This value is used at the end of the parsing loop _if_ the option was specified
+The `default` attribute, if present, specifies a value that is used if the option is specified
 neither on the command-line nor as an [environment variable]. Mutually exclusive with [always
 required].
 
-<Callout type="default">
-  Both [function options] and [command options] accept any kind of value as the default. In the case
-  of object values, it's useful to specify a custom `toString` method to render it in the help
-  message, e.g.:
-  ```ts
-  toString() {
-    return JSON.stringify(this);
-  }
-  ```
-</Callout>
+Both [function options] and [command options] accept any kind of value as the default. In the case
+of object values, it's useful to specify a custom `toString` method in order to render it in the
+help message, e.g.:
+
+```ts
+toString() {
+  return JSON.stringify(this);
+}
+```
+
+<Callout type="info">This value is only evaluated at the end of the parsing loop.</Callout>
+
+##### Default callback
 
 If the value is not known beforehand (e.g., if it depends on the values of other options), you may
 want to use a callback to inspect parsed values and determine the default based on those values. It
@@ -276,7 +278,8 @@ accepts three parameters:
 Notes about this callback:
 
 - it can be asynchronous
-- it should return the list of completion words and should not throw any errors
+- it should return the list of completion words
+- if an error is thrown, it is ignored, and the default completion message is thrown instead
 
 #### Parse callback
 
@@ -301,12 +304,16 @@ expression] and [numeric range].
 
 #### Fallback value
 
-The `fallback` attribute, if present, specifies a value that is used in case the option is specified
+The `fallback` attribute, if present, specifies a value that is used when the option is specified
 in the command-line _without_ any parameter. This makes the option parameter(s) optional, for both
 single-valued and array-valued options. If not specified, the option parameter(s) will be required.
 
+You may also specify a callback that returns the fallback value, with same semantics as the [default
+callback].
+
 <Callout type="info">
-  This attribute is inherently different from the [default value] (they are not mutually exclusive).
+  This attribute is inherently different from the [default value] (i.e., they are not mutually
+  exclusive).
 </Callout>
 
 ### String attributes
@@ -398,7 +405,7 @@ Niladic options do not expect any parameter on the command-line. With the notabl
 [flag option], these options may have _side-effects_.
 
 <Callout type="info">
-  When bash completion is in effect, help and version options are _not_ processed.
+  When word completion is in effect, help and version options are _not_ processed.
 </Callout>
 
 ### Help option
@@ -426,16 +433,9 @@ two sections are included:
 #### Use filters
 
 The `useFilters` attribute is an opt-in feature that allows the remaining arguments to be used as
-option filters. For example, the invocation `cli --help flag` would only include in the help message
-those options whose names or synopsis match the regex `/flag/i{:ts}`.
-
-If multiple patterns are provided, any matched one will suffice to include an option in the message.
-
-<Callout type="default">
-  This is inherently different from what a text search utility like `grep` would produce. The
-  library will print the _whole_ help entry of options matching the given patterns, not just the
-  matching lines.
-</Callout>
+[option filters]. For example, the invocation `cli --help flag` would only include in the help
+message those options whose names, synopsis or environemnt variable name match the regex
+`/flag/i{:ts}`.
 
 ### Version option
 
@@ -464,6 +464,7 @@ The **function** option executes a generic callback function and saves its resul
 value. You can use it to perform many kinds of actions, such as:
 
 - reading configuration from a file
+- parsing key-value pairs into an object
 - altering the values of previous options
 - altering the option definitions in response to an option value
   - e.g., if `--verbose` is set, add more help items to the help option's [format]
@@ -482,7 +483,7 @@ accepts three parameters:
 Notes about this callback:
 
 - it can be asynchronous
-- it may return the option value or nothing at all
+- the returned value, if any, will be saved as the option value
 - altering the `rest` parameter will have _no_ effect on the original command-line arguments
 
 <Callout type="default">
@@ -506,7 +507,7 @@ the callback.
 
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
 returns. You may change this value inside the callback. The parser does not alter this value and
-ignores it during bash completion.
+ignores it during word completion.
 
 Here is an example of how it might be used inside the callback:
 
@@ -546,7 +547,7 @@ Notes about this callback:
 
 - it can be asynchronous
 - the returned value, if any, will be saved as the option value
-- when bash completion is in effect, this callback will _not_ be called
+- when word completion is in effect, this callback will _not_ be called
 
 <Callout type="default">
   The simplest implementation would just return `cmdValues`. This way, the values can be handled
@@ -578,15 +579,15 @@ cluster. This must be used in conjunction with the [cluster letters] of the comm
 
 ### Flag option
 
-The **flag** option is unique in the sense that it is both niladic and has an intrinsic value
-(boolean). It differs from the [boolean option] in that it does _not_ expect a parameter.
+The **flag** option is unique in the sense that it is both niladic and has an intrinsic boolean
+value. It differs from the [boolean option] in that it does _not_ expect a parameter. While the
+latter can be configured to have a [fallback value] (thus making its parameter optional), that
+potentially introduces ambiguity of whether arguments are positional or not.
 
-<Callout type="info">
-  We could have reused the boolean option for this purpose and made the parameter optional, but it
-  would complicate the parser implementation. One benefit of this "limitation" is that it avoids
-  ambiguity of whether arguments are positional or not (e.g., in `-f 1`, would `1` be a parameter to
-  `-f` or a positional argument?).
-</Callout>
+For example, consider the command line `cmd -b 1`, where `-b` is a boolean option with a fallback
+value and there is a positional option. In this case, would `1` be a parameter to `-f` or a
+positional argument? The parser is implemented to consider it a parameter to `-f`. However, the flag
+option completely solves this ambiguity.
 
 In addition to the set of [value attributes] and [miscellaneous attributes], it has the following
 optional attribute.
@@ -603,7 +604,10 @@ Non-niladic options expect one or more parameters on the command-line.
 
 ### Boolean option
 
-The **boolean** option has these sets of attributes:
+The **boolean** option accepts a single parameter that is converted to boolean. Any string that
+either evaluates to a zero number or is one the words `false`, `no`, or `off` (ignoring case), is
+considered `false{:ts}`. Any other string is considered `true{:ts}`. This option has the following
+sets of attributes:
 
 - [parameter attributes] for a `boolean{:ts}` data type
 - [value attributes]
@@ -611,7 +615,8 @@ The **boolean** option has these sets of attributes:
 
 ### String option
 
-The **string** option has these sets of attributes:
+The **string** option accepts a single parameter that is normalized according to the constraints
+specified in its definition. It has the following sets of attributes:
 
 - [parameter attributes] for a `string{:ts}` data type
 - [value attributes]
@@ -620,7 +625,8 @@ The **string** option has these sets of attributes:
 
 ### Number option
 
-The **number** option has these sets of attributes:
+The **number** option accepts a single parameter that is converted to `Number{:ts}` and normalized
+according to the constraints specified in its definition. It has the following sets of attributes:
 
 - [parameter attributes] for a `number{:ts}` data type
 - [value attributes]
@@ -629,7 +635,8 @@ The **number** option has these sets of attributes:
 
 ### Strings option
 
-The **strings** option has these sets of attributes:
+The **strings** option accepts multiple parameters that are normalized according to the constraints
+specified in its definition. It has the following sets of attributes:
 
 - [parameter attributes] for a `string[]{:ts}` data type
 - [value attributes]
@@ -639,7 +646,9 @@ The **strings** option has these sets of attributes:
 
 ### Numbers option
 
-The **numbers** option has these sets of attributes:
+The **numbers** option accepts multiple parameters that are converted to `Number{:ts}` and
+normalized according to the constraints specified in its definition. It has the following sets of
+attributes:
 
 - [parameter attributes] for a `number[]{:ts}` data type
 - [value attributes]
@@ -668,7 +677,8 @@ The **numbers** option has these sets of attributes:
 [function options]: #function-option
 [always required]: #always-required
 [positional option]: #positional--marker
-[default value]: #default-value--callback
+[default value]: #default-value
+[default callback]: #default-callback
 [conditional requirements]: #conditional-requirements
 [environment variable]: #environment-variable
 [always required]: #always-required
@@ -690,6 +700,7 @@ The **numbers** option has these sets of attributes:
 [array attributes]: #array-attributes
 [cluster letters]: cluster-letters
 [formatter]: formatter
+[fallback value]: #fallback-value
 [commands guide]: ../guides/commands
 [recursive commands]: ../guides/commands
 [styling]: styles#styling-attributes
@@ -699,6 +710,8 @@ The **numbers** option has these sets of attributes:
 [default algorithm]: parser#completion-algorithm
 [help format]: formatter#help-format
 [help sections]: formatter#help-sections
+[option filters]: formatter#option-filters
+[custom callback]: parser#custom-callbacks
 [`parseInto`]: parser#using-your-own-object
 [`shortStyle`]: parser#short-option-style
 [formatter configuration]: formatter#help-format

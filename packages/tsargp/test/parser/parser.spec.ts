@@ -443,6 +443,35 @@ describe('ArgumentParser', () => {
         const cmdValues = expect.objectContaining({ flag: true });
         expect(options.command.cmd).toHaveBeenCalledWith(expect.anything(), cmdValues);
       });
+
+      it('should handle a command option with options with async callbacks', async () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: {
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+                default: async () => true,
+              },
+              boolean: {
+                type: 'boolean',
+                names: ['-b'],
+                parse: async () => true,
+              },
+            },
+            cmd(_0, values) {
+              expect(values).toEqual({ flag: true, boolean: true });
+              return values;
+            },
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-c', '-b', '1'])).resolves.toEqual({
+          command: { flag: true, boolean: true },
+        });
+      });
     });
 
     describe('flag', () => {
@@ -517,18 +546,6 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-s'])).rejects.toThrow(`Missing parameter to -s.`);
       });
 
-      it('should set the fallback value of a string option when specified without parameters', async () => {
-        const options = {
-          string: {
-            type: 'string',
-            names: ['-s'],
-            fallback: '1',
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-s'])).resolves.toEqual({ string: '1' });
-      });
-
       it('should handle a string option', async () => {
         const options = {
           string: {
@@ -572,18 +589,6 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-n'])).rejects.toThrow(`Missing parameter to -n.`);
-      });
-
-      it('should set the fallback value of a number option when specified without parameters', async () => {
-        const options = {
-          number: {
-            type: 'number',
-            names: ['-n'],
-            fallback: 1,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-n'])).resolves.toEqual({ number: 1 });
       });
 
       it('should handle a number option', async () => {
@@ -641,19 +646,6 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-ss'])).rejects.toThrow(`Missing parameter to -ss.`);
-      });
-
-      it('should set the fallback value of a strings option when specified without parameters', async () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-            fallback: ['1'],
-            default: ['abc'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-ss'])).resolves.toEqual({ strings: ['1'] });
       });
 
       it('should parse an inline value of a strings option as a single parameter', async () => {
@@ -777,19 +769,6 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-ns'])).rejects.toThrow(`Missing parameter to -ns.`);
-      });
-
-      it('should set the fallback value of a numbers option when specified without parameters', async () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-            fallback: [1],
-            default: [123],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-ns'])).resolves.toEqual({ numbers: [1] });
       });
 
       it('should parse an inline value of a numbers option as a single parameter', async () => {
@@ -918,6 +897,22 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await parser.parseInto(values, []);
       expect(values).toEqual({ flag: true });
+    });
+
+    it('should handle a class instance with previous values and a default of undefined', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          default: undefined,
+        },
+      } as const satisfies Options;
+      const values = new (class {
+        flag = false;
+      })();
+      const parser = new ArgumentParser(options);
+      await parser.parseInto(values, []);
+      expect(values).toEqual({ flag: undefined });
     });
 
     it('should output a warning on a deprecated option', async () => {
