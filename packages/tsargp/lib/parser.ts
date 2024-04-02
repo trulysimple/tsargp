@@ -28,14 +28,14 @@ import {
   isArray,
   isVariadic,
   isNiladic,
-  isSpecial,
+  isMessage,
   isString,
   isBoolean,
   isUnknown,
 } from './options';
 import {
+  HelpMessage,
   WarnMessage,
-  VersionMessage,
   CompletionMessage,
   TerminalString,
   FormattingFlags,
@@ -217,7 +217,8 @@ async function doParse(
  */
 function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
   for (const key in options) {
-    if (!(key in values) && !isSpecial(options[key])) {
+    const option = options[key];
+    if (!(key in values) && (!isMessage(option) || option.saveMessage)) {
       values[key] = undefined;
     }
   }
@@ -487,11 +488,12 @@ async function handleNonNiladic(
  * Resolve a package version using a module-resolve function.
  * @param validator The option validator
  * @param resolve The resolve callback
+ * @returns The version string
  */
 async function resolveVersion(
   validator: OptionValidator,
   resolve: ResolveCallback,
-): Promise<never> {
+): Promise<string> {
   const { promises } = await import('fs');
   for (
     let path = './package.json', lastResolved = '', resolved = resolve(path);
@@ -501,7 +503,7 @@ async function resolveVersion(
     try {
       const jsonData = await promises.readFile(new URL(resolved));
       const { version } = JSON.parse(jsonData.toString());
-      throw new VersionMessage(version);
+      return version;
     } catch (err) {
       if ((err as ErrnoException).code != 'ENOENT') {
         throw err;
@@ -727,9 +729,9 @@ async function handleNiladic(
       return [true, 0];
     }
     default: {
-      // skip special options during completion
+      // skip message-valued options during completion
       if (!comp) {
-        await handleSpecial(validator, rest, option, progName);
+        await handleMessage(validator, values, rest, option, key, progName);
       }
       return [!comp, 0];
     }
@@ -753,16 +755,19 @@ async function handleFunction(
   info: OptionInfo,
 ): Promise<number> {
   const { key, option, name } = info;
-  try {
-    values[key] = await option.exec({ values, index, name, param, comp });
-    return comp ? 0 : Math.max(0, option.skipCount ?? 0);
-  } catch (err) {
-    // do not propagate errors during completion
-    if (!comp) {
-      throw err;
+  if (option.exec) {
+    const isComp = (param: string) => param.split('\0', 1)[0];
+    try {
+      values[key] = await option.exec({ values, index, name, param, comp, isComp });
+    } catch (err) {
+      // do not propagate errors during completion
+      if (!comp) {
+        throw err;
+      }
+      return 0;
     }
-    return 0;
   }
+  return comp ? 0 : Math.max(0, option.skipCount ?? 0);
 }
 
 /**
@@ -785,7 +790,7 @@ async function handleCommand(
 ): Promise<ParsingResult> {
   const { key, option, name } = info;
   const { options, shortStyle } = option;
-  const cmdOptions = typeof options === 'function' ? options() : options;
+  const cmdOptions = typeof options === 'function' ? options() : options ?? {};
   const cmdValidator = new OptionValidator(cmdOptions, validator.config);
   const param: OpaqueOptionValues = {};
   const result = await doParse(cmdValidator, param, rest, {
@@ -793,38 +798,65 @@ async function handleCommand(
     progName: name,
     shortStyle,
   });
-  // if comp === true, completion will have taken place by now
-  values[key] = await option.exec({ values, index, name, param, comp });
+  // comp === false, otherwise completion will have taken place by now
+  if (option.exec) {
+    values[key] = await option.exec({ values, index, name, param });
+  }
   return result;
 }
 
 /**
- * Handles a special option.
+ * Handles a message-valued option.
+ * @param validator The option validator
+ * @param values The option values
+ * @param rest The remaining command-line arguments
+ * @param option The option definition
+ * @param key The option key
+ * @param progName The program name
+ * @throws The help or version message
+ */
+async function handleMessage(
+  validator: OptionValidator,
+  values: OpaqueOptionValues,
+  rest: Array<string>,
+  option: OpaqueOption,
+  key: string,
+  progName?: string,
+) {
+  const message =
+    option.type === 'help'
+      ? handleHelp(validator, rest, option, progName)
+      : option.resolve
+        ? await resolveVersion(validator, option.resolve)
+        : option.version ?? '';
+  if (option.saveMessage) {
+    values[key] = message;
+  } else {
+    throw message;
+  }
+}
+
+/**
+ * Handles a help option.
  * @param validator The option validator
  * @param rest The remaining command-line arguments
  * @param option The option definition
  * @param progName The program name
- * @returns A promise that must be awaited before continuing
+ * @returns The help message
  */
-function handleSpecial(
+function handleHelp(
   validator: OptionValidator,
   rest: Array<string>,
   option: OpaqueOption,
   progName?: string,
-): void | Promise<void> {
-  if (option.type === 'help') {
-    const format = option.format ?? {};
-    if (option.useFilters) {
-      format.filters = rest.map((arg) => RegExp(arg, 'i'));
-    }
-    const formatter = new HelpFormatter(validator, format);
-    const sections = option.sections ?? defaultSections;
-    throw formatter.formatSections(sections, progName);
-  } else if (option.version) {
-    throw new VersionMessage(option.version);
-  } else if (option.resolve) {
-    return resolveVersion(validator, option.resolve);
+): HelpMessage {
+  const format = option.format ?? {};
+  if (option.useFilters) {
+    format.filters = rest.map((arg) => RegExp(arg, 'i'));
   }
+  const formatter = new HelpFormatter(validator, format);
+  const sections = option.sections ?? defaultSections;
+  return formatter.formatSections(sections, progName);
 }
 
 /**
@@ -1027,7 +1059,7 @@ function checkRequirement(
   const option = validator.options[key];
   const specified = specifiedKeys.has(key) || actual !== undefined; // consider default values
   const required = value !== null;
-  if (isSpecial(option) || isUnknown(option) || !specified || !required || value === undefined) {
+  if (isMessage(option) || isUnknown(option) || !specified || !required || value === undefined) {
     if ((specified == required) != negate) {
       return true;
     }

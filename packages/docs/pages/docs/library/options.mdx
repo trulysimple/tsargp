@@ -17,10 +17,10 @@ There is a total of ten option types, as summarized in the table below:
 
 | Option type | Parameters                              | Data type          | Normalization      | Constraints         |
 | ----------- | --------------------------------------- | ------------------ | ------------------ | ------------------- |
-| [help]      | niladic                                 |                    |                    |                     |
-| [version]   | niladic                                 |                    |                    |                     |
-| [function]  | niladic                                 | `unknown{:ts}`[^1] |                    |                     |
-| [command]   | niladic                                 | `unknown{:ts}`[^1] |                    |                     |
+| [help]      | niladic                                 | `never{:ts}`[^1]   |                    |                     |
+| [version]   | niladic                                 | `never{:ts}`[^1]   |                    |                     |
+| [function]  | niladic                                 | `unknown{:ts}`[^2] |                    |                     |
+| [command]   | not applicable                          | `unknown{:ts}`[^2] |                    |                     |
 | [flag]      | niladic                                 | `boolean{:ts}`     |                    |                     |
 | [boolean]   | positional, monadic                     | `boolean{:ts}`     |                    |                     |
 | [string]    | positional, monadic                     | `string{:ts}`      | trim, case         | enums, regex        |
@@ -28,10 +28,40 @@ There is a total of ten option types, as summarized in the table below:
 | [strings]   | positional, delimited, variadic, append | `string[]{:ts}`    | unique, trim, case | enums, regex, limit |
 | [numbers]   | positional, delimited, variadic, append | `number[]{:ts}`    | unique, conv       | enums, range, limit |
 
-In the above table, _niladic_ means that the option expects no parameter on the command-line;
-_monadic_, that it accepts a single parameter; and _variadic_, variable number parameters (possibly
-zero). The data type indicates the base type of the option value in the [resulting object]. The
-meaning of the other attributes is explained in the next sections.
+The meaning of each column is explained below.
+
+### Option type
+
+The `type` attribute of an option definition indicates the type of the option. It is the only
+required attribute of any option. It is used as a [discriminant] for determining the avaiable
+attributes of each specific option.
+
+### Option parameters
+
+The parameters column indicates how many parameters an option expects on the command-line:
+
+- _niladic_ - no parameter
+- _monadic_ - a single parameter
+- _variadic_ - a variable number of parameters
+- _delimited_ - a single parameter in which values are delimited by a [separator]
+- _append_ - the option can be specified multiple times, with the elements being appended
+- _not applicable_ - the command option does not accept "parameters"; rather, it starts a new
+  parsing loop with the remaining command-line arguments
+
+In the case of non-niladic options, the parameter(s) can be made optional by setting a [fallback
+value].
+
+### Option value
+
+The data type column indicates the base type of the option value in the [resulting object]. Except
+for the help and version options, which do not have values, the initial value of any option is
+`undefined{:ts}`.
+
+### Normalization & constraints
+
+All options that accept parameters can be configured with normalization and contraint attributes.
+These attributes indicate how the option value should be transformed after being parsed, and if it
+should comply with any value constraints.
 
 ## Common attributes
 
@@ -361,7 +391,7 @@ Array-valued option types share a set of attributes, as described below.
 #### Separator
 
 The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
-specified, the option will accept a single parameter and not multiple parameters[^2]. It can be
+specified, the option will accept a single parameter and not multiple parameters[^3]. It can be
 either a string or a regular expression.
 
 #### Remove duplicates
@@ -391,7 +421,7 @@ options]. They are described below.
 #### Environment variable
 
 The `envVar` attribute, if present, specifies the name of an environment variable from which the
-option value will be read, in case the option is not specified on the command-line.
+option value should be extracted, in case the option is not specified on the command-line.
 
 <Callout type="info">
   If the environemnt variable for an option is found, the option is counted as if it were specified
@@ -436,6 +466,12 @@ The `useFilters` attribute is an opt-in feature that allows the remaining argume
 message those options whose names, synopsis or environemnt variable name match the regex
 `/flag/i{:ts}`.
 
+#### Save message
+
+By default, the help option will throw the help message to be printed in the terminal. However, this
+behavior can be changed with the `saveMessage` attribute. If present, it indicates that the message
+should be saved as the option value instead of being thrown.
+
 ### Version option
 
 The **version** option is another specialization of the [function option] that throws a version
@@ -445,6 +481,12 @@ message. You may specify either of the following attributes.
 
 The `version` attribute specifies a semantic version or version information. Mutually exclusive with
 [resolve callback].
+
+#### Save message
+
+By default, the version option will throw a message to be printed in the terminal. However, this
+behavior can be changed with the `saveMessage` attribute. If present, it indicates that the message
+should be saved as the option value instead of being thrown.
 
 #### Resolve callback
 
@@ -470,13 +512,14 @@ value. You can use it to perform many kinds of actions, such as:
 
 In addition to the set of [value attributes], it has the following attributes.
 
-#### Execute callback
+#### Function callback
 
-The `exec` attribute specifies the [custom callback] function that should be executed.
+The `exec` attribute specifies the [custom callback] that should be executed.
 
 It accepts a single parameter that contains the current [argument information], in which `param`
 holds the remaining command-line arguments. The `comp` property indicates whether word completion is
-in effect (but not in the current iteration).
+in effect (but not in the current iteration). The `isComp` property can be used to check whether any
+of the remaining arguments is to be completed, when `comp` is true.
 
 Notes about this callback:
 
@@ -535,11 +578,10 @@ In addition to the set of [value attributes], it has the following attributes.
 
 #### Command callback
 
-The `exec` attribute specifies the [custom callback] function that should be executed.
+The `exec` attribute specifies the [custom callback] that should be executed.
 
 It accepts a single parameter that contains the current [argument information], in which `param`
-holds the values parsed for the command. The `comp` property will always be `false{:ts}` in the case
-of a nested command, since word completion is handled during the parsing of the remaining arguments.
+holds the values parsed for the command.
 
 Notes about this callback:
 
@@ -718,6 +760,8 @@ attributes:
 [Math]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 [_short-option_ style]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html
+[discriminant]: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions
 
-[^1]: the return type of the function or command callback.
-[^2]: we say that it is _delimited_, rather than _variadic_.
+[^1]: help and version options throw a message instead of having a value.
+[^2]: the return type of the function or command callback.
+[^3]: we say that it is _delimited_, rather than _variadic_.

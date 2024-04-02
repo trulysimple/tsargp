@@ -50,6 +50,22 @@ describe('ArgumentParser', () => {
     });
 
     describe('help', () => {
+      it('should save a help message when a help option asks so', async () => {
+        const options = {
+          help: {
+            type: 'help',
+            names: ['-h'],
+            sections: [{ type: 'groups' }],
+            saveMessage: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse([])).resolves.toEqual({ help: undefined });
+        await expect(parser.parse(['-h'])).resolves.toEqual({
+          help: expect.objectContaining({ message: expect.stringMatching(/^ {2}-h$/) }),
+        });
+      });
+
       it('should throw a help message with default settings', async () => {
         const options = {
           flag: {
@@ -118,6 +134,20 @@ describe('ArgumentParser', () => {
     });
 
     describe('version', () => {
+      it('should save a version message when a version option asks so', async () => {
+        const options = {
+          version: {
+            type: 'version',
+            names: ['-v'],
+            version: '0.1.0',
+            saveMessage: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse([])).resolves.toEqual({ version: undefined });
+        await expect(parser.parse(['-v'])).resolves.toEqual({ version: '0.1.0' });
+      });
+
       it('should throw a version message on a version option with fixed version', async () => {
         const options = {
           version: {
@@ -259,6 +289,7 @@ describe('ArgumentParser', () => {
           name: '-f',
           param: [],
           comp: false,
+          isComp: expect.anything(),
         });
         options.function.exec.mockClear();
         await expect(parser.parse(['-f', '-f'])).resolves.toEqual({ function: 'abc' });
@@ -269,6 +300,7 @@ describe('ArgumentParser', () => {
           name: '-f',
           param: ['-f'],
           comp: false,
+          isComp: expect.anything(),
         });
         expect(options.function.exec).toHaveBeenCalledTimes(2);
       });
@@ -435,7 +467,6 @@ describe('ArgumentParser', () => {
           index: 0,
           name: '-c',
           param: { flag: undefined },
-          comp: false,
         });
         options.command.exec.mockClear();
         await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: { flag: true } });
@@ -445,7 +476,6 @@ describe('ArgumentParser', () => {
           index: 0,
           name: '-c',
           param: { flag: true },
-          comp: false,
         });
       });
 
@@ -472,7 +502,6 @@ describe('ArgumentParser', () => {
           index: 0,
           name: '-c',
           param: { flag: true },
-          comp: false,
         });
       });
 

@@ -162,7 +162,7 @@ export type FormatArgs = Record<string, unknown>;
 /**
  * A message that can be printed on a terminal.
  */
-export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage | CompletionMessage;
+export type Message = ErrorMessage | HelpMessage | WarnMessage | CompletionMessage;
 
 /**
  * A set of styles for terminal messages.
@@ -665,18 +665,6 @@ export class CompletionMessage extends Array<string> {
     return this.join('\n');
   }
 
-  /**
-   * @returns The wrapped message
-   */
-  get message(): string {
-    return this.toString();
-  }
-}
-
-/**
- * A version message.
- */
-export class VersionMessage extends String {
   /**
    * @returns The wrapped message
    */

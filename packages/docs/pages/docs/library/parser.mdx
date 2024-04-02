@@ -15,10 +15,6 @@ The result of argument parsing is an object that contains the option values corr
 option definitions given in the parser constructor. There are different ways to obtain these values,
 as explained below.
 
-<Callout type="info">
-  The initial value of any [valued option] is `undefined{:ts}`.
-</Callout>
-
 ### Using a newly-created object
 
 This is the easiest, most common method: you just call `parse` and await the returned promise. This
@@ -99,7 +95,7 @@ Custom parsing operations are supported through the following kinds of callbacks
 - [default callback]
 - [parse callback]
 - [complete callback]
-- [execute callback]
+- [function callback]
 - [command callback]
 
 All of these can be asynchronous, and the parser always awaits the resolution of returned promises,
@@ -132,7 +128,11 @@ contains information about the current argument sequence in the parsing loop:
 - `param` -
   The option parameter(s), or the parameters preceding the word being completed, if any.
 - `comp` -
-  True if performing word completion, or the word being completed.
+  True if performing word completion, or the word being completed. Not available for the [command
+  callback].
+- `isComp` -
+  An additional property only available to a [function callback] to check whether any of the
+  remaining arguments is to be completed, when `comp` is true.
 
 ### Word completion
 
@@ -196,7 +196,7 @@ Generally, option requirements are evaluated after all arguments have been parse
 analysis, an option's value is compared against any value required by other options. This check may
 also be performed in two more situations:
 
-- before calling an [execute callback], if the function option's [`break`] attribute was set
+- before calling a [function callback], if the function option's [`break`] attribute was set
 - before calling a [command callback]
 
 However, requirements are not checked when performing word completion. This is due to the fact that
@@ -254,10 +254,11 @@ they would pollute the output of process management utilities such as `ps`.
 [default callback]: options#default-callback
 [parse callback]: options#parse-callback
 [complete callback]: options#complete-callback
-[execute callback]: options#execute-callback
+[function callback]: options#function-callback
 [command callback]: options#command-callback
 [warning messages]: styles#warning-message
 [preferred name]: options#names--preferred-name
+[parameter count]: options#parameter-count
 [`break`]: options#break-loop
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

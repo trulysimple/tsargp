@@ -290,9 +290,9 @@ and, on Linux, produces a string with the words separated by line feeds. It shou
 
 ### Version message
 
-The `VersionMessage` class currently derives from `String`, so it has no wrapping. However, it may
-be remodeled in future versions of the library to accommodate new features. It should be printed
-with `console.log` or equivalent.
+A version message is a plain `string{:ts}`, so it has no wrapping. However, it may be remodeled in
+future versions of the library to accommodate new features. It should be printed with `console.log`
+or equivalent.
 
 <Callout type="default">
   Messages produced by the library are instances of one of the classes described above. So you

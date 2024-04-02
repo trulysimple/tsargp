@@ -2,7 +2,7 @@
 // Imports
 //--------------------------------------------------------------------------------------------------
 import type { FormatterConfig, HelpSections } from './formatter';
-import type { Style } from './styles';
+import type { HelpMessage, Style } from './styles';
 import type { Resolve, URL, Flatten, KeyHaving, Range } from './utils';
 
 //--------------------------------------------------------------------------------------------------
@@ -124,13 +124,12 @@ export type RequiresCallback = (values: OpaqueOptionValues) => boolean | Promise
 /**
  * A callback to parse the value of option parameters or to perform word completion.
  * In case of parsing, normalization and constraints will be applied to the returned value.
- * @template P The parameter data type
- * @template T The return data type
- * @template C The completion data type
- * @param info The argument sequence information
- * @returns The new option value or the completion words
+ * @template T The information data type
+ * @template R The return data type
+ * @param info The callback information
+ * @returns The return value
  */
-export type CustomCallback<P, T, C = boolean> = (info: ParseInfo<P, C>) => T | Promise<T>;
+export type CustomCallback<T, R> = (info: T) => R | Promise<R>;
 
 /**
  * A module-relative resolution function (i.e., scoped to a module).
@@ -149,11 +148,40 @@ export type ResolveCallback = (specifier: string) => string;
 export type DefaultCallback<T> = (values: OpaqueOptionValues) => T | Promise<T>;
 
 /**
+ * A custom callback for parsing of option parameter(s).
+ * @see CustomCallback
+ */
+export type ParseCallback<P, T> = CustomCallback<ParseInfo<P> & WithComp<boolean>, T>;
+
+/**
+ * A custom callback for word completion.
+ * @see CustomCallback
+ */
+export type CompleteCallback = CustomCallback<
+  ParseInfo<Array<string>> & WithComp<string>,
+  Array<string>
+>;
+
+/**
+ * A custom callback for function options.
+ * @see CustomCallback
+ */
+export type FunctionCallback = CustomCallback<
+  ParseInfo<Array<string>> & WithComp<boolean> & WithIsComp,
+  unknown
+>;
+
+/**
+ * A custom callback for command options.
+ * @see CustomCallback
+ */
+export type CommandCallback = CustomCallback<ParseInfo<OpaqueOptionValues>, unknown>;
+
+/**
  * Information about the current argument sequence in the parsing loop.
  * @template P The parameter data type
- * @template C The completion data type
  */
-export type ParseInfo<P, C> = {
+export type ParseInfo<P> = {
   /**
    * The previously parsed values.
    * It is an opaque type that should be cast to {@link OptionValues}`<typeof your_options>`.
@@ -173,10 +201,30 @@ export type ParseInfo<P, C> = {
    * The option parameter(s), or the parameters preceding the word being completed, if any.
    */
   param: P;
+};
+
+/**
+ * Information about word completion to be used by custom callbacks.
+ * @template C The completion data type
+ */
+export type WithComp<C> = {
   /**
    * True if performing word completion, or the word being completed.
    */
   comp: C;
+};
+
+/**
+ * Defines additional properties to be used by a function callback.
+ */
+export type WithIsComp = {
+  /**
+   * Checks if an option parameter is a word to be completed.
+   * You can `throw new CompletionMessage(...words)` inside the function callback, if needed.
+   * @param param The option parameter
+   * @returns The word being completed, if any
+   */
+  isComp: (param: string) => string | undefined;
 };
 
 /**
@@ -297,12 +345,12 @@ export type WithParam<P, T> = {
    * It should return the list of completion words.
    * If it throws an error, it is ignored, and the default completion message is thrown instead.
    */
-  readonly complete?: CustomCallback<Array<string>, Array<string>, string>;
+  readonly complete?: CompleteCallback;
   /**
    * A custom callback to parse the value of the option parameter(s).
    * It should return the new option value.
    */
-  readonly parse?: CustomCallback<P, T>;
+  readonly parse?: ParseCallback<P, T>;
   /**
    * The enumerated values.
    */
@@ -380,6 +428,16 @@ export type WithMisc = {
 };
 
 /**
+ * Defines attributes common to the help and version options.
+ */
+export type WithMessage = {
+  /**
+   * Whether to save the message in the option value instead of throwing it.
+   */
+  readonly saveMessage?: true;
+};
+
+/**
  * Defines attributes for the help option.
  */
 export type WithHelp = {
@@ -418,17 +476,16 @@ export type WithVersion = {
  */
 export type WithFunction = {
   /**
-   * The function callback.
+   * The function's callback.
    */
-  readonly exec: CustomCallback<Array<string>, unknown>;
+  readonly exec?: FunctionCallback;
   /**
    * True to break the parsing loop.
    */
   readonly break?: true;
   /**
-   * The number of remaining arguments to skip. You may change this value inside a synchronous
-   * callback. Otherwise, you should leave it unchanged. The parser does not alter this value.
-   * During word completion, it is ignored.
+   * The number of remaining arguments to skip.
+   * You may change this value inside the callback. The parser does not alter this value.
    */
   skipCount?: number;
 };
@@ -438,13 +495,14 @@ export type WithFunction = {
  */
 export type WithCommand = {
   /**
-   * The command callback.
+   * The command's callback.
    */
-  readonly exec: CustomCallback<OpaqueOptionValues, unknown>;
+  readonly exec?: CommandCallback;
   /**
-   * The command options or a callback that returns the options (for use with recursive commands).
+   * The command's options.
+   * It can be a callback that returns the options (for use with recursive commands).
    */
-  readonly options: Options | (() => Options);
+  readonly options?: Options | (() => Options);
   /**
    * True if the first argument is expected to be an option cluster (i.e., short-option style).
    */
@@ -464,7 +522,7 @@ export type WithFlag = {
 /**
  * An option that throws a help message.
  */
-export type HelpOption = WithType<'help'> & WithBasic & WithHelp;
+export type HelpOption = WithType<'help'> & WithBasic & WithHelp & WithMessage;
 
 /**
  * An option that throws a version information.
@@ -472,6 +530,7 @@ export type HelpOption = WithType<'help'> & WithBasic & WithHelp;
 export type VersionOption = WithType<'version'> &
   WithBasic &
   WithVersion &
+  WithMessage &
   (WithVerInfo | WithResolve);
 
 /**
@@ -594,9 +653,7 @@ export type Options = Readonly<Record<string, Option>>;
  * @template T The type of the option definitions
  */
 export type OptionValues<T extends Options = Options> = Resolve<{
-  -readonly [key in keyof T as T[key] extends { type: 'help' | 'version' }
-    ? never
-    : key]: OptionDataType<T[key]>;
+  -readonly [key in keyof T]: OptionDataType<T[key]>;
 }>;
 
 //--------------------------------------------------------------------------------------------------
@@ -628,6 +685,7 @@ export type OpaqueOption = WithType<OptionTypes> &
   WithParam<unknown, unknown> &
   WithHelp &
   WithVersion &
+  WithMessage &
   WithFunction &
   WithCommand &
   WithFlag &
@@ -794,25 +852,36 @@ type ExecDataType<T extends Option> =
 type EnumsDataType<T extends Option, D> = T extends { enums: ReadonlyArray<infer E> } ? E : D;
 
 /**
+ * The data type of an option with a message.
+ * @template T The option definition type
+ * @template M The message data type
+ */
+type MessageDataType<T extends Option, M> = T extends { saveMessage: true } ? M | undefined : never;
+
+/**
  * The data type of an option value.
  * @template T The option definition type
  */
 type OptionDataType<T extends Option> =
-  T extends WithType<'function' | 'command'>
-    ? ExecDataType<T> | DefaultDataType<T>
-    : T extends WithType<'flag'>
-      ? boolean | DefaultDataType<T>
-      : T extends WithType<'boolean'>
-        ? EnumsDataType<T, boolean> | DefaultDataType<T>
-        : T extends WithType<'string'>
-          ? EnumsDataType<T, string> | DefaultDataType<T>
-          : T extends WithType<'number'>
-            ? EnumsDataType<T, number> | DefaultDataType<T>
-            : T extends WithType<'strings'>
-              ? Array<EnumsDataType<T, string>> | DefaultDataType<T>
-              : T extends WithType<'numbers'>
-                ? Array<EnumsDataType<T, number>> | DefaultDataType<T>
-                : never;
+  T extends WithType<'help'>
+    ? MessageDataType<T, HelpMessage>
+    : T extends WithType<'version'>
+      ? MessageDataType<T, string>
+      : T extends WithType<'function' | 'command'>
+        ? ExecDataType<T> | DefaultDataType<T>
+        : T extends WithType<'flag'>
+          ? boolean | DefaultDataType<T>
+          : T extends WithType<'boolean'>
+            ? EnumsDataType<T, boolean> | DefaultDataType<T>
+            : T extends WithType<'string'>
+              ? EnumsDataType<T, string> | DefaultDataType<T>
+              : T extends WithType<'number'>
+                ? EnumsDataType<T, number> | DefaultDataType<T>
+                : T extends WithType<'strings'>
+                  ? Array<EnumsDataType<T, string>> | DefaultDataType<T>
+                  : T extends WithType<'numbers'>
+                    ? Array<EnumsDataType<T, number>> | DefaultDataType<T>
+                    : never;
 
 //--------------------------------------------------------------------------------------------------
 // Functions
@@ -824,7 +893,9 @@ type OptionDataType<T extends Option> =
  * @internal
  */
 export function isNiladic(option: OpaqueOption): boolean {
-  return ['help', 'version', 'function', 'command', 'flag'].includes(option.type);
+  return ['help', 'version', 'function', 'command', 'flag'].includes(option.type); // ||
+  // option.paramCount === undefined ||
+  // option.paramCount === 0
 }
 
 /**
@@ -840,7 +911,7 @@ export function isVariadic(option: OpaqueOption): boolean {
 /**
  * Tests if an option is an array option (i.e., has an array value).
  * @param option The option definition
- * @returns True if the option is an array option
+ * @returns True if the option is an array-valued option
  * @internal
  */
 export function isArray(option: OpaqueOption): boolean {
@@ -848,12 +919,12 @@ export function isArray(option: OpaqueOption): boolean {
 }
 
 /**
- * Tests if an option is a valued option (i.e., has a value).
+ * Tests if an option has or throws a message to be printed in the terminal.
  * @param option The option definition
- * @returns True if the option is a valued option
+ * @returns True if the option is message-valued
  * @internal
  */
-export function isSpecial(option: OpaqueOption): boolean {
+export function isMessage(option: OpaqueOption): boolean {
   return option.type === 'help' || option.type === 'version';
 }
 

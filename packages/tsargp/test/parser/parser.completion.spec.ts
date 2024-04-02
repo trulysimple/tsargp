@@ -35,6 +35,7 @@ describe('ArgumentParser', () => {
         name: '-f',
         param: ['\0'],
         comp: true,
+        isComp: expect.anything(),
       });
     });
 
@@ -105,6 +106,7 @@ describe('ArgumentParser', () => {
         name: '-f',
         param: ['\0'],
         comp: true,
+        isComp: expect.anything(),
       });
       options.function.exec.mockClear();
       await expect(parser.parse('cmd -f=', { compIndex: 7 })).rejects.toThrow(/^$/);
@@ -130,6 +132,7 @@ describe('ArgumentParser', () => {
         name: '-f',
         param: ['\0'],
         comp: true,
+        isComp: expect.anything(),
       });
     });
 
