@@ -267,13 +267,12 @@ When using this attribute, we recommend also setting [preferred name] to some ex
 
 #### Complete callback
 
-The `complete` attribute, if present, specifies a custom completion callback. This can be used to
-make better suggestions for bash completion than the [default algorithm] would do for the option. It
-accepts three parameters:
+The `complete` attribute, if present, specifies a [custom callback] for word completion. This can be
+used to make better suggestions than the [default algorithm] would do for the option.
 
-- `values` - the values parsed up to the current iteration
-- `comp` - the word being completed (it may be an empty string)
-- `rest` - the remaining command-line arguments
+It accepts a single parameter that contains the current [argument information], in which `comp` is
+the word being completed. In the case of array-valued options, the `param` property holds the option
+parameters preceding `comp`, if any.
 
 Notes about this callback:
 
@@ -283,17 +282,17 @@ Notes about this callback:
 
 #### Parse callback
 
-The `parse` attribute, if present, specifies a custom callback to parse the value of the option
-parameter. It accepts three parameters:
+The `parse` attribute, if present, specifies a [custom callback] to parse the value of the option
+parameter(s).
 
-- `values` - the values parsed up to the current iteration
-- `name` - the option name, as was specified on the command-line
-- `value` - the parameter string value
+It accepts a single parameter that contains the current [argument information], in which `param`
+holds the option parameter(s). The `comp` property indicates whether word completion is in effect
+(but not in the current iteration).
 
 Notes about this callback:
 
 - it can be asynchronous
-- it should return a value compatible with the option type (this should not be an array)
+- it should return the new option value
 
 #### Enumeration
 
@@ -473,18 +472,17 @@ In addition to the set of [value attributes], it has the following attributes.
 
 #### Execute callback
 
-The `exec` attribute specifies the callback function that should be executed. It is required and
-accepts three parameters:
+The `exec` attribute specifies the [custom callback] function that should be executed.
 
-- `values` - the values parsed up to the current iteration
-- `comp` - whether bash completion is in effect (but not in the current iteration)
-- `rest` - the remaining command-line arguments
+It accepts a single parameter that contains the current [argument information], in which `param`
+holds the remaining command-line arguments. The `comp` property indicates whether word completion is
+in effect (but not in the current iteration).
 
 Notes about this callback:
 
 - it can be asynchronous
 - the returned value, if any, will be saved as the option value
-- altering the `rest` parameter will have _no_ effect on the original command-line arguments
+- altering the `param` property will have _no_ effect on the original command-line arguments
 
 <Callout type="default">
   Inside this callback, you may check whether an option has been specified before it by comparing
@@ -537,11 +535,11 @@ In addition to the set of [value attributes], it has the following attributes.
 
 #### Command callback
 
-The `cmd` attribute specifies the callback function that should be executed. It is required and
-accepts two parameters:
+The `exec` attribute specifies the [custom callback] function that should be executed.
 
-- `values` - the values parsed for the parent command
-- `cmdValues` - the values parsed for the command
+It accepts a single parameter that contains the current [argument information], in which `param`
+holds the values parsed for the command. The `comp` property will always be `false{:ts}` in the case
+of a nested command, since word completion is handled during the parsing of the remaining arguments.
 
 Notes about this callback:
 
@@ -712,6 +710,7 @@ attributes:
 [help sections]: formatter#help-sections
 [option filters]: formatter#option-filters
 [custom callback]: parser#custom-callbacks
+[argument information]: parser#argument-information
 [`parseInto`]: parser#using-your-own-object
 [`shortStyle`]: parser#short-option-style
 [formatter configuration]: formatter#help-format

@@ -105,22 +105,6 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['--'])).resolves.toEqual({ boolean: true });
     });
 
-    it('should throw a name suggestion on parse failure from positional string option', async () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          enums: ['abc'],
-          positional: true,
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse(['s'])).rejects.toThrow(
-        `Invalid parameter to -s: 's'. Possible values are {'abc'}.\n` +
-          `Did you mean to specify an option name instead of s? Similar names are [-s].\n`,
-      );
-    });
-
     it('should throw an error on string option with missing parameter after positional marker', async () => {
       const options = {
         string: {
@@ -190,22 +174,6 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['--'])).resolves.toEqual({ string: '1' });
-    });
-
-    it('should throw a name suggestion on parse failure from positional number option', async () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          enums: [123],
-          positional: true,
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse(['1'])).rejects.toThrow(
-        `Invalid parameter to -n: 1. Possible values are {123}.\n` +
-          `Did you mean to specify an option name instead of 1?\n`,
-      );
     });
 
     it('should throw an error on number option with missing parameter after positional marker', async () => {

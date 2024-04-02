@@ -29,8 +29,13 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse('cmd -f ', { compIndex: 7 })).rejects.toThrow(/^-f$/);
-      const anything = expect.anything();
-      expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
+      expect(options.function.exec).toHaveBeenCalledWith({
+        values: { function: undefined },
+        index: 0,
+        name: '-f',
+        param: ['\0'],
+        comp: true,
+      });
     });
 
     it('should ignore the skip count of a function option during completion', async () => {
@@ -94,10 +99,16 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -f', { compIndex: 6 })).rejects.toThrow(/^-f$/);
       expect(options.function.exec).not.toHaveBeenCalled();
       await expect(parser.parse('cmd -f ', { compIndex: 7 })).rejects.toThrow(/^-f$/);
-      const anything = expect.anything();
-      expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
+      expect(options.function.exec).toHaveBeenCalledWith({
+        values: { function: undefined },
+        index: 0,
+        name: '-f',
+        param: ['\0'],
+        comp: true,
+      });
       options.function.exec.mockClear();
       await expect(parser.parse('cmd -f=', { compIndex: 7 })).rejects.toThrow(/^$/);
+      expect(options.function.exec).not.toHaveBeenCalled();
       await expect(parser.parse('cmd -f= ', { compIndex: 8 })).rejects.toThrow(/^-f$/);
       expect(options.function.exec).not.toHaveBeenCalled(); // option was ignored
     });
@@ -113,8 +124,13 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse('cmd -f ', { compIndex: 7 })).rejects.toThrow(/^-f$/);
-      const anything = expect.anything();
-      expect(options.function.exec).toHaveBeenCalledWith(anything, true, anything);
+      expect(options.function.exec).toHaveBeenCalledWith({
+        values: { function: undefined },
+        index: 0,
+        name: '-f',
+        param: ['\0'],
+        comp: true,
+      });
     });
 
     it('should handle the completion of a command option', async () => {
@@ -128,7 +144,7 @@ describe('ArgumentParser', () => {
               names: ['-f'],
             },
           },
-          cmd: vi.fn(),
+          exec: vi.fn(),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -138,7 +154,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -c ', { compIndex: 7 })).rejects.toThrow(/^-f$/);
       await expect(parser.parse('cmd -c=', { compIndex: 7 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd -c= ', { compIndex: 8 })).rejects.toThrow(/^-c$/);
-      expect(options.command.cmd).not.toHaveBeenCalled();
+      expect(options.command.exec).not.toHaveBeenCalled();
     });
 
     it('should handle the completion of a flag option', async () => {
@@ -255,18 +271,41 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      const anything = expect.anything();
       await expect(parser.parse('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-      expect(options.boolean.complete).toHaveBeenCalledWith(anything, '', anything);
+      expect(options.boolean.complete).toHaveBeenCalledWith({
+        values: { boolean: undefined },
+        index: 0,
+        name: '-b',
+        param: [],
+        comp: '',
+      });
       options.boolean.complete.mockClear();
       await expect(parser.parse('cmd -b 123', { compIndex: 7 })).rejects.toThrow(/^abc$/);
-      expect(options.boolean.complete).toHaveBeenCalledWith(anything, '', anything);
+      expect(options.boolean.complete).toHaveBeenCalledWith({
+        values: { boolean: undefined },
+        index: 0,
+        name: '-b',
+        param: [],
+        comp: '',
+      });
       options.boolean.complete.mockClear();
       await expect(parser.parse('cmd -b 123', { compIndex: 9 })).rejects.toThrow(/^abc$/);
-      expect(options.boolean.complete).toHaveBeenCalledWith(anything, '12', anything);
+      expect(options.boolean.complete).toHaveBeenCalledWith({
+        values: { boolean: undefined },
+        index: 0,
+        name: '-b',
+        param: [],
+        comp: '12',
+      });
       options.boolean.complete.mockClear();
       await expect(parser.parse('cmd 0 1 ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
-      expect(options.boolean.complete).toHaveBeenCalledWith(anything, '', anything);
+      expect(options.boolean.complete).toHaveBeenCalledWith({
+        values: { boolean: undefined },
+        index: 0,
+        name: '-b',
+        param: ['0', '1'],
+        comp: '',
+      });
     });
 
     it('should handle the completion of a boolean option with custom completion that throws', async () => {
@@ -402,7 +441,22 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
+      expect(options.strings.complete).toHaveBeenCalledWith({
+        values: { strings: undefined },
+        index: 0,
+        name: '-ss',
+        param: [],
+        comp: '',
+      });
+      options.strings.complete.mockClear();
       await expect(parser.parse('cmd -ss 1 ', { compIndex: 10 })).rejects.toThrow(/^$/);
+      expect(options.strings.complete).toHaveBeenCalledWith({
+        values: { strings: undefined },
+        index: 0,
+        name: '-ss',
+        param: ['1'],
+        comp: '',
+      });
     });
 
     it('should handle the completion of a variadic strings option', async () => {
@@ -449,7 +503,22 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
+      expect(options.numbers.complete).toHaveBeenCalledWith({
+        values: { numbers: undefined },
+        index: 0,
+        name: '-ns',
+        param: [],
+        comp: '',
+      });
+      options.numbers.complete.mockClear();
       await expect(parser.parse('cmd -ns 1 ', { compIndex: 10 })).rejects.toThrow(/^$/);
+      expect(options.numbers.complete).toHaveBeenCalledWith({
+        values: { numbers: undefined },
+        index: 0,
+        name: '-ns',
+        param: ['1'],
+        comp: '',
+      });
     });
 
     it('should handle the completion of a variadic numbers option', async () => {

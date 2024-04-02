@@ -10,12 +10,19 @@ describe('ArgumentParser', () => {
           type: 'boolean',
           positional: true,
           preferredName: 'bool',
-          parse: vi.fn().mockImplementation((_0, _1, value) => value.includes('123')),
+          parse: vi.fn().mockImplementation(({ param }) => param.includes('123')),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['0123'])).resolves.toEqual({ boolean: true });
-      expect(options.boolean.parse).toHaveBeenCalledWith(expect.anything(), 'bool', '0123');
+      expect(options.boolean.parse).toHaveBeenCalledWith({
+        // should have been { boolean: undefined } at the time of call
+        values: { boolean: true },
+        index: 0,
+        name: 'bool',
+        param: '0123',
+        comp: false,
+      });
     });
 
     it('should handle a boolean option with custom parsing from environment variable', async () => {
@@ -30,7 +37,14 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       process.env['BOOLEAN'] = '1';
       await expect(parser.parse([])).resolves.toEqual({ boolean: true });
-      expect(options.boolean.parse).toHaveBeenCalledWith(expect.anything(), 'BOOLEAN', '1');
+      expect(options.boolean.parse).toHaveBeenCalledWith({
+        // should have been { boolean: undefined } at the time of call
+        values: { boolean: true },
+        index: NaN,
+        name: 'BOOLEAN',
+        param: '1',
+        comp: false,
+      });
     });
 
     it('should handle a boolean option with async custom parsing', async () => {
@@ -38,7 +52,7 @@ describe('ArgumentParser', () => {
         boolean: {
           type: 'boolean',
           names: ['-b'],
-          parse: async (_0, _1, value) => value.includes('123'),
+          parse: async ({ param }) => param.includes('123'),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -52,12 +66,19 @@ describe('ArgumentParser', () => {
           type: 'string',
           names: ['-s'],
           case: 'upper',
-          parse: vi.fn().mockImplementation((_0, _1, value) => value.slice(2)),
+          parse: vi.fn().mockImplementation(({ param }) => param.slice(2)),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-s', 'abcde'])).resolves.toEqual({ string: 'CDE' });
-      expect(options.string.parse).toHaveBeenCalledWith(expect.anything(), '-s', 'abcde');
+      expect(options.string.parse).toHaveBeenCalledWith({
+        // should have been { string: undefined } at the time of call
+        values: { string: 'CDE' },
+        index: 0,
+        name: '-s',
+        param: 'abcde',
+        comp: false,
+      });
     });
 
     it('should handle a string option with async custom parsing', async () => {
@@ -66,7 +87,7 @@ describe('ArgumentParser', () => {
           type: 'string',
           names: ['-s'],
           case: 'upper',
-          parse: async (_0, _1, value) => value.slice(2),
+          parse: async ({ param }) => param.slice(2),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -79,12 +100,19 @@ describe('ArgumentParser', () => {
           type: 'number',
           names: ['-n'],
           conv: 'ceil',
-          parse: vi.fn().mockImplementation((_0, _1, value) => Number(value)),
+          parse: vi.fn().mockImplementation(({ param }) => Number(param)),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-n', '1.2'])).resolves.toEqual({ number: 2 });
-      expect(options.number.parse).toHaveBeenCalledWith(expect.anything(), '-n', '1.2');
+      expect(options.number.parse).toHaveBeenCalledWith({
+        // should have been { number: undefined } at the time of call
+        values: { number: 2 },
+        index: 0,
+        name: '-n',
+        param: '1.2',
+        comp: false,
+      });
     });
 
     it('should handle a number option with async custom parsing', async () => {
@@ -93,7 +121,7 @@ describe('ArgumentParser', () => {
           type: 'number',
           names: ['-n'],
           conv: 'ceil',
-          parse: async (_0, _1, value) => Number(value),
+          parse: async ({ param }) => Number(param),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -106,14 +134,20 @@ describe('ArgumentParser', () => {
           type: 'strings',
           names: ['-ss'],
           case: 'upper',
-          parse: vi.fn().mockImplementation((_0, _1, value) => value),
+          parse: vi.fn().mockImplementation(({ param }) => param),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-ss', 'a', 'b'])).resolves.toEqual({ strings: ['A', 'B'] });
-      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'a');
-      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'b');
-      expect(options.strings.parse).toHaveBeenCalledTimes(2);
+      expect(options.strings.parse).toHaveBeenCalledWith({
+        // should have been { strings: undefined } at the time of call
+        values: { strings: ['A', 'B'] },
+        index: 0,
+        name: '-ss',
+        param: ['a', 'b'],
+        comp: false,
+      });
+      expect(options.strings.parse).toHaveBeenCalledTimes(1);
     });
 
     it('should handle a strings option with async custom parsing', async () => {
@@ -122,7 +156,7 @@ describe('ArgumentParser', () => {
           type: 'strings',
           names: ['-ss'],
           unique: true,
-          parse: async (_0, _1, value) => value,
+          parse: async ({ param }) => param,
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -136,14 +170,20 @@ describe('ArgumentParser', () => {
           type: 'numbers',
           names: ['-ns'],
           conv: 'ceil',
-          parse: vi.fn().mockImplementation((_0, _1, value) => Number(value)),
+          parse: vi.fn().mockImplementation(({ param }) => param.map(Number)),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-ns', '1.2', '1.7'])).resolves.toEqual({ numbers: [2, 2] });
-      expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.2');
-      expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.7');
-      expect(options.numbers.parse).toHaveBeenCalledTimes(2);
+      expect(options.numbers.parse).toHaveBeenCalledWith({
+        // should have been { numbers: undefined } at the time of call
+        values: { numbers: [2, 2] },
+        index: 0,
+        name: '-ns',
+        param: ['1.2', '1.7'],
+        comp: false,
+      });
+      expect(options.numbers.parse).toHaveBeenCalledTimes(1);
     });
 
     it('should handle a numbers option with async custom parsing', async () => {
@@ -152,7 +192,7 @@ describe('ArgumentParser', () => {
           type: 'numbers',
           names: ['-ns'],
           unique: true,
-          parse: async (_0, _1, value) => Number(value),
+          parse: async ({ param }) => param.map(Number),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);

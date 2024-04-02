@@ -21,6 +21,8 @@
     "WithRegex",
     "WithRange",
     "WithVerInfo",
-    "WithResolve"
+    "WithResolve",
+    "WithAppend",
+    "WithParse"
   ]
 }

@@ -72,7 +72,7 @@ describe('HelpFormatter', () => {
           names: ['-f', '--command'],
           desc: 'A command option',
           options: {},
-          cmd() {},
+          exec() {},
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();

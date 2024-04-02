@@ -161,7 +161,7 @@ describe('OptionValidator', () => {
               names: ['flag3'],
             },
           },
-          cmd() {},
+          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);

@@ -122,19 +122,15 @@ export type Requires = string | RequiresVal | RequiresExp | RequiresCallback;
 export type RequiresCallback = (values: OpaqueOptionValues) => boolean | Promise<boolean>;
 
 /**
- * A callback to parse the value of option parameters. Any specified normalization or constraint
- * will be applied to the returned value.
+ * A callback to parse the value of option parameters or to perform word completion.
+ * In case of parsing, normalization and constraints will be applied to the returned value.
+ * @template P The parameter data type
  * @template T The return data type
- * @param values The values parsed so far
- * @param name The option name (as specified on the command-line)
- * @param value The parameter value
- * @returns The parsed value
+ * @template C The completion data type
+ * @param info The argument sequence information
+ * @returns The new option value or the completion words
  */
-export type ParseCallback<T> = (
-  values: OpaqueOptionValues,
-  name: string,
-  value: string,
-) => T | Promise<T>;
+export type CustomCallback<P, T, C = boolean> = (info: ParseInfo<P, C>) => T | Promise<T>;
 
 /**
  * A module-relative resolution function (i.e., scoped to a module).
@@ -153,38 +149,35 @@ export type ResolveCallback = (specifier: string) => string;
 export type DefaultCallback<T> = (values: OpaqueOptionValues) => T | Promise<T>;
 
 /**
- * A callback for function options.
- * @param values The values parsed so far
- * @param comp True if performing completion (but not in the current iteration)
- * @param rest The remaining command-line arguments
- * @returns The option value
+ * Information about the current argument sequence in the parsing loop.
+ * @template P The parameter data type
+ * @template C The completion data type
  */
-export type ExecuteCallback = (
-  values: OpaqueOptionValues,
-  comp: boolean,
-  rest: Array<string>,
-) => unknown;
-
-/**
- * A callback for command options.
- * @param prev The values parsed for the parent command
- * @param values The values parsed for the command
- * @returns The option value
- */
-export type CommandCallback = (prev: OpaqueOptionValues, values: OpaqueOptionValues) => unknown;
-
-/**
- * A callback for option completion.
- * @param values The values parsed so far
- * @param comp The word being completed (it may be an empty string)
- * @param rest The remaining command-line arguments
- * @returns The list of completion words
- */
-export type CompleteCallback = (
-  values: OpaqueOptionValues,
-  comp: string,
-  rest: Array<string>,
-) => Array<string> | Promise<Array<string>>;
+export type ParseInfo<P, C> = {
+  /**
+   * The previously parsed values.
+   * It is an opaque type that should be cast to {@link OptionValues}`<typeof your_options>`.
+   */
+  values: OpaqueOptionValues;
+  /**
+   * The index of the occurrence of the option name, or of the first option parameter.
+   * It will be NaN if the sequence comes from an environment variable.
+   */
+  index: number;
+  /**
+   * The option name as specified on the command-line, or the environment variable name.
+   * It will be the option's preferred name if the sequence comes from positional arguments.
+   */
+  name: string;
+  /**
+   * The option parameter(s), or the parameters preceding the word being completed, if any.
+   */
+  param: P;
+  /**
+   * True if performing word completion, or the word being completed.
+   */
+  comp: C;
+};
 
 /**
  * Defines the type of an option.
@@ -276,9 +269,10 @@ export type WithValue<T> = {
 
 /**
  * Defines attributes common to options with parameters.
+ * @template P The parameter data type
  * @template T The option value data type
  */
-export type WithParam<T> = {
+export type WithParam<P, T> = {
   /**
    * The option example value. Replaces the option type in the help message parameter column.
    */
@@ -303,11 +297,12 @@ export type WithParam<T> = {
    * It should return the list of completion words.
    * If it throws an error, it is ignored, and the default completion message is thrown instead.
    */
-  readonly complete?: CompleteCallback;
+  readonly complete?: CustomCallback<Array<string>, Array<string>, string>;
   /**
-   * A custom callback to parse the value of the option parameter.
+   * A custom callback to parse the value of the option parameter(s).
+   * It should return the new option value.
    */
-  readonly parse?: ParseCallback<Flatten<T>>;
+  readonly parse?: CustomCallback<P, T>;
   /**
    * The enumerated values.
    */
@@ -425,7 +420,7 @@ export type WithFunction = {
   /**
    * The function callback.
    */
-  readonly exec: ExecuteCallback;
+  readonly exec: CustomCallback<Array<string>, unknown>;
   /**
    * True to break the parsing loop.
    */
@@ -445,7 +440,7 @@ export type WithCommand = {
   /**
    * The command callback.
    */
-  readonly cmd: CommandCallback;
+  readonly exec: CustomCallback<OpaqueOptionValues, unknown>;
   /**
    * The command options or a callback that returns the options (for use with recursive commands).
    */
@@ -514,7 +509,7 @@ export type BooleanOption = WithType<'boolean'> &
   WithBasic &
   WithMisc &
   WithValue<boolean> &
-  WithParam<boolean> &
+  WithParam<string, boolean> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName);
 
@@ -526,7 +521,7 @@ export type StringOption = WithType<'string'> &
   WithMisc &
   WithString &
   WithValue<string> &
-  WithParam<string> &
+  WithParam<string, string> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithEnums | WithRegex);
@@ -539,7 +534,7 @@ export type NumberOption = WithType<'number'> &
   WithMisc &
   WithNumber &
   WithValue<number> &
-  WithParam<number> &
+  WithParam<string, number> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithEnums | WithRange);
@@ -553,9 +548,10 @@ export type StringsOption = WithType<'strings'> &
   WithString &
   WithArray &
   WithValue<Array<string>> &
-  WithParam<Array<string>> &
+  WithParam<Array<string>, Array<string>> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
+  (WithAppend | WithParse) &
   (WithEnums | WithRegex);
 
 /**
@@ -567,9 +563,10 @@ export type NumbersOption = WithType<'numbers'> &
   WithNumber &
   WithArray &
   WithValue<Array<number>> &
-  WithParam<Array<number>> &
+  WithParam<Array<string>, Array<number>> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
+  (WithAppend | WithParse) &
   (WithEnums | WithRange);
 
 /**
@@ -628,7 +625,7 @@ type OptionTypes =
 export type OpaqueOption = WithType<OptionTypes> &
   WithBasic &
   WithValue<unknown> &
-  WithParam<unknown> &
+  WithParam<unknown, unknown> &
   WithHelp &
   WithVersion &
   WithFunction &
@@ -750,6 +747,26 @@ type WithResolve = {
 };
 
 /**
+ * Removes mutually exclusive attributes from an option with an `append` attribute.
+ */
+type WithAppend = {
+  /**
+   * @deprecated mutually exclusive with {@link WithArray.append}
+   */
+  readonly parse?: never;
+};
+
+/**
+ * Removes mutually exclusive attributes from an option with a custom `parse` callback.
+ */
+type WithParse = {
+  /**
+   * @deprecated mutually exclusive with {@link WithParam.parse}
+   */
+  readonly append?: never;
+};
+
+/**
  * The data type of an option that may have a default value.
  * @template T The option definition type
  */
@@ -762,20 +779,12 @@ type DefaultDataType<T extends Option> = T extends { required: true }
     : undefined;
 
 /**
- * The data type of a function option.
+ * The data type of an option with an executing callback.
  * @template T The option definition type
  */
-type FunctionDataType<T extends Option> =
+type ExecDataType<T extends Option> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   T extends { exec: (...args: any) => infer R } ? (R extends Promise<infer D> ? D : R) : never;
-
-/**
- * The data type of a command option.
- * @template T The option definition type
- */
-type CommandDataType<T extends Option> =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends { cmd: (...args: any) => infer R } ? (R extends Promise<infer D> ? D : R) : never;
 
 /**
  * The data type of an option with enumerated values.
@@ -789,23 +798,21 @@ type EnumsDataType<T extends Option, D> = T extends { enums: ReadonlyArray<infer
  * @template T The option definition type
  */
 type OptionDataType<T extends Option> =
-  T extends WithType<'function'>
-    ? FunctionDataType<T> | DefaultDataType<T>
-    : T extends WithType<'command'>
-      ? CommandDataType<T> | DefaultDataType<T>
-      : T extends WithType<'flag'>
-        ? boolean | DefaultDataType<T>
-        : T extends WithType<'boolean'>
-          ? EnumsDataType<T, boolean> | DefaultDataType<T>
-          : T extends WithType<'string'>
-            ? EnumsDataType<T, string> | DefaultDataType<T>
-            : T extends WithType<'number'>
-              ? EnumsDataType<T, number> | DefaultDataType<T>
-              : T extends WithType<'strings'>
-                ? Array<EnumsDataType<T, string>> | DefaultDataType<T>
-                : T extends WithType<'numbers'>
-                  ? Array<EnumsDataType<T, number>> | DefaultDataType<T>
-                  : never;
+  T extends WithType<'function' | 'command'>
+    ? ExecDataType<T> | DefaultDataType<T>
+    : T extends WithType<'flag'>
+      ? boolean | DefaultDataType<T>
+      : T extends WithType<'boolean'>
+        ? EnumsDataType<T, boolean> | DefaultDataType<T>
+        : T extends WithType<'string'>
+          ? EnumsDataType<T, string> | DefaultDataType<T>
+          : T extends WithType<'number'>
+            ? EnumsDataType<T, number> | DefaultDataType<T>
+            : T extends WithType<'strings'>
+              ? Array<EnumsDataType<T, string>> | DefaultDataType<T>
+              : T extends WithType<'numbers'>
+                ? Array<EnumsDataType<T, number>> | DefaultDataType<T>
+                : never;
 
 //--------------------------------------------------------------------------------------------------
 // Functions

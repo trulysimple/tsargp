@@ -193,9 +193,6 @@ optional properties:
 
 The `ErrorItem` enumeration lists the kinds of error messages that may be raised by the library:
 
-- `parseError` -
-  raised by the parser when an option parameter fails to be parsed, with possible option name
-  suggestions
 - `unknownOption` -
   raised by the parser when an option name is not found, with possible option name suggestions
 - `unsatisfiedRequirement` -
@@ -270,7 +267,6 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 The `phrases` property specifies the phrases to be used for each kind of error message. It has the
 following optional properties, which are the enumerators from `ErrorItem`:
 
-- `parseError` - `'Did you mean to specify an option name instead of (%o|%o1)?(| Similar names are [%o2].)'{:ts}`
 - `unknownOption` - `'Unknown option (%o|%o1).(| Similar names are [%o2].)'{:ts}`
 - `unsatisfiedRequirement` - `'Option %o requires %p.'{:ts}`
 - `missingRequiredOption` - `'Option %o is required.'{:ts}`
@@ -313,7 +309,6 @@ with a description of the corresponding value:
 
 | Error                      | Specifiers                                                                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------- |
-| parseError                 | `%o`/`%o1` = the unknown option name; `%o2` = similar option names                          |
 | unknownOption              | `%o`/`%o1` = the unknown option name; `%o2` = similar option names                          |
 | unsatisfiedRequirement     | `%o` = the specified option name; `%p` = the option's requirements                          |
 | missingRequiredOption      | `%o` = the option's preferred name                                                          |

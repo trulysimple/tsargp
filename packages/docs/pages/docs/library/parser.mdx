@@ -115,6 +115,25 @@ Besides, the asynchronous version has the benefit of allowing us to perform some
 concurrently, such as the requirements verification. This should not be a drawback for most CLI
 applications, since argument parsing is usually done at the top-level of a module or script.
 
+#### Argument information
+
+The `ParseInfo` object is passed as the parameter of some of the aforementioned callbacks, and
+contains information about the current argument sequence in the parsing loop:
+
+- `values` -
+  The previously parsed values. It is an opaque type that should be cast to
+  `OptionValues<typeof your_options>{:ts}`.
+- `index` -
+  The index of the occurrence of the option name, or of the first option parameter. It will be
+  `NaN{:ts}` if the sequence comes from an environment variable.
+- `name` -
+  The option name as specified on the command-line, or the environment variable name.
+  It will be the option's [preferred name] if the sequence comes from positional arguments.
+- `param` -
+  The option parameter(s), or the parameters preceding the word being completed, if any.
+- `comp` -
+  True if performing word completion, or the word being completed.
+
 ### Word completion
 
 Quoting the [Bash docs]:
@@ -186,16 +205,9 @@ any errors that occur during parsing and it does not make sense to verify requir
 
 ### Name suggestions
 
-During parsing, there are two situations in which the parser might suggest option names:
-
-- when it expects an option name and the current argument is not a valid name (and there is no
-  positional option)
-- when it expects an option parameter and the current argument fails to be parsed, and the affected
-  option is a variadic array option (but only if the argument was specified neither with a
-  positional marker nor as an [inline parameter])
-
-In these cases, the parser selects option names that are similar to the current argument using the
-[Gestalt algorithm], and includes them in the error message.
+When the parser expects an option name and the current argument is not a valid one (and there is no
+positional option), it may select option names that are similar to the current argument using the
+[Gestalt algorithm], and include them in the error message.
 
 ### Error messages
 
@@ -245,6 +257,7 @@ they would pollute the output of process management utilities such as `ps`.
 [execute callback]: options#execute-callback
 [command callback]: options#command-callback
 [warning messages]: styles#warning-message
+[preferred name]: options#names--preferred-name
 [`break`]: options#break-loop
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

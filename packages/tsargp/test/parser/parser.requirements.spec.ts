@@ -114,7 +114,7 @@ describe('ArgumentParser', () => {
         required: {
           type: 'strings',
           names: ['-ss'],
-          parse: async () => '1',
+          parse: async () => ['1'],
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -134,7 +134,7 @@ describe('ArgumentParser', () => {
         required: {
           type: 'numbers',
           names: ['-ns'],
-          parse: async () => 1,
+          parse: async () => [1],
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);

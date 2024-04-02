@@ -29,8 +29,8 @@ const helloOpts = {
     names: ['hello'],
     desc: 'A recursive command option. Logs the arguments passed after it.',
     options: (): Options => helloOpts,
-    cmd(_, cmdValues): number {
-      const vals = cmdValues as OptionValues<typeof helloOpts>;
+    exec({ param }): number {
+      const vals = param as OptionValues<typeof helloOpts>;
       const calls = vals.command ?? 0;
       console.log(`[tail call #${calls}]`, ...vals.strings);
       return calls + 1;
@@ -64,7 +64,7 @@ export default {
     names: ['help'],
     desc: 'Prints the help of a nested command.',
     options: helpOpts,
-    cmd() {
+    exec() {
       new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
     },
   },
