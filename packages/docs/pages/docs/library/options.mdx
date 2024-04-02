@@ -108,8 +108,8 @@ neither on the command-line nor as an [environment variable]. Mutually exclusive
 required].
 
 Both [function options] and [command options] accept any kind of value as the default. In the case
-of object values, it's useful to specify a custom `toString` method to render it in the help
-message, e.g.:
+of object values, it's useful to specify a custom `toString` method in order to render it in the
+help message, e.g.:
 
 ```ts
 toString() {
@@ -117,7 +117,7 @@ toString() {
 }
 ```
 
-<Callout type="info">This value is only used at the end of the parsing loop.</Callout>
+<Callout type="info">This value is only evaluated at the end of the parsing loop.</Callout>
 
 ##### Default callback
 
@@ -279,7 +279,7 @@ Notes about this callback:
 
 - it can be asynchronous
 - it should return the list of completion words
-- if it throws an error, it is ignored, and the default completion message is thrown instead
+- if an error is thrown, it is ignored, and the default completion message is thrown instead
 
 #### Parse callback
 
@@ -584,7 +584,7 @@ value. It differs from the [boolean option] in that it does _not_ expect a param
 latter can be configured to have a [fallback value] (thus making its parameter optional), that
 potentially introduces ambiguity of whether arguments are positional or not.
 
-For example, consider the command-line `cmd -b 1`, where `-b` is a boolean option with a fallback
+For example, consider the command line `cmd -b 1`, where `-b` is a boolean option with a fallback
 value and there is a positional option. In this case, would `1` be a parameter to `-f` or a
 positional argument? The parser is implemented to consider it a parameter to `-f`. However, the flag
 option completely solves this ambiguity.

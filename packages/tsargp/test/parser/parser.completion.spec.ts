@@ -401,6 +401,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd -ss 1 ', { compIndex: 10 })).rejects.toThrow(/^$/);
     });
 
@@ -447,6 +448,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd -ns 1 ', { compIndex: 10 })).rejects.toThrow(/^$/);
     });
 

@@ -111,6 +111,9 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-ss', 'a', 'b'])).resolves.toEqual({ strings: ['A', 'B'] });
+      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'a');
+      expect(options.strings.parse).toHaveBeenCalledWith(expect.anything(), '-ss', 'b');
+      expect(options.strings.parse).toHaveBeenCalledTimes(2);
     });
 
     it('should handle a strings option with async custom parsing', async () => {
@@ -138,6 +141,9 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-ns', '1.2', '1.7'])).resolves.toEqual({ numbers: [2, 2] });
+      expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.2');
+      expect(options.numbers.parse).toHaveBeenCalledWith(expect.anything(), '-ns', '1.7');
+      expect(options.numbers.parse).toHaveBeenCalledTimes(2);
     });
 
     it('should handle a numbers option with async custom parsing', async () => {

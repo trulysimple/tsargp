@@ -88,7 +88,8 @@ This must be used in conjunction with the [cluster letters] attribute.
 
 ## Parsing features
 
-The parser supports a number of different features to support most use cases. They are listed below.
+The parser supports an assortment of features that should fulfill most use cases. They are listed
+below.
 
 ### Custom callbacks
 
@@ -102,16 +103,16 @@ Custom parsing operations are supported through the following kinds of callbacks
 - [command callback]
 
 All of these can be asynchronous, and the parser always awaits the resolution of returned promises,
-either because it needs their result or to avoid a data race when reading and modifying the option
+either because it needs their result or to avoid data races when reading and modifying the option
 values.
 
 Note that there is no synchronous version of the parsing procedure. This is a design choice: in
 order to support a fully synchronous `parse` method using the same code base, the parser would have
-to deal with returned promises in a way that would make the code hard to maintain (remember the
-classic [callback hell]).
+to deal with returned promises in a way that would make it hard to maintain (remember the classic
+[callback hell]).
 
 Besides, the asynchronous version has the benefit of allowing us to perform some operations
-concurrently, such as the requirements verification. This should not be a problem for most CLI
+concurrently, such as the requirements verification. This should not be a drawback for most CLI
 applications, since argument parsing is usually done at the top-level of a module or script.
 
 ### Word completion

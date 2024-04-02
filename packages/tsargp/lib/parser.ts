@@ -572,7 +572,7 @@ async function parseParam(
   values: OpaqueOptionValues,
   info: OptionInfo,
   param: string,
-): Promise<void> {
+) {
   /** @ignore */
   function norm<T>(val: T) {
     return validator.normalize(option, name, val);
@@ -626,13 +626,13 @@ async function setValue(
   function norm<T>(val: T) {
     return validator.normalize(option, key, val);
   }
-  const val = typeof value === 'function' ? await value(values) : value;
+  const resolved = typeof value === 'function' ? await value(values) : value;
   values[key] =
     isUnknown(option) || isBoolean(option)
-      ? val
+      ? resolved
       : isArray(option)
-        ? norm(val.map(norm))
-        : norm(val);
+        ? norm(resolved.map(norm))
+        : norm(resolved);
 }
 
 /**
