@@ -37,8 +37,6 @@ export const defaultConfig: ConcreteConfig = {
     text: style(tf.clear),
   },
   phrases: {
-    [ErrorItem.parseError]:
-      'Did you mean to specify an option name instead of (%o|%o1)?(| Similar names are [%o2].)',
     [ErrorItem.unknownOption]: 'Unknown option (%o|%o1).(| Similar names are [%o2].)',
     [ErrorItem.unsatisfiedRequirement]: 'Option %o requires %p.',
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',

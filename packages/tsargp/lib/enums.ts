@@ -11,11 +11,6 @@ export { ControlSequence as cs, TypeFace as tf, Foreground as fg, Background as 
  */
 export const enum ErrorItem {
   /**
-   * Raised by the parser when an option parameter fails to be parsed, with possible option name
-   * suggestions.
-   */
-  parseError,
-  /**
    * Raised by the parser when an option name is not found, with possible option name suggestions.
    */
   unknownOption,

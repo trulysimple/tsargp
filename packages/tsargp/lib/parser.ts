@@ -34,7 +34,6 @@ import {
   isUnknown,
 } from './options';
 import {
-  ErrorMessage,
   WarnMessage,
   VersionMessage,
   CompletionMessage,
@@ -471,9 +470,6 @@ async function handleNonNiladic(
     } catch (err) {
       // do not propagate errors during completion
       if (!comp) {
-        // if (err instanceof ErrorMessage && suggestNames) {
-        //   handleUnknown(validator, param, err);
-        // }
         throw err;
       }
     }
@@ -567,18 +563,12 @@ function handleCompletion(option: OpaqueOption, comp = '') {
  * Handles an unknown option name.
  * @param validator The option validator
  * @param name The unknown option name
- * @param err The previous error message, if any
  */
-function handleUnknownName(validator: OptionValidator, name: string, err?: ErrorMessage): never {
+function handleUnknownName(validator: OptionValidator, name: string): never {
   const similar = findSimilarNames(name, [...validator.names.keys()], 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
   const flags: FormattingFlags = { alt, sep: ',' };
-  if (err) {
-    err.msg.push(validator.format(ErrorItem.parseError, args, flags));
-  } else {
-    err = validator.error(ErrorItem.unknownOption, args, flags);
-  }
-  throw err;
+  throw validator.error(ErrorItem.unknownOption, args, flags);
 }
 
 /**

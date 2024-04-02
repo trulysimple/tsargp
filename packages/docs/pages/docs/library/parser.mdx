@@ -205,16 +205,9 @@ any errors that occur during parsing and it does not make sense to verify requir
 
 ### Name suggestions
 
-During parsing, there are two situations in which the parser might suggest option names:
-
-- when it expects an option name and the current argument is not a valid name (and there is no
-  positional option)
-- when it expects an option parameter and the current argument fails to be parsed, and the affected
-  option is a variadic array option (but only if the argument was specified neither with a
-  positional marker nor as an [inline parameter])
-
-In these cases, the parser selects option names that are similar to the current argument using the
-[Gestalt algorithm], and includes them in the error message.
+When the parser expects an option name and the current argument is not a valid one (and there is no
+positional option), it may select option names that are similar to the current argument using the
+[Gestalt algorithm], and include them in the error message.
 
 ### Error messages
 
