@@ -63,12 +63,6 @@ export type Concrete<T, N extends number = 1, A extends Array<number> = []> = A[
 export type KeyHaving<T, V> = keyof { [K in keyof T as T[K] extends V ? K : never]: never };
 
 /**
- * A helper type to get the type of the array element from a type.
- * @template T The source type
- */
-export type Flatten<T> = T extends Array<infer E> ? E : T;
-
-/**
  * A helper type to get a union of the values of all properties from a type.
  * @template T The source type
  */
@@ -350,11 +344,38 @@ export function selectAlternative(phrase: string, alt = 0): string {
 /**
  * Converts a string to boolean.
  * @param str The string value
- * @returns True if the string evaluates to true
+ * @param flags The conversion flags
+ * @param flags.truthNames The names of the truth value
+ * @param flags.falsityNames The names of the falsity value
+ * @param flags.caseSensitive Whether names are case-sensitive
+ * @returns True if the string evaluates to true; undefined if it cannot be converted
  * @internal
  */
-export function isTrue(str: string): boolean {
-  return !(Number(str) == 0 || str.trim().match(/^(false|no|off)$/i));
+export function isTrue(
+  str: string,
+  flags: {
+    truthNames?: ReadonlyArray<string>;
+    falsityNames?: ReadonlyArray<string>;
+    caseSensitive?: boolean;
+  } = {},
+): boolean | undefined {
+  /** @ignore */
+  function match(names: ReadonlyArray<string>): boolean {
+    return !!str.match(RegExp(`^${names.join('|')}$`, regexFlags));
+  }
+  str = str.trim();
+  const { truthNames, falsityNames, caseSensitive } = flags;
+  const regexFlags = caseSensitive ? '' : 'i';
+  const truth = truthNames?.length;
+  if (truth && match(truthNames)) {
+    return true;
+  }
+  const falsity = falsityNames?.length;
+  if (falsity && match(falsityNames)) {
+    return false;
+  }
+  // consider NaN true
+  return truth ? (falsity ? undefined : false) : falsity ? true : !(Number(str) === 0);
 }
 
 /**

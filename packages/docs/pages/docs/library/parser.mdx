@@ -111,7 +111,7 @@ Besides, the asynchronous version has the benefit of allowing us to perform some
 concurrently, such as the requirements verification. This should not be a drawback for most CLI
 applications, since argument parsing is usually done at the top-level of a module or script.
 
-#### Argument information
+#### Argument sequence
 
 The `ParseInfo` object is passed as the parameter of some of the aforementioned callbacks, and
 contains information about the current argument sequence in the parsing loop:
@@ -176,8 +176,8 @@ an empty string):
 2. _comp_ is the parameter of a non-niladic option:
    - If the option has a [complete callback], it is called with _comp_ and its result is returned;
      else
-   - If it is a boolean option, the words `'true'{:ts}` and `'false'{:ts}` are filtered by the prefix
-     _comp_, and then returned; else
+   - If it is a boolean option, the option's [truth names] and [falsity names] are filtered by the
+     prefix _comp_, and then returned; else
    - If the option has [enumerated values], those values are converted to string, filtered by the
      prefix _comp_, and then returned; else
    - If it is a variadic array option, and the parameter was specified neither with a positional
@@ -258,6 +258,8 @@ they would pollute the output of process management utilities such as `ps`.
 [command callback]: options#command-callback
 [warning messages]: styles#warning-message
 [preferred name]: options#names--preferred-name
+[truth names]: options#truth-names
+[falsity names]: options#falsity-names
 [`break`]: options#break-loop
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

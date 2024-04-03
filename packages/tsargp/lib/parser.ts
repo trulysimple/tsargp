@@ -275,7 +275,8 @@ async function readEnvVar(
   const value = process?.env[name];
   if (value !== undefined) {
     if (option.type === 'flag') {
-      values[key] = isTrue(value);
+      // don't parse the flag value, for consistency with the semantics of the command-line
+      values[key] = true;
     } else {
       await parseParam(validator, values, false, NaN, info, [value]);
     }
@@ -512,7 +513,7 @@ async function resolveVersion(
 function handleCompletion(option: OpaqueOption, comp = '') {
   let words =
     option.type === 'boolean'
-      ? ['true', 'false']
+      ? option.truthNames?.concat(option.falsityNames ?? []) ?? []
       : option.enums
         ? option.enums.map((val) => `${val}`)
         : [];
@@ -601,7 +602,7 @@ async function checkRequireItems<T>(
 }
 
 /**
- * Parses the value of an option parameter.
+ * Parses the value(s) of the option parameter(s).
  * @param validator The option validator
  * @param values The option values
  * @param comp True if performing completion
@@ -622,6 +623,15 @@ async function parseParam(
   function norm<T>(val: T) {
     return validator.normalize(option, name, val);
   }
+  /** @ignore */
+  function bool(str: string): boolean {
+    const result = isTrue(str, option);
+    if (result === undefined) {
+      const names = option.truthNames?.concat(option.falsityNames ?? []);
+      throw validator.error(ErrorItem.invalidBooleanParameter, { o: name, s1: str, s2: names });
+    }
+    return result;
+  }
   const { key, name, option } = info;
   if (!params.length) {
     const fallback = option.fallback;
@@ -631,7 +641,7 @@ async function parseParam(
     return setValue(validator, values, key, option, fallback);
   }
   const convertFn: (val: string) => unknown =
-    option.type === 'boolean' ? isTrue : isString(option) ? (str: string) => str : Number;
+    option.type === 'boolean' ? bool : isString(option) ? (str: string) => str : Number;
   const parse = option.parse;
   const lastParam = params[params.length - 1];
   let value;
@@ -765,7 +775,7 @@ async function handleFunction(
       return 0;
     }
   }
-  return comp ? 0 : Math.max(0, option.skipCount ?? 0);
+  return Math.max(0, option.skipCount ?? 0);
 }
 
 /**

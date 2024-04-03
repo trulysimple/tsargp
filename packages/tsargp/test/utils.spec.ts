@@ -218,31 +218,43 @@ describe('splitPhrase', () => {
 
 describe('isTrue', () => {
   it('should return false on zero', () => {
-    expect(isTrue('')).toBeFalsy();
-    expect(isTrue('00')).toBeFalsy();
+    expect(isTrue('  ')).toBeFalsy();
+    expect(isTrue(' 00 ')).toBeFalsy();
     expect(isTrue(' +0.0 ')).toBeFalsy();
   });
 
-  it('should return false on false', () => {
-    expect(isTrue('false')).toBeFalsy();
-    expect(isTrue(' FalsE ')).toBeFalsy();
+  it('should return true on non-zero and NaN', () => {
+    expect(isTrue(' 0.1 ')).toBeTruthy();
+    expect(isTrue(' -1 ')).toBeTruthy();
+    expect(isTrue(' abc ')).toBeTruthy();
   });
 
-  it('should return false on no', () => {
-    expect(isTrue('no')).toBeFalsy();
-    expect(isTrue(' No ')).toBeFalsy();
+  it('should return true on matched truth names', () => {
+    const flags = { truthNames: ['true', 'yes', 'on'] };
+    expect(isTrue(' TruE ', flags)).toBeTruthy();
+    expect(isTrue(' yES ', flags)).toBeTruthy();
+    expect(isTrue(' ON ', flags)).toBeTruthy();
+    expect(isTrue(' abc ', flags)).toBeFalsy();
+    expect(isTrue(' True ', { ...flags, caseSensitive: true })).toBeFalsy();
   });
 
-  it('should return false on off', () => {
-    expect(isTrue('off')).toBeFalsy();
-    expect(isTrue(' oFF ')).toBeFalsy();
+  it('should return false on matched falsity names', () => {
+    const flags = { falsityNames: ['false', 'no', 'off'] };
+    expect(isTrue(' FalsE ', flags)).toBeFalsy();
+    expect(isTrue(' No ', flags)).toBeFalsy();
+    expect(isTrue(' oFF ', flags)).toBeFalsy();
+    expect(isTrue(' abc ', flags)).toBeTruthy();
+    expect(isTrue(' False ', { ...flags, caseSensitive: true })).toBeTruthy();
   });
 
-  it('should return true on any other string', () => {
-    expect(isTrue('/0.0')).toBeTruthy();
-    expect(isTrue('/false')).toBeTruthy();
-    expect(isTrue('/no')).toBeTruthy();
-    expect(isTrue('/off')).toBeTruthy();
+  it('should return undefined on unmatched truth and falsity names', () => {
+    const flags = {
+      truthNames: ['true', 'yes', 'on'],
+      falsityNames: ['false', 'no', 'off'],
+    };
+    expect(isTrue(' abc ', flags)).toBeUndefined();
+    expect(isTrue(' True ', { ...flags, caseSensitive: true })).toBeUndefined();
+    expect(isTrue(' False ', { ...flags, caseSensitive: true })).toBeUndefined();
   });
 });
 

@@ -21,12 +21,10 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete process.env['FLAG2'];
-      process.env['FLAG'] = '1';
-      await expect(parser.parse([])).rejects.toThrow(`Option -f1 requires -f2.`);
-      process.env['FLAG2'] = '1';
-      await expect(parser.parse([])).resolves.toEqual({ flag: true, required: true });
       process.env['FLAG'] = '';
-      await expect(parser.parse(['-f2'])).resolves.toEqual({ flag: false, required: true });
+      await expect(parser.parse([])).rejects.toThrow(`Option -f1 requires -f2.`);
+      process.env['FLAG2'] = '';
+      await expect(parser.parse([])).resolves.toEqual({ flag: true, required: true });
     });
 
     it('should handle a boolean option with an environment variable', async () => {

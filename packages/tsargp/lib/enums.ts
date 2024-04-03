@@ -119,8 +119,8 @@ export const enum ErrorItem {
    */
   duplicateClusterLetter,
   /**
-   * Raised by the parser when either a variadic array option or a command option is specified in
-   * the middle of a cluster argument.
+   * Raised by the parser when either a variadic option or a command option is specified in the
+   * middle of a cluster argument.
    */
   invalidClusterOption,
   /**
@@ -137,9 +137,13 @@ export const enum ErrorItem {
    */
   mixedNamingConvention,
   /**
-   * Raised by the validator when an option has an invalid numeric range.
+   * Raised by the validator when a number-valued option has an invalid numeric range.
    */
   invalidNumericRange,
+  /**
+   * Raised by the parser when a parameter to a boolean option fails to be converted.
+   */
+  invalidBooleanParameter,
 }
 
 /**

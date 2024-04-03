@@ -87,20 +87,6 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -f ', { compIndex: 7 })).rejects.toThrow(/^abc$/);
     });
 
-    it('should ignore the skip count of a function option during completion', async () => {
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
-          exec() {
-            this.skipCount = 1;
-          },
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd -f ', { compIndex: 7 })).rejects.toThrow(/^-f$/);
-    });
-
     it('should handle the completion of a help option', async () => {
       const options = {
         help: {
@@ -262,20 +248,21 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^one\ntwo$/);
     });
 
-    it('should handle the completion of a positional boolean option', async () => {
+    it('should handle the completion of a positional boolean option with truth names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
           names: ['-b'],
+          truthNames: ['yes'],
           positional: true,
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^true\nfalse$/);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^yes$/);
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-b$/);
-      await expect(parser.parse('cmd t', { compIndex: 5 })).rejects.toThrow(/^true$/);
-      await expect(parser.parse('cmd f', { compIndex: 5 })).rejects.toThrow(/^false$/);
+      await expect(parser.parse('cmd y', { compIndex: 5 })).rejects.toThrow(/^yes$/);
       await expect(parser.parse('cmd x', { compIndex: 5 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd x y', { compIndex: 7 })).rejects.toThrow(/^yes$/);
     });
 
     it('should handle the completion of a positional string option with enums', async () => {
@@ -293,6 +280,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd o', { compIndex: 5 })).rejects.toThrow(/^one$/);
       await expect(parser.parse('cmd t', { compIndex: 5 })).rejects.toThrow(/^two$/);
       await expect(parser.parse('cmd x', { compIndex: 5 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd one o', { compIndex: 9 })).rejects.toThrow(/^one$/);
     });
 
     it('should handle the completion of a positional number option with enums', async () => {
@@ -310,6 +298,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd 1', { compIndex: 5 })).rejects.toThrow(/^123$/);
       await expect(parser.parse('cmd 4', { compIndex: 5 })).rejects.toThrow(/^456$/);
       await expect(parser.parse('cmd x', { compIndex: 5 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd 123 1', { compIndex: 9 })).rejects.toThrow(/^123$/);
     });
 
     it('should handle the completion of a positional boolean option with custom completion', async () => {
@@ -374,24 +363,24 @@ describe('ArgumentParser', () => {
       expect(options.boolean.complete).toHaveBeenCalled();
     });
 
-    it('should handle the completion of a boolean option', async () => {
+    it('should handle the completion of a boolean option with truth names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
           names: ['-b'],
+          truthNames: ['yes'],
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^-b$/);
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-b$/);
       await expect(parser.parse('cmd -b', { compIndex: 6 })).rejects.toThrow(/^-b$/);
-      await expect(parser.parse('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^true\nfalse$/);
-      await expect(parser.parse('cmd -b t', { compIndex: 8 })).rejects.toThrow(/^true$/);
-      await expect(parser.parse('cmd -b f', { compIndex: 8 })).rejects.toThrow(/^false$/);
+      await expect(parser.parse('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^yes$/);
+      await expect(parser.parse('cmd -b y', { compIndex: 8 })).rejects.toThrow(/^yes$/);
       await expect(parser.parse('cmd -b x', { compIndex: 8 })).rejects.toThrow(/^$/);
-      await expect(parser.parse('cmd -b=t', { compIndex: 8 })).rejects.toThrow(/^true$/);
-      await expect(parser.parse('cmd -b=f', { compIndex: 8 })).rejects.toThrow(/^false$/);
+      await expect(parser.parse('cmd -b=y', { compIndex: 8 })).rejects.toThrow(/^yes$/);
       await expect(parser.parse('cmd -b=x', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -b x -b', { compIndex: 11 })).rejects.toThrow(/^-b$/);
     });
 
     it('should handle the completion of a string option with a fallback value', async () => {
@@ -428,6 +417,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -s=o', { compIndex: 8 })).rejects.toThrow(/^one$/);
       await expect(parser.parse('cmd -s=t', { compIndex: 8 })).rejects.toThrow(/^two$/);
       await expect(parser.parse('cmd -s=x', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -s one -s', { compIndex: 13 })).rejects.toThrow(/^-s$/);
     });
 
     it('should handle the completion of a number option with a fallback value', async () => {
@@ -464,6 +454,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -n=1', { compIndex: 8 })).rejects.toThrow(/^123$/);
       await expect(parser.parse('cmd -n=4', { compIndex: 8 })).rejects.toThrow(/^456$/);
       await expect(parser.parse('cmd -n=x', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -n 123 -n', { compIndex: 13 })).rejects.toThrow(/^-n$/);
     });
 
     it('should handle the completion of a variadic strings option with a fallback value', async () => {
@@ -480,6 +471,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -s', { compIndex: 6 })).rejects.toThrow(/^-ss$/);
       await expect(parser.parse('cmd -ss', { compIndex: 7 })).rejects.toThrow(/^-ss$/);
       await expect(parser.parse('cmd -ss ', { compIndex: 8 })).rejects.toThrow(/^-ss$/);
+      await expect(parser.parse('cmd -ss -ss', { compIndex: 11 })).rejects.toThrow(/^-ss$/);
     });
 
     it('should handle the completion of a variadic strings option with custom completion', async () => {
@@ -526,6 +518,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -ss 1 ', { compIndex: 10 })).rejects.toThrow(/^-ss$/);
       await expect(parser.parse('cmd -ss=', { compIndex: 8 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd -ss= ', { compIndex: 9 })).rejects.toThrow(/^-ss$/);
+      await expect(parser.parse('cmd -ss 1 -ss', { compIndex: 13 })).rejects.toThrow(/^-ss$/);
     });
 
     it('should handle the completion of a variadic numbers option with a fallback value', async () => {
@@ -542,6 +535,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -n', { compIndex: 6 })).rejects.toThrow(/^-ns$/);
       await expect(parser.parse('cmd -ns', { compIndex: 7 })).rejects.toThrow(/^-ns$/);
       await expect(parser.parse('cmd -ns ', { compIndex: 8 })).rejects.toThrow(/^-ns$/);
+      await expect(parser.parse('cmd -ns -ns', { compIndex: 11 })).rejects.toThrow(/^-ns$/);
     });
 
     it('should handle the completion of a variadic numbers option with custom completion', async () => {
@@ -588,6 +582,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -ns 1 ', { compIndex: 10 })).rejects.toThrow(/^-ns$/);
       await expect(parser.parse('cmd -ns=', { compIndex: 8 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd -ns= ', { compIndex: 9 })).rejects.toThrow(/^-ns$/);
+      await expect(parser.parse('cmd -ns 1 -ns', { compIndex: 13 })).rejects.toThrow(/^-ns$/);
     });
 
     it('should throw the default completion when completing a cluster argument', async () => {
