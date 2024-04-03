@@ -592,6 +592,7 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-b', ' 1 '])).resolves.toEqual({ boolean: true });
         await expect(parser.parse(['--boolean', ''])).resolves.toEqual({ boolean: false });
         await expect(parser.parse(['-b=1', '-b=0'])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b', '1', '-b', '0'])).resolves.toEqual({ boolean: false });
       });
 
       it('should handle a boolean option with truth and falsity names', async () => {

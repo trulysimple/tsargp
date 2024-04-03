@@ -377,7 +377,7 @@ export type WithBoolean = {
    */
   readonly falsityNames?: ReadonlyArray<string>;
   /**
-   * True if the truth and falsity names should be case-sensitive.
+   * True if the truth and falsity names are case-sensitive.
    */
   readonly caseSensitive?: true;
 };
@@ -567,7 +567,6 @@ export type VersionOption = WithType<'version'> &
 export type FunctionOption = WithType<'function'> &
   WithBasic &
   WithFunction &
-  WithParam &
   WithValue<unknown> &
   (WithDefault | WithRequired);
 

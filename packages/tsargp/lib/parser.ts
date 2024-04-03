@@ -627,7 +627,7 @@ async function parseParam(
   function bool(str: string): boolean {
     const result = isTrue(str, option);
     if (result === undefined) {
-      const names = option.truthNames?.concat(option.falsityNames ?? []);
+      const names = option.truthNames?.concat(option.falsityNames ?? []) ?? [];
       throw validator.error(ErrorItem.invalidBooleanParameter, { o: name, s1: str, s2: names });
     }
     return result;
