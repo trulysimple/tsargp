@@ -584,9 +584,9 @@ By default, a function option is niladic. However, this behavior can be changed 
 have either of the following values:
 
 - a zero value: same as the niladic case
-- a negative number: the option expects unlimited parameters
+- a negative number: the option accepts unlimited parameters
 - a positive number: the option expects exactly this number of parameters
-- a numeric range: the option accepts between a minimum and maximum count
+- a numeric range: the option expects between a minimum and maximum count
 
 Mutually exclusive with [skip count].
 
@@ -851,7 +851,7 @@ attributes:
 [help sections]: formatter#help-sections
 [option filters]: formatter#option-filters
 [custom callback]: parser#custom-callbacks
-[argument sequence]: parser#argument-sequence
+[argument sequence]: parser#sequence-information
 [completion message]: styles#completion-words
 [`parseInto`]: parser#using-your-own-object
 [`shortStyle`]: parser#short-option-style

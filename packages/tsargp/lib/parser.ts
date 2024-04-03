@@ -405,6 +405,7 @@ async function parseArgs(
     if (!info) {
       break; // finished
     }
+    // comp === true
     await handleComplete(values, info, i, args.slice(k, j), value);
     handleCompletion(info.option, value);
     if (!marker && (positional || k < j || info.option.fallback !== undefined)) {
@@ -453,7 +454,7 @@ function findNext(
           }
           handleUnknownName(validator, name);
         }
-        return [i, positional, arg, comp, marker, true];
+        return [i, positional, arg, comp, false, true];
       }
     }
     if (comp) {
@@ -483,6 +484,9 @@ async function handleNonNiladic(
   index: number,
   params: Array<string>,
 ): Promise<boolean> {
+  // max is not needed here because either:
+  // - the parser would have failed to find an option that starts a new sequence at max + 1; or
+  // - it would have reached the end of the arguments before max + 1
   const [min] = getParamCount(info.option);
   if (params.length < min) {
     throw validator.error(ErrorItem.missingParameter, { o: info.name });

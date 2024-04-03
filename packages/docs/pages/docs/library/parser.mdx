@@ -111,10 +111,28 @@ Besides, the asynchronous version has the benefit of allowing us to perform some
 concurrently, such as the requirements verification. This should not be a drawback for most CLI
 applications, since argument parsing is usually done at the top-level of a module or script.
 
-#### Argument sequence
+### Argument sequence
 
-The `ParseInfo` object is passed as the parameter of some of the aforementioned callbacks, and
-contains information about the current argument sequence in the parsing loop:
+An argument sequence is the occurrence of an option in the command line with possible parameters.
+The parser looks for option names or positional arguments once it finishes parsing the previous
+option, or if the latter is variadic.
+
+For example, if the option initiating a sequence is a string option with a [fallback value], the
+parser starts looking for new options as soon as it advances to the next argument, since that may be
+either a parameter to the option or the start of a new sequence. Once it advances past this
+argument, it knows that the next one must be a new sequence.
+
+The same algorithm works for function options with variable [parameter count]. For example, if an
+option expects between 1 and 3 parameters, the parser treats the next argument as a parameter to the
+option, regardless of it being an option name or not. As soon as the first parameter is saved, the
+parser resumes the search until 3 parameters are accumulated, at which point it _must_ find an
+option specification (even if it is a new occurrence of the same option).
+
+#### Sequence information
+
+The information gathered by the parser is saved in a `ParseInfo` object that is passed as parameter
+to some of the [custom callbacks]. It contains details about the current argument sequence in the
+parsing loop:
 
 - `values` -
   The previously parsed values. It is an opaque type that should be cast to
@@ -243,6 +261,7 @@ they would pollute the output of process management utilities such as `ps`.
 [parsing flags]: #parsing-flags
 [word completion]: #word-completion
 [inline parameter]: #inline-parameters
+[custom callbacks]: #custom-callbacks
 [valued option]: options#value-attributes
 [message]: styles#terminal-messages
 [append]: options#append-values
@@ -260,6 +279,8 @@ they would pollute the output of process management utilities such as `ps`.
 [preferred name]: options#names--preferred-name
 [truth names]: options#truth-names
 [falsity names]: options#falsity-names
+[fallback value]: options#fallback-value
+[parameter count]: options#parameter-count
 [`break`]: options#break-loop
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

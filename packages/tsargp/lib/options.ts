@@ -514,9 +514,9 @@ export type WithFunction = {
   /**
    * The function's parameter count.
    *
-   * If negative, then the option expects unlimited parameters.
+   * If negative, then the option accepts unlimited parameters.
    * If non-negative, then the option expects exactly this number of parameters.
-   * If a range, then the option accepts between `min` and `max` parameters.
+   * If a range, then the option expects between `min` and `max` parameters.
    */
   readonly paramCount?: number | Range;
   /**
@@ -955,7 +955,7 @@ type OptionDataType<T extends Option> =
 /**
  * Gets the parameter count of an option as a numeric range.
  * @param option The option definition
- * @returns The range count
+ * @returns The count range
  * @internal
  */
 export function getParamCount(option: OpaqueOption): Range {
