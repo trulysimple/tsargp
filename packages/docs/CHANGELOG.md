@@ -1,5 +1,15 @@
 # @trulysimple/tsargp-docs
 
+## 0.3.0-dev.2
+
+### Minor Changes
+
+- [#92](https://github.com/trulysimple/tsargp/pull/92) [`34c6d5e`](https://github.com/trulysimple/tsargp/commit/34c6d5efa202bcc09213727f624f0f208409bd55) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `ParseInfo` type, along with information regarding the parsing callbacks. The Options page was updated to document changes made to the parsing callbacks. The `parseError` enumerator was removed from the Validator page, since it is no longer supported.
+
+- [#96](https://github.com/trulysimple/tsargp/pull/96) [`464c113`](https://github.com/trulysimple/tsargp/commit/464c1136aa32767618eacfca685ff054b99d6b0b) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `paramCount` attribute of the function option. The Validator page was updated to document the new validations related to variadic options and the fuction option's parameter count.
+
+- [#95](https://github.com/trulysimple/tsargp/pull/95) [`9d26e81`](https://github.com/trulysimple/tsargp/commit/9d26e81eabf3fb8ebe46c35e3419b7e1d5f46e3e) Thanks [@disog](https://github.com/disog)! - Some subsections of the "Parameter attributes" section of the Options page were moved to a new section called "Known value attributes", to reflect changes made in the code.
+
 ## 0.3.0-dev.1
 
 ### Minor Changes
