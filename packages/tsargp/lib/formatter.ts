@@ -983,11 +983,11 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
     const sep = typeof separator === 'string' ? separator : separator.source;
     const value = (example as Array<unknown>).join(sep);
     result.formatArgs(styles, '%s', { s: value });
-  } else {
-    const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
-    result.formatArgs(styles, `%${spec}`, { [spec]: example }, {});
+    return result.length;
   }
-  const nonDelimited = Array.isArray(example) && !separator;
+  const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
+  result.formatArgs(styles, `%${spec}`, { [spec]: example }, {});
+  const nonDelimited = spec !== 'v' && Array.isArray(example);
   return result.length + (nonDelimited ? example.length - 1 : 0);
 }
 

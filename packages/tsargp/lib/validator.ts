@@ -75,6 +75,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names [%s2].',
     [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions [%s].',
     [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range [%n].',
+    [ErrorItem.invalidBooleanParameter]: 'Invalid parameter to %o: %s1. Possible values are {%s2}.',
   },
   connectives: {
     [ConnectiveWords.and]: 'and',
@@ -192,7 +193,7 @@ export class OptionValidator {
     this.options = options as OpaqueOptions;
     for (const key in this.options) {
       const option = this.options[key];
-      registerNames(this.config, this.names, this.letters, key, option);
+      registerNames(this.names, this.letters, key, option);
       if (option.positional) {
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
         this.positional = { key, name: option.preferredName ?? '', option, marker };
@@ -216,14 +217,14 @@ export class OptionValidator {
     const warning = new WarnMessage();
     if (flags.detectNamingInconsistencies) {
       // validate names before clearing them
-      validateNames(this.config, this.names, this.options, prefix, warning);
+      validateAllNames(this.config, this.names, this.options, prefix, warning);
     }
     this.names.clear(); // to check for duplicate option names
     this.letters.clear(); // to check for duplicate cluster letters
     let positional = ''; // to check for duplicate positional options
     for (const key in this.options) {
       const option = this.options[key];
-      registerNames(this.config, this.names, this.letters, key, option, true, prefix);
+      validateNames(this.config, this.names, this.letters, key, option, prefix);
       validateOption(flags, this.options, this.config, prefix, key, option, visited, warning);
       if (option.positional) {
         if (positional) {
@@ -287,60 +288,89 @@ export class OptionValidator {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
+ * Registers an option's names.
+ * @param nameToKey The map of option names to keys
+ * @param letterToKey The map of cluster letters to key
+ * @param key The option key
+ * @param option The option definition
+ */
+function registerNames(
+  nameToKey: Map<string, string>,
+  letterToKey: Map<string, string>,
+  key: string,
+  option: OpaqueOption,
+) {
+  const names = getOptionNames(option);
+  for (const name of names) {
+    nameToKey.set(name, key);
+  }
+  if (!option.preferredName) {
+    option.preferredName = names[0];
+  }
+  if (option.clusterLetters) {
+    for (const letter of option.clusterLetters) {
+      letterToKey.set(letter, key);
+    }
+  }
+}
+
+/**
+ * Gets a list of option names, including negation names and the positional marker, if any.
+ * @param option The option definition
+ * @returns The option names
+ */
+function getOptionNames(option: OpaqueOption): Array<string> {
+  const names = option.names?.slice() ?? [];
+  if (option.negationNames) {
+    names.push(...option.negationNames);
+  }
+  if (typeof option.positional === 'string') {
+    names.push(option.positional);
+  }
+  return names.filter((name): name is string => !!name);
+}
+
+/**
  * Registers or validates an option's names.
  * @param config The validator configuration
  * @param nameToKey The map of option names to keys
  * @param letterToKey The map of cluster letters to key
  * @param key The option key
  * @param option The option definition
- * @param validate True if performing validation
  * @param prefix The command prefix, if any
  * @throws On empty positional marker, option with no name, invalid option name, duplicate name or
  * duplicate cluster letter
  */
-function registerNames(
+function validateNames(
   config: ConcreteConfig,
   nameToKey: Map<string, string>,
   letterToKey: Map<string, string>,
   key: string,
   option: OpaqueOption,
-  validate = false,
   prefix = '',
 ) {
-  const names = option.names?.slice() ?? [];
-  if (option.negationNames) {
-    names.push(...option.negationNames);
-  }
-  if (validate && option.positional === '') {
+  if (option.positional === '') {
     throw error(config, ErrorItem.emptyPositionalMarker, { o: prefix + key });
   }
-  if (typeof option.positional === 'string') {
-    names.push(option.positional);
-  }
-  if (validate && !option.positional && !names.find((name) => name)) {
+  const names = getOptionNames(option);
+  if (!option.positional && !names.length) {
     throw error(config, ErrorItem.unnamedOption, { o: prefix + key });
   }
   for (const name of names) {
-    if (!name) {
-      continue;
-    }
-    if (validate && name.match(/[\s=]+/)) {
+    if (name.match(/[\s=]+/)) {
       throw error(config, ErrorItem.invalidOptionName, { o: prefix + key, s: name });
     }
-    if (validate && nameToKey.has(name)) {
+    if (nameToKey.has(name)) {
       throw error(config, ErrorItem.duplicateOptionName, { o: prefix + key, s: name });
     }
     nameToKey.set(name, key);
   }
-  if (!option.preferredName) {
-    option.preferredName = names.find((name): name is string => !!name);
-  }
   if (option.clusterLetters) {
     for (const letter of option.clusterLetters) {
-      if (validate && letter.includes(' ')) {
+      if (letter.includes(' ')) {
         throw error(config, ErrorItem.invalidClusterLetter, { o: prefix + key, s: letter });
       }
-      if (validate && letterToKey.has(letter)) {
+      if (letterToKey.has(letter)) {
         throw error(config, ErrorItem.duplicateClusterLetter, { o: prefix + key, s: letter });
       }
       letterToKey.set(letter, key);
@@ -349,19 +379,19 @@ function registerNames(
 }
 
 /**
- * Validates the option names against a set of rules.
+ * Validates the options' names against a set of rules.
  * @param config The validator configuration
  * @param nameToKey The map of option names to keys
  * @param options The option definitions
  * @param prefix The command prefix, if any
- * @param result The list of warnings to append to
+ * @param warning The warnings to append to
  */
-function validateNames(
+function validateAllNames(
   config: ConcreteConfig,
   nameToKey: Map<string, string>,
   options: OpaqueOptions,
   prefix: string,
-  result: WarnMessage,
+  warning: WarnMessage,
 ) {
   prefix = prefix.slice(0, -1);
   const visited = new Set<string>();
@@ -371,7 +401,7 @@ function validateNames(
     }
     const similar = findSimilarNames(name, [...nameToKey.keys()], 0.8);
     if (similar.length) {
-      result.push(
+      warning.push(
         format(config, ErrorItem.tooSimilarOptionNames, { o: prefix, s1: name, s2: similar }),
       );
       for (const similarName of similar) {
@@ -385,7 +415,7 @@ function validateNames(
       const entries = Object.entries(match[key]);
       if (entries.length > 1) {
         const list = entries.map(([rule, name]) => rule + ': ' + name);
-        result.push(format(config, ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: list }));
+        warning.push(format(config, ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: list }));
       }
     }
   });
@@ -473,9 +503,7 @@ function validateOption(
 ) {
   if (!isNiladic(option)) {
     validateConstraints(config, prefix + key, option);
-    if (typeof option.default !== 'function') {
-      validateValue(config, prefix + key, option, option.default);
-    }
+    validateValue(config, prefix + key, option, option.default);
     validateValue(config, prefix + key, option, option.example);
     validateValue(config, prefix + key, option, option.fallback);
   }
@@ -579,7 +607,7 @@ function validateRequirement(
  * @param config The validator configuration
  * @param key The option key (plus the prefix, if any)
  * @param option The option definition
- * @throws On zero or duplicate enumerated values or invalid numeric range
+ * @throws On invalid enums definition or invalid numeric range
  */
 function validateConstraints(config: ConcreteConfig, key: string, option: OpaqueOption) {
   const enums = option.enums;
@@ -622,7 +650,7 @@ function validateValue(config: ConcreteConfig, key: string, option: OpaqueOption
       throw error(config, ErrorItem.incompatibleRequiredValue, { o: key, v: value, s: type });
     }
   }
-  if (value === undefined) {
+  if (value === undefined || typeof value === 'function') {
     return;
   }
   switch (option.type) {

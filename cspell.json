@@ -4,6 +4,7 @@
   "language": "en",
   "dictionaries": ["cpp", "typescript"],
   "words": ["uncategorized"],
+  "flagWords": ["contraint"],
   "ignoreWords": [
     "Sogari",
     "lockb",
@@ -14,12 +15,12 @@
     "trulysimple",
     "nextra",
     "niladic",
+    "polyadic",
     "println",
     "compspec",
     "svgr",
     "oclif",
     "codemirror",
-    "CODEOWNERS",
     "IIFE"
   ],
   "ignoreRegExpList": ["gh-username", "ga-measurement-id"],
@@ -28,8 +29,9 @@
     ".prettierignore",
     "CODEOWNERS",
     "pre.json",
+    "cspell.json",
     ".git",
-    "*.{js,ts,jsx,tsx,mdx}"
+    "*.{js,ts,jsx,tsx}"
   ],
   "useGitignore": true,
   "enableGlobDot": true,

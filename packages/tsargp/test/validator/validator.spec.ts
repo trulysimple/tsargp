@@ -36,54 +36,6 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(`Option version contains empty version.`);
     });
 
-    it('should throw an error on string option with zero enumerated values', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          enums: [],
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option string has zero enum values.`);
-    });
-
-    it('should throw an error on number option with zero enumerated values', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          enums: [],
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option number has zero enum values.`);
-    });
-
-    it('should throw an error on strings option with zero enumerated values', () => {
-      const options = {
-        strings: {
-          type: 'strings',
-          names: ['-ss'],
-          enums: [],
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option strings has zero enum values.`);
-    });
-
-    it('should throw an error on numbers option with zero enumerated values', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          enums: [],
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option numbers has zero enum values.`);
-    });
-
     it('should validate nested command options recursively', () => {
       const options = {
         command: {

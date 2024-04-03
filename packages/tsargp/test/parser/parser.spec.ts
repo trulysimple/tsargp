@@ -591,7 +591,41 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-b', ' +0.0 '])).resolves.toEqual({ boolean: false });
         await expect(parser.parse(['-b', ' 1 '])).resolves.toEqual({ boolean: true });
         await expect(parser.parse(['--boolean', ''])).resolves.toEqual({ boolean: false });
-        await expect(parser.parse(['-b=1', '-b= False '])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b=1', '-b=0'])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b', '1', '-b', '0'])).resolves.toEqual({ boolean: false });
+      });
+
+      it('should handle a boolean option with truth and falsity names', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            truthNames: ['true'],
+            falsityNames: ['false'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b', ' False '])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b', ' True '])).resolves.toEqual({ boolean: true });
+      });
+
+      it('should throw an error on invalid parameter to boolean option with case-sensitive truth and falsity names', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            truthNames: ['true'],
+            falsityNames: ['false'],
+            caseSensitive: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b', 'False'])).rejects.toThrow(
+          `Invalid parameter to -b: 'False'. Possible values are {'true', 'false'}.`,
+        );
+        await expect(parser.parse(['-b', 'True'])).rejects.toThrow(
+          `Invalid parameter to -b: 'True'. Possible values are {'true', 'false'}.`,
+        );
       });
     });
 
@@ -619,6 +653,7 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-s', '123'])).resolves.toEqual({ string: '123' });
         await expect(parser.parse(['--string', ''])).resolves.toEqual({ string: '' });
         await expect(parser.parse(['-s=1', '-s==2'])).resolves.toEqual({ string: '=2' });
+        await expect(parser.parse(['-s', '1', '-s', '2'])).resolves.toEqual({ string: '2' });
       });
     });
 
@@ -644,8 +679,9 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         await expect(parser.parse([])).resolves.toEqual({ number: undefined });
         await expect(parser.parse(['-n', '123'])).resolves.toEqual({ number: 123 });
-        await expect(parser.parse(['--number', '0'])).resolves.toEqual({ number: 0 });
-        await expect(parser.parse(['-n=1', '-n=2'])).resolves.toEqual({ number: 2 });
+        await expect(parser.parse(['--number', ''])).resolves.toEqual({ number: 0 });
+        await expect(parser.parse(['-n=1', '-n==2'])).resolves.toEqual({ number: NaN });
+        await expect(parser.parse(['-n', '1', '-n', '2'])).resolves.toEqual({ number: 2 });
       });
     });
 

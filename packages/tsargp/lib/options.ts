@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { FormatterConfig, HelpSections } from './formatter';
 import type { HelpMessage, Style } from './styles';
-import type { Resolve, URL, Flatten, KeyHaving, Range } from './utils';
+import type { Resolve, URL, KeyHaving, Range } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -316,14 +316,8 @@ export type WithValue<T> = {
 
 /**
  * Defines attributes common to options with parameters.
- * @template P The parameter data type
- * @template T The option value data type
  */
-export type WithParam<P, T> = {
-  /**
-   * The option example value. Replaces the option type in the help message parameter column.
-   */
-  readonly example?: Readonly<T>;
+export type WithParam = {
   /**
    * The option parameter name. Replaces the option type in the help message parameter column.
    */
@@ -345,16 +339,24 @@ export type WithParam<P, T> = {
    * If it throws an error, it is ignored, and the default completion message is thrown instead.
    */
   readonly complete?: CompleteCallback;
+};
+
+/**
+ * Defines attributes common to options with known values.
+ * @template P The parameter data type
+ * @template T The option value data type
+ */
+export type WithKnownValue<P, T> = {
+  /**
+   * The option example value. Replaces the option type in the help message parameter column.
+   */
+  readonly example?: Readonly<T>;
   /**
    * A custom callback to parse the value of the option parameter(s).
    * It should return the new option value.
    * Normalization and constraints will be applied to the returned value.
    */
   readonly parse?: ParseCallback<P, T>;
-  /**
-   * The enumerated values.
-   */
-  readonly enums?: ReadonlyArray<Flatten<T>>;
   /**
    * A fallback value that is used if the option is specified, but without any parameter.
    * This makes the option parameter(s) optional, both for single-valued and array-valued options.
@@ -363,9 +365,31 @@ export type WithParam<P, T> = {
 };
 
 /**
+ * Defines additional attributes for the boolean option.
+ */
+export type WithBoolean = {
+  /**
+   * The names of the truth value.
+   */
+  readonly truthNames?: ReadonlyArray<string>;
+  /**
+   * The names of the falsity value.
+   */
+  readonly falsityNames?: ReadonlyArray<string>;
+  /**
+   * True if the truth and falsity names are case-sensitive.
+   */
+  readonly caseSensitive?: true;
+};
+
+/**
  * Defines attributes common to string-valued options.
  */
 export type WithString = {
+  /**
+   * The enumerated values.
+   */
+  readonly enums?: ReadonlyArray<string>;
   /**
    * The regular expression.
    */
@@ -384,6 +408,10 @@ export type WithString = {
  * Defines attributes common to number-valued options.
  */
 export type WithNumber = {
+  /**
+   * The enumerated values.
+   */
+  readonly enums?: ReadonlyArray<number>;
   /**
    * The numeric range. You may want to use `[-Infinity, Infinity]` to disallow `NaN`.
    */
@@ -567,8 +595,10 @@ export type FlagOption = WithType<'flag'> &
 export type BooleanOption = WithType<'boolean'> &
   WithBasic &
   WithMisc &
+  WithParam &
+  WithBoolean &
   WithValue<boolean> &
-  WithParam<string, boolean> &
+  WithKnownValue<string, boolean> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName);
 
@@ -579,8 +609,9 @@ export type StringOption = WithType<'string'> &
   WithBasic &
   WithMisc &
   WithString &
+  WithParam &
   WithValue<string> &
-  WithParam<string, string> &
+  WithKnownValue<string, string> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithEnums | WithRegex);
@@ -592,8 +623,9 @@ export type NumberOption = WithType<'number'> &
   WithBasic &
   WithMisc &
   WithNumber &
+  WithParam &
   WithValue<number> &
-  WithParam<string, number> &
+  WithKnownValue<string, number> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithEnums | WithRange);
@@ -606,8 +638,9 @@ export type StringsOption = WithType<'strings'> &
   WithMisc &
   WithString &
   WithArray &
+  WithParam &
   WithValue<Array<string>> &
-  WithParam<Array<string>, Array<string>> &
+  WithKnownValue<Array<string>, Array<string>> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithAppend | WithParse) &
@@ -621,8 +654,9 @@ export type NumbersOption = WithType<'numbers'> &
   WithMisc &
   WithNumber &
   WithArray &
+  WithParam &
   WithValue<Array<number>> &
-  WithParam<Array<string>, Array<number>> &
+  WithKnownValue<Array<string>, Array<number>> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithAppend | WithParse) &
@@ -681,14 +715,16 @@ type OptionTypes =
  */
 export type OpaqueOption = WithType<OptionTypes> &
   WithBasic &
+  WithParam &
   WithValue<unknown> &
-  WithParam<unknown, unknown> &
+  WithKnownValue<unknown, unknown> &
   WithHelp &
   WithVersion &
   WithMessage &
   WithFunction &
   WithCommand &
   WithFlag &
+  WithBoolean &
   WithString &
   WithNumber &
   WithArray &
@@ -735,7 +771,7 @@ type WithDefault = {
  */
 type WithExample = {
   /**
-   * @deprecated mutually exclusive with {@link WithParam.example}
+   * @deprecated mutually exclusive with {@link WithKnownValue.example}
    */
   readonly paramName?: never;
 };
@@ -755,11 +791,11 @@ type WithParamName = {
  */
 type WithEnums = {
   /**
-   * @deprecated mutually exclusive with {@link WithParam.enums}
+   * @deprecated mutually exclusive with {@link WithString.enums}
    */
   readonly regex?: never;
   /**
-   * @deprecated mutually exclusive with {@link WithParam.enums}
+   * @deprecated mutually exclusive with {@link WithNumber.enums}
    */
   readonly range?: never;
 };
@@ -819,7 +855,7 @@ type WithAppend = {
  */
 type WithParse = {
   /**
-   * @deprecated mutually exclusive with {@link WithParam.parse}
+   * @deprecated mutually exclusive with {@link WithKnownValue.parse}
    */
   readonly append?: never;
 };
