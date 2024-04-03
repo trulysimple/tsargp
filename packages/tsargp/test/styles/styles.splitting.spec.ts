@@ -5,7 +5,7 @@ import '../utils.spec'; // initialize globals
 describe('TerminalString', () => {
   describe('splitText', () => {
     it('should split text with emojis', () => {
-      const str = new TerminalString().splitText(`⚠️ type script`);
+      const str = new TerminalString().split(`⚠️ type script`);
       expect(str).toHaveLength(12);
       expect(str.count).toEqual(3);
       expect(str.strings[0]).toEqual('⚠️');
@@ -14,7 +14,7 @@ describe('TerminalString', () => {
     });
 
     it('should split text with style sequences', () => {
-      const str = new TerminalString().splitText(`${style(tf.clear)}type script${style(tf.clear)}`);
+      const str = new TerminalString().split(`${style(tf.clear)}type script${style(tf.clear)}`);
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
       expect(str.strings[0]).toEqual('\x9b0mtype');
@@ -22,7 +22,7 @@ describe('TerminalString', () => {
     });
 
     it('should split text with paragraphs', () => {
-      const str = new TerminalString().splitText('type\nscript\n\nis\nfun');
+      const str = new TerminalString().split('type\nscript\n\nis\nfun');
       expect(str).toHaveLength(15);
       expect(str.count).toEqual(5);
       expect(str.strings[0]).toEqual('type');
@@ -33,7 +33,7 @@ describe('TerminalString', () => {
     });
 
     it('should split text with list items', () => {
-      const str = new TerminalString().splitText('type:\n- script\n1. is fun');
+      const str = new TerminalString().split('type:\n- script\n1. is fun');
       expect(str).toHaveLength(19);
       expect(str.count).toEqual(8);
       expect(str.strings[0]).toEqual('type:');
@@ -48,9 +48,9 @@ describe('TerminalString', () => {
 
     it('should split text with format specifiers', () => {
       const format = vi.fn().mockImplementation(function (this: TerminalString) {
-        this.addWord('abc');
+        this.word('abc');
       });
-      const str = new TerminalString().splitText('type' + '%s script is %n' + 'fun', format);
+      const str = new TerminalString().split('type' + '%s script is %n' + 'fun', format);
       expect(str).toHaveLength(21);
       expect(str.count).toEqual(4);
       expect(str.strings[0]).toEqual('type' + 'abc');
@@ -64,9 +64,9 @@ describe('TerminalString', () => {
 
     it('should not add a line break to the first list item', () => {
       const format = vi.fn().mockImplementation(function (this: TerminalString) {
-        this.splitText('- item\n* item\n1. item');
+        this.split('- item\n* item\n1. item');
       });
-      const str = new TerminalString().splitText('%s', format);
+      const str = new TerminalString().split('%s', format);
       expect(str).toHaveLength(16);
       expect(str.count).toEqual(8);
       expect(str.strings[0]).toEqual('-');
@@ -83,7 +83,7 @@ describe('TerminalString', () => {
 
     it('should not merge previous words with next words', () => {
       const format = vi.fn();
-      const str = new TerminalString().addWord('type').splitText('%s%s', format).addWord('script');
+      const str = new TerminalString().word('type').split('%s%s', format).word('script');
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
       expect(str.strings[0]).toEqual('type');

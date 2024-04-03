@@ -173,41 +173,39 @@ export function getArgs(line: string, compIndex: number = NaN): Array<string> {
 }
 
 /**
- * Checks the specified value of an array option against a required value.
+ * Compares two arrays for equality.
  * @template T The type of the array element
  * @param actual The specified value
  * @param expected The required value
- * @param negate True if the requirement should be negated
  * @param unique True if array elements should be considered in any order, ignoring duplicates
- * @returns True if the requirement was satisfied
+ * @returns True if the arrays are equal
  * @internal
  */
-export function checkRequiredArray<T>(
+export function checkArrayEqual<T>(
   actual: ReadonlyArray<T>,
   expected: ReadonlyArray<T>,
-  negate: boolean,
-  unique: boolean,
+  unique = false,
 ): boolean {
   if (unique) {
     const set = new Set(expected);
     for (const val of actual) {
       if (!set.delete(val)) {
-        return negate;
+        return false;
       }
     }
     if (set.size > 0) {
-      return negate;
+      return false;
     }
   } else if (actual.length !== expected.length) {
-    return negate;
+    return false;
   } else {
     for (let i = 0; i < actual.length; ++i) {
       if (actual[i] !== expected[i]) {
-        return negate;
+        return false;
       }
     }
   }
-  return !negate;
+  return true;
 }
 
 /**
@@ -255,7 +253,7 @@ function matchingCharacters(S: string, T: string): number {
   return indices.reduce((acc, [i, j]) => {
     const l = matchingCharacters(S.slice(0, i), T.slice(0, j));
     const r = matchingCharacters(S.slice(i + z), T.slice(j + z));
-    return Math.max(acc, z + l + r);
+    return max(acc, z + l + r);
   }, 0);
 }
 
@@ -418,4 +416,15 @@ export function matchNamingRules<T extends NamingRules>(
 export function isComp(arg: string): string | undefined {
   const [a, b] = arg.split('\0', 2);
   return b !== undefined ? a : undefined;
+}
+
+/**
+ * Gets the maximum of two numbers.
+ * @param a The first operand
+ * @param b The second operand
+ * @returns The maximum of the two
+ * @internal
+ */
+export function max(a: number, b: number): number {
+  return a > b ? a : b;
 }

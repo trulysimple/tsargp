@@ -32,16 +32,10 @@ import {
   isUnknown,
   getParamCount,
 } from './options';
-import {
-  HelpMessage,
-  WarnMessage,
-  CompletionMessage,
-  TerminalString,
-  FormattingFlags,
-} from './styles';
+import { HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
 import { OptionValidator, defaultConfig } from './validator';
 import { format } from './styles';
-import { checkRequiredArray, findSimilarNames, getArgs, isTrue, isComp } from './utils';
+import { checkArrayEqual, findSimilarNames, getArgs, isTrue, isComp, max } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -121,12 +115,7 @@ export class ArgumentParser<T extends Options = Options> {
    * @param config The validator configuration
    */
   constructor(options: T, config: ValidatorConfig = {}) {
-    const concreteConfig: ConcreteConfig = {
-      styles: Object.assign({}, defaultConfig.styles, config.styles),
-      phrases: Object.assign({}, defaultConfig.phrases, config.phrases),
-      connectives: Object.assign({}, defaultConfig.connectives, config.connectives),
-    };
-    this.validator = new OptionValidator(options, concreteConfig);
+    this.validator = new OptionValidator(options, mergeConfig(config));
   }
 
   /**
@@ -170,6 +159,19 @@ export class ArgumentParser<T extends Options = Options> {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Merges a validator configuration with the default configuration.
+ * @param config The provided configuration
+ * @returns The merged configuration
+ */
+function mergeConfig(config: ValidatorConfig = {}): ConcreteConfig {
+  return {
+    styles: { ...defaultConfig.styles, ...config.styles },
+    phrases: { ...defaultConfig.phrases, ...config.phrases },
+    connectives: { ...defaultConfig.connectives, ...config.connectives },
+  };
+}
+
 /**
  * Parses the command-line arguments.
  * @param validator The option validator
@@ -568,8 +570,7 @@ function handleCompletion(option: OpaqueOption, comp = '') {
 function handleUnknownName(validator: OptionValidator, name: string): never {
   const similar = findSimilarNames(name, [...validator.names.keys()], 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
-  const flags: FormattingFlags = { alt, sep: ',' };
-  throw validator.error(ErrorItem.unknownOption, args, flags);
+  throw validator.error(ErrorItem.unknownOption, args, { alt, sep: ',' });
 }
 
 /**
@@ -609,7 +610,7 @@ async function checkRequireItems<T>(
   and: boolean,
 ): Promise<boolean> {
   if (!and && items.length > 1) {
-    error.addOpening('(');
+    error.open('(');
   }
   const config = validator.config;
   const connective = invert
@@ -620,7 +621,7 @@ async function checkRequireItems<T>(
     if (and || first) {
       first = false;
     } else {
-      error.addWord(connective);
+      error.word(connective);
     }
     const success = await itemFn(item, error, negate, invert);
     if (success !== and) {
@@ -631,7 +632,7 @@ async function checkRequireItems<T>(
     return true;
   }
   if (items.length > 1) {
-    error.addClosing(')');
+    error.close(')');
   }
   return false;
 }
@@ -810,7 +811,7 @@ async function handleFunction(
       return 0;
     }
   }
-  return Math.max(0, option.skipCount ?? 0);
+  return max(0, option.skipCount ?? 0);
 }
 
 /**
@@ -1064,10 +1065,11 @@ async function checkRequires(
     return checkRequireItems(validator, entries, checkEntry, error, negate, invert, !negate);
   }
   if ((await requires(values)) == negate) {
+    const config = validator.config;
     if (negate != invert) {
-      error.addWord(validator.config.connectives[ConnectiveWords.not]);
+      error.word(config.connectives[ConnectiveWords.not]);
     }
-    format.v(requires, validator.config.styles, error);
+    format.v(requires, config.styles, error);
     return false;
   }
   return true;
@@ -1102,10 +1104,11 @@ function checkRequirement(
     if ((specified == required) != negate) {
       return true;
     }
+    const config = validator.config;
     if (specified != invert) {
-      error.addWord(validator.config.connectives[ConnectiveWords.no]);
+      error.word(config.connectives[ConnectiveWords.no]);
     }
-    format.o(option.preferredName ?? '', validator.config.styles, error);
+    format.o(option.preferredName ?? '', config.styles, error);
     return false;
   }
   const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : 'n';
@@ -1114,7 +1117,6 @@ function checkRequirement(
 
 /**
  * Checks the required value of an option against a specified value.
- * @template T The type of the option value
  * @param validator The option validator
  * @param option The option definition
  * @param negate True if the requirement should be negated
@@ -1125,13 +1127,13 @@ function checkRequirement(
  * @param spec The formatting specification
  * @returns True if the requirement was satisfied
  */
-function checkRequiredValue<T>(
+function checkRequiredValue(
   validator: OptionValidator,
   option: OpaqueOption,
   negate: boolean,
   invert: boolean,
-  actual: T,
-  value: T,
+  actual: unknown,
+  value: unknown,
   error: TerminalString,
   spec: string,
 ): boolean {
@@ -1141,20 +1143,17 @@ function checkRequiredValue<T>(
   }
   const name = option.preferredName ?? '';
   const array = Array.isArray(value);
-  const expected = array ? value.map(norm) : norm(value);
+  let expected;
   if (array) {
-    if (
-      checkRequiredArray(
-        actual as ReadonlyArray<unknown>,
-        expected as ReadonlyArray<unknown>,
-        negate,
-        !!option.unique,
-      )
-    ) {
+    expected = norm(value.map(norm));
+    if (checkArrayEqual(actual as ReadonlyArray<unknown>, expected, option.unique) !== negate) {
       return true;
     }
-  } else if ((actual === expected) !== negate) {
-    return true;
+  } else {
+    expected = norm(value);
+    if ((actual === expected) !== negate) {
+      return true;
+    }
   }
   const config = validator.config;
   const connective =
@@ -1163,6 +1162,6 @@ function checkRequiredValue<T>(
       : config.connectives[ConnectiveWords.equals];
   const phrase = array ? `[%${spec}]` : `%${spec}`;
   format.o(name, config.styles, error);
-  error.addWord(connective).formatArgs(config.styles, phrase, { [spec]: expected });
+  error.word(connective).format(config.styles, phrase, { [spec]: expected });
   return false;
 }

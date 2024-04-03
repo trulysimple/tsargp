@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   overrides,
-  checkRequiredArray,
+  checkArrayEqual,
   gestaltSimilarity,
   findSimilarNames,
   getArgs,
@@ -73,67 +73,34 @@ describe('getArgs', () => {
   });
 });
 
-describe('checkRequiredArray', () => {
-  describe('when negate is false', () => {
-    it('should return true on both arrays empty', () => {
-      expect(checkRequiredArray([], [], false, false)).toBeTruthy();
-    });
-
-    it('should return true on both arrays with the same values', () => {
-      expect(checkRequiredArray([1, 2, 3], [1, 2, 3], false, false)).toBeTruthy();
-    });
-
-    it('should return false on arrays with different lengths', () => {
-      expect(checkRequiredArray([1, 2], [1, 2, 3], false, false)).toBeFalsy();
-    });
-
-    it('should return false on arrays with the same values but in different order', () => {
-      expect(checkRequiredArray([1, 2, 3], [3, 2, 1], false, false)).toBeFalsy();
-    });
-
-    it('should return true on arrays with the same values in different order but unique', () => {
-      expect(checkRequiredArray([1, 2, 3], [3, 2, 1], false, true)).toBeTruthy();
-    });
-
-    it('should return true on arrays with different lengths but unique', () => {
-      expect(checkRequiredArray([1, 2], [2, 2, 1], false, true)).toBeTruthy();
-    });
-
-    it('should return false on arrays with different values', () => {
-      expect(checkRequiredArray([1, 2], [1], false, true)).toBeFalsy();
-      expect(checkRequiredArray([1], [1, 3], false, true)).toBeFalsy();
-    });
+describe('checkArrayEqual', () => {
+  it('should return true on both arrays empty', () => {
+    expect(checkArrayEqual([], [], false)).toBeTruthy();
   });
 
-  describe('when negate is true', () => {
-    it('should return true on both arrays empty', () => {
-      expect(checkRequiredArray([], [], true, false)).toBeFalsy();
-    });
+  it('should return true on arrays with the same values', () => {
+    expect(checkArrayEqual([1, 2, 3], [1, 2, 3], false)).toBeTruthy();
+  });
 
-    it('should return true on both arrays with the same values', () => {
-      expect(checkRequiredArray([1, 2, 3], [1, 2, 3], true, false)).toBeFalsy();
-    });
+  it('should return false on arrays with different lengths', () => {
+    expect(checkArrayEqual([1, 2], [1, 2, 3], false)).toBeFalsy();
+  });
 
-    it('should return false on arrays with different lengths', () => {
-      expect(checkRequiredArray([1, 2], [1, 2, 3], true, false)).toBeTruthy();
-    });
+  it('should return false on arrays with the same values but in different order', () => {
+    expect(checkArrayEqual([1, 2, 3], [3, 2, 1], false)).toBeFalsy();
+  });
 
-    it('should return false on arrays with the same values but in different order', () => {
-      expect(checkRequiredArray([1, 2, 3], [3, 2, 1], true, false)).toBeTruthy();
-    });
+  it('should return true on arrays with the same values in different order but unique', () => {
+    expect(checkArrayEqual([1, 2, 3], [3, 2, 1], true)).toBeTruthy();
+  });
 
-    it('should return true on arrays with the same values in different order but unique', () => {
-      expect(checkRequiredArray([1, 2, 3], [3, 2, 1], true, true)).toBeFalsy();
-    });
+  it('should return true on arrays with different lengths but unique', () => {
+    expect(checkArrayEqual([1, 2], [2, 2, 1], true)).toBeTruthy();
+  });
 
-    it('should return true on arrays with different lengths but unique', () => {
-      expect(checkRequiredArray([1, 2], [2, 2, 1], true, true)).toBeFalsy();
-    });
-
-    it('should return false on arrays with different values', () => {
-      expect(checkRequiredArray([1, 2], [1], true, true)).toBeTruthy();
-      expect(checkRequiredArray([1], [1, 3], true, true)).toBeTruthy();
-    });
+  it('should return false on arrays with different values', () => {
+    expect(checkArrayEqual([1, 2], [1], true)).toBeFalsy();
+    expect(checkArrayEqual([1], [1, 3], true)).toBeFalsy();
   });
 });
 

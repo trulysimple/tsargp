@@ -953,6 +953,23 @@ type OptionDataType<T extends Option> =
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
+ * Gets a list of option names, including negation names and the positional marker, if any.
+ * @param option The option definition
+ * @returns The option names
+ * @internal
+ */
+export function getOptionNames(option: OpaqueOption): Array<string> {
+  const names = option.names?.slice() ?? [];
+  if (option.negationNames) {
+    names.push(...option.negationNames);
+  }
+  if (typeof option.positional === 'string') {
+    names.push(option.positional);
+  }
+  return names.filter((name): name is string => !!name);
+}
+
+/**
  * Gets the parameter count of an option as a numeric range.
  * @param option The option definition
  * @returns The count range

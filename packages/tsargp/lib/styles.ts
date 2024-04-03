@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
 import { cs, tf, fg, bg } from './enums';
-import { overrides, selectAlternative } from './utils';
+import { max, overrides, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -43,45 +43,89 @@ const underlineStyle = {
 
 /**
  * The formatting functions.
- * @internal
  */
 const formatFunctions = {
   /**
    * The formatting function for boolean values.
+   * @param value The boolean value
+   * @param styles The format styles
+   * @param result The resulting string
    */
-  b: formatBool,
+  b(value: boolean, styles, result) {
+    result.style(styles.boolean, `${value}`, styles.current ?? styles.text);
+  },
   /**
    * The formatting function for string values.
+   * @param value The string value
+   * @param styles The format styles
+   * @param result The resulting string
    */
-  s: formatString,
+  s(value: string, styles, result) {
+    result.style(styles.string, `'${value}'`, styles.current ?? styles.text);
+  },
   /**
    * The formatting function for number values.
+   * @param value The number value
+   * @param styles The format styles
+   * @param result The resulting string
    */
-  n: formatNumber,
+  n(value: number, styles, result) {
+    result.style(styles.number, `${value}`, styles.current ?? styles.text);
+  },
   /**
    * The formatting function for regex values.
+   * @param value The regular expression
+   * @param styles The format styles
+   * @param result The resulting string
    */
-  r: formatRegExp,
+  r(value: RegExp, styles, result) {
+    result.style(styles.regex, `${value}`, styles.current ?? styles.text);
+  },
   /**
    * The formatting function for option names.
+   * @param name The option name
+   * @param styles The format styles
+   * @param result The resulting string
    */
-  o: formatOption,
+  o(name: string, styles, result) {
+    result.style(styles.option, name, styles.current ?? styles.text);
+  },
   /**
    * The formatting function for generic values.
+   * @param value The generic value
+   * @param styles The format styles
+   * @param result The resulting string
    */
-  v: formatValue,
+  v(value: unknown, styles, result) {
+    result.style(styles.value, `<${value}>`, styles.current ?? styles.text);
+  },
   /**
    * The formatting function for URLs.
+   * @param url The URL object
+   * @param styles The format styles
+   * @param result The resulting string
    */
-  u: formatURL,
+  u(url: URL, styles, result) {
+    result.style(styles.url, url.href, styles.current ?? styles.text);
+  },
   /**
    * The formatting function for general text.
+   * @param text The text to be split
+   * @param _styles The format styles
+   * @param result The resulting string
    */
-  t: formatText,
+  t(text: string, _styles, result) {
+    result.split(text);
+  },
   /**
-   * The formatting function for previously formatted terminal strings.
+   * The formatting function for terminal strings.
+   * @param str The terminal string
+   * @param _styles The format styles
+   * @param result The resulting string
    */
-  p: formatPrev,
+  p(str: TerminalString, _styles, result) {
+    result.other(str);
+  },
 } as const satisfies FormatFunctions;
 
 /**
@@ -257,6 +301,9 @@ export type FormatFunctions = Record<string, FormatFunction>;
  * Implements concatenation of strings that can be printed on a terminal.
  */
 export class TerminalString {
+  /**
+   * Whether the next string should be merged with the last string.
+   */
   private merge = false;
 
   /**
@@ -294,7 +341,7 @@ export class TerminalString {
     breaks = 0,
     public rightAlign = false,
   ) {
-    this.addBreak(breaks);
+    this.break(breaks);
   }
 
   /**
@@ -304,7 +351,7 @@ export class TerminalString {
    */
   pop(count = 1): this {
     if (count > 0) {
-      const len = Math.max(0, this.count - count);
+      const len = max(0, this.count - count);
       this.strings.length = len;
       this.lengths.length = len;
     }
@@ -313,20 +360,13 @@ export class TerminalString {
 
   /**
    * Appends another terminal string to the list.
+   * We deliberately avoided optimizing this code, in order to keep it short.
    * @param other The other terminal string
    * @returns The terminal string instance
    */
-  addOther(other: TerminalString): this {
-    const count = this.count;
-    let i = 0;
-    if (count && this.merge && other.count) {
-      this.strings[count - 1] += other.strings[0];
-      this.lengths[count - 1] += other.lengths[0];
-      i++;
-    }
-    for (; i < other.count; ++i) {
-      this.strings.push(other.strings[i]);
-      this.lengths.push(other.lengths[i]);
+  other(other: TerminalString): this {
+    for (let i = 0; i < other.count; ++i) {
+      this.add(other.strings[i], other.lengths[i]);
     }
     this.merge = other.merge;
     return this;
@@ -334,11 +374,11 @@ export class TerminalString {
 
   /**
    * Sets a flag to merge the next word to the last word.
-   * @param value The flag value (defaults to true)
+   * @param merge The flag value (defaults to true)
    * @returns The terminal string instance
    */
-  setMerge(value = true): this {
-    this.merge = value;
+  setMerge(merge = true): this {
+    this.merge = merge;
     return this;
   }
 
@@ -347,8 +387,8 @@ export class TerminalString {
    * @param word The opening word
    * @returns The terminal string instance
    */
-  addOpening(word: string): this {
-    return word ? this.addWord(word).setMerge() : this;
+  open(word: string): this {
+    return word ? this.word(word).setMerge() : this;
   }
 
   /**
@@ -356,19 +396,19 @@ export class TerminalString {
    * @param word The closing word
    * @returns The terminal string instance
    */
-  addClosing(word: string): this {
-    return this.setMerge().addWord(word);
+  close(word: string): this {
+    return this.setMerge().word(word);
   }
 
   /**
-   * Appends a word with surrounding sequences.
-   * @param seq The starting sequence
+   * Appends a word with surrounding styles.
+   * @param begin The starting style
    * @param word The word to be appended
-   * @param rev The ending sequence
+   * @param end The ending style (optional)
    * @returns The terminal string instance
    */
-  addAndRevert(seq: Sequence, word: string, rev: Sequence): this {
-    return this.addText(seq + word + rev, word.length);
+  style(begin: Style, word: string, end: Style = ''): this {
+    return this.add(begin + word + end, word.length);
   }
 
   /**
@@ -376,8 +416,8 @@ export class TerminalString {
    * @param word The word to be appended. Should not contain control characters or sequences.
    * @returns The terminal string instance
    */
-  addWord(word: string): this {
-    return this.addText(word, word.length);
+  word(word: string): this {
+    return this.add(word, word.length);
   }
 
   /**
@@ -385,8 +425,8 @@ export class TerminalString {
    * @param count The number of line breaks to insert (non-positive values are ignored)
    * @returns The terminal string instance
    */
-  addBreak(count = 1): this {
-    return count > 0 ? this.addText('\n'.repeat(count), 0) : this;
+  break(count = 1): this {
+    return count > 0 ? this.add('\n'.repeat(count), 0) : this;
   }
 
   /**
@@ -394,16 +434,18 @@ export class TerminalString {
    * @param seq The sequence to insert
    * @returns The terminal string instance
    */
-  addSequence(seq: Sequence): this {
-    return this.addText(seq, 0);
+  seq(seq: Sequence): this {
+    return this.add(seq, 0);
   }
 
   /**
    * Appends an SGR clear sequence to the list.
+   * This is different from the {@link pop} method (we are aware of this ambiguity, but we want
+   * method names to be short).
    * @returns The terminal string instance
    */
-  addClear(): this {
-    return this.addText(sgr(tf.clear), 0);
+  clear(): this {
+    return this.add(sgr(tf.clear), 0);
   }
 
   /**
@@ -412,7 +454,7 @@ export class TerminalString {
    * @param length The length of the text without control characters or sequences
    * @returns The terminal string instance
    */
-  addText(text: string, length: number): this {
+  add(text: string, length: number): this {
     if (text) {
       const count = this.count;
       if (count && this.merge) {
@@ -433,12 +475,12 @@ export class TerminalString {
    * @param format An optional callback to process format specifiers
    * @returns The terminal string instance
    */
-  splitText(text: string, format?: FormatCallback): this {
+  split(text: string, format?: FormatCallback): this {
     const paragraphs = text.split(regex.para);
     paragraphs.forEach((para, i) => {
       splitParagraph(this, para, format);
       if (i < paragraphs.length - 1) {
-        this.addBreak(2);
+        this.break(2);
       }
     });
     return this;
@@ -452,15 +494,10 @@ export class TerminalString {
    * @param flags The formatting flags
    * @returns The terminal string instance
    */
-  formatArgs(
-    styles: FormatStyles,
-    phrase: string,
-    args?: FormatArgs,
-    flags?: FormattingFlags,
-  ): this {
+  format(styles: FormatStyles, phrase: string, args?: FormatArgs, flags?: FormattingFlags): this {
     const formatFn = args && formatArgs(styles, args, flags);
     const alternative = flags?.alt !== undefined ? selectAlternative(phrase, flags.alt) : phrase;
-    return this.splitText(alternative, formatFn);
+    return this.split(alternative, formatFn);
   }
 
   /**
@@ -471,18 +508,19 @@ export class TerminalString {
    * @param emitStyles True if styles should be emitted
    * @returns The updated terminal column
    */
-  wrapToWidth(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
+  wrap(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
     /** @ignore */
     function shorten() {
-      while (result.length && column > start) {
-        const last = result[result.length - 1];
+      let length = result.length;
+      for (; length && column > start; --length) {
+        const last = result[length - 1];
         if (last.length > column - start) {
-          result[result.length - 1] = last.slice(0, start - column); // cut the last string
+          result[length - 1] = last.slice(0, start - column); // cut the last string
           break;
         }
         column -= last.length;
-        result.length--; // pop the last string
       }
+      result.length = length;
     }
     /** @ignore */
     function align() {
@@ -511,9 +549,9 @@ export class TerminalString {
     if (!this.count) {
       return column;
     }
-    column = Math.max(0, column);
-    width = Math.max(0, width);
-    let start = Math.max(0, this.indent);
+    column = max(0, column);
+    width = max(0, width);
+    let start = max(0, this.indent);
 
     const needToAlign = width && this.rightAlign;
     const largestFits = !width || width >= start + Math.max(...this.lengths);
@@ -580,7 +618,7 @@ export class TerminalMessage extends Array<TerminalString> {
     const result = new Array<string>();
     let column = 0;
     for (const str of this) {
-      column = str.wrapToWidth(result, column, width, emitStyles);
+      column = str.wrap(result, column, width, emitStyles);
     }
     if (emitStyles) {
       result.push(sgr(tf.clear));
@@ -689,9 +727,9 @@ function splitParagraph(result: TerminalString, para: string, format?: FormatCal
       splitItem(result, item, format);
     } else {
       if (result.count > count) {
-        result.addBreak();
+        result.break();
       }
-      result.addWord(item);
+      result.word(item);
     }
   });
 }
@@ -712,10 +750,10 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
     if (boundFormat) {
       const parts = word.split(regex.spec);
       if (parts.length > 1) {
-        result.addOpening(parts[0]);
+        result.open(parts[0]);
         for (let i = 1; i < parts.length; i += 2) {
           boundFormat(parts[i]);
-          result.addClosing(parts[i + 1]).setMerge();
+          result.close(parts[i + 1]).setMerge();
         }
         result.setMerge(false);
         continue;
@@ -723,7 +761,7 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
     }
     const styles = word.match(regex.styles) ?? [];
     const length = styles.reduce((acc, str) => acc + str.length, 0);
-    result.addText(word, word.length - length);
+    result.add(word, word.length - length);
   }
 }
 
@@ -750,7 +788,7 @@ function formatArgs(
           formatFn(val, styles, this);
           if (flags?.sep && i < value.length - 1) {
             this.setMerge(flags.mergePrev)
-              .addWord(flags.sep)
+              .word(flags.sep)
               .setMerge(flags.mergeNext ?? false);
           }
         });
@@ -818,94 +856,4 @@ function background(color: Decimal): BgColor {
  */
 function underline(color: Decimal): UlColor {
   return [58, 5, color];
-}
-
-/**
- * Formats a boolean value to be printed on the terminal.
- * @param value The boolean value
- * @param styles The format styles
- * @param result The resulting string
- */
-function formatBool(value: boolean, styles: FormatStyles, result: TerminalString) {
-  result.addAndRevert(styles.boolean, `${value}`, styles.current ?? styles.text);
-}
-
-/**
- * Formats a string value to be printed on the terminal.
- * @param value The string value
- * @param styles The format styles
- * @param result The resulting string
- */
-function formatString(value: string, styles: FormatStyles, result: TerminalString) {
-  result.addAndRevert(styles.string, `'${value}'`, styles.current ?? styles.text);
-}
-
-/**
- * Formats a number value to be printed on the terminal.
- * @param value The number value
- * @param styles The format styles
- * @param result The resulting string
- */
-function formatNumber(value: number, styles: FormatStyles, result: TerminalString) {
-  result.addAndRevert(styles.number, `${value}`, styles.current ?? styles.text);
-}
-
-/**
- * Formats a regex value to be printed on the terminal.
- * @param value The regex value
- * @param styles The format styles
- * @param result The resulting string
- */
-function formatRegExp(value: RegExp, styles: FormatStyles, result: TerminalString) {
-  result.addAndRevert(styles.regex, `${value}`, styles.current ?? styles.text);
-}
-
-/**
- * Formats a URL value to be printed on the terminal.
- * @param value The URL value
- * @param styles The format styles
- * @param result The resulting string
- */
-function formatURL(value: URL, styles: FormatStyles, result: TerminalString) {
-  result.addAndRevert(styles.url, value.href, styles.current ?? styles.text);
-}
-
-/**
- * Formats an option name to be printed on the terminal.
- * @param name The option name
- * @param styles The format styles
- * @param result The resulting string
- */
-function formatOption(name: string, styles: FormatStyles, result: TerminalString) {
-  result.addAndRevert(styles.option, name, styles.current ?? styles.text);
-}
-
-/**
- * Formats a generic or unknown value to be printed on the terminal.
- * @param value The unknown value
- * @param styles The format styles
- * @param result The resulting string
- */
-function formatValue(value: unknown, styles: FormatStyles, result: TerminalString) {
-  result.addAndRevert(styles.value, `<${value}>`, styles.current ?? styles.text);
-}
-
-/**
- * Formats general text to be printed on the terminal.
- * @param text The text
- * @param _styles The format styles
- * @param result The resulting string
- */
-function formatText(text: string, _styles: FormatStyles, result: TerminalString) {
-  result.splitText(text);
-}
-
-/**
- * Formats a previously formatted terminal string.
- * @param str The terminal string
- * @param _styles The format styles
- * @param result The resulting string
- */
-function formatPrev(str: TerminalString, _styles: FormatStyles, result: TerminalString) {
-  result.addOther(str);
 }

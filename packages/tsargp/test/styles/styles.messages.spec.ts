@@ -14,7 +14,7 @@ describe('TerminalMessage', () => {
   afterAll(resetEnv);
 
   it('should wrap the error message', () => {
-    const str = new TerminalString().splitText('type script');
+    const str = new TerminalString().split('type script');
     const msg = new TerminalMessage(str);
     expect(msg.wrap(0)).toEqual('type script');
     expect(msg.wrap(11)).toEqual('type script' + style(tf.clear));
@@ -27,7 +27,7 @@ describe('TerminalMessage', () => {
   });
 
   it('can be thrown and caught', () => {
-    const str = new TerminalString().splitText('type script');
+    const str = new TerminalString().split('type script');
     expect(() => {
       throw new TerminalMessage(str);
     }).toThrow('type script');
@@ -36,7 +36,7 @@ describe('TerminalMessage', () => {
 
 describe('WarnMessage', () => {
   it('can be thrown and caught', () => {
-    const str = new TerminalString().splitText('type script');
+    const str = new TerminalString().split('type script');
     expect(() => {
       throw new WarnMessage(str);
     }).toThrow('type script');
@@ -45,13 +45,13 @@ describe('WarnMessage', () => {
 
 describe('ErrorMessage', () => {
   it('should not prefix the message when converting to string', () => {
-    const str = new TerminalString().splitText('type script');
+    const str = new TerminalString().split('type script');
     const msg = new ErrorMessage(str);
     expect(`${msg}`).toEqual('type script');
   });
 
   it('can be thrown and caught', () => {
-    const str = new TerminalString().splitText('type script');
+    const str = new TerminalString().split('type script');
     expect(() => {
       throw new ErrorMessage(str);
     }).toThrow('type script');
@@ -60,7 +60,7 @@ describe('ErrorMessage', () => {
 
 describe('HelpMessage', () => {
   it('can be thrown and caught', () => {
-    const str = new TerminalString().splitText('type script');
+    const str = new TerminalString().split('type script');
     expect(() => {
       throw new HelpMessage(str);
     }).toThrow('type script');

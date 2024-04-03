@@ -14,6 +14,7 @@ import {
   isString,
   isUnknown,
   getParamCount,
+  getOptionNames,
 } from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
 import { findSimilarNames, matchNamingRules } from './utils';
@@ -207,39 +208,10 @@ export class OptionValidator {
   /**
    * Validates all options' definitions, including command options recursively.
    * @param flags The validation flags
-   * @param prefix The command prefix, if any
-   * @param visited The set of visited option definitions
    * @returns The validation result
-   * @throws On duplicate positional option
    */
-  validate(
-    flags: ValidationFlags = {},
-    prefix = '',
-    visited = new Set<OpaqueOptions>(),
-  ): ValidationResult {
-    const warning = new WarnMessage();
-    if (flags.detectNamingInconsistencies) {
-      // validate names before clearing them
-      validateAllNames(this.config, this.names, this.options, prefix, warning);
-    }
-    this.names.clear(); // to check for duplicate option names
-    this.letters.clear(); // to check for duplicate cluster letters
-    let positional = ''; // to check for duplicate positional options
-    for (const key in this.options) {
-      const option = this.options[key];
-      validateNames(this.config, this.names, this.letters, key, option, prefix);
-      validateOption(flags, this.options, this.config, prefix, key, option, visited, warning);
-      if (option.positional) {
-        if (positional) {
-          throw this.error(ErrorItem.duplicatePositionalOption, {
-            o1: prefix + key,
-            o2: prefix + positional,
-          });
-        }
-        positional = key;
-      }
-    }
-    return warning.length ? { warning } : {};
+  validate(flags: ValidationFlags = {}): ValidationResult {
+    return validate(this.config, this.options, flags);
   }
 
   /**
@@ -291,6 +263,47 @@ export class OptionValidator {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
+ * Validates all options' definitions, including command options recursively.
+ * @param config The validator configuration
+ * @param options The option definitions
+ * @param flags The validation flags
+ * @param prefix The command prefix
+ * @param visited The set of visited option definitions
+ * @returns The validation result
+ * @throws On duplicate positional option
+ */
+function validate(
+  config: ConcreteConfig,
+  options: OpaqueOptions,
+  flags: ValidationFlags,
+  prefix: string = '',
+  visited = new Set<OpaqueOptions>(),
+): ValidationResult {
+  const warning = new WarnMessage();
+  const names = new Map<string, string>();
+  const letters = new Map<string, string>();
+  let positional = ''; // to check for duplicate positional options
+  for (const key in options) {
+    const option = options[key];
+    validateNames(config, names, letters, key, option, prefix);
+    validateOption(config, options, flags, prefix, key, option, visited, warning);
+    if (option.positional) {
+      if (positional) {
+        throw error(config, ErrorItem.duplicatePositionalOption, {
+          o1: prefix + key,
+          o2: prefix + positional,
+        });
+      }
+      positional = key;
+    }
+  }
+  if (flags.detectNamingInconsistencies) {
+    validateAllNames(config, names, options, prefix, warning);
+  }
+  return warning.length ? { warning } : {};
+}
+
+/**
  * Registers an option's names.
  * @param nameToKey The map of option names to keys
  * @param letterToKey The map of cluster letters to key
@@ -315,22 +328,6 @@ function registerNames(
       letterToKey.set(letter, key);
     }
   }
-}
-
-/**
- * Gets a list of option names, including negation names and the positional marker, if any.
- * @param option The option definition
- * @returns The option names
- */
-function getOptionNames(option: OpaqueOption): Array<string> {
-  const names = option.names?.slice() ?? [];
-  if (option.negationNames) {
-    names.push(...option.negationNames);
-  }
-  if (typeof option.positional === 'string') {
-    names.push(option.positional);
-  }
-  return names.filter((name): name is string => !!name);
 }
 
 /**
@@ -439,9 +436,9 @@ function format(
   flags?: FormattingFlags,
 ): TerminalString {
   return new TerminalString()
-    .addSequence(config.styles.text)
-    .formatArgs(config.styles, config.phrases[kind], args, flags)
-    .addBreak();
+    .seq(config.styles.text)
+    .format(config.styles, config.phrases[kind], args, flags)
+    .break();
 }
 
 /**
@@ -484,9 +481,9 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
 
 /**
  * Validates an option's requirements.
- * @param flags The validation flags
- * @param options The option definitions
  * @param config The validator configuration
+ * @param options The option definitions
+ * @param flags The validation flags
  * @param prefix The command prefix
  * @param key The option key
  * @param option The option definition
@@ -495,9 +492,9 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
  * @throws On invalid constraint definition, invalid default, example or fallback value
  */
 function validateOption(
-  flags: ValidationFlags,
-  options: OpaqueOptions,
   config: ConcreteConfig,
+  options: OpaqueOptions,
+  flags: ValidationFlags,
   prefix: string,
   key: string,
   option: OpaqueOption,
@@ -526,13 +523,15 @@ function validateOption(
     throw error(config, ErrorItem.emptyVersionDefinition, { o: prefix + key });
   }
   if (option.type === 'command') {
-    const options = typeof option.options === 'function' ? option.options() : option.options;
-    if (options && !visited.has(options as OpaqueOptions)) {
-      visited.add(options as OpaqueOptions);
-      const validator = new OptionValidator(options, config);
-      const result = validator.validate(flags, prefix + key + '.', visited);
-      if (result.warning) {
-        warning.push(...result.warning);
+    const cmdOpts = option.options;
+    if (cmdOpts) {
+      const opts = (typeof cmdOpts === 'function' ? cmdOpts() : cmdOpts) as OpaqueOptions;
+      if (!visited.has(opts)) {
+        visited.add(opts);
+        const result = validate(config, opts, flags, prefix + key + '.', visited);
+        if (result.warning) {
+          warning.push(...result.warning);
+        }
       }
     }
   }

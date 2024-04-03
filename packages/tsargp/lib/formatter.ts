@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { OpaqueOption, OpaqueOptions, Requires, RequiresVal } from './options';
 import type { Style, FormatStyles } from './styles';
-import type { Concrete } from './utils';
+import { max, type Concrete } from './utils';
 import type { ConcreteConfig, OptionValidator } from './validator';
 
 import { tf, HelpItem, ConnectiveWords } from './enums';
@@ -16,6 +16,7 @@ import {
   isNumber,
   isArray,
   getParamCount,
+  getOptionNames,
 } from './options';
 import { HelpMessage, TerminalString, style, format } from './styles';
 
@@ -351,7 +352,6 @@ export class HelpFormatter {
   private readonly styles: FormatStyles;
   private readonly connectives: ConcreteConfig['connectives'];
   private readonly groups = new Map<string, Array<HelpEntry>>();
-  private readonly config: ConcreteFormat;
   private readonly nameWidths: Array<number> | number;
   private paramWidth = 0;
 
@@ -361,31 +361,31 @@ export class HelpFormatter {
    * @param config The formatter configuration
    */
   constructor(validator: OptionValidator, config?: FormatterConfig) {
+    const cfg = mergeConfig(config);
     this.options = validator.options;
     this.styles = validator.config.styles;
     this.connectives = validator.config.connectives;
-    this.config = mergeConfig(config);
-    this.nameWidths = this.config.names.hidden
+    this.nameWidths = cfg.names.hidden
       ? 0
-      : this.config.names.align === 'slot'
+      : cfg.names.align === 'slot'
         ? getNameWidths(this.options)
         : getMaxNamesWidth(this.options);
     for (const key in this.options) {
       const option = this.options[key];
-      if (!option.hide && !excludeOption(option, this.config.filters)) {
+      if (!option.hide && !excludeOption(option, cfg.filters)) {
         const paramLen = formatOption(
           this.groups,
-          this.config,
+          cfg,
           this.styles,
           this.options,
           this.nameWidths,
           this.connectives,
           option,
         );
-        this.paramWidth = Math.max(this.paramWidth, paramLen);
+        this.paramWidth = max(this.paramWidth, paramLen);
       }
     }
-    adjustEntries(this.groups, this.config, this.nameWidths, this.paramWidth);
+    adjustEntries(this.groups, cfg, this.nameWidths, this.paramWidth);
   }
 
   /**
@@ -531,7 +531,7 @@ function formatParams(
   if (config.param.hidden || !getParamCount(option)[1]) {
     return 0;
   }
-  result.addBreak(config.param.breaks);
+  result.break(config.param.breaks);
   const len = formatParam(option, styles, result);
   return (result.indent = len); // hack: save the length, since we will need it in `adjustEntries`
 }
@@ -556,11 +556,11 @@ function formatDescription(
   connectives: ConcreteConfig['connectives'],
 ) {
   if (config.descr.hidden || !config.items.length) {
-    return result.addBreak(1);
+    return result.break(1);
   }
   const descrStyle = option.styles?.descr ?? styles.text;
   result.rightAlign = config.descr.align === 'right';
-  result.addBreak(config.descr.breaks).addSequence(descrStyle);
+  result.break(config.descr.breaks).seq(descrStyle);
   styles.current = descrStyle;
   const count = result.count;
   try {
@@ -572,9 +572,9 @@ function formatDescription(
     delete styles.current;
   }
   if (result.count == count) {
-    result.pop(count).addBreak(1); // this string does not contain any word
+    result.pop(count).break(1); // this string does not contain any word
   } else {
-    result.addClear().addBreak(); // add ending breaks after styles
+    result.clear().break(); // add ending breaks after styles
   }
 }
 
@@ -605,7 +605,7 @@ function getNameWidths(options: OpaqueOptions): Array<number> {
     const option = options[key];
     if (!option.hide && option.names) {
       option.names.forEach((name, i) => {
-        result[i] = Math.max(result[i] ?? 0, name?.length ?? 0);
+        result[i] = max(result[i] ?? 0, name?.length ?? 0);
       });
     }
   }
@@ -628,7 +628,7 @@ function getMaxNamesWidth(options: OpaqueOptions): number {
           len += (len ? 2 : 0) + name.length;
         }
       }
-      result = Math.max(result, len);
+      result = max(result, len);
     }
   }
   return result;
@@ -650,16 +650,18 @@ function adjustEntries(
   if (typeof namesWidth !== 'number') {
     namesWidth = namesWidth.length ? namesWidth.reduce((acc, len) => acc + len + 2, -2) : 0;
   }
-  const namesIndent = Math.max(0, config.names.indent);
-  const paramIndent = config.param.absolute
-    ? Math.max(0, config.param.indent)
-    : namesIndent + namesWidth + config.param.indent;
-  const descrIndent = config.descr.absolute
-    ? Math.max(0, config.descr.indent)
-    : paramIndent + paramWidth + config.descr.indent;
+  const { names, param, descr } = config;
+  const alignLeft = param.align === 'left';
+  const namesIndent = max(0, names.indent);
+  const paramIndent = param.absolute
+    ? max(0, param.indent)
+    : namesIndent + namesWidth + param.indent;
+  const descrIndent = descr.absolute
+    ? max(0, descr.indent)
+    : paramIndent + paramWidth + descr.indent;
   for (const entries of groups.values()) {
     for (const { param, descr } of entries) {
-      param.indent = paramIndent + (config.param.align === 'left' ? 0 : paramWidth - param.indent);
+      param.indent = paramIndent + (alignLeft ? 0 : paramWidth - param.indent);
       descr.indent = descrIndent;
     }
   }
@@ -684,13 +686,13 @@ function formatNameSlots(
   const slotted = typeof nameWidths !== 'number';
   const result = new Array<TerminalString>();
   let str: TerminalString | undefined;
-  let indent = Math.max(0, config.names.indent);
+  let indent = max(0, config.names.indent);
   let breaks = config.names.breaks;
   let len = 0;
   names.forEach((name, i) => {
     if (name) {
       if (str) {
-        str.addClosing(',');
+        str.close(',');
         len += 2;
       }
       if (!str || slotted) {
@@ -698,7 +700,7 @@ function formatNameSlots(
         result.push(str);
         breaks = 0; // break only on the first name
       }
-      str.addAndRevert(namesStyle, name, defStyle);
+      str.style(namesStyle, name, defStyle);
       len += name.length;
     } else if (slotted) {
       str = undefined;
@@ -787,7 +789,7 @@ function formatUsageSection(
   let indent2 = indent;
   if (progName) {
     result.push(formatText(progName, styles.text, indent, breaks, true));
-    indent2 = Math.max(0, indent ?? 0) + progName.length + 1;
+    indent2 = max(0, indent ?? 0) + progName.length + 1;
     breaks = 0;
   }
   const filterKeys = filter && new Set(filter);
@@ -814,7 +816,7 @@ function formatGroupsSection(
     if ((filterGroups?.has(group) ?? !exclude) != !!exclude) {
       const title2 = group || title;
       const heading = title2
-        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap, phrase).addBreak(2)
+        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap, phrase).break(2)
         : new TerminalString(0, breaks);
       result.push(heading, ...formatEntries(entries));
       result[result.length - 1].pop(); // remove trailing break
@@ -844,18 +846,18 @@ function formatText(
   /** @ignore */
   function format() {
     if (noWrap) {
-      result.addWord(text); // warning: may be larger than the terminal width
+      result.word(text); // warning: may be larger than the terminal width
     } else {
-      result.splitText(text);
+      result.split(text);
     }
   }
-  const result = new TerminalString(indent, breaks).addSequence(defStyle);
+  const result = new TerminalString(indent, breaks).seq(defStyle);
   if (phrase) {
-    result.splitText(phrase, format);
+    result.split(phrase, format);
   } else {
     format();
   }
-  return result.addClear(); // to simplify client code
+  return result.clear(); // to simplify client code
 }
 
 /**
@@ -877,7 +879,7 @@ function formatUsage(
   filterKeys?: Set<string>,
   exclude = false,
 ): TerminalString {
-  const result = new TerminalString(indent, breaks).addSequence(styles.text);
+  const result = new TerminalString(indent, breaks).seq(styles.text);
   const count = result.count;
   for (const key in options) {
     const option = options[key];
@@ -888,7 +890,7 @@ function formatUsage(
   if (result.count == count) {
     return new TerminalString(); // this string does not contain any word
   }
-  return result.addClear(); // to simplify client code
+  return result.clear(); // to simplify client code
 }
 
 /**
@@ -900,14 +902,14 @@ function formatUsage(
 function formatUsageOption(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
   const required = option.required;
   if (!required) {
-    result.addOpening('[');
+    result.open('[');
   }
   formatUsageNames(option, styles, result);
   if (getParamCount(option)[1]) {
     formatParam(option, styles, result);
   }
   if (!required) {
-    result.addClosing(']');
+    result.close(']');
   }
 }
 
@@ -918,25 +920,19 @@ function formatUsageOption(option: OpaqueOption, styles: FormatStyles, result: T
  * @param result The resulting string
  */
 function formatUsageNames(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
-  const names = option.names?.filter((name): name is string => !!name);
-  if (names?.length) {
-    if (option.negationNames) {
-      names.push(...option.negationNames.filter((name) => name));
-    }
+  const names = getOptionNames(option);
+  if (names.length) {
     const positional = option.positional;
-    if (typeof positional === 'string') {
-      names.push(positional);
-    }
     if (positional) {
-      result.addOpening('[');
+      result.open('[');
     }
     if (names.length > 1) {
-      result.formatArgs(styles, '(%o)', { o: names }, { sep: '|', mergeNext: true });
+      result.format(styles, '(%o)', { o: names }, { sep: '|', mergeNext: true });
     } else {
       format.o(names[0], styles, result);
     }
     if (positional) {
-      result.addClosing(']');
+      result.close(']');
     }
   }
 }
@@ -965,7 +961,7 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
       ? `<param>${ellipsis}`
       : `<${option.type}>${ellipsis}`;
   const param = min <= 0 ? `[${paramText}]` : paramText;
-  result.addAndRevert(paramStyle, param, styles.text);
+  result.style(paramStyle, param, styles.text);
   return param.length;
 }
 
@@ -983,11 +979,11 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
   if (separator) {
     const sep = typeof separator === 'string' ? separator : separator.source;
     const value = (example as Array<unknown>).join(sep);
-    result.formatArgs(styles, '%s', { s: value });
+    result.format(styles, '%s', { s: value });
     return result.length;
   }
   const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
-  result.formatArgs(styles, `%${spec}`, { [spec]: example }, {});
+  result.format(styles, `%${spec}`, { [spec]: example }, {});
   const nonDelimited = spec !== 'v' && Array.isArray(example);
   return result.length + (nonDelimited ? example.length - 1 : 0);
 }
@@ -1007,7 +1003,7 @@ function formatSynopsis(
 ) {
   const desc = option.desc;
   if (desc) {
-    result.formatArgs(styles, phrase, { t: desc });
+    result.format(styles, phrase, { t: desc });
   }
 }
 
@@ -1026,7 +1022,7 @@ function formatNegation(
 ) {
   const names = option.negationNames?.filter((name) => name);
   if (names?.length) {
-    result.formatArgs(styles, phrase, { o: names });
+    result.format(styles, phrase, { o: names });
   }
 }
 
@@ -1046,7 +1042,7 @@ function formatSeparator(
   const separator = option.separator;
   if (separator) {
     const [spec, alt] = typeof separator === 'string' ? ['s', 0] : ['r', 1];
-    result.formatArgs(styles, phrase, { [spec]: separator }, { alt });
+    result.format(styles, phrase, { [spec]: separator }, { alt });
   }
 }
 
@@ -1077,7 +1073,7 @@ function formatParamCount(
             : min > 1
               ? [3, min] // at least %n
               : [0, undefined]; // multiple
-    result.formatArgs(styles, phrase, { n: val }, { alt, sep: 'and', mergePrev: false });
+    result.format(styles, phrase, { n: val }, { alt, sep: 'and', mergePrev: false });
   }
 }
 
@@ -1097,7 +1093,7 @@ function formatPositional(
   const positional = option.positional;
   if (positional) {
     const [spec, alt] = positional === true ? ['', 0] : ['o', 1];
-    result.formatArgs(styles, phrase, { [spec]: positional }, { alt });
+    result.format(styles, phrase, { [spec]: positional }, { alt });
   }
 }
 
@@ -1115,7 +1111,7 @@ function formatAppend(
   result: TerminalString,
 ) {
   if (option.append) {
-    result.splitText(phrase);
+    result.split(phrase);
   }
 }
 
@@ -1133,7 +1129,7 @@ function formatTrim(
   result: TerminalString,
 ) {
   if (option.trim) {
-    result.splitText(phrase);
+    result.split(phrase);
   }
 }
 
@@ -1153,7 +1149,7 @@ function formatCase(
   const conv = option.case;
   if (conv) {
     const alt = conv === 'lower' ? 0 : 1;
-    result.formatArgs(styles, phrase, {}, { alt });
+    result.format(styles, phrase, {}, { alt });
   }
 }
 
@@ -1172,7 +1168,7 @@ function formatConv(
 ) {
   const conv = option.conv;
   if (conv) {
-    result.formatArgs(styles, phrase, { t: conv });
+    result.format(styles, phrase, { t: conv });
   }
 }
 
@@ -1192,7 +1188,7 @@ function formatEnums(
   const enums = option.enums;
   if (enums) {
     const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
-    result.formatArgs(styles, phrase, { [spec]: enums }, { alt, sep: ',' });
+    result.format(styles, phrase, { [spec]: enums }, { alt, sep: ',' });
   }
 }
 
@@ -1211,7 +1207,7 @@ function formatRegex(
 ) {
   const regex = option.regex;
   if (regex) {
-    result.formatArgs(styles, phrase, { r: regex });
+    result.format(styles, phrase, { r: regex });
   }
 }
 
@@ -1230,7 +1226,7 @@ function formatRange(
 ) {
   const range = option.range;
   if (range) {
-    result.formatArgs(styles, phrase, { n: range });
+    result.format(styles, phrase, { n: range });
   }
 }
 
@@ -1248,7 +1244,7 @@ function formatUnique(
   result: TerminalString,
 ) {
   if (option.unique) {
-    result.splitText(phrase);
+    result.split(phrase);
   }
 }
 
@@ -1267,7 +1263,7 @@ function formatLimit(
 ) {
   const limit = option.limit;
   if (limit !== undefined) {
-    result.formatArgs(styles, phrase, { n: limit });
+    result.format(styles, phrase, { n: limit });
   }
 }
 
@@ -1285,7 +1281,7 @@ function formatRequired(
   result: TerminalString,
 ) {
   if (option.required) {
-    result.splitText(phrase);
+    result.split(phrase);
   }
 }
 
@@ -1337,7 +1333,7 @@ function formatValue(
               : option.type === 'numbers'
                 ? ['n', 4]
                 : ['v', 5];
-  result.formatArgs(styles, phrase, { [spec]: value }, { alt, sep: ',' });
+  result.format(styles, phrase, { [spec]: value }, { alt, sep: ',' });
 }
 
 /**
@@ -1355,7 +1351,7 @@ function formatDeprecated(
 ) {
   const deprecated = option.deprecated;
   if (deprecated) {
-    result.formatArgs(styles, phrase, { t: deprecated });
+    result.format(styles, phrase, { t: deprecated });
   }
 }
 
@@ -1374,7 +1370,7 @@ function formatLink(
 ) {
   const link = option.link;
   if (link) {
-    result.formatArgs(styles, phrase, { u: link });
+    result.format(styles, phrase, { u: link });
   }
 }
 
@@ -1393,7 +1389,7 @@ function formatEnvVar(
 ) {
   const envVar = option.envVar;
   if (envVar) {
-    result.formatArgs(styles, phrase, { o: envVar });
+    result.format(styles, phrase, { o: envVar });
   }
 }
 
@@ -1412,7 +1408,7 @@ function formatClusterLetters(
 ) {
   const letters = option.clusterLetters;
   if (letters) {
-    result.formatArgs(styles, phrase, { s: letters });
+    result.format(styles, phrase, { s: letters });
   }
 }
 
@@ -1436,7 +1432,7 @@ function formatRequirements(
 ) {
   if (typeof requires === 'string') {
     if (negate) {
-      result.addWord(connectives[ConnectiveWords.no]);
+      result.word(connectives[ConnectiveWords.no]);
     }
     const name = options[requires].preferredName ?? '';
     format.o(name, styles, result);
@@ -1448,7 +1444,7 @@ function formatRequirements(
     formatRequiresVal(options, requires, styles, result, connectives, negate);
   } else {
     if (negate) {
-      result.addWord(connectives[ConnectiveWords.not]);
+      result.word(connectives[ConnectiveWords.not]);
     }
     format.v(requires, styles, result);
   }
@@ -1476,17 +1472,19 @@ function formatRequiresExp(
     requires instanceof RequiresAll === negate
       ? connectives[ConnectiveWords.or]
       : connectives[ConnectiveWords.and];
-  if (requires.items.length > 1) {
-    result.addOpening('(');
+  const items = requires.items;
+  const length = items.length;
+  if (length > 1) {
+    result.open('(');
   }
-  requires.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     formatRequirements(options, item, styles, result, connectives, negate);
-    if (i < requires.items.length - 1) {
-      result.addWord(op);
+    if (i < length - 1) {
+      result.word(op);
     }
   });
-  if (requires.items.length > 1) {
-    result.addClosing(')');
+  if (length > 1) {
+    result.close(')');
   }
 }
 
@@ -1509,17 +1507,18 @@ function formatRequiresVal(
   negate: boolean,
 ) {
   const entries = Object.entries(requires);
-  if (entries.length > 1) {
-    result.addOpening('(');
+  const length = entries.length;
+  if (length > 1) {
+    result.open('(');
   }
   entries.forEach(([key, value], i) => {
     formatRequiredValue(options[key], value, styles, result, connectives, negate);
-    if (i < entries.length - 1) {
-      result.addWord(connectives[ConnectiveWords.and]);
+    if (i < length - 1) {
+      result.word(connectives[ConnectiveWords.and]);
     }
   });
-  if (entries.length > 1) {
-    result.addClosing(')');
+  if (length > 1) {
+    result.close(')');
   }
 }
 
@@ -1542,7 +1541,7 @@ function formatRequiredValue(
   negate: boolean,
 ) {
   if ((value === null && !negate) || (value === undefined && negate)) {
-    result.addWord(connectives[ConnectiveWords.no]);
+    result.word(connectives[ConnectiveWords.no]);
   }
   format.o(option.preferredName ?? '', styles, result);
   if (value !== null && value !== undefined) {
@@ -1551,7 +1550,7 @@ function formatRequiredValue(
       : connectives[ConnectiveWords.equals];
     const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
     const phrase = isArray(option) ? `[%${spec}]` : `%${spec}`;
-    result.addWord(connective).formatArgs(styles, phrase, { [spec]: value });
+    result.word(connective).format(styles, phrase, { [spec]: value });
   }
 }
 
@@ -1574,9 +1573,7 @@ function formatRequires(
 ) {
   const requires = option.requires;
   if (requires) {
-    result.splitText(phrase, () =>
-      formatRequirements(options, requires, styles, result, connectives),
-    );
+    result.split(phrase, () => formatRequirements(options, requires, styles, result, connectives));
   }
 }
 
@@ -1599,7 +1596,7 @@ function formatRequiredIf(
 ) {
   const requiredIf = option.requiredIf;
   if (requiredIf) {
-    result.splitText(phrase, () =>
+    result.split(phrase, () =>
       formatRequirements(options, requiredIf, styles, result, connectives),
     );
   }
