@@ -219,7 +219,7 @@ and in what order. It is an array whose values can be one of the enumerators fro
 - `synopsis` - the option synopsis
 - `negation` - the negation names of a flag option, if any
 - `separator` - the element delimiter of an array option, if enabled
-- `variadic` - reports if an array option accepts multiple parameters
+- `paramCount` - reports the parameter count of a variadic or polyadic[^1] option
 - `positional` - reports if an option accepts positional arguments
 - `append` - reports if an array option can be specified multiple times
 - `trim` - reports if string parameters will be trimmed (have leading and trailing whitespace removed)
@@ -249,7 +249,7 @@ The `phrases` property specifies the phrases to be used for each kind of help it
 - `synopsis` - `'%t'{:ts}`
 - `negation` - `'Can be negated with %o.'{:ts}`
 - `separator` - `'Values are delimited by (%s|%r).'{:ts}`
-- `variadic` - `'Accepts multiple parameters.'{:ts}`
+- `paramCount` - `'Accepts (multiple|%n|at most %n|at least %n|between %n) parameters.'{:ts}`
 - `positional` - `'Accepts positional parameters(| that may be preceded by %o).'{:ts}`
 - `append` - `'May be specified multiple times.'{:ts}`
 - `trim` - `'Values will be trimmed.'{:ts}`
@@ -283,7 +283,7 @@ description of the corresponding value:
 | synopsis       | `%t` = the option synopsis               |
 | negation       | `%o` = the negation names                |
 | separator      | `%s`/`%r` = the parameter separator      |
-| variadic       |                                          |
+| paramCount     | `%n` = the parameter count               |
 | positional     | `%o` = the positional marker             |
 | append         |                                          |
 | trim           |                                          |
@@ -342,3 +342,7 @@ overriden by (or combined with) an option's [display styles], if present.
 [display styles]: options#display-styles
 [error phrases]: validator#error-phrases
 [format specifiers]: styles#format-specifiers
+
+[^1]:
+    _polyadic_ means that the option accepts more than one parameter, but the parameter count is
+    not variable

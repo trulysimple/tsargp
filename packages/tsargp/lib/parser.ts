@@ -26,12 +26,11 @@ import {
   RequiresNot,
   RequiresOne,
   isArray,
-  isVariadic,
-  isNiladic,
   isMessage,
   isString,
   isBoolean,
   isUnknown,
+  getParamCount,
 } from './options';
 import {
   HelpMessage,
@@ -103,7 +102,7 @@ type ParseEntry = [
   value?: string,
   comp?: boolean,
   marker?: boolean,
-  lookFor?: boolean,
+  isNew?: boolean,
 ];
 
 //--------------------------------------------------------------------------------------------------
@@ -247,7 +246,8 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
       throw validator.error(ErrorItem.unknownOption, { o: letter }, { alt: 0 });
     }
     const option = validator.options[key];
-    if (j < cluster.length - 1 && (option.type === 'command' || isVariadic(option))) {
+    const [min, max] = getParamCount(option);
+    if (j < cluster.length - 1 && (option.type === 'command' || min < max)) {
       throw validator.error(ErrorItem.invalidClusterOption, { o: letter });
     }
     const name = option.names?.find((name) => name);
@@ -255,7 +255,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
       continue; // skip options with no names
     }
     args.splice(i, 0, name);
-    i += isNiladic(option) ? 1 : 2;
+    i += 1 + min;
   }
 }
 
@@ -309,17 +309,29 @@ async function parseArgs(
   let positional = false;
   for (let i = 0, k = 0; i < args.length; i = prev[0]) {
     const next = findNext(validator, args, prev);
-    const [j, info, value, comp, marker] = next;
-    if (prev[1] !== info) {
+    const [j, info, value, comp, marker, isNew] = next;
+    if (isNew || !info) {
       if (prev[1]) {
-        await handleNonNiladic(validator, values, completing, prev[1], i, args.slice(k, j));
+        // process the previous sequence
+        const breakLoop = await handleNonNiladic(
+          validator,
+          values,
+          specifiedKeys,
+          completing,
+          prev[1],
+          i,
+          args.slice(k, j),
+        );
+        if (breakLoop) {
+          return false;
+        }
       }
       if (!info) {
         break; // finished
       }
       prev = next;
       const { key, name, option } = info;
-      const niladic = isNiladic(option);
+      const niladic = !getParamCount(option)[1];
       const hasValue = value !== undefined;
       if (niladic || marker) {
         if (comp) {
@@ -371,7 +383,18 @@ async function parseArgs(
           k = hasValue ? j : j + 1;
         } else {
           // option name with inline parameter
-          await handleNonNiladic(validator, values, completing, info, j, [value]);
+          const breakLoop = await handleNonNiladic(
+            validator,
+            values,
+            specifiedKeys,
+            completing,
+            info,
+            j,
+            [value],
+          );
+          if (breakLoop) {
+            return false;
+          }
           prev[1] = undefined;
         }
         continue; // fetch more
@@ -394,7 +417,8 @@ async function parseArgs(
 }
 
 /**
- * Finds the next option or word to complete in the command-line arguments.
+ * Finds the start of the next sequence in the command-line arguments, or a word to complete.
+ * If a sequence is found, it is a new option specification (but the option can be the same).
  * @param validator The option validator
  * @param args The command-line arguments
  * @param prev The previous parse entry
@@ -405,66 +429,76 @@ function findNext(
   args: ReadonlyArray<string>,
   prev: ParseEntry,
 ): ParseEntry {
-  let [index, info, , , marker, lookFor] = prev;
+  const [index, info, prevVal, , marker] = prev;
+  const inc = prevVal !== undefined ? 1 : 0;
   const positional = validator.positional;
-  const variadic = info ? isVariadic(info.option) : false;
-  for (++index; index < args.length; ++index) {
-    const [arg, rest] = args[index].split('\0', 2);
+  const [min, max] = info ? getParamCount(info.option) : [0, 0];
+  for (let i = index + 1; i < args.length; ++i) {
+    const [arg, rest] = args[i].split('\0', 2);
     const comp = rest !== undefined;
-    if (!info || lookFor) {
+    if (!info || (!marker && i - index + inc > min)) {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = validator.names.get(name);
       if (key) {
         if (comp && value === undefined) {
           throw new CompletionMessage(name);
         }
-        const isMarker = name === positional?.marker;
-        info = isMarker ? positional : { key, name, option: validator.options[key] };
-        lookFor = !isMarker && info.option.fallback !== undefined;
-        return [index, info, value, comp, isMarker, lookFor];
+        const marker = name === positional?.marker;
+        const info = marker ? positional : { key, name, option: validator.options[key] };
+        return [i, info, value, comp, marker, true];
       }
-      if (!info) {
+      if (!info || i - index + inc > max) {
         if (!positional) {
           if (comp) {
             handleNameCompletion(validator, arg);
           }
           handleUnknownName(validator, name);
         }
-        return [index, positional, arg, comp, false, true];
+        return [i, positional, arg, comp, false, true];
       }
     }
     if (comp) {
-      return [index, info, arg, comp, marker];
-    }
-    if (!marker) {
-      if (variadic) {
-        lookFor = true;
-      } else {
-        info = undefined;
-      }
+      return [i, info, arg, comp, marker, false];
     }
   }
-  return [index];
+  return [args.length];
 }
 
 /**
  * Handles a non-niladic option.
  * @param validator The option validator
  * @param values The option values
+ * @param specifiedKeys The set of specified keys
  * @param comp True if performing completion
  * @param info The option information
  * @param index The starting index of the argument sequence
  * @param params The option parameters, if any
- * @returns A promise that must be awaited before continuing
+ * @returns True if the parsing loop should be broken
  */
 async function handleNonNiladic(
   validator: OptionValidator,
   values: OpaqueOptionValues,
+  specifiedKeys: Set<string>,
   comp: boolean,
   info: OptionInfo,
   index: number,
   params: Array<string>,
-) {
+): Promise<boolean> {
+  // max is not needed here because either:
+  // - the parser would have failed to find an option that starts a new sequence at max + 1; or
+  // - it would have reached the end of the arguments before max + 1
+  const [min] = getParamCount(info.option);
+  if (params.length < min) {
+    throw validator.error(ErrorItem.missingParameter, { o: info.name });
+  }
+  if (info.option.type === 'function') {
+    const breakLoop = !!info.option.break && !comp;
+    if (breakLoop) {
+      await checkRequired(validator, values, specifiedKeys);
+    }
+    await handleFunction(values, comp, index, params, info);
+    return breakLoop;
+  }
   try {
     // use await here instead of return, in order to catch errors
     await parseParam(validator, values, comp, index, info, params);
@@ -474,6 +508,7 @@ async function handleNonNiladic(
       throw err;
     }
   }
+  return false;
 }
 
 /**
@@ -634,11 +669,7 @@ async function parseParam(
   }
   const { key, name, option } = info;
   if (!params.length) {
-    const fallback = option.fallback;
-    if (fallback === undefined) {
-      throw validator.error(ErrorItem.missingParameter, { o: name });
-    }
-    return setValue(validator, values, key, option, fallback);
+    return setValue(validator, values, key, option, option.fallback);
   }
   const convertFn: (val: string) => unknown =
     option.type === 'boolean' ? bool : isString(option) ? (str: string) => str : Number;
@@ -679,6 +710,10 @@ async function setValue(
   /** @ignore */
   function norm<T>(val: T) {
     return validator.normalize(option, key, val);
+  }
+  if (value === undefined) {
+    values[key] = value;
+    return;
   }
   const resolved = typeof value === 'function' ? await value(values) : value;
   values[key] =
@@ -945,11 +980,7 @@ async function checkEnvVarAndDefaultValue(
     const name = option.preferredName ?? '';
     throw validator.error(ErrorItem.missingRequiredOption, { o: name });
   } else if ('default' in option) {
-    if (option.default === undefined) {
-      values[key] = undefined;
-    } else {
-      return setValue(validator, values, key, option, option.default);
-    }
+    return setValue(validator, values, key, option, option.default);
   }
 }
 

@@ -135,6 +135,36 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['f'], { shortStyle: true })).resolves.toEqual({ function: true });
     });
 
+    it('should throw an error on string option with fallback value in the middle of a cluster argument', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          fallback: '',
+          clusterLetters: 's',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['sx'], { shortStyle: true })).rejects.toThrow(
+        `Option letter s must be the last in a cluster.`,
+      );
+    });
+
+    it('should throw an error on number option with fallback value in the middle of a cluster argument', async () => {
+      const options = {
+        number: {
+          type: 'number',
+          names: ['-n'],
+          fallback: 0,
+          clusterLetters: 'n',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['nx'], { shortStyle: true })).rejects.toThrow(
+        `Option letter n must be the last in a cluster.`,
+      );
+    });
+
     it('should throw an error on variadic strings option in the middle of a cluster argument', async () => {
       const options = {
         strings: {
@@ -160,6 +190,36 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['nx'], { shortStyle: true })).rejects.toThrow(
         `Option letter n must be the last in a cluster.`,
+      );
+    });
+
+    it('should throw an error on variadic function option in the middle of a cluster argument (1)', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: -1,
+          clusterLetters: 'f',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['fx'], { shortStyle: true })).rejects.toThrow(
+        `Option letter f must be the last in a cluster.`,
+      );
+    });
+
+    it('should throw an error on variadic function option in the middle of a cluster argument (2)', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: [0, 1],
+          clusterLetters: 'f',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['fx'], { shortStyle: true })).rejects.toThrow(
+        `Option letter f must be the last in a cluster.`,
       );
     });
 

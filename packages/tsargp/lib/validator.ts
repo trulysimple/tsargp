@@ -10,10 +10,10 @@ import {
   RequiresAll,
   RequiresOne,
   RequiresNot,
-  isNiladic,
   isMessage,
   isString,
   isUnknown,
+  getParamCount,
 } from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
 import { findSimilarNames, matchNamingRules } from './utils';
@@ -75,6 +75,9 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names [%s2].',
     [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions [%s].',
     [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range [%n].',
+    [ErrorItem.invalidParamCount]: 'Option %o has invalid parameter count [%n].',
+    [ErrorItem.variadicWithClusterLetter]:
+      'Variadic option %o has cluster letters. It may only appear as the last option in a cluster.',
     [ErrorItem.invalidBooleanParameter]: 'Invalid parameter to %o: %s1. Possible values are {%s2}.',
   },
   connectives: {
@@ -501,13 +504,18 @@ function validateOption(
   visited: Set<OpaqueOptions>,
   warning: WarnMessage,
 ) {
-  if (!isNiladic(option)) {
+  const [min, max] = getParamCount(option);
+  // no need to verify a flag option's default value
+  if (max) {
     validateConstraints(config, prefix + key, option);
+    // non-niladic function options are ignored in value validation
     validateValue(config, prefix + key, option, option.default);
     validateValue(config, prefix + key, option, option.example);
     validateValue(config, prefix + key, option, option.fallback);
   }
-  // no need to verify flag option default value
+  if (min < max && option.clusterLetters) {
+    warning.push(format(config, ErrorItem.variadicWithClusterLetter, { o: prefix + key }));
+  }
   if (option.requires) {
     validateRequirements(options, config, prefix, key, option.requires);
   }
@@ -607,7 +615,7 @@ function validateRequirement(
  * @param config The validator configuration
  * @param key The option key (plus the prefix, if any)
  * @param option The option definition
- * @throws On invalid enums definition or invalid numeric range
+ * @throws On invalid enums definition, invalid numeric range or invalid parameter count
  */
 function validateConstraints(config: ConcreteConfig, key: string, option: OpaqueOption) {
   const enums = option.enums;
@@ -631,6 +639,14 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
     // handles NaN as well
     if (!(min < max)) {
       throw error(config, ErrorItem.invalidNumericRange, { o: key, n: range });
+    }
+  }
+  const paramCount = option.paramCount;
+  if (typeof paramCount === 'object') {
+    const [min, max] = paramCount;
+    // handles NaN as well
+    if (!(min < max) || min < 0) {
+      throw error(config, ErrorItem.invalidParamCount, { o: key, n: paramCount });
     }
   }
 }

@@ -23,6 +23,8 @@
     "WithVerInfo",
     "WithResolve",
     "WithAppend",
-    "WithParse"
+    "WithParse",
+    "WithParamCount",
+    "WithSkipCount"
   ]
 }

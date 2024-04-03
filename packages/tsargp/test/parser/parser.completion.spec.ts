@@ -340,10 +340,10 @@ describe('ArgumentParser', () => {
       options.boolean.complete.mockClear();
       await expect(parser.parse('cmd 0 1 ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
       expect(options.boolean.complete).toHaveBeenCalledWith({
-        values: { boolean: undefined },
-        index: 0,
+        values: { boolean: true },
+        index: 1,
         name: '-b',
-        param: ['0', '1'],
+        param: [],
         comp: '',
       });
     });

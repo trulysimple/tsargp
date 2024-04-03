@@ -82,6 +82,14 @@ Cluster letters are subject to the restrictions listed below:
 - **Invalid cluster letter** -
   A cluster letter must not contain whitespace. Any other Unicode character is allowed.
 
+In addition to the above, the validator may generate the following warning:
+
+- **Variadic option with cluster letter** -
+  A variadic option that declares cluster letters must always be the last option in a cluster
+  argument. This includes options with a fallback value, non-delimited array options and function
+  options with a variable [parameter count]. This might not be the intended behavior, and you should
+  consider alternatives.
+
 ### Constraints validation
 
 Constraint definitions are subject to the restrictions listed below:
@@ -95,6 +103,9 @@ Constraint definitions are subject to the restrictions listed below:
 - **Invalid numeric range** -
   In a number-valued option, if the [range] attribute is present, then its minimum value should be
   strictly less than the maximum.
+- **Invalid parameter count** -
+  In a function option, if the [parameter count] attribute is present and is a range, then its
+  minimum value should be strictly less than the maximum, but not less than zero.
 
 ### Value validation
 
@@ -261,6 +272,10 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
   conventions
 - `invalidNumericRange` -
   raised by the validator when a number-valued option has an invalid numeric range
+- `invalidParamCount` -
+  raised by the validator when a function option has an invalid parameter count
+- `variadicWithClusterLetter` -
+  warning produced by the validator when a variadic option declares cluster letters
 - `invalidBooleanParameter` -
   raised by the parser when a parameter to a boolean option fails to be converted
 
@@ -300,6 +315,8 @@ following optional properties, which are the enumerators from `ErrorItem`:
 - `tooSimilarOptionNames` - `'%o: Option name %s1 has too similar names %s2.'{:ts}`
 - `mixedNamingConvention` - `'%o: Name slot %n has mixed naming conventions [%s].'{:ts}`
 - `invalidNumericRange` - `'Option %o has invalid numeric range [%n].'{:ts}`
+- `invalidParamCount` - `'Option %o has invalid parameter count [%n].'{:ts}`
+- `variadicWithClusterLetter` - `'Variadic option %o has cluster letters. It may only appear as the last option in a cluster.'{:ts}`
 - `invalidBooleanParameter` - `'Invalid parameter to %o: %s1. Possible values are {%s2}.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
@@ -343,6 +360,8 @@ with a description of the corresponding value:
 | tooSimilarOptionNames      | `%o` = the command prefix[^1]; `%s1` = the option name; `%s2` = the similar names                  |
 | mixedNamingConvention      | `%o` = the command prefix[^1]; `%n` = the slot index; `%s` = the naming conventions                |
 | invalidNumericRange        | `%o` = the option's key; `%n` = the numeric range                                                  |
+| invalidParamCount          | `%o` = the option's key; `%n` = the parameter count                                                |
+| variadicWithClusterLetter  | `%o` = the option's key                                                                            |
 | invalidBooleanParameter    | `%o` = the specified option name; `%s1` = the specified value; `%s2` = the truth and falsity names |
 
 ### Connective words
@@ -375,6 +394,7 @@ the enumerators from `ConnectiveWords`:
 [format specifiers]: styles#format-specifiers
 [always required]: options#always-required
 [default value]: options#default-value
+[parameter count]: options#parameter-count
 
 [^1]:
     the command prefix is a series of option keys interspersed with periods, denoting the current

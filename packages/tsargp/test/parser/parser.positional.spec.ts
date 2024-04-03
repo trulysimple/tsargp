@@ -4,6 +4,41 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
+    it('should handle a function option with positional arguments', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f1'],
+        },
+        function: {
+          type: 'function',
+          names: ['-f2'],
+          positional: true,
+          paramCount: 2,
+          exec: ({ param }) => param,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['0'])).rejects.toThrow('Missing parameter to -f2.');
+      await expect(parser.parse(['0', '1', '2'])).rejects.toThrow('Missing parameter to -f2.');
+      await expect(parser.parse(['0', '-f1'])).resolves.toEqual({
+        flag: undefined,
+        function: ['0', '-f1'],
+      });
+      await expect(parser.parse(['-f1', '0', '1'])).resolves.toEqual({
+        flag: true,
+        function: ['0', '1'],
+      });
+      await expect(parser.parse(['0', '1', '-f1'])).resolves.toEqual({
+        flag: true,
+        function: ['0', '1'],
+      });
+      await expect(parser.parse(['0', '1', '2', '3'])).resolves.toEqual({
+        flag: undefined,
+        function: ['2', '3'],
+      });
+    });
+
     it('should throw an error when a required option with no name is not specified', async () => {
       const options = {
         required: {

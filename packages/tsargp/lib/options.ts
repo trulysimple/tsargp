@@ -512,6 +512,14 @@ export type WithFunction = {
    */
   readonly break?: true;
   /**
+   * The function's parameter count.
+   *
+   * If negative, then the option accepts unlimited parameters.
+   * If non-negative, then the option expects exactly this number of parameters.
+   * If a range, then the option expects between `min` and `max` parameters.
+   */
+  readonly paramCount?: number | Range;
+  /**
    * The number of remaining arguments to skip.
    * You may change this value inside the callback. The parser does not alter this value.
    */
@@ -567,7 +575,9 @@ export type VersionOption = WithType<'version'> &
 export type FunctionOption = WithType<'function'> &
   WithBasic &
   WithFunction &
+  WithParam &
   WithValue<unknown> &
+  (WithParamCount | WithSkipCount) &
   (WithDefault | WithRequired);
 
 /**
@@ -861,6 +871,26 @@ type WithParse = {
 };
 
 /**
+ * Removes mutually exclusive attributes from an option with a parameter count.
+ */
+type WithParamCount = {
+  /**
+   * @deprecated mutually exclusive with {@link WithFunction.paramCount}.
+   */
+  readonly skipCount?: never;
+};
+
+/**
+ * Removes mutually exclusive attributes from an option with a skip count.
+ */
+type WithSkipCount = {
+  /**
+   * @deprecated mutually exclusive with {@link WithFunction.skipCount}.
+   */
+  readonly paramCount?: never;
+};
+
+/**
  * The data type of an option that may have a default value.
  * @template T The option definition type
  */
@@ -923,23 +953,22 @@ type OptionDataType<T extends Option> =
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Tests if an option is niladic (i.e., accepts no parameter).
+ * Gets the parameter count of an option as a numeric range.
  * @param option The option definition
- * @returns True if the option is niladic
+ * @returns The count range
  * @internal
  */
-export function isNiladic(option: OpaqueOption): boolean {
-  return ['help', 'version', 'function', 'command', 'flag'].includes(option.type);
-}
-
-/**
- * Tests if an option is variadic (i.e., it accepts a variable number of parameters).
- * @param option The option definition
- * @returns True if the option is variadic
- * @internal
- */
-export function isVariadic(option: OpaqueOption): boolean {
-  return isArray(option) && !option.separator;
+export function getParamCount(option: OpaqueOption): Range {
+  if (['help', 'version', 'command', 'flag'].includes(option.type)) {
+    return [0, 0];
+  }
+  if (option.type !== 'function') {
+    const min = option.fallback !== undefined ? 0 : 1;
+    const max = option.separator || !isArray(option) ? 1 : Infinity;
+    return [min, max];
+  }
+  const count = option.paramCount ?? 0;
+  return typeof count === 'object' ? count : count < 0 ? [0, Infinity] : [count, count];
 }
 
 /**

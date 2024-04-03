@@ -11,12 +11,11 @@ import {
   RequiresAll,
   RequiresNot,
   RequiresOne,
-  isNiladic,
   isString,
   isBoolean,
   isNumber,
-  isVariadic,
   isArray,
+  getParamCount,
 } from './options';
 import { HelpMessage, TerminalString, style, format } from './styles';
 
@@ -263,7 +262,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.synopsis,
     HelpItem.negation,
     HelpItem.separator,
-    HelpItem.variadic,
+    HelpItem.paramCount,
     HelpItem.positional,
     HelpItem.append,
     HelpItem.trim,
@@ -288,7 +287,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.synopsis]: '%t',
     [HelpItem.negation]: 'Can be negated with %o.',
     [HelpItem.separator]: 'Values are delimited by (%s|%r).',
-    [HelpItem.variadic]: 'Accepts multiple parameters.',
+    [HelpItem.paramCount]: 'Accepts (multiple|%n|at most %n|at least %n|between %n) parameters.',
     [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %o).',
     [HelpItem.append]: 'May be specified multiple times.',
     [HelpItem.trim]: 'Values will be trimmed.',
@@ -319,7 +318,7 @@ const helpItemFunctions: ReadonlyArray<HelpItemFunction> = [
   formatSynopsis,
   formatNegation,
   formatSeparator,
-  formatVariadic,
+  formatParamCount,
   formatPositional,
   formatAppend,
   formatTrim,
@@ -529,7 +528,7 @@ function formatParams(
   option: OpaqueOption,
   result: TerminalString,
 ): number {
-  if (config.param.hidden || isNiladic(option)) {
+  if (config.param.hidden || !getParamCount(option)[1]) {
     return 0;
   }
   result.addBreak(config.param.breaks);
@@ -904,7 +903,7 @@ function formatUsageOption(option: OpaqueOption, styles: FormatStyles, result: T
     result.addOpening('[');
   }
   formatUsageNames(option, styles, result);
-  if (!isNiladic(option)) {
+  if (getParamCount(option)[1]) {
     formatParam(option, styles, result);
   }
   if (!required) {
@@ -955,15 +954,17 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
     return formatExample(option, styles, result);
   }
   const paramStyle = option.styles?.param ?? styles.value;
-  const ellipsis = isVariadic(option) ? '...' : '';
+  const [min, max] = getParamCount(option);
+  const ellipsis = max > 1 ? '...' : '';
   const paramName = option.paramName;
   const paramText = paramName
     ? paramName.includes('<')
       ? paramName
       : `<${paramName}>${ellipsis}`
-    : `<${option.type}>${ellipsis}`;
-  const optional = option.fallback !== undefined;
-  const param = optional ? `[${paramText}]` : paramText;
+    : option.type === 'function'
+      ? `<param>${ellipsis}`
+      : `<${option.type}>${ellipsis}`;
+  const param = min <= 0 ? `[${paramText}]` : paramText;
   result.addAndRevert(paramStyle, param, styles.text);
   return param.length;
 }
@@ -1050,20 +1051,33 @@ function formatSeparator(
 }
 
 /**
- * Formats an option's variadic nature to be included in the description.
+ * Formats an option's parameter count to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
- * @param _styles The set of styles
+ * @param styles The set of styles
  * @param result The resulting string
  */
-function formatVariadic(
+function formatParamCount(
   option: OpaqueOption,
   phrase: string,
-  _styles: FormatStyles,
+  styles: FormatStyles,
   result: TerminalString,
 ) {
-  if (isVariadic(option)) {
-    result.splitText(phrase);
+  const [min, max] = getParamCount(option);
+  if (max > 1) {
+    const [alt, val] =
+      min === max
+        ? [1, min] // exactly %n
+        : min <= 0
+          ? isFinite(max)
+            ? [2, max] // at most %n
+            : [0, undefined] // multiple
+          : isFinite(max)
+            ? [4, [min, max]] // between %n
+            : min > 1
+              ? [3, min] // at least %n
+              : [0, undefined]; // multiple
+    result.formatArgs(styles, phrase, { n: val }, { alt, sep: 'and', mergePrev: false });
   }
 }
 
