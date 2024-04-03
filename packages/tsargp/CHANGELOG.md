@@ -1,5 +1,15 @@
 # tsargp
 
+## 0.4.0-dev.2
+
+### Minor Changes
+
+- [#95](https://github.com/trulysimple/tsargp/pull/95) [`9d26e81`](https://github.com/trulysimple/tsargp/commit/9d26e81eabf3fb8ebe46c35e3419b7e1d5f46e3e) Thanks [@disog](https://github.com/disog)! - Added new attributes for the boolean option: `truthNames`, `falsityNames` and `caseSensitive`. They can be used to configure how option parameters are converted to boolean.
+
+- [#96](https://github.com/trulysimple/tsargp/pull/96) [`464c113`](https://github.com/trulysimple/tsargp/commit/464c1136aa32767618eacfca685ff054b99d6b0b) Thanks [@disog](https://github.com/disog)! - Added the `paramCount` attribute to the function option, to specify the number of parameters that the option expects in the command-line. New enumerators, `invalidParamCount` and `variadicWithClusterLetter`, were added to `ErrorItem`, that are used by the validator when validating the new attribute. The formatter was updated to take this attribute into account when rendering the description of variadic options.
+
+- [#92](https://github.com/trulysimple/tsargp/pull/92) [`34c6d5e`](https://github.com/trulysimple/tsargp/commit/34c6d5efa202bcc09213727f624f0f208409bd55) Thanks [@disog](https://github.com/disog)! - The parsing callbacks were refactored to accept a single parameter of type `ParseInfo`, which contains information about the current argument sequence in the parsing loop. The loop itself was refactored to accumulate a sequence of arguments that will be passed to the parsing callbacks as the option parameter(s). The `parseError` enumerator was removed from the `ErrorItem`, since it is no longer supported.
+
 ## 0.4.0-dev.1
 
 ### Minor Changes
