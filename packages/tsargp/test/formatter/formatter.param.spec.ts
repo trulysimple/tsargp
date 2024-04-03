@@ -4,6 +4,151 @@ import '../utils.spec'; // initialize globals
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
+    it('should handle a function option with a single required parameter', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option',
+          paramCount: 1,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --function  <param>  A function option\n`);
+    });
+
+    it('should handle a function option with a single optional parameter', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option',
+          paramCount: [0, 1],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --function  [<param>]  A function option\n`);
+    });
+
+    it('should handle a function option with an exact parameter count', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: 2,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  <param>...  A function option. Accepts 2 parameters.\n`,
+      );
+    });
+
+    it('should handle a function option with a range parameter count', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: [1, 2],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  <param>...  A function option. Accepts between 1 and 2 parameters.\n`,
+      );
+    });
+
+    it('should handle a function option with a minimum parameter count (1)', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: [1, Infinity],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  <param>...  A function option. Accepts multiple parameters.\n`,
+      );
+    });
+
+    it('should handle a function option with a minimum parameter count (2)', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: [2, Infinity],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  <param>...  A function option. Accepts at least 2 parameters.\n`,
+      );
+    });
+
+    it('should handle a function option with a maximum parameter count', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: [0, 2],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  [<param>...]  A function option. Accepts at most 2 parameters.\n`,
+      );
+    });
+
+    it('should handle a function option with unlimited parameter count (1)', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: -1,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  [<param>...]  A function option. Accepts multiple parameters.\n`,
+      );
+    });
+
+    it('should handle a function option with unlimited parameter count (2)', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: [0, Infinity],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  [<param>...]  A function option. Accepts multiple parameters.\n`,
+      );
+    });
+
+    it('should handle a function option with a parameter name', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option',
+          paramName: 'myParam',
+          paramCount: 1,
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(`  -f, --function  <myParam>  A function option\n`);
+    });
+
     it('should handle a boolean option with a parameter name', () => {
       const options = {
         boolean: {

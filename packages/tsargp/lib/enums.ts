@@ -141,6 +141,14 @@ export const enum ErrorItem {
    */
   invalidNumericRange,
   /**
+   * Raised by the validator when a function option has an invalid parameter count.
+   */
+  invalidParamCount,
+  /**
+   * Warning produced by the validator when a variadic option declares cluster letters.
+   */
+  variadicWithClusterLetter,
+  /**
    * Raised by the parser when a parameter to a boolean option fails to be converted.
    */
   invalidBooleanParameter,
@@ -163,9 +171,9 @@ export const enum HelpItem {
    */
   separator,
   /**
-   * Reports if an array option accepts multiple parameters.
+   * Reports the parameter count of a variadic or polyadic option.
    */
-  variadic,
+  paramCount,
   /**
    * Reports if an option accepts positional arguments.
    */

@@ -66,6 +66,19 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).not.toThrow();
     });
 
+    it('should ignore default value on a non-niladic function option', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-s'],
+          default: [true, 1, 'abc'],
+          paramCount: 1,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).not.toThrow();
+    });
+
     it('should throw an error on string example value not matching regex', () => {
       const options = {
         string: {
@@ -217,6 +230,21 @@ describe('OptionValidator', () => {
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
         `Option number has invalid numeric range [0, NaN].`,
+      );
+    });
+
+    it('should throw an error on function option with invalid parameter count', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: [-1, 1],
+          exec() {},
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(
+        `Option function has invalid parameter count [-1, 1].`,
       );
     });
 

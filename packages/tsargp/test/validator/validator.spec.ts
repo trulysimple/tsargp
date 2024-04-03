@@ -36,6 +36,73 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(`Option version contains empty version.`);
     });
 
+    it('should return a warning on string option with fallback value and cluster letters', () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          fallback: '',
+          clusterLetters: 'a',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option string has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
+    });
+
+    it('should return a warning on variadic strings option with cluster letters', () => {
+      const options = {
+        strings: {
+          type: 'strings',
+          names: ['-ss'],
+          clusterLetters: 'a',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option strings has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
+    });
+
+    it('should return a warning on variadic function option with cluster letters (1)', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: -1,
+          clusterLetters: 'a',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
+    });
+
+    it('should return a warning on variadic function option with cluster letters (2)', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: [0, 1],
+          clusterLetters: 'a',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
+    });
+
     it('should validate nested command options recursively', () => {
       const options = {
         command: {

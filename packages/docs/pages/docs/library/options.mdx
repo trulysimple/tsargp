@@ -19,7 +19,7 @@ There is a total of ten option types, as summarized in the table below:
 | ---------- | --------------------------------------- | ------------------ | ------------------------ | ------------------------- |
 | [help]     | niladic                                 | `never{:ts}`[^1]   |                          |                           |
 | [version]  | niladic                                 | `never{:ts}`[^1]   |                          |                           |
-| [function] | niladic                                 | `unknown{:ts}`[^2] |                          |                           |
+| [function] | configurable                            | `unknown{:ts}`[^2] |                          | [param count]             |
 | [command]  | not applicable                          | `unknown{:ts}`[^2] |                          |                           |
 | [flag]     | niladic                                 | `boolean{:ts}`     |                          |                           |
 | [boolean]  | positional, monadic                     | `boolean{:ts}`     |                          | [truth], [falsity]        |
@@ -45,6 +45,7 @@ The parameters column indicates how many parameters an option expects on the com
 - _variadic_ - variable number of parameters
 - _delimited_ - single parameter in which values are delimited by a [separator]
 - _append_ - can be specified multiple times, with values being appended
+- _configurable_ - can be configured with a certain [parameter count]
 - _not applicable_ - does not accept parameters; rather, it starts a new parsing context with the
   remaining arguments
 
@@ -64,8 +65,8 @@ All options that accept parameters can be configured with normalization and cons
 In the case of string-valued and number-valued options, these attributes indicate how the option
 value should be transformed after being parsed, and if it should comply with any value constraints.
 
-In the case of the boolean option, there is a specialized constraint for the handling of option
-parameters (i.e., before they get parsed).
+In the case of the function and boolean options, there are specialized constraints for the handling
+of option parameters (i.e., before they get parsed).
 
 ## Common attributes
 
@@ -534,7 +535,8 @@ value. You can use it to perform many kinds of actions, such as:
 - altering the option definitions in response to an option value
   - e.g., if `--verbose` is set, add more help items to the help option's [format]
 
-In addition to the set of [value attributes], it has the following attributes.
+In addition to the set of [value attributes] and [parameter attributes], it has the following
+attributes.
 
 #### Function callback
 
@@ -542,13 +544,15 @@ The `exec` attribute specifies the [custom callback] that should be executed. It
 parameter that contains the current [argument sequence]:
 
 - `param` -
-  Holds the remaining command-line arguments.
+  Holds either the option parameter(s), if [parameter count] is set to a non-zero value, or all
+  remaining arguments.
 - `comp` -
   Indicates whether [word completion] is in effect (but not in the current iteration).
 - `isComp` -
   A utility function that can be used to check whether any of the remaining arguments is to be
   completed, when `comp` is true. If so, you can throw a new [completion message] inside the
-  callback.
+  callback. This should only be used when [parameter count] is _not_ set; otherwise, the detection
+  logic is performed by the parser.
 
 Notes about this callback:
 
@@ -573,6 +577,19 @@ the callback.
   message that any option required by the affected one must be specified _before_ it.
 </Callout>
 
+#### Parameter count
+
+By default, a function option is niladic. However, this behavior can be changed with the
+`paramCount` attribute. If present, it specifies how many parameters the option expects. It can
+have either of the following values:
+
+- a zero value: same as the niladic case
+- a negative number: the option expects unlimited parameters
+- a positive number: the option expects exactly this number of parameters
+- a numeric range: the option accepts between a minimum and maximum count
+
+Mutually exclusive with [skip count].
+
 #### Skip count
 
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
@@ -593,6 +610,8 @@ callback:
   },
 }
 ```
+
+Mutually exclusive with [parameter count].
 
 <Callout type="info">The parser does not alter the value of this attribute.</Callout>
 
@@ -759,6 +778,7 @@ attributes:
 - [array attributes]
 - [miscellaneous attributes]
 
+[param count]: #parameter-count
 [trim]: #trim-whitespace
 [case]: #case-conversion
 [conv]: #math-conversion
@@ -816,6 +836,7 @@ attributes:
 [array attributes]: #array-attributes
 [cluster letters]: #cluster-letters
 [fallback value]: #fallback-value
+[parameter count]: #parameter-count
 [skip count]: #skip-count
 [formatter]: formatter
 [commands guide]: ../guides/commands
