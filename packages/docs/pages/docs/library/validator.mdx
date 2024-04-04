@@ -20,12 +20,12 @@ as expected when delivered to end-users.
 To validate a set of option definitions, you must call the `validate` method on the parser instance.
 This method accepts a `ValidationFlags` argument with the following optional properties:
 
-- `detectNamingInconsistencies` - whether the validation procedure should try to detect naming
-  inconsistencies
+- `detectNamingInconsistencies` - whether the validation procedure should try to detect
+  inconsistencies across option names
 
 It returns a `ValidationResult` object with the following optional properties:
 
-- `warning` - A list of warning messages that represent not-so-dangerous issues encountered in the
+- `warning` - A list of warning messages that represent non-impeditive issues encountered in the
   option definitions. You may want to print this to see if they are important to your application.
 
 The following sections describe the various kinds of validation performed by this method. Unless
@@ -61,16 +61,15 @@ In addition to the above, the validator may generate warnings if it detects nami
 such as:
 
 - **Too similar names** -
-  When an option name is too similar to other names (e.g., if it differs by a single character in a
-  five-character name), this may be a development mistake at best, or at worst it can become a
-  source of headaches for end-users. Hence, the validator tries to find names that closely match a
-  given name using the same algorithm used by the parser in [name suggestions], just a little
-  stricter.
+  When two option names are very similar (e.g., if they differ by a single character in a
+  five-character name), this may be a development mistake, or worse, it can become a source of
+  headaches for end-users. Hence, the validator tries to find names that closely match a given name
+  using the same algorithm used by the parser in [name suggestions], just a little stricter.
 - **Mixed naming convention** -
   When a [name slot] contains names with different naming conventions (e.g., all-uppercase vs
-  all-lowercase, or single-dash vs double-dash), this may be a sign of code review negligence at
-  best, or at worst it can make it hard for end-users to reason about your application. Thus, the
-  validator tries to find names within a slot that contain mixed naming patterns.
+  all-lowercase, or single-dash vs double-dash), this may be a sign of code review negligence, or
+  worse, it can make it hard for end-users to reason about your application. Thus, the validator
+  tries to find names within a slot that contain mixed naming patterns.
 
 ### Cluster letter validation
 
@@ -87,8 +86,8 @@ In addition to the above, the validator may generate the following warning:
 - **Variadic option with cluster letter** -
   A variadic option that declares cluster letters must always be the last option in a cluster
   argument. This includes options with a fallback value, non-delimited array options and function
-  options with a variable [parameter count]. This might not be the intended behavior, and you should
-  consider alternatives.
+  options with a variable [parameter count]. This might not be the intended behavior and if so, you
+  should consider alternatives.
 
 ### Constraints validation
 
@@ -312,7 +311,7 @@ following optional properties, which are the enumerators from `ErrorItem`:
 - `duplicateClusterLetter` - `'Option %o has duplicate cluster letter %s.'{:ts}`
 - `invalidClusterOption` - `'Option letter %o must be the last in a cluster.'{:ts}`
 - `invalidClusterLetter` - `'Option %o has invalid cluster letter %s.'{:ts}`
-- `tooSimilarOptionNames` - `'%o: Option name %s1 has too similar names %s2.'{:ts}`
+- `tooSimilarOptionNames` - `'%o: Option name %s1 has too similar names [%s2].'{:ts}`
 - `mixedNamingConvention` - `'%o: Name slot %n has mixed naming conventions [%s].'{:ts}`
 - `invalidNumericRange` - `'Option %o has invalid numeric range [%n].'{:ts}`
 - `invalidParamCount` - `'Option %o has invalid parameter count [%n].'{:ts}`
@@ -385,7 +384,7 @@ the enumerators from `ConnectiveWords`:
 [range]: options#numeric-range
 [limit]: options#count-limit
 [default callbacks]: options#default-callback
-[requirement callbacks]: options#forward-requirements
+[requirement callbacks]: options#requirement-callback
 [positional]: options#positional--marker
 [text formatting]: styles#text-splitting
 [name suggestions]: parser#name-suggestions

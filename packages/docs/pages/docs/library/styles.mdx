@@ -13,11 +13,11 @@ can be used to customize the display of text in a terminal.
 
 The `style` function accepts a list of styling attributes and creates a `Style` that can be used in
 any part of the API that expects this type, or it can be embedded directly in text attributes, such
-as the [synopsis and deprecation reason], [help section texts], [error phrases] and [help phrases].
+as the [synopsis and deprecation] reason, [help section] texts, [error phrases] and [help phrases].
 
 Styles are cumulative, i.e., they can be combined with previous styles depending on the kind of
-styling attribute. For instance, if the style of an option's description is `tf.bold` and the
-style of number values is `fg.yellow`, then any number value that appears in the option
+styling attribute. For instance, if the style of an option's description is `tf.bold{:ts}` and the
+style of number values is `fg.yellow{:ts}`, then any number value that appears in the option
 description (except those embedded in text attributes) is rendered in bold intensity with yellow
 foreground color.
 
@@ -127,24 +127,25 @@ control sequences, and is used both by the [parser] (to create error and warning
 the [formatter] (to build help messages).
 
 The main logic implemented in this class is divided into _splitting_ and _wrapping_, as is explained
-below.
+in the next sections.
 
 ### Text splitting
 
 Text is split on paragraph, list item and word boundaries using a combination of simple regular
-expressions. The following features are supported in text splitting.
+expressions. The features supported in text splitting are described below.
 
 #### Format specifiers
 
-Format specifiers, prefixed with a percent sign `%`, can be extracted from the text and processed by
-a formatting callback. This is used in different places in the library:
+During splitting, format specifiers prefixed with a percent sign `%` are extracted from the text and
+processed by a formatting callback. This is used by the library in different places:
 
 - by the parser to produce error messages based on configured [error phrases]
 - by the formatter to assemble help items from configured [help phrases]
 - by the formatter to create group headings from configured [heading phrases]
 
 This particular feature is only available in _phrases_, not in text attributes of option definitions.
-The specifiers get replaced with a value (or values, in case of arrays). The available ones are:
+Specifiers are meant to be replaced with a value (or values, in case of arrays). The available ones
+are:
 
 - `b` - a boolean value
 - `s` - a string value
@@ -157,9 +158,10 @@ The specifiers get replaced with a value (or values, in case of arrays). The ava
 - `p` - a previously formatted string
 
 If a phrase supports values, the specifier can be used to indicate where in the phrase to place the
-value. If a phrase has multiple alternatives depending on the context, different texts may be
-specified separated with `'|'{:ts}` and grouped in parentheses. Specifiers may also end with a
-single digit that represents a predefined value in an error message or help item.
+value. If a phrase has multiple alternatives (depending on the context), different texts may be
+specified separated by a vertical bar and grouped in parentheses, e.g. `'(...|...)'{:ts}`.
+Specifiers may also end with a single digit that represents a predefined value in an error message
+or help item.
 
 #### Inline styles
 
@@ -167,13 +169,13 @@ Text can contain inline styles. This applies as well to phrases as to text attri
 formatter splits into words before adding to the option description.
 
 When splitting text, the terminal string instance will try its best to preserve styles. However,
-if you find some corner case that is not currently covered by the unit tests, please submit a [bug
+if you find some corner case that is not currently covered by unit tests, please submit a [bug
 report].
 
 <Callout type="warning">
-  Phrases can contain inline styles, but not in the same word as a format specifier. Otherwise, they
-  will mess up the text wrapping. For example, the following phrase is not valid:
-  ``` `Requires ${style(tf.bold)}%v`{:ts} ```. You should insert a space in between.
+  Phrases can contain inline styles, but not in the _same_ word as a format specifier. Otherwise,
+  they will mess up the text wrapping. For example, the following phrase is not valid:
+  ``` `Requires ${style(tf.bold)}%v`{:ts} ```. You must insert a space between them.
 </Callout>
 
 #### Paragraphs and lists
@@ -304,9 +306,9 @@ or equivalent.
 [help phrases]: formatter#help-phrases
 [error phrases]: validator#error-phrases
 [heading phrases]: formatter#groups-section
-[help section texts]: formatter#help-sections
+[help section]: formatter#help-sections
 [description column]: formatter#description-column
-[synopsis and deprecation reason]: options#synopsis--deprecated
+[synopsis and deprecation]: options#synopsis--deprecated
 [parameter column]: formatter#parameter-column
 [bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

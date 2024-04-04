@@ -135,7 +135,7 @@ to some of the [custom callbacks]. It contains details about the current argumen
 parsing loop:
 
 - `values` -
-  The previously parsed values. It is an opaque type that should be cast to
+  The previously parsed values. It has an opaque type that should be cast to
   `OptionValues<typeof your_options>{:ts}`.
 - `index` -
   The index of the occurrence of the option name, or of the first option parameter. It will be
@@ -204,9 +204,9 @@ an empty string):
    - No words are returned, and the default completion (if enabled with `complete -o`) will be
      attempted
 
-During completion, both the help and version options as well as the [command callback] are skipped,
-while other options are processed as usual. This means that a completion callback can inspect the
-values parsed before it, in order to make better suggestions based on those values.
+During completion, both the help and version options are skipped, and the [command callback] does
+not get executed. Other options are processed as usual, which means that a completion callback can
+inspect the values parsed before it, in order to make better suggestions based on those values.
 
 ### Requirements checking
 

@@ -42,6 +42,7 @@ export default {
       {
         type: 'groups',
         style: style(tf.underlined), // underlined option group headings
+        phrase: '%s:', // add colon to option group headings
       },
       {
         type: 'text',
@@ -149,11 +150,11 @@ export default {
     names: ['help'],
     desc: 'Prints the help message of a nested command.',
     options: helpOpts,
-    cmd(_, cmdValues) {
-      const vals = cmdValues as OptionValues<typeof helpOpts>;
+    async exec({ param }) {
+      const vals = param as OptionValues<typeof helpOpts>;
       const opts = vals.name === 'cmd1' ? cmd1Opts : cmd2Opts;
       // this will throw the help message
-      new ArgumentParser(opts).parse(['--help'], { progName: vals.name });
+      await new ArgumentParser(opts).parse(['--help'], { progName: vals.name });
     },
   },
 } as const satisfies Options;
@@ -165,10 +166,11 @@ completeness.
 
 <Callout type="info">
   Keep in mind that, when word completion is in effect, the command callback [is not called]. Thus,
-  if the callback _does_ get executed, you need not worry about the `compIndex` configuration for
+  if the callback _does_ get executed, you need not worry about the [`compIndex`] configuration for
   the delegated `parse` call.
 </Callout>
 
 [help option]: ../library/options#help-option
 [command option]: ../library/options#command-option
 [is not called]: ../library/options#command-callback
+[`compIndex`]: ../library/parser#completion-index

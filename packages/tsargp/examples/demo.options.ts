@@ -65,8 +65,8 @@ export default {
     names: ['help'],
     desc: 'Prints the help of a nested command.',
     options: helpOpts,
-    exec() {
-      new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
+    async exec() {
+      await new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
     },
   },
   /**

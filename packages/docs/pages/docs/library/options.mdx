@@ -44,13 +44,12 @@ The parameters column indicates how many parameters an option expects on the com
 - _monadic_ - single parameter
 - _variadic_ - variable number of parameters
 - _delimited_ - single parameter in which values are delimited by a [separator]
-- _append_ - can be specified multiple times, with values being appended
+- _append_ - can be specified multiple times, with values getting [appended]
 - _configurable_ - can be configured with a certain [parameter count]
 - _not applicable_ - does not accept parameters; rather, it starts a new parsing context with the
   remaining arguments
 
-In the case of non-niladic options, the parameter(s) can be made optional by setting a [fallback
-value].
+In the case of non-niladic options, parameters can be made optional by setting a [fallback value].
 
 ### Option value
 
@@ -141,21 +140,21 @@ Mutually exclusive with [default value] and [conditional requirements].
 #### Default value
 
 The `default` attribute, if present, specifies a value that is used if the option is specified
-neither on the command-line nor as an [environment variable].
+neither on the command-line nor as an [environment variable]. It is only evaluated at the end of the
+parsing loop.
 
 Mutually exclusive with [always required].
 
-Both [function options] and [command options] accept any kind of value as the default. In the case
-of object values, it's useful to specify a custom `toString` method in order to render it in the
-help message, e.g.:
+##### String representation
+
+Unknown-valued options may have any kind of value as the default. In the case of object values, it's
+useful to specify a custom `toString` method in order to render it in the help message, e.g.:
 
 ```ts
 toString() {
   return JSON.stringify(this);
 }
 ```
-
-<Callout type="info">This value is only evaluated at the end of the parsing loop.</Callout>
 
 ##### Default callback
 
@@ -337,6 +336,8 @@ parameter(s). It receives a single parameter that contains the current [argument
 `param` holds the option parameter(s) and `comp` indicates whether [word completion] is in effect
 (but not in the current iteration).
 
+Mutually exclusive with [append values].
+
 Notes about this callback:
 
 - it can be asynchronous
@@ -420,15 +421,20 @@ either a string or a regular expression.
 #### Remove duplicates
 
 The `unique` attribute, if present, indicates that duplicate elements will be removed from the
-option value. Due to the nature of JavaScript's [Set] type, the order of array elements will reflect
-the order in which they were parsed. This normalization is applied _before_ checking the [count
-limit] constraint.
+option value. This normalization is applied _before_ checking the [count limit] constraint.
+
+<Callout type="info">
+  Due to the nature of JavaScript's [Set] type, the order of array elements is preserved (i.e., the
+  order in which they were parsed).
+</Callout>
 
 #### Append values
 
 The `append` attribute, if present, indicates that the option allows appending elements to its value
 if specified multiple times on the command-line. Both the [remove duplicates] normalization and the
 [count limit] constraint, if enabled, are applied after appendage.
+
+Mutually exclusive with [parse callback].
 
 #### Count limit
 
@@ -438,8 +444,8 @@ an error to be thrown.
 
 ### Miscellaneous attributes
 
-Some attributes are shared by all valued option types except [function options] and [command
-options]. They are described below.
+Some attributes are shared by all valued option types except unknown-valued options. They are
+described below.
 
 #### Environment variable
 
@@ -467,7 +473,7 @@ formatting of help messages. Internally, it instantiates a [formatter] class wit
 configuration, obtains a formatted message and throws it. The application is responsible for
 catching this message and printing it in a terminal.
 
-This option has the following optional attributes.
+This option has the following attributes.
 
 #### Help format
 
@@ -498,7 +504,7 @@ should be saved as the option value instead of being thrown.
 ### Version option
 
 The **version** option is another specialization of the [function option] that throws a version
-message. You may specify either of the following attributes.
+message. It has the following attributes.
 
 #### Version info
 
@@ -656,7 +662,7 @@ Notes about this callback:
 
 The `options` attribute specifies the set of option definitions for the command, or a
 (non-asynchronous) callback that returns these definitions (which allows the implementation of
-[recursive commands]). This attribute is required.
+[recursive commands]).
 
 <Callout type="warning">
   All incoming arguments will be parsed using the option definitions from this attribute, not those
@@ -677,8 +683,8 @@ latter can be configured to have a [fallback value] (thus making its parameter o
 potentially introduces ambiguity of whether arguments are positional or not.
 
 For example, consider the command line `cmd -b 1`, where `-b` is a boolean option with a fallback
-value and there is a positional option. In this case, would `1` be a parameter to `-f` or a
-positional argument? The parser is implemented to consider it a parameter to `-f`. However, the flag
+value and there is a positional option. In this case, would `1` be a parameter to `-b` or a
+positional argument? The parser is implemented to consider it a parameter to `-b`. However, the flag
 option completely solves this ambiguity.
 
 In addition to the set of [value attributes] and [miscellaneous attributes], it has the following
@@ -710,21 +716,21 @@ following rules:
 
 This option has the following sets of attributes:
 
+- [value attributes]
 - [parameter attributes]
 - [known value attributes] for a `boolean{:ts}` data type
-- [value attributes]
 - [miscellaneous attributes]
 - the attributes described below
 
 #### Truth names
 
 The `truthNames` attribute, if present, specifies the names of the boolean truth value (e.g. `true`,
-`yes`, `on`). They are also used in the [completion algorithm].
+`yes`, `on`). They are also used by the [completion algorithm].
 
 #### Falsity names
 
 The `falsityNames` attribute, if present, specifies the names of the boolean falsity value. (e.g.
-`false`, `no`, `off`). They are also used in the [completion algorithm].
+`false`, `no`, `off`). They are also used by the [completion algorithm].
 
 #### Case sensitive
 
@@ -799,17 +805,17 @@ attributes:
 [numbers]: #numbers-option
 [enumeration]: #enumeration
 [separator]: #separator
+[appended]: #append-values
+[append values]: #append-values
 [format]: #help-format
 [truth]: #truth-names
 [falsity]: #falsity-names
 [truth names]: #truth-names
 [falsity names]: #falsity-names
 [flag option]: #flag-option
-[command options]: #command-option
 [nested command]: #command-option
 [boolean option]: #boolean-option
 [function option]: #function-option
-[function options]: #function-option
 [always required]: #always-required
 [positional option]: #positional--marker
 [default value]: #default-value
@@ -840,14 +846,14 @@ attributes:
 [skip count]: #skip-count
 [formatter]: formatter
 [commands guide]: ../guides/commands
-[recursive commands]: ../guides/commands
+[recursive commands]: ../guides/commands#advanced-features
 [styling]: styles#styling-attributes
 [resulting object]: parser#option-values
 [text formatting]: styles#text-splitting
 [warning message]: styles#warning-message
 [word completion]: parser#word-completion
 [completion algorithm]: parser#completion-algorithm
-[help format]: formatter#help-format
+[formatter configuration]: formatter#help-format
 [help sections]: formatter#help-sections
 [option filters]: formatter#option-filters
 [custom callback]: parser#custom-callbacks
@@ -855,7 +861,6 @@ attributes:
 [completion message]: styles#completion-words
 [`parseInto`]: parser#using-your-own-object
 [`shortStyle`]: parser#short-option-style
-[formatter configuration]: formatter#help-format
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Math]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
