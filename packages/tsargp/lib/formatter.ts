@@ -123,7 +123,8 @@ export type WithText = {
  */
 export type WithWrap = {
   /**
-   * The number of line breaks to insert before the section. (Defaults to 2)
+   * The number of line breaks to insert before the section.
+   * (Defaults to 0 for the first section, else 2)
    */
   readonly breaks?: number;
   /**
