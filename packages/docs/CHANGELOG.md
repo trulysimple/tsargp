@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.3.0-dev.3
+
+### Minor Changes
+
+- [#98](https://github.com/trulysimple/tsargp/pull/98) [`3501d5e`](https://github.com/trulysimple/tsargp/commit/3501d5e3ed877c0df7c1667f9c1e241d25853265) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new `breaks`, `required` and `comment` properties of help sections.
+
 ## 0.3.0-dev.2
 
 ### Minor Changes

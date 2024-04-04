@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.4.0-dev.3
+
+### Minor Changes
+
+- [#98](https://github.com/trulysimple/tsargp/pull/98) [`3501d5e`](https://github.com/trulysimple/tsargp/commit/3501d5e3ed877c0df7c1667f9c1e241d25853265) Thanks [@disog](https://github.com/disog)! - Added a `breaks` property to help sections, to specify the number of line breaks to insert before a section. Added the `required` and `comment` properties to the usage section, to specify options that should be considered required in the usage, as well as to append a commentary to the usage, respectively. The demo was updated to include multiple usage sections.
+
 ## 0.4.0-dev.2
 
 ### Minor Changes
