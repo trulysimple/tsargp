@@ -10,9 +10,7 @@ import {
   RequiresAll,
   RequiresOne,
   RequiresNot,
-  isMessage,
-  isString,
-  isUnknown,
+  isOpt,
   getParamCount,
   getOptionNames,
 } from './options';
@@ -593,7 +591,7 @@ function validateRequirement(
     throw error(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
   }
   const option = options[requiredKey];
-  if (isMessage(option)) {
+  if (isOpt.m(option)) {
     throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
   const noValue = {};
@@ -603,7 +601,7 @@ function validateRequirement(
     }
     return;
   }
-  if (isUnknown(option)) {
+  if (isOpt.u(option)) {
     throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
   validateValue(config, prefix + requiredKey, option, requiredValue);
@@ -626,7 +624,7 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
     if (set.size !== enums.length) {
       for (const value of enums) {
         if (!set.delete(value)) {
-          const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
+          const [spec, alt] = isOpt.s(option) ? ['s', 0] : ['n', 1];
           throw error(config, ErrorItem.duplicateEnumValue, { o: key, [spec]: value }, { alt });
         }
       }

@@ -92,6 +92,8 @@ text, usage and groups. They are explained below.
 
 All help sections share a set of properties:
 
+- `title` - the section heading or the default option group heading (defaults to none)
+- `style` - the style of the section heading or option group headings (defaults to `tf.bold{:ts}`)
 - `breaks` - the number of line breaks to insert before the section (defaults to `0{:ts}` for the
   first section, else `2{:ts}`)
 - `noWrap` - true to disable wrapping of provided texts (defaults to `false{:ts}`)
@@ -140,8 +142,6 @@ demo.js [([95m-f[0m|[95m--flag[0m|[95m--no-flag[0m)]
 
 In addition to the [common properties], a usage section has the following properties:
 
-- `title` - the section heading (defaults to none)
-- `style` - the style of the section heading (defaults to `tf.bold{:ts}`)
 - `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
 - `filter` - a list of option keys to include or exclude (defaults to none)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
@@ -158,8 +158,6 @@ In addition to the [common properties], a usage section has the following proper
 A groups section is a collection of option groups and their help entries. In addition to the [common
 properties] properties, it has the following properties:
 
-- `title` - the default group heading (defaults to none)
-- `style` - the style of group headings (defaults to `tf.bold{:ts}`)
 - `phrase` - a custom phrase for group headings (defaults to none)
 - `filter` - a list of group names to include or exclude (defaults to none)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)

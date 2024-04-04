@@ -21,17 +21,7 @@ import type {
 
 import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
-import {
-  RequiresAll,
-  RequiresNot,
-  RequiresOne,
-  isArray,
-  isMessage,
-  isString,
-  isBoolean,
-  isUnknown,
-  getParamCount,
-} from './options';
+import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
 import { OptionValidator, defaultConfig } from './validator';
 import { format } from './styles';
@@ -219,7 +209,7 @@ async function doParse(
 function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
   for (const key in options) {
     const option = options[key];
-    if (!(key in values) && (!isMessage(option) || option.saveMessage)) {
+    if (!(key in values) && (!isOpt.m(option) || option.saveMessage)) {
       values[key] = undefined;
     }
   }
@@ -673,11 +663,11 @@ async function parseParam(
     return setValue(validator, values, key, option, option.fallback);
   }
   const convertFn: (val: string) => unknown =
-    option.type === 'boolean' ? bool : isString(option) ? (str: string) => str : Number;
+    option.type === 'boolean' ? bool : isOpt.s(option) ? (str: string) => str : Number;
   const parse = option.parse;
   const lastParam = params[params.length - 1];
   let value;
-  if (isArray(option)) {
+  if (isOpt.a(option)) {
     const param = option.separator ? lastParam.split(option.separator) : params;
     if (parse) {
       const seq = { values, index, name, param, comp };
@@ -718,9 +708,9 @@ async function setValue(
   }
   const resolved = typeof value === 'function' ? await value(values) : value;
   values[key] =
-    isUnknown(option) || isBoolean(option)
+    isOpt.u(option) || isOpt.b(option)
       ? resolved
-      : isArray(option)
+      : isOpt.a(option)
         ? norm(resolved.map(norm))
         : norm(resolved);
 }
@@ -1100,7 +1090,7 @@ function checkRequirement(
   const option = validator.options[key];
   const specified = specifiedKeys.has(key) || actual !== undefined; // consider default values
   const required = value !== null;
-  if (isMessage(option) || isUnknown(option) || !specified || !required || value === undefined) {
+  if (isOpt.m(option) || isOpt.u(option) || !specified || !required || value === undefined) {
     if ((specified == required) != negate) {
       return true;
     }
@@ -1111,7 +1101,7 @@ function checkRequirement(
     format.o(option.preferredName ?? '', config.styles, error);
     return false;
   }
-  const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : 'n';
+  const spec = isOpt.b(option) ? 'b' : isOpt.s(option) ? 's' : 'n';
   return checkRequiredValue(validator, option, negate, invert, actual, value, error, spec);
 }
 

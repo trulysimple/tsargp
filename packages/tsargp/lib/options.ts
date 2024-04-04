@@ -40,6 +40,61 @@ export const req = {
   },
 } as const;
 
+/**
+ * The option checking functions.
+ * @internal
+ */
+export const isOpt = {
+  /**
+   * Tests if an option is an array option (i.e., has an array value).
+   * @param option The option definition
+   * @returns True if the option is an array-valued option
+   */
+  a(option) {
+    return option.type === 'strings' || option.type === 'numbers';
+  },
+  /**
+   * Tests if an option has or throws a message to be printed in the terminal.
+   * @param option The option definition
+   * @returns True if the option is message-valued
+   */
+  m(option) {
+    return option.type === 'help' || option.type === 'version';
+  },
+  /**
+   * Tests if an option has unknown values.
+   * @param option The option definition
+   * @returns True if the option is unknown-valued
+   */
+  u(option) {
+    return option.type === 'function' || option.type === 'command';
+  },
+  /**
+   * Tests if an option has a boolean value.
+   * @param option The option definition
+   * @returns True if the option is boolean-valued
+   */
+  b(option) {
+    return option.type === 'flag' || option.type === 'boolean';
+  },
+  /**
+   * Tests if an option has string values.
+   * @param option The option definition
+   * @returns True if the option is string-valued
+   */
+  s(option) {
+    return option.type === 'string' || option.type === 'strings';
+  },
+  /**
+   * Tests if an option has number values.
+   * @param option The option definition
+   * @returns True if the option is number-valued
+   */
+  n(option) {
+    return option.type === 'number' || option.type === 'numbers';
+  },
+} as const satisfies CheckFunctions;
+
 //--------------------------------------------------------------------------------------------------
 // Public types
 //--------------------------------------------------------------------------------------------------
@@ -704,8 +759,19 @@ export type OptionValues<T extends Options = Options> = Resolve<{
 // Internal types
 //--------------------------------------------------------------------------------------------------
 /**
+ * An option checking function.
+ * @param option The option definition
+ * @returns True if the option satisfies the check
+ */
+type CheckFunction = (option: OpaqueOption) => boolean;
+
+/**
+ * A set of option checking functions.
+ */
+type CheckFunctions = Record<string, CheckFunction>;
+
+/**
  * The option types.
- * @internal
  */
 type OptionTypes =
   | 'help'
@@ -981,69 +1047,9 @@ export function getParamCount(option: OpaqueOption): Range {
   }
   if (option.type !== 'function') {
     const min = option.fallback !== undefined ? 0 : 1;
-    const max = option.separator || !isArray(option) ? 1 : Infinity;
+    const max = option.separator || !isOpt.a(option) ? 1 : Infinity;
     return [min, max];
   }
   const count = option.paramCount ?? 0;
   return typeof count === 'object' ? count : count < 0 ? [0, Infinity] : [count, count];
-}
-
-/**
- * Tests if an option is an array option (i.e., has an array value).
- * @param option The option definition
- * @returns True if the option is an array-valued option
- * @internal
- */
-export function isArray(option: OpaqueOption): boolean {
-  return option.type === 'strings' || option.type === 'numbers';
-}
-
-/**
- * Tests if an option has or throws a message to be printed in the terminal.
- * @param option The option definition
- * @returns True if the option is message-valued
- * @internal
- */
-export function isMessage(option: OpaqueOption): boolean {
-  return option.type === 'help' || option.type === 'version';
-}
-
-/**
- * Tests if an option has unknown values.
- * @param option The option definition
- * @returns True if the option is unknown-valued
- * @internal
- */
-export function isUnknown(option: OpaqueOption): boolean {
-  return option.type === 'function' || option.type === 'command';
-}
-
-/**
- * Tests if an option has a boolean value.
- * @param option The option definition
- * @returns True if the option is boolean-valued
- * @internal
- */
-export function isBoolean(option: OpaqueOption): boolean {
-  return option.type === 'flag' || option.type === 'boolean';
-}
-
-/**
- * Tests if an option has string values.
- * @param option The option definition
- * @returns True if the option is string-valued
- * @internal
- */
-export function isString(option: OpaqueOption): boolean {
-  return option.type === 'string' || option.type === 'strings';
-}
-
-/**
- * Tests if an option has number values.
- * @param option The option definition
- * @returns True if the option is number-valued
- * @internal
- */
-export function isNumber(option: OpaqueOption): boolean {
-  return option.type === 'number' || option.type === 'numbers';
 }

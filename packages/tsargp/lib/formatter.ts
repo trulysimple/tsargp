@@ -11,10 +11,7 @@ import {
   RequiresAll,
   RequiresNot,
   RequiresOne,
-  isString,
-  isBoolean,
-  isNumber,
-  isArray,
+  isOpt,
   getParamCount,
   getOptionNames,
 } from './options';
@@ -109,19 +106,17 @@ export type WithKind<T extends string> = {
 };
 
 /**
- * Defines attributes for a help section with text.
- */
-export type WithText = {
-  /**
-   * The section text. May contain inline styles.
-   */
-  readonly text: string;
-};
-
-/**
  * Defines attributes for a help section with wrapping.
  */
-export type WithWrap = {
+export type WithTitle = {
+  /**
+   * The section heading or default group heading. May contain inline styles.
+   */
+  readonly title?: string;
+  /**
+   * The style of the section heading or option group headings. (Defaults to tf.bold)
+   */
+  readonly style?: Style;
   /**
    * The number of line breaks to insert before the section.
    * (Defaults to 0 for the first section, else 2)
@@ -134,17 +129,13 @@ export type WithWrap = {
 };
 
 /**
- * Defines attributes for a help section with a title.
+ * Defines attributes for a help section with text content.
  */
-export type WithTitle = {
+export type WithText = {
   /**
-   * The heading text. May contain inline styles.
+   * The section content. May contain inline styles.
    */
-  readonly title?: string;
-  /**
-   * The style of headings. (Defaults to tf.bold)
-   */
-  readonly style?: Style;
+  readonly text?: string;
 };
 
 /**
@@ -198,22 +189,17 @@ export type WithRequired = {
 /**
  * A help text section.
  */
-export type HelpText = WithKind<'text'> & WithText & WithWrap & WithIndent;
+export type HelpText = WithKind<'text'> & WithTitle & WithText & WithIndent;
 
 /**
  * A help usage section.
  */
-export type HelpUsage = WithKind<'usage'> &
-  WithTitle &
-  WithWrap &
-  WithIndent &
-  WithFilter &
-  WithRequired;
+export type HelpUsage = WithKind<'usage'> & WithTitle & WithIndent & WithFilter & WithRequired;
 
 /**
  * A help groups section.
  */
-export type HelpGroups = WithKind<'groups'> & WithTitle & WithWrap & WithPhrase & WithFilter;
+export type HelpGroups = WithKind<'groups'> & WithTitle & WithPhrase & WithFilter;
 
 /**
  * A help section.
@@ -230,19 +216,16 @@ export type HelpSections = Array<HelpSection>;
 //--------------------------------------------------------------------------------------------------
 /**
  * A concrete version of the help column settings.
- * @internal
  */
 type ConcreteColumn = Concrete<WithColumn>;
 
 /**
  * A concrete version of the format configuration.
- * @internal
  */
 type ConcreteFormat = Concrete<FormatterConfig>;
 
 /**
  * Precomputed texts used by the formatter.
- * @internal
  */
 type HelpEntry = {
   readonly names: Array<TerminalString>;
@@ -252,7 +235,6 @@ type HelpEntry = {
 
 /**
  * A function that formats a help item to be included in an option's description.
- * @internal
  */
 type HelpItemFunction = (
   option: OpaqueOption,
@@ -769,53 +751,30 @@ function formatSection(
   progName: string,
   result: HelpMessage,
 ) {
-  const breaks = section.breaks ?? (result.length ? 2 : 0);
-  switch (section.type) {
-    case 'text': {
-      const { text, indent, noWrap } = section;
+  let breaks = section.breaks ?? (result.length ? 2 : 0);
+  if (section.type === 'groups') {
+    formatGroupsSection(groups, breaks, section, result);
+  } else {
+    const { title, noWrap, style: sty } = section;
+    if (title) {
+      result.push(formatText(title, sty ?? style(tf.bold), 0, breaks, noWrap));
+      breaks = 2;
+    }
+    if (section.type === 'usage') {
+      let { indent } = section;
+      if (progName) {
+        result.push(formatText(progName, styles.text, indent, breaks, true));
+        indent = max(0, indent ?? 0) + progName.length + 1;
+        breaks = 0;
+      }
+      result.push(formatUsage(options, styles, section, indent, breaks));
+    } else {
+      const { text, indent } = section;
       if (text) {
         result.push(formatText(text, styles.text, indent, breaks, noWrap));
       }
-      break;
     }
-    case 'usage':
-      formatUsageSection(options, styles, breaks, section, progName, result);
-      break;
-    case 'groups':
-      formatGroupsSection(groups, breaks, section, result);
-      break;
   }
-}
-
-/**
- * Formats a usage section text to be included in the full help message.
- * @param options The option definitions
- * @param styles The set of styles
- * @param breaks The number of line breaks
- * @param section The help section
- * @param progName The program name
- * @param result The resulting message
- */
-function formatUsageSection(
-  options: OpaqueOptions,
-  styles: FormatStyles,
-  breaks: number,
-  section: HelpUsage,
-  progName: string,
-  result: HelpMessage,
-) {
-  const { title, indent, noWrap, style: sty } = section;
-  if (title) {
-    result.push(formatText(title, sty ?? style(tf.bold), 0, breaks, noWrap));
-    breaks = 2;
-  }
-  let indent2 = indent;
-  if (progName) {
-    result.push(formatText(progName, styles.text, indent, breaks, true));
-    indent2 = max(0, indent ?? 0) + progName.length + 1;
-    breaks = 0;
-  }
-  result.push(formatUsage(options, styles, section, indent2, breaks));
 }
 
 /**
@@ -1034,7 +993,7 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
     result.format(styles, '%s', { s: value });
     return result.length;
   }
-  const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
+  const spec = isOpt.b(option) ? 'b' : isOpt.s(option) ? 's' : isOpt.n(option) ? 'n' : 'v';
   result.format(styles, `%${spec}`, { [spec]: example }, {});
   const nonDelimited = spec !== 'v' && Array.isArray(example);
   return result.length + (nonDelimited ? example.length - 1 : 0);
@@ -1239,7 +1198,7 @@ function formatEnums(
 ) {
   const enums = option.enums;
   if (enums) {
-    const [spec, alt] = isString(option) ? ['s', 0] : ['n', 1];
+    const [spec, alt] = isOpt.s(option) ? ['s', 0] : ['n', 1];
     result.format(styles, phrase, { [spec]: enums }, { alt, sep: ',' });
   }
 }
@@ -1600,8 +1559,8 @@ function formatRequiredValue(
     const connective = negate
       ? connectives[ConnectiveWords.notEquals]
       : connectives[ConnectiveWords.equals];
-    const spec = isBoolean(option) ? 'b' : isString(option) ? 's' : isNumber(option) ? 'n' : 'v';
-    const phrase = isArray(option) ? `[%${spec}]` : `%${spec}`;
+    const spec = isOpt.b(option) ? 'b' : isOpt.s(option) ? 's' : isOpt.n(option) ? 'n' : 'v';
+    const phrase = isOpt.a(option) ? `[%${spec}]` : `%${spec}`;
     result.word(connective).format(styles, phrase, { [spec]: value });
   }
 }

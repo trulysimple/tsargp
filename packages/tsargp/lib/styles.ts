@@ -283,16 +283,14 @@ export type FormattingFlags = {
 //--------------------------------------------------------------------------------------------------
 /**
  * A formatting function.
- * @internal
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type FormatFunction = (value: any, styles: FormatStyles, result: TerminalString) => void;
+type FormatFunction = (value: any, styles: FormatStyles, result: TerminalString) => void;
 
 /**
  * A set of formatting functions.
- * @internal
  */
-export type FormatFunctions = Record<string, FormatFunction>;
+type FormatFunctions = Record<string, FormatFunction>;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
