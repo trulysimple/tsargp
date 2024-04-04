@@ -10,7 +10,7 @@ interface Values {
   version: never;
   helpCmd: undefined;
   flag: boolean | undefined;
-  command: number | undefined;
+  hello: number | undefined;
   boolean: boolean;
   stringRegex: string;
   numberRange: number;
@@ -28,7 +28,7 @@ try {
   if (warning) {
     console.log(`${warning}`);
   }
-  if (!values.command) {
+  if (!values.hello) {
     console.log(values);
   }
 } catch (err) {

@@ -46,7 +46,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(`  -f, --command    A command option. Defaults to true.\n`);
+      expect(message.wrap()).toEqual(`  -f, --command  ...  A command option. Defaults to true.\n`);
     });
 
     it('should handle a command option with a default callback', () => {
@@ -62,7 +62,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -f, --command    A command option. Defaults to <() => 0>.\n`,
+        `  -f, --command  ...  A command option. Defaults to <() => 0>.\n`,
       );
     });
 

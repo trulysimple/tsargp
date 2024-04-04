@@ -28,6 +28,12 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  text');
     });
 
+    it('should break a text section', () => {
+      const sections: HelpSections = [{ type: 'text', text: 'text', breaks: 1 }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      expect(message.wrap()).toEqual('\ntext');
+    });
+
     it('should not wrap a text section', () => {
       const sections: HelpSections = [{ type: 'text', text: 'section  text', noWrap: true }];
       const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
@@ -52,10 +58,22 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  prog');
     });
 
-    it('should render a usage section with a heading (but not indent it)', () => {
+    it('should break a usage section with a program name', () => {
+      const sections: HelpSections = [{ type: 'usage', breaks: 1 }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections, 'prog');
+      expect(message.wrap()).toEqual('\nprog');
+    });
+
+    it('should render a usage section with a heading (but not indent the heading)', () => {
       const sections: HelpSections = [{ type: 'usage', title: 'text', indent: 2 }];
       const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('text');
+    });
+
+    it('should break a usage section with a heading', () => {
+      const sections: HelpSections = [{ type: 'usage', title: 'text', breaks: 1 }];
+      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      expect(message.wrap()).toEqual('\ntext');
     });
 
     it('should render a usage section with a required flag option with a single name', () => {
@@ -156,6 +174,32 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('[group]\n\n  -f, --flag    A flag option.');
     });
 
+    it('should break a groups section with a default group', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+        },
+      } as const satisfies Options;
+      const sections: HelpSections = [{ type: 'groups', breaks: 1 }];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      expect(message.wrap()).toEqual('\n  -f, --flag    A flag option.');
+    });
+
+    it('should break a groups section with a custom heading for the default group', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option.',
+        },
+      } as const satisfies Options;
+      const sections: HelpSections = [{ type: 'groups', title: 'text', breaks: 1 }];
+      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      expect(message.wrap()).toEqual('\ntext\n\n  -f, --flag    A flag option.');
+    });
+
     it('should not wrap section texts', () => {
       const options = {
         flag: {
@@ -188,9 +232,13 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const sections1: HelpSections = [{ type: 'usage', filter: ['flag1'] }];
       const sections2: HelpSections = [{ type: 'usage', filter: ['flag1'], exclude: true }];
+      const sections3: HelpSections = [{ type: 'usage', filter: ['flag1'], required: ['flag1'] }];
+      const sections4: HelpSections = [{ type: 'usage', filter: ['flag2', 'flag1'] }];
       const formatter = new HelpFormatter(new OptionValidator(options));
       expect(formatter.formatSections(sections1).wrap()).toEqual('[-f1]');
       expect(formatter.formatSections(sections2).wrap()).toEqual('[-f2]');
+      expect(formatter.formatSections(sections3).wrap()).toEqual('-f1');
+      expect(formatter.formatSections(sections4).wrap()).toEqual('[-f2] [-f1]');
     });
 
     it('should include and exclude an group in a groups section', () => {

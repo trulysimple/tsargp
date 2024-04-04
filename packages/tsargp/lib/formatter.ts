@@ -123,6 +123,11 @@ export type WithText = {
  */
 export type WithWrap = {
   /**
+   * The number of line breaks to insert before the section.
+   * (Defaults to 0 for the first section, else 2)
+   */
+  readonly breaks?: number;
+  /**
    * True to disable text wrapping of the provided text or headings.
    */
   readonly noWrap?: true;
@@ -159,7 +164,7 @@ export type WithFilter = {
   /**
    * A list of options keys or group names to include or exclude.
    */
-  readonly filter?: Array<string>;
+  readonly filter?: ReadonlyArray<string>;
   /**
    * True if the filter should exclude.
    */
@@ -177,6 +182,20 @@ export type WithPhrase = {
 };
 
 /**
+ * Defines additional attributes for the usage section.
+ */
+export type WithRequired = {
+  /**
+   * A list of options that should be considered required in the usage.
+   */
+  readonly required?: ReadonlyArray<string>;
+  /**
+   * A commentary to append to the usage.
+   */
+  readonly comment?: string;
+};
+
+/**
  * A help text section.
  */
 export type HelpText = WithKind<'text'> & WithText & WithWrap & WithIndent;
@@ -184,7 +203,12 @@ export type HelpText = WithKind<'text'> & WithText & WithWrap & WithIndent;
 /**
  * A help usage section.
  */
-export type HelpUsage = WithKind<'usage'> & WithTitle & WithWrap & WithIndent & WithFilter;
+export type HelpUsage = WithKind<'usage'> &
+  WithTitle &
+  WithWrap &
+  WithIndent &
+  WithFilter &
+  WithRequired;
 
 /**
  * A help groups section.
@@ -528,11 +552,10 @@ function formatParams(
   option: OpaqueOption,
   result: TerminalString,
 ): number {
-  if (config.param.hidden || !getParamCount(option)[1]) {
+  if (config.param.hidden) {
     return 0;
   }
-  result.break(config.param.breaks);
-  const len = formatParam(option, styles, result);
+  const len = formatParam(option, styles, result, config.param.breaks);
   return (result.indent = len); // hack: save the length, since we will need it in `adjustEntries`
 }
 
@@ -746,7 +769,7 @@ function formatSection(
   progName: string,
   result: HelpMessage,
 ) {
-  let breaks = result.length ? 2 : 0;
+  const breaks = section.breaks ?? (result.length ? 2 : 0);
   switch (section.type) {
     case 'text': {
       const { text, indent, noWrap } = section;
@@ -781,7 +804,7 @@ function formatUsageSection(
   progName: string,
   result: HelpMessage,
 ) {
-  const { title, indent, noWrap, filter, exclude, style: sty } = section;
+  const { title, indent, noWrap, style: sty } = section;
   if (title) {
     result.push(formatText(title, sty ?? style(tf.bold), 0, breaks, noWrap));
     breaks = 2;
@@ -792,8 +815,7 @@ function formatUsageSection(
     indent2 = max(0, indent ?? 0) + progName.length + 1;
     breaks = 0;
   }
-  const filterKeys = filter && new Set(filter);
-  result.push(formatUsage(options, styles, indent2, breaks, filterKeys, exclude));
+  result.push(formatUsage(options, styles, section, indent2, breaks));
 }
 
 /**
@@ -865,27 +887,40 @@ function formatText(
  * Options are rendered in the same order as was declared in the option definitions.
  * @param options The option definitions
  * @param styles The set of styles
+ * @param section The help section
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
- * @param filterKeys An optional set of options keys to filter
- * @param exclude Whether the filter should exclude
  * @returns The terminal string
  */
 function formatUsage(
   options: OpaqueOptions,
   styles: FormatStyles,
+  section: HelpUsage,
   indent?: number,
   breaks?: number,
-  filterKeys?: Set<string>,
-  exclude = false,
 ): TerminalString {
+  const { filter, exclude, required, comment } = section;
+  const filterKeys = filter && new Set(filter);
+  const requiredKeys = required && new Set(required);
   const result = new TerminalString(indent, breaks).seq(styles.text);
   const count = result.count;
-  for (const key in options) {
-    const option = options[key];
-    if (!option.hide && (filterKeys?.has(key) ?? !exclude) != exclude) {
-      formatUsageOption(option, styles, result);
+  if (filterKeys && !exclude) {
+    // list options in the same order specified in the filter
+    for (const key of filterKeys) {
+      if (key in options) {
+        formatUsageOption(options[key], styles, result, requiredKeys?.has(key));
+      }
     }
+  } else {
+    for (const key in options) {
+      const option = options[key];
+      if (!option.hide && !(exclude && filterKeys?.has(key))) {
+        formatUsageOption(option, styles, result);
+      }
+    }
+  }
+  if (comment) {
+    result.split(comment);
   }
   if (result.count == count) {
     return new TerminalString(); // this string does not contain any word
@@ -898,16 +933,19 @@ function formatUsage(
  * @param option The option definition
  * @param styles The set of styles
  * @param result The resulting string
+ * @param required True if the option should be considered required
  */
-function formatUsageOption(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
-  const required = option.required;
+function formatUsageOption(
+  option: OpaqueOption,
+  styles: FormatStyles,
+  result: TerminalString,
+  required = option.required ?? false,
+) {
   if (!required) {
     result.open('[');
   }
   formatUsageNames(option, styles, result);
-  if (getParamCount(option)[1]) {
-    formatParam(option, styles, result);
-  }
+  formatParam(option, styles, result);
   if (!required) {
     result.close(']');
   }
@@ -943,26 +981,40 @@ function formatUsageNames(option: OpaqueOption, styles: FormatStyles, result: Te
  * @param option The option definition
  * @param styles The set of styles
  * @param result The resulting string
+ * @param breaks The number of line breaks (non-positive values are ignored)
  * @returns The string length
  */
-function formatParam(option: OpaqueOption, styles: FormatStyles, result: TerminalString): number {
+function formatParam(
+  option: OpaqueOption,
+  styles: FormatStyles,
+  result: TerminalString,
+  breaks = 0,
+): number {
   if (option.example !== undefined) {
-    return formatExample(option, styles, result);
+    return formatExample(option, styles, result.break(breaks));
   }
   const paramStyle = option.styles?.param ?? styles.value;
+  const ellipsis = '...';
+  if (option.type === 'command') {
+    result.break(breaks).style(paramStyle, ellipsis, styles.text);
+    return ellipsis.length;
+  }
   const [min, max] = getParamCount(option);
-  const ellipsis = max > 1 ? '...' : '';
+  if (!max) {
+    return 0;
+  }
   const paramName = option.paramName;
-  const paramText = paramName
+  const param0 = paramName
     ? paramName.includes('<')
       ? paramName
-      : `<${paramName}>${ellipsis}`
+      : `<${paramName}>`
     : option.type === 'function'
-      ? `<param>${ellipsis}`
-      : `<${option.type}>${ellipsis}`;
-  const param = min <= 0 ? `[${paramText}]` : paramText;
-  result.style(paramStyle, param, styles.text);
-  return param.length;
+      ? '<param>'
+      : `<${option.type}>`;
+  const param1 = param0 + (max > 1 ? ellipsis : '');
+  const param2 = min <= 0 ? `[${param1}]` : param1;
+  result.break(breaks).style(paramStyle, param2, styles.text);
+  return param2.length;
 }
 
 /**
