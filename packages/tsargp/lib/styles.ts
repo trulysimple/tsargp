@@ -307,12 +307,12 @@ export class TerminalString {
   /**
    * The list of internal strings that have been appended.
    */
-  readonly strings = new Array<string>();
+  readonly strings: Array<string> = [];
 
   /**
    * The lengths of the internal strings, ignoring control characters and sequences.
    */
-  readonly lengths = new Array<number>();
+  readonly lengths: Array<number> = [];
 
   /**
    * @returns The combined length of all internal strings, ignoring control characters and sequences
@@ -613,7 +613,7 @@ export class TerminalMessage extends Array<TerminalString> {
    * @returns The message to be printed on a terminal
    */
   wrap(width = 0, emitStyles = !omitStyles(width)): string {
-    const result = new Array<string>();
+    const result: Array<string> = [];
     let column = 0;
     for (const str of this) {
       column = str.wrap(result, column, width, emitStyles);

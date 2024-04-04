@@ -133,7 +133,7 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
       arg += char;
     }
   }
-  const result = new Array<string>();
+  const result: Array<string> = [];
   let arg: string | undefined;
   for (let i = 0, quote = ''; i < line.length; ++i) {
     if (i == compIndex) {
@@ -217,7 +217,7 @@ export function checkArrayEqual<T>(
  */
 function longestCommonSubstrings(S: string, T: string): [number, Array<[number, number]>] {
   const dp = new Array<number>(T.length);
-  const indices = new Array<[number, number]>();
+  const indices: Array<[number, number]> = [];
   let z = 0;
   for (let i = 0, last = 0; i < S.length; ++i) {
     for (let j = 0; j < T.length; ++j) {
@@ -283,7 +283,7 @@ export function findSimilarNames(name: string, names: Array<string>, threshold =
   }
   const searchName = norm(name);
   return names
-    .reduce((acc, name2) => {
+    .reduce((acc: Array<[string, number]>, name2) => {
       // skip the original name
       if (name2 != name) {
         const sim = gestaltSimilarity(searchName, norm(name2));
@@ -292,7 +292,7 @@ export function findSimilarNames(name: string, names: Array<string>, threshold =
         }
       }
       return acc;
-    }, new Array<[string, number]>())
+    }, [])
     .sort(([, as], [, bs]) => bs - as)
     .map(([str]) => str);
 }
@@ -305,7 +305,7 @@ export function findSimilarNames(name: string, names: Array<string>, threshold =
  * @internal
  */
 export function selectAlternative(phrase: string, alt = 0): string {
-  const groups = new Array<[number, number]>();
+  const groups: Array<[number, number]> = [];
   for (let i = 0, s = 0, level = 0, groupLevel = 0, startIndices = []; i < phrase.length; ++i) {
     const c = phrase[i];
     if (c === '(') {

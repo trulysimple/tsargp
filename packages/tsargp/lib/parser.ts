@@ -25,7 +25,7 @@ import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './o
 import { HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
 import { OptionValidator, defaultConfig } from './validator';
 import { format } from './styles';
-import { checkArrayEqual, findSimilarNames, getArgs, isTrue, isComp, max } from './utils';
+import { checkArrayEqual, findSimilarNames, getArgs, isTrue, isComp, max, Range } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -322,6 +322,7 @@ async function readEnvVar(context: ParseContext, info: OptionInfo): Promise<bool
 async function parseArgs(context: ParseContext): Promise<boolean> {
   const [validator, values, args, specifiedKeys, completing, warning] = context;
   let prev: ParseEntry = [-1];
+  let paramCount: Range = [0, 0];
   let positional = false;
   for (let i = 0, k = 0; i < args.length; i = prev[0]) {
     const next = findNext(context, prev);
@@ -339,7 +340,8 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       }
       prev = next;
       const [key, name, option] = info;
-      const niladic = !getParamCount(option)[1];
+      paramCount = getParamCount(option);
+      const niladic = !paramCount[1];
       const hasValue = value !== undefined;
       if (niladic || marker) {
         if (comp) {
@@ -352,8 +354,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
             prev[4] = false;
             continue;
           }
-          const alt = marker ? 1 : 0;
-          const name2 = marker ? info[3] : name;
+          const [alt, name2] = marker ? [1, info[3]] : [0, name];
           throw validator.error(ErrorItem.disallowedInlineValue, { o: name2 }, { alt });
         }
       }
@@ -396,13 +397,11 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       break; // finished
     }
     // comp === true
-    await handleComplete(values, info, i, args.slice(k, j), value);
-    const [, , option] = info;
-    handleCompletion(option, value);
-    if (!marker && (positional || k < j || option.fallback !== undefined)) {
-      handleNameCompletion(validator, value);
+    const words = await handleCompletion(values, info, i, args.slice(k, j), value);
+    if (!marker && ((j === k && positional) || j - k >= paramCount[0])) {
+      words.push(...completeName(validator, value));
     }
-    throw new CompletionMessage();
+    throw new CompletionMessage(...words);
   }
   return !completing;
 }
@@ -437,7 +436,7 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       if (!info || i - index + inc > max) {
         if (!positional) {
           if (comp) {
-            handleNameCompletion(validator, arg);
+            throw new CompletionMessage(...completeName(validator, arg));
           }
           handleUnknownName(validator, name);
         }
@@ -524,26 +523,6 @@ async function resolveVersion(
 }
 
 /**
- * Handles the completion of an option with a parameter.
- * @param option The option definition
- * @param comp The word being completed
- */
-function handleCompletion(option: OpaqueOption, comp = '') {
-  let words =
-    option.type === 'boolean'
-      ? option.truthNames?.concat(option.falsityNames ?? []) ?? []
-      : option.enums
-        ? option.enums.map((val) => `${val}`)
-        : [];
-  if (words.length && comp) {
-    words = words.filter((word) => word.startsWith(comp));
-  }
-  if (words.length) {
-    throw new CompletionMessage(...words);
-  }
-}
-
-/**
  * Handles an unknown option name.
  * @param validator The option validator
  * @param name The unknown option name
@@ -555,14 +534,14 @@ function handleUnknownName(validator: OptionValidator, name: string): never {
 }
 
 /**
- * Handles the completion of an option name.
+ * Completes an option name.
  * @param validator The option validator
  * @param prefix The name prefix, if any
+ * @returns The completion words
  */
-function handleNameCompletion(validator: OptionValidator, prefix?: string): never {
+function completeName(validator: OptionValidator, prefix?: string): Array<string> {
   const names = [...validator.names.keys()];
-  const prefixedNames = prefix ? names.filter((name) => name.startsWith(prefix)) : names;
-  throw new CompletionMessage(...prefixedNames);
+  return prefix ? names.filter((name) => name.startsWith(prefix)) : names;
 }
 
 /**
@@ -851,31 +830,42 @@ function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOp
 }
 
 /**
- * Handles the completion of an option with a custom completion callback.
+ * Handles the completion of an option parameter.
  * @param values The option values
  * @param info The option information
  * @param index The starting index of the argument sequence
  * @param param The preceding parameters, if any
  * @param comp The word being completed
+ * @returns The completion words
  */
-async function handleComplete(
+async function handleCompletion(
   values: OpaqueOptionValues,
   info: OptionInfo,
   index: number,
   param: Array<string>,
   comp = '',
-) {
+): Promise<Array<string>> {
   const [, name, option] = info;
+  let words: Array<string>;
   if (option.complete) {
-    let words;
     try {
       words = await option.complete({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate errors during completion
-      throw new CompletionMessage();
+      words = [];
     }
-    throw new CompletionMessage(...words);
+  } else {
+    words =
+      option.type === 'boolean'
+        ? option.truthNames?.concat(option.falsityNames ?? []) ?? []
+        : option.enums
+          ? option.enums.map((val) => `${val}`)
+          : [];
+    if (words.length && comp) {
+      words = words.filter((word) => word.startsWith(comp));
+    }
   }
+  return words;
 }
 
 /**

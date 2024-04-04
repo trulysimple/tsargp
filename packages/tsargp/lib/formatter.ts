@@ -605,7 +605,7 @@ function mergeConfig(config: FormatterConfig = {}): ConcreteFormat {
  * @returns The name slot widths
  */
 function getNameWidths(options: OpaqueOptions): Array<number> {
-  const result = new Array<number>();
+  const result: Array<number> = [];
   for (const key in options) {
     const option = options[key];
     if (!option.hide && option.names) {
@@ -689,7 +689,7 @@ function formatNameSlots(
   defStyle: Style,
 ): Array<TerminalString> {
   const slotted = typeof nameWidths !== 'number';
-  const result = new Array<TerminalString>();
+  const result: Array<TerminalString> = [];
   let str: TerminalString | undefined;
   let indent = max(0, config.names.indent);
   let breaks = config.names.breaks;

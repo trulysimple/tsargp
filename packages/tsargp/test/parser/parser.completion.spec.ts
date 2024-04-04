@@ -238,14 +238,69 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^one\ntwo$/);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^one\ntwo\n-s\n--$/);
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-s\n--$/);
       await expect(parser.parse('cmd --', { compIndex: 6 })).rejects.toThrow(/^--$/);
       await expect(parser.parse('cmd -- ', { compIndex: 7 })).rejects.toThrow(/^one\ntwo$/);
       await expect(parser.parse('cmd -- o', { compIndex: 8 })).rejects.toThrow(/^one$/);
       await expect(parser.parse('cmd --=', { compIndex: 7 })).rejects.toThrow(/^$/);
-      await expect(parser.parse('cmd --= ', { compIndex: 8 })).rejects.toThrow(/^one\ntwo$/);
+      await expect(parser.parse('cmd --= ', { compIndex: 8 })).rejects.toThrow(
+        /^one\ntwo\n-s\n--$/,
+      );
       await expect(parser.parse('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^one\ntwo$/);
+    });
+
+    it('should handle the completion of a positional function option with parameter count', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: 2,
+          positional: true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^-f$/);
+      await expect(parser.parse('cmd a ', { compIndex: 6 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd a a ', { compIndex: 8 })).rejects.toThrow(/^-f$/);
+    });
+
+    it('should handle the completion of a positional function option with custom completion', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          paramCount: 2,
+          positional: true,
+          complete: vi.fn().mockImplementation(() => ['abc']),
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^abc$/);
+      expect(options.function.complete).toHaveBeenCalledWith({
+        values: { function: undefined },
+        index: 0,
+        name: '',
+        param: [],
+        comp: '',
+      });
+      options.function.complete.mockClear();
+      await expect(parser.parse('cmd a ', { compIndex: 6 })).rejects.toThrow(/^abc$/);
+      expect(options.function.complete).toHaveBeenCalledWith({
+        values: { function: undefined },
+        index: 0,
+        name: '',
+        param: ['a'],
+        comp: '',
+      });
+      options.function.complete.mockClear();
+      await expect(parser.parse('cmd a a ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
+      expect(options.function.complete).toHaveBeenCalledWith({
+        values: { function: undefined },
+        index: 0,
+        name: '',
+        param: [],
+        comp: '',
+      });
     });
 
     it('should handle the completion of a positional boolean option with truth names', async () => {
@@ -258,7 +313,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^yes$/);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^yes\n-b$/);
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-b$/);
       await expect(parser.parse('cmd y', { compIndex: 5 })).rejects.toThrow(/^yes$/);
       await expect(parser.parse('cmd x', { compIndex: 5 })).rejects.toThrow(/^$/);
@@ -275,7 +330,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^one\ntwo$/);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^one\ntwo\n-s$/);
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-s$/);
       await expect(parser.parse('cmd o', { compIndex: 5 })).rejects.toThrow(/^one$/);
       await expect(parser.parse('cmd t', { compIndex: 5 })).rejects.toThrow(/^two$/);
@@ -293,7 +348,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^123\n456$/);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^123\n456\n-n$/);
       await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-n$/);
       await expect(parser.parse('cmd 1', { compIndex: 5 })).rejects.toThrow(/^123$/);
       await expect(parser.parse('cmd 4', { compIndex: 5 })).rejects.toThrow(/^456$/);
@@ -338,7 +393,7 @@ describe('ArgumentParser', () => {
         comp: '12',
       });
       options.boolean.complete.mockClear();
-      await expect(parser.parse('cmd 0 1 ', { compIndex: 8 })).rejects.toThrow(/^abc$/);
+      await expect(parser.parse('cmd 0 1 ', { compIndex: 8 })).rejects.toThrow(/^abc\n-b$/);
       expect(options.boolean.complete).toHaveBeenCalledWith({
         values: { boolean: true },
         index: 1,
@@ -492,7 +547,7 @@ describe('ArgumentParser', () => {
         comp: '',
       });
       options.strings.complete.mockClear();
-      await expect(parser.parse('cmd -ss 1 ', { compIndex: 10 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -ss 1 ', { compIndex: 10 })).rejects.toThrow(/^-ss$/);
       expect(options.strings.complete).toHaveBeenCalledWith({
         values: { strings: undefined },
         index: 0,
@@ -556,7 +611,7 @@ describe('ArgumentParser', () => {
         comp: '',
       });
       options.numbers.complete.mockClear();
-      await expect(parser.parse('cmd -ns 1 ', { compIndex: 10 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -ns 1 ', { compIndex: 10 })).rejects.toThrow(/^-ns$/);
       expect(options.numbers.complete).toHaveBeenCalledWith({
         values: { numbers: undefined },
         index: 0,

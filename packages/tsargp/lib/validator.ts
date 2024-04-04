@@ -457,7 +457,7 @@ function error(
  * @returns The names in each name slot
  */
 function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
-  const result = new Array<Array<string>>();
+  const result: Array<Array<string>> = [];
   for (const key in options) {
     options[key].names?.forEach((name, i) => {
       if (name) {
