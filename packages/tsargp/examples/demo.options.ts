@@ -24,14 +24,14 @@ const helloOpts = {
   /**
    * A recursive command option that logs the arguments passed after it.
    */
-  command: {
+  hello: {
     type: 'command',
     names: ['hello'],
     desc: 'A recursive command option. Logs the arguments passed after it.',
     options: (): Options => helloOpts,
     exec({ param }): number {
       const vals = param as OptionValues<typeof helloOpts>;
-      const calls = vals.command ?? 0;
+      const calls = vals.hello ?? 0;
       console.log(`[tail call #${calls}]`, ...vals.strings);
       return calls + 1;
     },
@@ -88,6 +88,23 @@ export default {
         type: 'usage',
         title: 'Usage:',
         indent: 2,
+        filter: ['help', 'version', 'helpCmd'],
+        comment: `${style(fg.green)}# get help`,
+      },
+      {
+        type: 'usage',
+        indent: 2,
+        breaks: 1,
+        filter: ['hello'],
+        comment: `${style(fg.green)}# execute the hello command`,
+        required: ['hello'],
+      },
+      {
+        type: 'usage',
+        indent: 2,
+        breaks: 1,
+        filter: ['help', 'version', 'helpCmd', 'hello'],
+        exclude: true,
       },
       {
         type: 'text',
@@ -126,7 +143,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
   /**
    * A command option that logs the arguments passed after it.
    */
-  command: helloOpts.command,
+  hello: helloOpts.hello,
   /**
    * A boolean option that has inline styles and requirements.
    */

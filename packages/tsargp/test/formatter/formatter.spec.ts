@@ -76,7 +76,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(`  -f, --command    A command option\n`);
+      expect(message.wrap()).toEqual(`  -f, --command  ...  A command option\n`);
     });
 
     it('should handle a flag option with negation names', () => {

@@ -88,23 +88,31 @@ later in this page.
 Sections are a convenient way to organize the help content. There are three kinds of help sections:
 text, usage and groups. They are explained below.
 
+### Common properties
+
+All help sections share a set of properties:
+
+- `breaks` - the number of line breaks to insert before the section (defaults to `0{:ts}` for the
+  first section, else `2{:ts}`)
+- `noWrap` - true to disable wrapping of provided texts (defaults to `false{:ts}`)
+
 <Callout type="info">
-  In what follows, text properties can contain inline styles and may be formatted according to [text
-  formatting] rules, unless `noWrap` is set.
+  When `noWrap` is set, inline styles may still be used in text properties, but the texts will _not_
+  be formatted according to the [text formatting] rules.
 </Callout>
 
-<Callout type="warning">
-  All sections and headings are separated by two line feeds by default, unless extra spacing is
-  provided in texts. For the sake of simplicity, there is no way to configure this feature.
+<Callout type="info">
+  All headings are separated from their content by _two_ line feeds, unless extra spacing is
+  provided in heading texts. For the sake of simplicity, there is no way to configure this behavior.
 </Callout>
 
 ### Text section
 
 A text section can be used to write many kinds of content, such as an introductory text, CLI usage
-instructions, afterword, copyright notice or external references. It has the following properties:
+instructions, afterword, copyright notice or external references. In addition to the [common
+properties], it has the following properties:
 
-- `text` - the section text
-- `noWrap` - true to disable wrapping of the provided text (defaults to `false{:ts}`)
+- `text` - the section content
 - `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
 
 ### Usage section
@@ -114,8 +122,9 @@ The usage text is a concise representation of a program's command-line. Here is 
 {/* cSpell:disable */}
 
 ```ansi
-demo.js [[95mhelp[0m] [([95m-h[0m|[95m--help[0m)] [([95m-v[0m|[95m--version[0m)]
-        [([95m-f[0m|[95m--flag[0m|[95m--no-flag[0m)] [[95mhello[0m]
+demo.js [([95m-h[0m|[95m--help[0m)] [([95m-v[0m|[95m--version[0m)] [[95mhelp[0m] [32m# get help[0m
+demo.js [0m[95mhello[0m [90m...[0m [32m# execute the hello command[0m
+demo.js [([95m-f[0m|[95m--flag[0m|[95m--no-flag[0m)]
         [([95m-b[0m|[95m--boolean[0m) [90m<boolean>[0m]
         [([95m-s[0m|[95m--stringRegex[0m) [90m<my string>[0m]
         [([95m-n[0m|[95m--numberRange[0m) [90m<my number>[0m]
@@ -129,27 +138,28 @@ demo.js [[95mhelp[0m] [([95m-h[0m|[95m--help[0m)] [([95m-v[0m|[95m--ver
 
 {/* cSpell:enable */}
 
-A usage section has the following properties:
+In addition to the [common properties], a usage section has the following properties:
 
-- `title` - the section heading (defaults to no heading)
+- `title` - the section heading (defaults to none)
 - `style` - the style of the section heading (defaults to `tf.bold{:ts}`)
-- `noWrap` - true to disable wrapping of the provided heading (defaults to `false{:ts}`)
 - `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
 - `filter` - a list of option keys to include or exclude (defaults to none)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
+- `required` - a list of options that should be considered required in the usage
+- `comment` - a commentary to append to the usage (defaults to none)
 
 <Callout type="default">
-  The filter can be used to create multiple usages of the same command, with different options.
+  The filter can be used to create multiple usages of the same command, with different options. In
+  the case of an inclusion filter, the options are listed in the same order specified in the filter.
 </Callout>
 
 ### Groups section
 
-A groups section is a collection of option groups and their help entries. It has the following
-properties:
+A groups section is a collection of option groups and their help entries. In addition to the [common
+properties] properties, it has the following properties:
 
-- `title` - the default group heading (defaults to no heading)
+- `title` - the default group heading (defaults to none)
 - `style` - the style of group headings (defaults to `tf.bold{:ts}`)
-- `noWrap` - true to disable text wrapping of group headings (defaults to `false{:ts}`)
 - `phrase` - a custom phrase for group headings (defaults to none)
 - `filter` - a list of group names to include or exclude (defaults to none)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
@@ -332,6 +342,7 @@ overriden by (or combined with) an option's [display styles], if present.
 [alignment]: #help-columns
 [help items]: #help-items
 [names column]: #names-column
+[common properties]: #common-properties
 [terminal strings]: styles#terminal-strings
 [option group]: options#group--hide
 [names]: options#names--preferred-name
