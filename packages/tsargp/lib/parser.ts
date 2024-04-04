@@ -366,7 +366,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       }
       if (niladic) {
         // comp === false
-        const [breakLoop, skipCount] = await handleNiladic(context, j, args.slice(j + 1), info);
+        const [breakLoop, skipCount] = await handleNiladic(context, info, j, args.slice(j + 1));
         if (breakLoop) {
           return false;
         }
@@ -474,11 +474,9 @@ async function handleNonNiladic(
     throw validator.error(ErrorItem.missingParameter, { o: name });
   }
   if (option.type === 'function') {
-    const breakLoop = !!option.break && !comp;
-    if (breakLoop) {
-      await checkRequired(context);
-    }
-    await handleFunction(context, index, params, info);
+    // since we know this is a function option, we're deliberately reusing the niladic handling,
+    // with params as the "rest", and ignoring the skip count
+    const [breakLoop] = await handleNiladic(context, info, index, params);
     return breakLoop;
   }
   try {
@@ -624,11 +622,11 @@ async function parseParam(
     }
     return result;
   }
-  const [validator, values, , , comp] = context;
   const [key, name, option] = info;
   if (!params.length) {
     return setValue(context, key, option, option.fallback);
   }
+  const [validator, values, , , comp] = context;
   const convertFn: (val: string) => unknown =
     option.type === 'boolean' ? bool : isOpt.str(option) ? (str: string) => str : Number;
   const parse = option.parse;
@@ -679,16 +677,16 @@ async function setValue(context: ParseContext, key: string, option: OpaqueOption
 /**
  * Handles a niladic option.
  * @param context The parsing context
+ * @param info The option information
  * @param index The starting index of the argument sequence
  * @param rest The remaining command-line arguments
- * @param info The option information
  * @returns [True if the parsing loop should be broken, number of additional processed arguments]
  */
 async function handleNiladic(
   context: ParseContext,
+  info: OptionInfo,
   index: number,
   rest: Array<string>,
-  info: OptionInfo,
 ): Promise<[boolean, number]> {
   const [, values, , , comp, warning] = context;
   const [key, name, option] = info;
@@ -739,9 +737,9 @@ async function handleFunction(
   param: Array<string>,
   info: OptionInfo,
 ): Promise<number> {
-  const [, values, , , comp] = context;
   const [key, name, option] = info;
   if (option.exec) {
+    const [, values, , , comp] = context;
     try {
       values[key] = await option.exec({ values, index, name, param, comp, isComp });
     } catch (err) {
@@ -749,7 +747,6 @@ async function handleFunction(
       if (!comp || err instanceof CompletionMessage) {
         throw err;
       }
-      return 0;
     }
   }
   return max(0, option.skipCount ?? 0);
@@ -823,10 +820,9 @@ function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOp
   if (option.useFilters) {
     format.filters = rest.map((arg) => RegExp(arg, 'i'));
   }
-  const [validator, , , , , , progName] = context;
-  const formatter = new HelpFormatter(validator, format);
+  const formatter = new HelpFormatter(context[0], format);
   const sections = option.sections ?? defaultSections;
-  return formatter.formatSections(sections, progName);
+  return formatter.formatSections(sections, context[6]);
 }
 
 /**
@@ -856,12 +852,10 @@ async function handleCompletion(
     }
   } else {
     words =
-      option.type === 'boolean'
-        ? option.truthNames?.concat(option.falsityNames ?? []) ?? []
-        : option.enums
-          ? option.enums.map((val) => `${val}`)
-          : [];
-    if (words.length && comp) {
+      (option.type === 'boolean'
+        ? option.truthNames?.concat(option.falsityNames ?? [])
+        : option.enums?.map((val) => `${val}`)) ?? [];
+    if (comp) {
       words = words.filter((word) => word.startsWith(comp));
     }
   }
