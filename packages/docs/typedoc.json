@@ -9,6 +9,7 @@
   "treatWarningsAsErrors": true,
   "intentionallyNotExported": [
     "HelpEntry",
+    "HelpContext",
     "OptionInfo",
     "OpaqueOption",
     "OpaqueOptionValues",
