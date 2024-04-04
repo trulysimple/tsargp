@@ -124,7 +124,7 @@ export type Range = [min: number, max: number];
  * @returns The list of arguments
  * @internal
  */
-export function getArgs(line: string, compIndex: number = NaN): Array<string> {
+export function getArgs(line: string, compIndex = NaN): Array<string> {
   /** @ignore */
   function append(char: string) {
     if (arg === undefined) {

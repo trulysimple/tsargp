@@ -50,7 +50,7 @@ export const isOpt = {
    * @param option The option definition
    * @returns True if the option is an array-valued option
    */
-  a(option) {
+  arr(option) {
     return option.type === 'strings' || option.type === 'numbers';
   },
   /**
@@ -58,7 +58,7 @@ export const isOpt = {
    * @param option The option definition
    * @returns True if the option is message-valued
    */
-  m(option) {
+  msg(option) {
     return option.type === 'help' || option.type === 'version';
   },
   /**
@@ -66,7 +66,7 @@ export const isOpt = {
    * @param option The option definition
    * @returns True if the option is unknown-valued
    */
-  u(option) {
+  ukn(option) {
     return option.type === 'function' || option.type === 'command';
   },
   /**
@@ -74,7 +74,7 @@ export const isOpt = {
    * @param option The option definition
    * @returns True if the option is boolean-valued
    */
-  b(option) {
+  bool(option) {
     return option.type === 'flag' || option.type === 'boolean';
   },
   /**
@@ -82,7 +82,7 @@ export const isOpt = {
    * @param option The option definition
    * @returns True if the option is string-valued
    */
-  s(option) {
+  str(option) {
     return option.type === 'string' || option.type === 'strings';
   },
   /**
@@ -90,7 +90,7 @@ export const isOpt = {
    * @param option The option definition
    * @returns True if the option is number-valued
    */
-  n(option) {
+  num(option) {
     return option.type === 'number' || option.type === 'numbers';
   },
 } as const satisfies CheckFunctions;
@@ -1047,7 +1047,7 @@ export function getParamCount(option: OpaqueOption): Range {
   }
   if (option.type !== 'function') {
     const min = option.fallback !== undefined ? 0 : 1;
-    const max = option.separator || !isOpt.a(option) ? 1 : Infinity;
+    const max = option.separator || !isOpt.arr(option) ? 1 : Infinity;
     return [min, max];
   }
   const count = option.paramCount ?? 0;

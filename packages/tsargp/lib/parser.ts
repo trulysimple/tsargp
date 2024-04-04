@@ -155,7 +155,10 @@ export class ArgumentParser<T extends Options = Options> {
     command?: CommandLine,
     flags?: ParsingFlags,
   ): Promise<ParsingResult> {
-    return doParse(this.validator, values, command, flags);
+    const [args, progName] = initArgs(command, flags);
+    const completing = !!flags?.compIndex;
+    const shortStyle = flags?.shortStyle;
+    return doParse(this.validator, values, args, completing, shortStyle, progName);
   }
 }
 
@@ -179,30 +182,24 @@ function mergeConfig(config: ValidatorConfig = {}): ConcreteConfig {
  * Parses the command-line arguments.
  * @param validator The option validator
  * @param values The option values
- * @param command The raw command line or command-line arguments
- * @param flags The parsing flags
+ * @param args The command-line arguments
+ * @param completing True if performing completion
+ * @param shortStyle True if short-option style is enabled
+ * @param progName The program name
  * @returns The parsing result
  */
 async function doParse(
   validator: OptionValidator,
   values: OpaqueOptionValues,
-  command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
-  flags: ParsingFlags = { compIndex: Number(process?.env['COMP_POINT']) },
+  args: Array<string>,
+  completing: boolean,
+  shortStyle?: boolean,
+  progName?: string,
 ): Promise<ParsingResult> {
-  let args, progName;
-  if (typeof command === 'string') {
-    [progName, ...args] = getArgs(command, flags.compIndex);
-  } else {
-    [progName, args] = [flags.progName, command];
-    if (progName === undefined) {
-      progName = process?.argv[1].split(/[\\/]/).at(-1);
-    }
-  }
-  const completing = (flags.compIndex ?? -1) >= 0;
   if (!completing && progName && process?.title) {
     process.title += ' ' + progName;
   }
-  if (flags.shortStyle) {
+  if (shortStyle) {
     parseCluster(validator, args);
   }
   initValues(validator.options, values);
@@ -224,6 +221,28 @@ async function doParse(
 }
 
 /**
+ * Initializes the command-line arguments.
+ * @param command The raw command line or command-line arguments
+ * @param flags The parsing flags
+ * @returns [the arguments, the program name]
+ */
+function initArgs(
+  command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
+  flags: ParsingFlags = { compIndex: Number(process?.env['COMP_POINT']) },
+): [Array<string>, string?] {
+  let args, progName;
+  if (typeof command === 'string') {
+    [progName, ...args] = getArgs(command, flags.compIndex);
+  } else {
+    [progName, args] = [flags.progName, command];
+    if (progName === undefined) {
+      progName = process?.argv[1].split(/[\\/]/).at(-1);
+    }
+  }
+  return [args, progName];
+}
+
+/**
  * Initializes the option values.
  * @param options The option definitions
  * @param values The option values
@@ -231,7 +250,7 @@ async function doParse(
 function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
   for (const key in options) {
     const option = options[key];
-    if (!(key in values) && (!isOpt.m(option) || option.saveMessage)) {
+    if (!(key in values) && (!isOpt.msg(option) || option.saveMessage)) {
       values[key] = undefined;
     }
   }
@@ -281,7 +300,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
  */
 async function readEnvVar(context: ParseContext, info: OptionInfo): Promise<boolean> {
   const [, values] = context;
-  const { key, option, name } = info;
+  const [key, name, option] = info;
   const value = process?.env[name];
   if (value !== undefined) {
     if (option.type === 'flag') {
@@ -319,7 +338,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
         break; // finished
       }
       prev = next;
-      const { key, name, option } = info;
+      const [key, name, option] = info;
       const niladic = !getParamCount(option)[1];
       const hasValue = value !== undefined;
       if (niladic || marker) {
@@ -334,7 +353,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
             continue;
           }
           const alt = marker ? 1 : 0;
-          const name2 = marker ? info.marker : name;
+          const name2 = marker ? info[3] : name;
           throw validator.error(ErrorItem.disallowedInlineValue, { o: name2 }, { alt });
         }
       }
@@ -378,8 +397,9 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
     }
     // comp === true
     await handleComplete(values, info, i, args.slice(k, j), value);
-    handleCompletion(info.option, value);
-    if (!marker && (positional || k < j || info.option.fallback !== undefined)) {
+    const [, , option] = info;
+    handleCompletion(option, value);
+    if (!marker && (positional || k < j || option.fallback !== undefined)) {
       handleNameCompletion(validator, value);
     }
     throw new CompletionMessage();
@@ -399,7 +419,7 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
   const [index, info, prevVal, , marker] = prev;
   const inc = prevVal !== undefined ? 1 : 0;
   const positional = validator.positional;
-  const [min, max] = info ? getParamCount(info.option) : [0, 0];
+  const [min, max] = info ? getParamCount(info[2]) : [0, 0];
   for (let i = index + 1; i < args.length; ++i) {
     const [arg, rest] = args[i].split('\0', 2);
     const comp = rest !== undefined;
@@ -410,8 +430,8 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
         if (comp && value === undefined) {
           throw new CompletionMessage(name);
         }
-        const marker = name === positional?.marker;
-        const info = marker ? positional : { key, name, option: validator.options[key] };
+        const marker = name === positional?.[3];
+        const info = marker ? positional : ([key, name, validator.options[key]] as OptionInfo);
         return [i, info, value, comp, marker, true];
       }
       if (!info || i - index + inc > max) {
@@ -446,15 +466,16 @@ async function handleNonNiladic(
   params: Array<string>,
 ): Promise<boolean> {
   const [validator, , , , comp] = context;
+  const [, name, option] = info;
   // max is not needed here because either:
   // - the parser would have failed to find an option that starts a new sequence at max + 1; or
   // - it would have reached the end of the arguments before max + 1
-  const [min] = getParamCount(info.option);
+  const [min] = getParamCount(option);
   if (params.length < min) {
-    throw validator.error(ErrorItem.missingParameter, { o: info.name });
+    throw validator.error(ErrorItem.missingParameter, { o: name });
   }
-  if (info.option.type === 'function') {
-    const breakLoop = !!info.option.break && !comp;
+  if (option.type === 'function') {
+    const breakLoop = !!option.break && !comp;
     if (breakLoop) {
       await checkRequired(context);
     }
@@ -625,16 +646,16 @@ async function parseParam(
     return result;
   }
   const [validator, values, , , comp] = context;
-  const { key, name, option } = info;
+  const [key, name, option] = info;
   if (!params.length) {
     return setValue(context, key, option, option.fallback);
   }
   const convertFn: (val: string) => unknown =
-    option.type === 'boolean' ? bool : isOpt.s(option) ? (str: string) => str : Number;
+    option.type === 'boolean' ? bool : isOpt.str(option) ? (str: string) => str : Number;
   const parse = option.parse;
   const lastParam = params[params.length - 1];
   let value;
-  if (isOpt.a(option)) {
+  if (isOpt.arr(option)) {
     const param = option.separator ? lastParam.split(option.separator) : params;
     if (parse) {
       const seq = { values, index, name, param, comp };
@@ -669,9 +690,9 @@ async function setValue(context: ParseContext, key: string, option: OpaqueOption
   }
   const resolved = typeof value === 'function' ? await value(values) : value;
   values[key] =
-    isOpt.u(option) || isOpt.b(option)
+    isOpt.ukn(option) || isOpt.bool(option)
       ? resolved
-      : isOpt.a(option)
+      : isOpt.arr(option)
         ? norm(resolved.map(norm))
         : norm(resolved);
 }
@@ -691,7 +712,7 @@ async function handleNiladic(
   info: OptionInfo,
 ): Promise<[boolean, number]> {
   const [, values, , , comp, warning] = context;
-  const { key, option, name } = info;
+  const [key, name, option] = info;
   switch (option.type) {
     case 'flag': {
       values[key] = !option.negationNames?.includes(name);
@@ -740,7 +761,7 @@ async function handleFunction(
   info: OptionInfo,
 ): Promise<number> {
   const [, values, , , comp] = context;
-  const { key, option, name } = info;
+  const [key, name, option] = info;
   if (option.exec) {
     try {
       values[key] = await option.exec({ values, index, name, param, comp, isComp });
@@ -770,16 +791,12 @@ async function handleCommand(
   info: OptionInfo,
 ): Promise<ParsingResult> {
   const [validator, values, , , comp] = context;
-  const { key, option, name } = info;
+  const [key, name, option] = info;
   const { options, shortStyle } = option;
   const cmdOptions = typeof options === 'function' ? options() : options ?? {};
   const cmdValidator = new OptionValidator(cmdOptions, validator.config);
   const param: OpaqueOptionValues = {};
-  const result = await doParse(cmdValidator, param, rest, {
-    compIndex: comp ? 1 : -1,
-    progName: name,
-    shortStyle,
-  });
+  const result = await doParse(cmdValidator, param, rest, comp, shortStyle, name);
   // comp === false, otherwise completion will have taken place by now
   if (option.exec) {
     values[key] = await option.exec({ values, index, name, param });
@@ -848,7 +865,7 @@ async function handleComplete(
   param: Array<string>,
   comp = '',
 ) {
-  const { name, option } = info;
+  const [, name, option] = info;
   if (option.complete) {
     let words;
     try {
@@ -894,7 +911,7 @@ async function checkEnvVarAndDefaultValue(context: ParseContext, key: string) {
   }
   const option = validator.options[key];
   const envVar = option.envVar;
-  if (envVar && (await readEnvVar(context, { key, option, name: envVar }))) {
+  if (envVar && (await readEnvVar(context, [key, envVar, option]))) {
     specifiedKeys.add(key);
   } else if (option.required) {
     const name = option.preferredName ?? '';
@@ -1007,7 +1024,7 @@ function checkRequirement(
   const option = validator.options[key];
   const specified = specifiedKeys.has(key) || actual !== undefined; // consider default values
   const required = value !== null;
-  if (isOpt.m(option) || isOpt.u(option) || !specified || !required || value === undefined) {
+  if (isOpt.msg(option) || isOpt.ukn(option) || !specified || !required || value === undefined) {
     if ((specified == required) != negate) {
       return true;
     }
@@ -1018,7 +1035,7 @@ function checkRequirement(
     format.o(option.preferredName ?? '', config.styles, error);
     return false;
   }
-  const spec = isOpt.b(option) ? 'b' : isOpt.s(option) ? 's' : 'n';
+  const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : 'n';
   return checkRequiredValue(validator, option, negate, invert, actual, value, error, spec);
 }
 

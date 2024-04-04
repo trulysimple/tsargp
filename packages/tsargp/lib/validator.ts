@@ -164,12 +164,7 @@ export type ConcreteConfig = Concrete<ValidatorConfig>;
  * Information regarding an option.
  * @internal
  */
-export type OptionInfo = {
-  key: string;
-  name: string;
-  option: OpaqueOption;
-  marker?: string;
-};
+export type OptionInfo = [key: string, name: string, option: OpaqueOption, marker?: string];
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -198,7 +193,7 @@ export class OptionValidator {
       registerNames(this.names, this.letters, key, option);
       if (option.positional) {
         const marker = typeof option.positional === 'string' ? option.positional : undefined;
-        this.positional = { key, name: option.preferredName ?? '', option, marker };
+        this.positional = [key, option.preferredName ?? '', option, marker];
       }
     }
   }
@@ -591,7 +586,7 @@ function validateRequirement(
     throw error(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
   }
   const option = options[requiredKey];
-  if (isOpt.m(option)) {
+  if (isOpt.msg(option)) {
     throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
   const noValue = {};
@@ -601,7 +596,7 @@ function validateRequirement(
     }
     return;
   }
-  if (isOpt.u(option)) {
+  if (isOpt.ukn(option)) {
     throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
   }
   validateValue(config, prefix + requiredKey, option, requiredValue);
@@ -624,7 +619,7 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
     if (set.size !== enums.length) {
       for (const value of enums) {
         if (!set.delete(value)) {
-          const [spec, alt] = isOpt.s(option) ? ['s', 0] : ['n', 1];
+          const [spec, alt] = isOpt.str(option) ? ['s', 0] : ['n', 1];
           throw error(config, ErrorItem.duplicateEnumValue, { o: key, [spec]: value }, { alt });
         }
       }

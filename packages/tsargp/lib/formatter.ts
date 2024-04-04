@@ -993,7 +993,7 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
     result.format(styles, '%s', { s: value });
     return result.length;
   }
-  const spec = isOpt.b(option) ? 'b' : isOpt.s(option) ? 's' : isOpt.n(option) ? 'n' : 'v';
+  const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
   result.format(styles, `%${spec}`, { [spec]: example }, {});
   const nonDelimited = spec !== 'v' && Array.isArray(example);
   return result.length + (nonDelimited ? example.length - 1 : 0);
@@ -1198,7 +1198,7 @@ function formatEnums(
 ) {
   const enums = option.enums;
   if (enums) {
-    const [spec, alt] = isOpt.s(option) ? ['s', 0] : ['n', 1];
+    const [spec, alt] = isOpt.str(option) ? ['s', 0] : ['n', 1];
     result.format(styles, phrase, { [spec]: enums }, { alt, sep: ',' });
   }
 }
@@ -1559,8 +1559,8 @@ function formatRequiredValue(
     const connective = negate
       ? connectives[ConnectiveWords.notEquals]
       : connectives[ConnectiveWords.equals];
-    const spec = isOpt.b(option) ? 'b' : isOpt.s(option) ? 's' : isOpt.n(option) ? 'n' : 'v';
-    const phrase = isOpt.a(option) ? `[%${spec}]` : `%${spec}`;
+    const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
+    const phrase = isOpt.arr(option) ? `[%${spec}]` : `%${spec}`;
     result.word(connective).format(styles, phrase, { [spec]: value });
   }
 }
