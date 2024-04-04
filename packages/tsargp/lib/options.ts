@@ -533,9 +533,9 @@ export type WithHelp = {
    */
   readonly sections?: HelpSections;
   /**
-   * Whether to use the remaining arguments as option filters.
+   * Whether to use the remaining arguments as option filter.
    */
-  readonly useFilters?: true;
+  readonly useFilter?: true;
 };
 
 /**

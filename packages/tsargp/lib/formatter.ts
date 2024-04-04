@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { OpaqueOption, OpaqueOptions, Requires, RequiresVal } from './options';
 import type { Style, FormatStyles } from './styles';
-import { max, type Concrete } from './utils';
+import { max, type Concrete, combineRegExp } from './utils';
 import type { ConcreteConfig, OptionValidator } from './validator';
 
 import { tf, HelpItem, ConnectiveWords } from './enums';
@@ -90,9 +90,9 @@ export type FormatterConfig = {
    */
   readonly phrases?: Readonly<Partial<Record<HelpItem, string>>>;
   /**
-   * A list of regular expressions to filter options.
+   * A list of patterns to filter options.
    */
-  filters?: ReadonlyArray<RegExp>;
+  filter?: ReadonlyArray<string>;
 };
 
 /**
@@ -328,7 +328,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.clusterLetters]: 'Can be clustered with %s.',
     [HelpItem.fallback]: 'Falls back to (%b|%s|%n|[%s]|[%n]|%v) if specified without parameter.',
   },
-  filters: [],
+  filter: [],
 };
 
 /**
@@ -379,6 +379,9 @@ export class HelpFormatter {
     const fmtConfig = mergeConfig(config);
     const valConfig = validator.config;
     const options = validator.options;
+    const filter = fmtConfig.filter.length
+      ? RegExp(combineRegExp(fmtConfig.filter), 'i')
+      : undefined;
     const nameWidths = fmtConfig.names.hidden
       ? 0
       : fmtConfig.names.align === 'slot'
@@ -388,7 +391,7 @@ export class HelpFormatter {
     let paramWidth = 0;
     for (const key in options) {
       const option = options[key];
-      if (!option.hide && !excludeOption(option, fmtConfig.filters)) {
+      if (!option.hide && (!filter || matchOption(option, filter))) {
         const paramLen = formatOption(this.groups, fmtConfig, this.context, nameWidths, option);
         paramWidth = max(paramWidth, paramLen);
       }
@@ -449,20 +452,16 @@ export class HelpFormatter {
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Checks if an option should be excluded from the help message.
+ * Matches an option with a regular expression.
  * @param option The option definition
- * @param filters The option filters
- * @returns True if the option should be excluded
+ * @param regexp The regular expression
+ * @returns True if the option matches
  */
-function excludeOption(option: OpaqueOption, filters: ReadonlyArray<RegExp>): boolean {
-  return (
-    !!filters.length &&
-    !filters.find(
-      (filter): boolean =>
-        !!option.names?.find((name) => name?.match(filter)) ||
-        !!option.desc?.match(filter) ||
-        !!option.envVar?.match(filter),
-    )
+function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
+  return !!(
+    option.names?.find((name) => name?.match(regexp)) ||
+    option.desc?.match(regexp) ||
+    option.envVar?.match(regexp)
   );
 }
 
@@ -591,7 +590,7 @@ function mergeConfig(config: FormatterConfig = {}): ConcreteFormat {
     descr: { ...defaultConfig.descr, ...config.descr },
     items: config.items ?? defaultConfig.items,
     phrases: { ...defaultConfig.phrases, ...config.phrases },
-    filters: config.filters ?? defaultConfig.filters,
+    filter: config.filter ?? defaultConfig.filter,
   };
 }
 

@@ -570,7 +570,7 @@ export class TerminalString {
         continue;
       }
       if (!emitStyles) {
-        str = str.replace(regexps.styles, '');
+        str = str.replace(regexps.style, '');
       }
       if (column === start) {
         result.push(str);
@@ -744,7 +744,7 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
         continue;
       }
     }
-    const styles = word.match(regexps.styles) ?? [];
+    const styles = word.match(regexps.style) ?? [];
     const length = styles.reduce((acc, str) => acc + str.length, 0);
     result.add(word, word.length - length);
   }

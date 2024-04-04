@@ -54,11 +54,14 @@ describe('ArgumentParser', () => {
         required: {
           type: 'boolean',
           names: ['-b'],
-          parse: async () => true,
+          parse: async ({ param }) => param == '1',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-f', '-b', ''])).resolves.toEqual({
+      await expect(parser.parse(['-f', '-b', '0'])).rejects.toThrow(
+        `Option -f requires -b == true.`,
+      );
+      await expect(parser.parse(['-f', '-b', '1'])).resolves.toEqual({
         requires: true,
         required: true,
       });
@@ -74,11 +77,14 @@ describe('ArgumentParser', () => {
         required: {
           type: 'string',
           names: ['-s'],
-          parse: async () => '1',
+          parse: async ({ param }) => param,
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-f', '-s', ''])).resolves.toEqual({
+      await expect(parser.parse(['-f', '-s', '0'])).rejects.toThrow(
+        `Option -f requires -s == '1'.`,
+      );
+      await expect(parser.parse(['-f', '-s', '1'])).resolves.toEqual({
         requires: true,
         required: '1',
       });
@@ -94,11 +100,12 @@ describe('ArgumentParser', () => {
         required: {
           type: 'number',
           names: ['-n'],
-          parse: async () => 1,
+          parse: async ({ param }) => Number(param),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-f', '-n', ''])).resolves.toEqual({
+      await expect(parser.parse(['-f', '-n', '0'])).rejects.toThrow(`Option -f requires -n == 1.`);
+      await expect(parser.parse(['-f', '-n', '1'])).resolves.toEqual({
         requires: true,
         required: 1,
       });
@@ -114,11 +121,14 @@ describe('ArgumentParser', () => {
         required: {
           type: 'strings',
           names: ['-ss'],
-          parse: async () => ['1'],
+          parse: async ({ param }) => param,
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-f', '-ss', ''])).resolves.toEqual({
+      await expect(parser.parse(['-f', '-ss', '0'])).rejects.toThrow(
+        `Option -f requires -ss == ['1'].`,
+      );
+      await expect(parser.parse(['-f', '-ss', '1'])).resolves.toEqual({
         requires: true,
         required: ['1'],
       });
@@ -134,11 +144,14 @@ describe('ArgumentParser', () => {
         required: {
           type: 'numbers',
           names: ['-ns'],
-          parse: async () => [1],
+          parse: async ({ param }) => param.map(Number),
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-f', '-ns', ''])).resolves.toEqual({
+      await expect(parser.parse(['-f', '-ns', '0'])).rejects.toThrow(
+        `Option -f requires -ns == [1].`,
+      );
+      await expect(parser.parse(['-f', '-ns', '1'])).resolves.toEqual({
         requires: true,
         required: [1],
       });

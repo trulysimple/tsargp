@@ -123,7 +123,7 @@ describe('ArgumentParser', () => {
             type: 'help',
             names: ['-h'],
             sections: [{ type: 'groups' }],
-            useFilters: true,
+            useFilter: true,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);

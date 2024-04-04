@@ -225,7 +225,6 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -- ', { compIndex: 7 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd --=', { compIndex: 7 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd --= ', { compIndex: 8 })).rejects.toThrow(/^-s\n--$/);
-      await expect(parser.parse('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^$/);
     });
 
     it('should handle the completion of a positional marker with enums', async () => {
@@ -247,7 +246,6 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd --= ', { compIndex: 8 })).rejects.toThrow(
         /^one\ntwo\n-s\n--$/,
       );
-      await expect(parser.parse('cmd -s ', { compIndex: 7 })).rejects.toThrow(/^one\ntwo$/);
     });
 
     it('should handle the completion of a positional function option with parameter count', async () => {

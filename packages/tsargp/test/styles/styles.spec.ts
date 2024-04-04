@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8, FormatStyles } from '../../lib';
-import { TerminalString } from '../../lib';
+import { type FormatStyles, TerminalString } from '../../lib';
+import { cs, tf, fg, bg, ul, seq, style, fg8, bg8, ul8 } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('TerminalString', () => {
-  describe('addStyle', () => {
+  describe('seq', () => {
     it('should add text with sequences', () => {
       const str = new TerminalString()
         .seq(seq(cs.rcp))
@@ -17,7 +17,7 @@ describe('TerminalString', () => {
     });
   });
 
-  describe('addWord', () => {
+  describe('word', () => {
     it('should add words without sequences', () => {
       const str = new TerminalString().word('type').word('script');
       expect(str).toHaveLength(10);
@@ -41,7 +41,7 @@ describe('TerminalString', () => {
     });
   });
 
-  describe('addAndRevert', () => {
+  describe('style', () => {
     it('should add a word with surrounding sequences', () => {
       const str = new TerminalString().style(
         style(fg8(0), bg8(0), ul8(0)),
@@ -54,7 +54,7 @@ describe('TerminalString', () => {
     });
   });
 
-  describe('addOpening', () => {
+  describe('open', () => {
     it('should add opening words to a word', () => {
       const str = new TerminalString().open('[').open('"').word('type');
       expect(str).toHaveLength(6);
@@ -70,7 +70,7 @@ describe('TerminalString', () => {
     });
   });
 
-  describe('addOther', () => {
+  describe('other', () => {
     it('should add the strings from the other string', () => {
       const str1 = new TerminalString().split('type script').setMerge();
       const str2 = new TerminalString().other(str1).split(': is fun');
@@ -88,7 +88,7 @@ describe('TerminalString', () => {
     });
   });
 
-  describe('addClosing', () => {
+  describe('close', () => {
     it('should add a closing word when there are no strings', () => {
       const str = new TerminalString().close(']');
       expect(str).toHaveLength(1);
@@ -115,7 +115,7 @@ describe('TerminalString', () => {
     });
   });
 
-  describe('formatArgs', () => {
+  describe('format', () => {
     const styles: FormatStyles = {
       boolean: '',
       string: '',

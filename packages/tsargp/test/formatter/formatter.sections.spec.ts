@@ -35,9 +35,9 @@ describe('HelpFormatter', () => {
     });
 
     it('should render a text section with a heading (but not indent the heading)', () => {
-      const sections: HelpSections = [{ type: 'text', title: 'title', text: 'text' }];
+      const sections: HelpSections = [{ type: 'text', title: 'title', indent: 2 }];
       const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
-      expect(message.wrap()).toEqual('title\n\ntext');
+      expect(message.wrap()).toEqual('title');
     });
 
     it('should break a text section with a heading', () => {

@@ -19,7 +19,7 @@ export default [
         'error',
         {
           cspell: {
-            words: ['ruleset'],
+            words: ['ruleset', 'rulesets'],
           },
         },
       ],

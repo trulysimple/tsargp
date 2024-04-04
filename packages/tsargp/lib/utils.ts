@@ -26,15 +26,42 @@ export const overrides: {
  * @internal
  */
 export const regexps = {
+  /**
+   * A regular expression to split paragraphs.
+   */
   para: /(?:[ \t]*\r?\n){2,}/,
+  /**
+   * A regular expression to split list items.
+   */
   item: /^[ \t]*(-|\*|\d+\.) /m,
-  punct: /[.,:;!?]$/,
+  /**
+   * A regular expression to split words.
+   */
   word: /\s+/,
+  /**
+   * A regular expression to match format specifiers.
+   */
   spec: /(%[a-z][0-9]?)/,
+  /**
+   * A regular expression to match SGR sequences.
+   */
   // eslint-disable-next-line no-control-regex
-  styles: /(?:\x9b[\d;]+m)+/g,
+  style: /(?:\x9b[\d;]+m)+/g,
+  /**
+   * A regular expression to match `RegExp` special characters.
+   */
   regex: /[\\^$.*+?()[\]{}|]/g,
+  /**
+   * A regular expression to match punctuation characters.
+   */
+  punct: /\p{P}/gu,
 } as const satisfies Record<string, RegExp>;
+
+/**
+ * A stateless version of {@link regexps.regex}.
+ * @internal
+ */
+const regexSymbol = RegExp(regexps.regex.source);
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -105,14 +132,14 @@ export type NamingRule = (name: string, lower: string, upper: string) => boolean
 export type NamingRuleSet = Readonly<Record<string, NamingRule>>;
 
 /**
- * A collection of naming rule sets.
+ * A collection of naming rulesets.
  * @internal
  */
 export type NamingRules = Readonly<Record<string, NamingRuleSet>>;
 
 /**
  * The result of matching names against naming rules.
- * It includes the first match in each rule set.
+ * It includes the first match in each ruleset.
  * Please do not use {@link Record} here.
  * @internal
  */
@@ -286,24 +313,24 @@ export function gestaltSimilarity(S: string, T: string): number {
 
 /**
  * Gets a list of names that are similar to a given name.
- * @param name The name to be searched
- * @param names The names to be searched in
+ * @param needle The name to be searched
+ * @param haystack The names to search amongst
  * @param threshold The similarity threshold
  * @returns The list of similar names in decreasing order of similarity
  */
-export function findSimilar(name: string, names: Array<string>, threshold = 0): Array<string> {
+export function findSimilar(needle: string, haystack: Array<string>, threshold = 0): Array<string> {
   /** @ignore */
   function norm(name: string) {
-    return name.replace(/\p{P}/gu, '').toLowerCase();
+    return name.replace(regexps.punct, '').toLowerCase();
   }
-  const searchName = norm(name);
-  return names
-    .reduce((acc: Array<[string, number]>, name2) => {
+  const search = norm(needle);
+  return haystack
+    .reduce((acc: Array<[string, number]>, name) => {
       // skip the original name
-      if (name2 != name) {
-        const sim = gestaltSimilarity(searchName, norm(name2));
+      if (name != needle) {
+        const sim = gestaltSimilarity(search, norm(name));
         if (sim >= threshold) {
-          acc.push([name2, sim]);
+          acc.push([name, sim]);
         }
       }
       return acc;
@@ -343,8 +370,8 @@ export function selectAlternative(phrase: string, alt = 0): string {
   if (groups.length) {
     const result = [];
     let j = 0;
-    for (let i = 0; i < groups.length; ++i) {
-      const [s, e] = groups[i];
+    for (const group of groups) {
+      const [s, e] = group;
       result.push(phrase.slice(j, s), phrase.slice(s + 1, e).split('|')[alt]);
       j = e + 1;
     }
@@ -374,33 +401,32 @@ export function isTrue(
 ): boolean | undefined {
   /** @ignore */
   function match(names: ReadonlyArray<string>): boolean {
-    const escaped = names.map(escapeRegExp).join('|');
-    return !!str.match(RegExp(`^${escaped}$`, regexFlags));
+    return !!str.match(RegExp(`^${combineRegExp(names)}$`, regexFlags));
   }
   str = str.trim();
   const { truthNames, falsityNames, caseSensitive } = flags;
   const regexFlags = caseSensitive ? '' : 'i';
-  const truth = truthNames?.length;
-  if (truth && match(truthNames)) {
+  const hasTruth = truthNames?.length;
+  if (hasTruth && match(truthNames)) {
     return true;
   }
-  const falsity = falsityNames?.length;
-  if (falsity && match(falsityNames)) {
+  const hasFalsity = falsityNames?.length;
+  if (hasFalsity && match(falsityNames)) {
     return false;
   }
   // consider NaN true
-  return truth ? (falsity ? undefined : false) : falsity ? true : !(Number(str) === 0);
+  return hasTruth ? (hasFalsity ? undefined : false) : hasFalsity ? true : !(Number(str) === 0);
 }
 
 /**
- * Match names against naming rules.
+ * Matches names against naming rules.
  * @param names The list of names
  * @param rules The sets of rules
  * @returns The matching result
  * @internal
  */
 export function matchNamingRules<T extends NamingRules>(
-  names: Array<string>,
+  names: ReadonlyArray<string>,
   rules: T,
 ): NamingMatch<T> {
   const result: Record<string, Record<string, string>> = {};
@@ -453,6 +479,15 @@ export function max(a: number, b: number): number {
  * @internal
  */
 export function escapeRegExp(str: string): string {
-  const regexSymbol = RegExp(regexps.regex.source);
   return str && regexSymbol.test(str) ? str.replace(regexps.regex, '\\$&') : str;
+}
+
+/**
+ * Combines multiple patterns into a single pattern that matches any of them.
+ * @param patterns The pattern strings
+ * @returns The combined pattern
+ * @internal
+ */
+export function combineRegExp(patterns: ReadonlyArray<string>): string {
+  return `(${patterns.map(escapeRegExp).join('|')})`;
 }

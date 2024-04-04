@@ -3,7 +3,7 @@ import { TerminalString, cs, tf, seq, style } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('TerminalString', () => {
-  describe('wrapToWidth', () => {
+  describe('wrap', () => {
     describe('when no width is provided', () => {
       it('should not wrap', () => {
         const result: Array<string> = [];

@@ -11,6 +11,7 @@ import {
   matchNamingRules,
   isComp,
   escapeRegExp,
+  combineRegExp,
 } from '../lib/utils';
 
 /*
@@ -144,7 +145,7 @@ describe('findSimilar', () => {
   });
 });
 
-describe('splitPhrase', () => {
+describe('selectAlternative', () => {
   it('should handle an empty phrase', () => {
     expect(selectAlternative('')).toEqual('');
   });
@@ -267,5 +268,13 @@ describe('isComp', () => {
 describe('escapeRegExp', () => {
   it('should escape the regex symbols', () => {
     expect(escapeRegExp('\\^$.*+?()[]{}|')).toEqual('\\\\\\^\\$\\.\\*\\+\\?\\(\\)\\[\\]\\{\\}\\|');
+  });
+});
+
+describe('combineRegExp', () => {
+  it('should combine the patterns', () => {
+    expect(
+      combineRegExp(['\\', '^', '$', '.', '*', '+', '?', '(', ')', '[', ']', '{', '}', '|']),
+    ).toEqual('(\\\\|\\^|\\$|\\.|\\*|\\+|\\?|\\(|\\)|\\[|\\]|\\{|\\}|\\|)');
   });
 });

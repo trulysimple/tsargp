@@ -488,10 +488,10 @@ two sections are included:
 - groups section - with `'Options'{:ts}` as default group heading - appending a colon to group
   headings
 
-#### Use filters
+#### Enable filter
 
-The `useFilters` attribute is an opt-in feature that allows the remaining arguments to be used as
-[option filters]. For example, the invocation `cli --help flag` would only include in the help
+The `useFilter` attribute is an opt-in feature that allows the remaining arguments to be used as
+[option filter]. For example, the invocation `cli --help flag` would only include in the help
 message those options whose names, synopsis or environemnt variable name match the regex
 `/flag/i{:ts}`.
 
@@ -855,7 +855,7 @@ attributes:
 [completion algorithm]: parser#completion-algorithm
 [formatter configuration]: formatter#help-format
 [help sections]: formatter#help-sections
-[option filters]: formatter#option-filters
+[option filter]: formatter#option-filter
 [custom callback]: parser#custom-callbacks
 [argument sequence]: parser#sequence-information
 [completion message]: styles#completion-words

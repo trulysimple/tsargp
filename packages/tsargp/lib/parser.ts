@@ -24,7 +24,7 @@ import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
-import { areEqual, findSimilar, getArgs, isTrue, isComp, max, escapeRegExp } from './utils';
+import { areEqual, findSimilar, getArgs, isTrue, isComp, max } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
 //--------------------------------------------------------------------------------------------------
@@ -817,8 +817,8 @@ async function handleMessage(
  */
 function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOption): HelpMessage {
   const format = option.format ?? {};
-  if (option.useFilters) {
-    format.filters = rest.map((arg) => RegExp(escapeRegExp(arg), 'i'));
+  if (option.useFilter) {
+    format.filter = rest;
   }
   const formatter = new HelpFormatter(context[0], format);
   const sections = option.sections ?? defaultSections;

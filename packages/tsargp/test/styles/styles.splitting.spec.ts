@@ -3,7 +3,7 @@ import { TerminalString, tf, style } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('TerminalString', () => {
-  describe('splitText', () => {
+  describe('split', () => {
     it('should split text with emojis', () => {
       const str = new TerminalString().split(`⚠️ type script`);
       expect(str).toHaveLength(12);

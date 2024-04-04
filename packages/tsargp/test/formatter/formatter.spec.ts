@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { type Options, HelpFormatter, OptionValidator } from '../../lib';
+import type { Options, FormatterConfig } from '../../lib';
+import { HelpFormatter, OptionValidator } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('HelpFormatter', () => {
@@ -9,7 +10,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('');
     });
 
-    it('should filter options with a single regular expression', () => {
+    it('should filter options using regular expressions', () => {
       const options = {
         flag1: {
           type: 'flag',
@@ -25,12 +26,12 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const config = { descr: { absolute: true }, filters: [/flag/] };
+      const config: FormatterConfig = { descr: { absolute: true }, filter: ['flag'] };
       const message = new HelpFormatter(validator, config).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag\n  A flag option\n`);
     });
 
-    it('should filter options with multiple regular expressions', () => {
+    it('should filter an option with environment variable using regular expressions', () => {
       const options = {
         flag1: {
           type: 'flag',
@@ -47,7 +48,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const config = { items: [], filters: [/^-f/, /bool/i] };
+      const config: FormatterConfig = { items: [], filter: ['-f', 'bool'] };
       const message = new HelpFormatter(validator, config).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag\n  -b          <boolean>\n`);
     });
