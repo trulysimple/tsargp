@@ -6,20 +6,21 @@ import { fg, style, req, tf, fg8, ArgumentParser } from 'tsargp';
  */
 const helloOpts = {
   /**
-   * A help option that throws the help message of the hello command.
-   */
-  help: {
-    type: 'help',
-    names: ['-h', '--help'],
-    desc: 'The help option for the hello command. Prints this help message.',
-  },
-  /**
    * A strings option that receives positional arguments for the hello command.
    */
   strings: {
     type: 'strings',
     default: ['world'],
     positional: true,
+    group: 'Arguments',
+  },
+  /**
+   * A help option that throws the help message of the hello command.
+   */
+  help: {
+    type: 'help',
+    names: ['-h', '--help'],
+    desc: 'The help option for the hello command. Prints this help message.',
   },
   /**
    * A recursive command option that logs the arguments passed after it.

@@ -78,7 +78,20 @@ export type CommandLine = string | Array<string>;
 // Internal types
 //--------------------------------------------------------------------------------------------------
 /**
- * Information about the current argument sequence in the parsing loop.
+ * Information about the current parsing context.
+ */
+type ParseContext = [
+  validator: OptionValidator,
+  values: OpaqueOptionValues,
+  args: ReadonlyArray<string>,
+  specifiedKeys: Set<string>,
+  completing: boolean,
+  warning: WarnMessage,
+  progName?: string,
+];
+
+/**
+ * Information about the current argument sequence.
  */
 type ParseEntry = [
   index: number,
@@ -195,8 +208,17 @@ async function doParse(
   initValues(validator.options, values);
   const specifiedKeys = new Set<string>();
   const warning = new WarnMessage();
-  if (await parseArgs(validator, values, args, specifiedKeys, completing, warning, progName)) {
-    await checkRequired(validator, values, specifiedKeys);
+  const context: ParseContext = [
+    validator,
+    values,
+    args,
+    specifiedKeys,
+    completing,
+    warning,
+    progName,
+  ];
+  if (await parseArgs(context)) {
+    await checkRequired(context);
   }
   return warning.length ? { warning } : {};
 }
@@ -253,16 +275,12 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
 
 /**
  * Reads the value of an environment variable.
- * @param validator The option validator
- * @param values The options' values to parse into
+ * @param context The parsing context
  * @param info The option information
  * @returns True if the environment variable was found
  */
-async function readEnvVar(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  info: OptionInfo,
-): Promise<boolean> {
+async function readEnvVar(context: ParseContext, info: OptionInfo): Promise<boolean> {
+  const [, values] = context;
   const { key, option, name } = info;
   const value = process?.env[name];
   if (value !== undefined) {
@@ -270,7 +288,7 @@ async function readEnvVar(
       // don't parse the flag value, for consistency with the semantics of the command-line
       values[key] = true;
     } else {
-      await parseParam(validator, values, false, NaN, info, [value]);
+      await parseParam(context, NaN, info, [value]);
     }
     return true;
   }
@@ -279,41 +297,20 @@ async function readEnvVar(
 
 /**
  * Parses the command-line arguments.
- * @param validator The option validator
- * @param values The option values
- * @param args The command-line arguments
- * @param specifiedKeys The set of specified keys
- * @param completing True if performing completion
- * @param warning The warnings accumulated so far
- * @param progName The program name, if any
+ * @param context The parsing context
  * @returns True if requirements should be checked
  */
-async function parseArgs(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  args: ReadonlyArray<string>,
-  specifiedKeys: Set<string>,
-  completing: boolean,
-  warning: WarnMessage,
-  progName?: string,
-): Promise<boolean> {
+async function parseArgs(context: ParseContext): Promise<boolean> {
+  const [validator, values, args, specifiedKeys, completing, warning] = context;
   let prev: ParseEntry = [-1];
   let positional = false;
   for (let i = 0, k = 0; i < args.length; i = prev[0]) {
-    const next = findNext(validator, args, prev);
+    const next = findNext(context, prev);
     const [j, info, value, comp, marker, isNew] = next;
     if (isNew || !info) {
       if (prev[1]) {
         // process the previous sequence
-        const breakLoop = await handleNonNiladic(
-          validator,
-          values,
-          specifiedKeys,
-          completing,
-          prev[1],
-          i,
-          args.slice(k, j),
-        );
+        const breakLoop = await handleNonNiladic(context, prev[1], i, args.slice(k, j));
         if (breakLoop) {
           return false;
         }
@@ -349,17 +346,7 @@ async function parseArgs(
       }
       if (niladic) {
         // comp === false
-        const [breakLoop, skipCount] = await handleNiladic(
-          validator,
-          values,
-          specifiedKeys,
-          completing,
-          j,
-          args.slice(j + 1),
-          info,
-          warning,
-          progName,
-        );
+        const [breakLoop, skipCount] = await handleNiladic(context, j, args.slice(j + 1), info);
         if (breakLoop) {
           return false;
         }
@@ -375,15 +362,7 @@ async function parseArgs(
           k = hasValue ? j : j + 1;
         } else {
           // option name with inline parameter
-          const breakLoop = await handleNonNiladic(
-            validator,
-            values,
-            specifiedKeys,
-            completing,
-            info,
-            j,
-            [value],
-          );
+          const breakLoop = await handleNonNiladic(context, info, j, [value]);
           if (breakLoop) {
             return false;
           }
@@ -411,16 +390,12 @@ async function parseArgs(
 /**
  * Finds the start of the next sequence in the command-line arguments, or a word to complete.
  * If a sequence is found, it is a new option specification (but the option can be the same).
- * @param validator The option validator
- * @param args The command-line arguments
+ * @param context The parsing context
  * @param prev The previous parse entry
  * @returns The new parse entry
  */
-function findNext(
-  validator: OptionValidator,
-  args: ReadonlyArray<string>,
-  prev: ParseEntry,
-): ParseEntry {
+function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
+  const [validator, , args] = context;
   const [index, info, prevVal, , marker] = prev;
   const inc = prevVal !== undefined ? 1 : 0;
   const positional = validator.positional;
@@ -458,24 +433,19 @@ function findNext(
 
 /**
  * Handles a non-niladic option.
- * @param validator The option validator
- * @param values The option values
- * @param specifiedKeys The set of specified keys
- * @param comp True if performing completion
+ * @param context The parsing context
  * @param info The option information
  * @param index The starting index of the argument sequence
  * @param params The option parameters, if any
  * @returns True if the parsing loop should be broken
  */
 async function handleNonNiladic(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  specifiedKeys: Set<string>,
-  comp: boolean,
+  context: ParseContext,
   info: OptionInfo,
   index: number,
   params: Array<string>,
 ): Promise<boolean> {
+  const [validator, , , , comp] = context;
   // max is not needed here because either:
   // - the parser would have failed to find an option that starts a new sequence at max + 1; or
   // - it would have reached the end of the arguments before max + 1
@@ -486,14 +456,14 @@ async function handleNonNiladic(
   if (info.option.type === 'function') {
     const breakLoop = !!info.option.break && !comp;
     if (breakLoop) {
-      await checkRequired(validator, values, specifiedKeys);
+      await checkRequired(context);
     }
-    await handleFunction(values, comp, index, params, info);
+    await handleFunction(context, index, params, info);
     return breakLoop;
   }
   try {
     // use await here instead of return, in order to catch errors
-    await parseParam(validator, values, comp, index, info, params);
+    await parseParam(context, index, info, params);
   } catch (err) {
     // do not propagate errors during completion
     if (!comp) {
@@ -629,18 +599,14 @@ async function checkRequireItems<T>(
 
 /**
  * Parses the value(s) of the option parameter(s).
- * @param validator The option validator
- * @param values The option values
- * @param comp True if performing completion
+ * @param context The parsing context
  * @param index The starting index of the argument sequence
  * @param info The option information
  * @param params The option parameter(s)
  * @returns A promise that must be awaited before continuing
  */
 async function parseParam(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  comp: boolean,
+  context: ParseContext,
   index: number,
   info: OptionInfo,
   params: Array<string>,
@@ -658,9 +624,10 @@ async function parseParam(
     }
     return result;
   }
+  const [validator, values, , , comp] = context;
   const { key, name, option } = info;
   if (!params.length) {
-    return setValue(validator, values, key, option, option.fallback);
+    return setValue(context, key, option, option.fallback);
   }
   const convertFn: (val: string) => unknown =
     option.type === 'boolean' ? bool : isOpt.s(option) ? (str: string) => str : Number;
@@ -685,23 +652,17 @@ async function parseParam(
 
 /**
  * Sets the normalized value of an option.
- * @param validator The option validator
- * @param values The option values
+ * @param context The parsing context
  * @param key The option key
  * @param option The option definition
  * @param value The option value
  */
-async function setValue(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  key: string,
-  option: OpaqueOption,
-  value: unknown,
-) {
+async function setValue(context: ParseContext, key: string, option: OpaqueOption, value: unknown) {
   /** @ignore */
   function norm<T>(val: T) {
     return validator.normalize(option, key, val);
   }
+  const [validator, values] = context;
   if (value === undefined) {
     values[key] = value;
     return;
@@ -717,28 +678,19 @@ async function setValue(
 
 /**
  * Handles a niladic option.
- * @param validator The option validator
- * @param values The option values
- * @param specifiedKeys The set of specified keys
- * @param comp True if performing completion
+ * @param context The parsing context
  * @param index The starting index of the argument sequence
  * @param rest The remaining command-line arguments
  * @param info The option information
- * @param warning The warnings accumulated so far
- * @param progName The program name
  * @returns [True if the parsing loop should be broken, number of additional processed arguments]
  */
 async function handleNiladic(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  specifiedKeys: Set<string>,
-  comp: boolean,
+  context: ParseContext,
   index: number,
   rest: Array<string>,
   info: OptionInfo,
-  warning: WarnMessage,
-  progName?: string,
 ): Promise<[boolean, number]> {
+  const [, values, , , comp, warning] = context;
   const { key, option, name } = info;
   switch (option.type) {
     case 'flag': {
@@ -748,16 +700,16 @@ async function handleNiladic(
     case 'function': {
       const breakLoop = !!option.break && !comp;
       if (breakLoop) {
-        await checkRequired(validator, values, specifiedKeys);
+        await checkRequired(context);
       }
-      const skipCount = await handleFunction(values, comp, index, rest, info);
+      const skipCount = await handleFunction(context, index, rest, info);
       return [breakLoop, skipCount];
     }
     case 'command': {
       if (!comp) {
-        await checkRequired(validator, values, specifiedKeys);
+        await checkRequired(context);
       }
-      const res = await handleCommand(validator, values, comp, index, rest, info);
+      const res = await handleCommand(context, index, rest, info);
       if (res.warning) {
         warning.push(...res.warning);
       }
@@ -766,7 +718,7 @@ async function handleNiladic(
     default: {
       // skip message-valued options during completion
       if (!comp) {
-        await handleMessage(validator, values, rest, option, key, progName);
+        await handleMessage(context, rest, option, key);
       }
       return [!comp, 0];
     }
@@ -775,20 +727,19 @@ async function handleNiladic(
 
 /**
  * Handles a function option.
- * @param values The option values
- * @param comp True if performing completion
+ * @param context The parsing context
  * @param index The starting index of the argument sequence
  * @param param The remaining command-line arguments
  * @param info The option information
  * @returns The number of additional processed arguments
  */
 async function handleFunction(
-  values: OpaqueOptionValues,
-  comp: boolean,
+  context: ParseContext,
   index: number,
   param: Array<string>,
   info: OptionInfo,
 ): Promise<number> {
+  const [, values, , , comp] = context;
   const { key, option, name } = info;
   if (option.exec) {
     try {
@@ -806,22 +757,19 @@ async function handleFunction(
 
 /**
  * Handles a command option.
- * @param validator The option validator
- * @param values The option values
- * @param comp True if performing completion
+ * @param context The parsing context
  * @param index The starting index of the argument sequence
  * @param rest The remaining command-line arguments
  * @param info The option information
  * @returns The result of parsing the command arguments
  */
 async function handleCommand(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  comp: boolean,
+  context: ParseContext,
   index: number,
   rest: Array<string>,
   info: OptionInfo,
 ): Promise<ParsingResult> {
+  const [validator, values, , , comp] = context;
   const { key, option, name } = info;
   const { options, shortStyle } = option;
   const cmdOptions = typeof options === 'function' ? options() : options ?? {};
@@ -841,25 +789,22 @@ async function handleCommand(
 
 /**
  * Handles a message-valued option.
- * @param validator The option validator
- * @param values The option values
+ * @param context The parsing context
  * @param rest The remaining command-line arguments
  * @param option The option definition
  * @param key The option key
- * @param progName The program name
  * @throws The help or version message
  */
 async function handleMessage(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
+  context: ParseContext,
   rest: Array<string>,
   option: OpaqueOption,
   key: string,
-  progName?: string,
 ) {
+  const [validator, values] = context;
   const message =
     option.type === 'help'
-      ? handleHelp(validator, rest, option, progName)
+      ? handleHelp(context, rest, option)
       : option.resolve
         ? await resolveVersion(validator, option.resolve)
         : option.version ?? '';
@@ -872,22 +817,17 @@ async function handleMessage(
 
 /**
  * Handles a help option.
- * @param validator The option validator
+ * @param context The parsing context
  * @param rest The remaining command-line arguments
  * @param option The option definition
- * @param progName The program name
  * @returns The help message
  */
-function handleHelp(
-  validator: OptionValidator,
-  rest: Array<string>,
-  option: OpaqueOption,
-  progName?: string,
-): HelpMessage {
+function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOption): HelpMessage {
   const format = option.format ?? {};
   if (option.useFilters) {
     format.filters = rest.map((arg) => RegExp(arg, 'i'));
   }
+  const [validator, , , , , , progName] = context;
   const formatter = new HelpFormatter(validator, format);
   const sections = option.sections ?? defaultSections;
   return formatter.formatSections(sections, progName);
@@ -924,23 +864,18 @@ async function handleComplete(
 /**
  * Checks if required options were correctly specified.
  * This should only be called when completion is not in effect.
- * @param validator The option validator
- * @param values The option values
- * @param specifiedKeys The set of specified keys
+ * @param context The parsing context
  */
-async function checkRequired(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  specifiedKeys: Set<string>,
-) {
+async function checkRequired(context: ParseContext) {
   /** @ignore */
   function checkEnv(key: string) {
-    return checkEnvVarAndDefaultValue(validator, values, specifiedKeys, key);
+    return checkEnvVarAndDefaultValue(context, key);
   }
   /** @ignore */
   function checkReq(key: string) {
-    return checkRequiredOption(validator, values, specifiedKeys, key);
+    return checkRequiredOption(context, key);
   }
+  const [validator] = context;
   const keys = Object.keys(validator.options);
   await Promise.all(keys.map(checkEnv));
   await Promise.all(keys.map(checkReq));
@@ -948,49 +883,37 @@ async function checkRequired(
 
 /**
  * Checks if there is an environment variable or default value for an option.
- * @param validator The option validator
- * @param values The option values
- * @param specifiedKeys The set of specified keys
+ * @param context The parsing context
  * @param key The option key
  * @returns A promise that must be awaited before continuing
  */
-async function checkEnvVarAndDefaultValue(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  specifiedKeys: Set<string>,
-  key: string,
-) {
+async function checkEnvVarAndDefaultValue(context: ParseContext, key: string) {
+  const [validator, , , specifiedKeys] = context;
   if (specifiedKeys.has(key)) {
     return;
   }
   const option = validator.options[key];
   const envVar = option.envVar;
-  if (envVar && (await readEnvVar(validator, values, { key, option, name: envVar }))) {
+  if (envVar && (await readEnvVar(context, { key, option, name: envVar }))) {
     specifiedKeys.add(key);
   } else if (option.required) {
     const name = option.preferredName ?? '';
     throw validator.error(ErrorItem.missingRequiredOption, { o: name });
   } else if ('default' in option) {
-    return setValue(validator, values, key, option, option.default);
+    return setValue(context, key, option, option.default);
   }
 }
 
 /**
  * Checks the requirements of an option.
- * @param validator The option validator
- * @param values The option values
- * @param specifiedKeys The set of specified keys
+ * @param context The parsing context
  * @param key The option key
  */
-async function checkRequiredOption(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  specifiedKeys: Set<string>,
-  key: string,
-) {
+async function checkRequiredOption(context: ParseContext, key: string) {
+  const [validator, , , specifiedKeys] = context;
   /** @ignore */
   function check(requires: Requires, negate: boolean, invert: boolean) {
-    return checkRequires(validator, values, specifiedKeys, requires, error, negate, invert);
+    return checkRequires(context, requires, error, negate, invert);
   }
   const option = validator.options[key];
   const specified = specifiedKeys.has(key);
@@ -1009,9 +932,7 @@ async function checkRequiredOption(
 
 /**
  * Checks the requirements of an option that was specified.
- * @param validator The option validator
- * @param values The option values
- * @param specifiedKeys The set of specified keys
+ * @param context The parsing context
  * @param requires The option requirements
  * @param error The terminal string error
  * @param negate True if the requirements should be negated
@@ -1019,9 +940,7 @@ async function checkRequiredOption(
  * @returns True if the requirements were satisfied
  */
 async function checkRequires(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  specifiedKeys: Set<string>,
+  context: ParseContext,
   requires: Requires,
   error: TerminalString,
   negate: boolean,
@@ -1029,7 +948,7 @@ async function checkRequires(
 ): Promise<boolean> {
   /** @ignore */
   function checkItem(requires: Requires, error: TerminalString, negate: boolean, invert: boolean) {
-    return checkRequires(validator, values, specifiedKeys, requires, error, negate, invert);
+    return checkRequires(context, requires, error, negate, invert);
   }
   /** @ignore */
   function checkEntry(
@@ -1038,7 +957,7 @@ async function checkRequires(
     negate: boolean,
     invert: boolean,
   ) {
-    return checkRequirement(validator, values, specifiedKeys, entry, error, negate, invert);
+    return checkRequirement(context, entry, error, negate, invert);
   }
   if (typeof requires === 'string') {
     return checkEntry([requires, undefined], error, negate, invert);
@@ -1046,6 +965,7 @@ async function checkRequires(
   if (requires instanceof RequiresNot) {
     return checkItem(requires.item, error, !negate, invert);
   }
+  const [validator, values] = context;
   if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
     const and = requires instanceof RequiresAll !== negate;
     return checkRequireItems(validator, requires.items, checkItem, error, negate, invert, and);
@@ -1067,9 +987,7 @@ async function checkRequires(
 
 /**
  * Checks if a required option was specified with correct values.
- * @param validator The option validator
- * @param values The option values
- * @param specifiedKeys The set of specified keys
+ * @param context The parsing context
  * @param entry The required option key and value
  * @param error The terminal string error
  * @param negate True if the requirement should be negated
@@ -1077,14 +995,13 @@ async function checkRequires(
  * @returns True if the requirement was satisfied
  */
 function checkRequirement(
-  validator: OptionValidator,
-  values: OpaqueOptionValues,
-  specifiedKeys: Set<string>,
+  context: ParseContext,
   entry: RequiresEntry,
   error: TerminalString,
   negate: boolean,
   invert: boolean,
 ): boolean {
+  const [validator, values, , specifiedKeys] = context;
   const [key, value] = entry;
   const actual = values[key];
   const option = validator.options[key];
