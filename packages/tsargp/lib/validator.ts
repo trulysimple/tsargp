@@ -15,7 +15,7 @@ import {
   getOptionNames,
 } from './options';
 import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
-import { findSimilarNames, matchNamingRules } from './utils';
+import { findSimilar, matchNamingRules } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -392,7 +392,7 @@ function validateAllNames(
     if (visited.has(name)) {
       continue;
     }
-    const similar = findSimilarNames(name, [...nameToKey.keys()], 0.8);
+    const similar = findSimilar(name, [...nameToKey.keys()], 0.8);
     if (similar.length) {
       warning.push(
         format(config, ErrorItem.tooSimilarOptionNames, { o: prefix, s1: name, s2: similar }),

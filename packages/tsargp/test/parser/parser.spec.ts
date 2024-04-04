@@ -127,7 +127,7 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-h', '^-F', '^-B'], { progName: 'prog' })).rejects.toThrow(
+        await expect(parser.parse(['-h', '-F', '-B'], { progName: 'prog' })).rejects.toThrow(
           `  -f, --flag\n  -b, --boolean  <boolean>`,
         );
       });

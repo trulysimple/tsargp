@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
 import { cs, tf, fg, bg } from './enums';
-import { max, overrides, selectAlternative } from './utils';
+import { max, overrides, regexps, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -127,19 +127,6 @@ const formatFunctions = {
     result.other(str);
   },
 } as const satisfies FormatFunctions;
-
-/**
- * A set of regular expressions for terminal strings.
- */
-const regex = {
-  para: /(?:[ \t]*\r?\n){2,}/,
-  item: /^[ \t]*(-|\*|\d+\.) /m,
-  punct: /[.,:;!?]$/,
-  word: /\s+/,
-  spec: /(%[a-z][0-9]?)/,
-  // eslint-disable-next-line no-control-regex
-  styles: /(?:\x9b[\d;]+m)+/g,
-} as const satisfies Record<string, RegExp>;
 
 //--------------------------------------------------------------------------------------------------
 // Public types
@@ -474,7 +461,7 @@ export class TerminalString {
    * @returns The terminal string instance
    */
   split(text: string, format?: FormatCallback): this {
-    const paragraphs = text.split(regex.para);
+    const paragraphs = text.split(regexps.para);
     paragraphs.forEach((para, i) => {
       splitParagraph(this, para, format);
       if (i < paragraphs.length - 1) {
@@ -583,7 +570,7 @@ export class TerminalString {
         continue;
       }
       if (!emitStyles) {
-        str = str.replace(regex.styles, '');
+        str = str.replace(regexps.styles, '');
       }
       if (column === start) {
         result.push(str);
@@ -720,7 +707,7 @@ export class CompletionMessage extends Array<string> {
  */
 function splitParagraph(result: TerminalString, para: string, format?: FormatCallback) {
   const count = result.count;
-  para.split(regex.item).forEach((item, i) => {
+  para.split(regexps.item).forEach((item, i) => {
     if (i % 2 == 0) {
       splitItem(result, item, format);
     } else {
@@ -740,13 +727,13 @@ function splitParagraph(result: TerminalString, para: string, format?: FormatCal
  */
 function splitItem(result: TerminalString, item: string, format?: FormatCallback) {
   const boundFormat = format?.bind(result);
-  const words = item.split(regex.word);
+  const words = item.split(regexps.word);
   for (const word of words) {
     if (!word) {
       continue;
     }
     if (boundFormat) {
-      const parts = word.split(regex.spec);
+      const parts = word.split(regexps.spec);
       if (parts.length > 1) {
         result.open(parts[0]);
         for (let i = 1; i < parts.length; i += 2) {
@@ -757,7 +744,7 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
         continue;
       }
     }
-    const styles = word.match(regex.styles) ?? [];
+    const styles = word.match(regexps.styles) ?? [];
     const length = styles.reduce((acc, str) => acc + str.length, 0);
     result.add(word, word.length - length);
   }

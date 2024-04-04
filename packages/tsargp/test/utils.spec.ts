@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { NamingRules } from '../lib/utils';
 import {
   overrides,
-  checkArrayEqual,
+  areEqual,
   gestaltSimilarity,
-  findSimilarNames,
+  findSimilar,
   getArgs,
   selectAlternative,
   isTrue,
   matchNamingRules,
-  type NamingRules,
   isComp,
+  escapeRegExp,
 } from '../lib/utils';
 
 /*
@@ -73,34 +74,34 @@ describe('getArgs', () => {
   });
 });
 
-describe('checkArrayEqual', () => {
+describe('areEqual', () => {
   it('should return true on both arrays empty', () => {
-    expect(checkArrayEqual([], [], false)).toBeTruthy();
+    expect(areEqual([], [], false)).toBeTruthy();
   });
 
   it('should return true on arrays with the same values', () => {
-    expect(checkArrayEqual([1, 2, 3], [1, 2, 3], false)).toBeTruthy();
+    expect(areEqual([1, 2, 3], [1, 2, 3], false)).toBeTruthy();
   });
 
   it('should return false on arrays with different lengths', () => {
-    expect(checkArrayEqual([1, 2], [1, 2, 3], false)).toBeFalsy();
+    expect(areEqual([1, 2], [1, 2, 3], false)).toBeFalsy();
   });
 
   it('should return false on arrays with the same values but in different order', () => {
-    expect(checkArrayEqual([1, 2, 3], [3, 2, 1], false)).toBeFalsy();
+    expect(areEqual([1, 2, 3], [3, 2, 1], false)).toBeFalsy();
   });
 
   it('should return true on arrays with the same values in different order but unique', () => {
-    expect(checkArrayEqual([1, 2, 3], [3, 2, 1], true)).toBeTruthy();
+    expect(areEqual([1, 2, 3], [3, 2, 1], true)).toBeTruthy();
   });
 
   it('should return true on arrays with different lengths but unique', () => {
-    expect(checkArrayEqual([1, 2], [2, 2, 1], true)).toBeTruthy();
+    expect(areEqual([1, 2], [2, 2, 1], true)).toBeTruthy();
   });
 
   it('should return false on arrays with different values', () => {
-    expect(checkArrayEqual([1, 2], [1], true)).toBeFalsy();
-    expect(checkArrayEqual([1], [1, 3], true)).toBeFalsy();
+    expect(areEqual([1, 2], [1], true)).toBeFalsy();
+    expect(areEqual([1], [1, 3], true)).toBeFalsy();
   });
 });
 
@@ -126,19 +127,19 @@ describe('gestaltSimilarity', () => {
   });
 });
 
-describe('findSimilarNames', () => {
+describe('findSimilar', () => {
   it('should handle empty names', () => {
-    expect(findSimilarNames('', ['abc'])).toHaveLength(1);
-    expect(findSimilarNames('abc', [])).toHaveLength(0);
+    expect(findSimilar('', ['abc'])).toHaveLength(1);
+    expect(findSimilar('abc', [])).toHaveLength(0);
   });
 
   it('should return names in decreasing order of similarity ', () => {
-    const similar = findSimilarNames('abc', ['a', 'ab', 'abc', 'abcd']);
+    const similar = findSimilar('abc', ['a', 'ab', 'abc', 'abcd']);
     expect(similar).toEqual(['abcd', 'ab', 'a']);
   });
 
   it('should filter names by similarity threshold', () => {
-    const similar = findSimilarNames('abc', ['a', 'ab', 'abc', 'abcd'], 0.6);
+    const similar = findSimilar('abc', ['a', 'ab', 'abc', 'abcd'], 0.6);
     expect(similar).toEqual(['abcd', 'ab']);
   });
 });
@@ -225,18 +226,6 @@ describe('isTrue', () => {
   });
 });
 
-describe('isComp', () => {
-  it('should return undefined on normal argument', () => {
-    expect(isComp('')).toBeUndefined();
-    expect(isComp('abc')).toBeUndefined();
-  });
-
-  it('should return the word being completed on completion argument', () => {
-    expect(isComp('\0')).toEqual('');
-    expect(isComp('a\0bc')).toEqual('a');
-  });
-});
-
 describe('matchNamingRules', () => {
   it('should match the first name against each rule', () => {
     const rules = {
@@ -260,5 +249,23 @@ describe('matchNamingRules', () => {
     );
     expect(rules.ruleset.rule1).toHaveBeenCalledTimes(1);
     expect(rules.ruleset.rule2).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('isComp', () => {
+  it('should return undefined on normal argument', () => {
+    expect(isComp('')).toBeUndefined();
+    expect(isComp('abc')).toBeUndefined();
+  });
+
+  it('should return the word being completed on completion argument', () => {
+    expect(isComp('\0')).toEqual('');
+    expect(isComp('a\0bc')).toEqual('a');
+  });
+});
+
+describe('escapeRegExp', () => {
+  it('should escape the regex symbols', () => {
+    expect(escapeRegExp('\\^$.*+?()[]{}|')).toEqual('\\\\\\^\\$\\.\\*\\+\\?\\(\\)\\[\\]\\{\\}\\|');
   });
 });

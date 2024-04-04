@@ -21,6 +21,21 @@ export const overrides: {
   stderrCols?: number;
 } = {};
 
+/**
+ * A collection of regular expressions used by the library.
+ * @internal
+ */
+export const regexps = {
+  para: /(?:[ \t]*\r?\n){2,}/,
+  item: /^[ \t]*(-|\*|\d+\.) /m,
+  punct: /[.,:;!?]$/,
+  word: /\s+/,
+  spec: /(%[a-z][0-9]?)/,
+  // eslint-disable-next-line no-control-regex
+  styles: /(?:\x9b[\d;]+m)+/g,
+  regex: /[\\^$.*+?()[\]{}|]/g,
+} as const satisfies Record<string, RegExp>;
+
 //--------------------------------------------------------------------------------------------------
 // Types
 //--------------------------------------------------------------------------------------------------
@@ -181,7 +196,7 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
  * @returns True if the arrays are equal
  * @internal
  */
-export function checkArrayEqual<T>(
+export function areEqual<T>(
   actual: ReadonlyArray<T>,
   expected: ReadonlyArray<T>,
   unique = false,
@@ -276,7 +291,7 @@ export function gestaltSimilarity(S: string, T: string): number {
  * @param threshold The similarity threshold
  * @returns The list of similar names in decreasing order of similarity
  */
-export function findSimilarNames(name: string, names: Array<string>, threshold = 0): Array<string> {
+export function findSimilar(name: string, names: Array<string>, threshold = 0): Array<string> {
   /** @ignore */
   function norm(name: string) {
     return name.replace(/\p{P}/gu, '').toLowerCase();
@@ -359,7 +374,8 @@ export function isTrue(
 ): boolean | undefined {
   /** @ignore */
   function match(names: ReadonlyArray<string>): boolean {
-    return !!str.match(RegExp(`^${names.join('|')}$`, regexFlags));
+    const escaped = names.map(escapeRegExp).join('|');
+    return !!str.match(RegExp(`^${escaped}$`, regexFlags));
   }
   str = str.trim();
   const { truthNames, falsityNames, caseSensitive } = flags;
@@ -427,4 +443,16 @@ export function isComp(arg: string): string | undefined {
  */
 export function max(a: number, b: number): number {
   return a > b ? a : b;
+}
+
+/**
+ * Escapes the `RegExp` special characters.
+ * @param str The string to be escaped
+ * @returns The escaped string
+ * @see https://docs-lodash.com/v4/escape-reg-exp/
+ * @internal
+ */
+export function escapeRegExp(str: string): string {
+  const regexSymbol = RegExp(regexps.regex.source);
+  return str && regexSymbol.test(str) ? str.replace(regexps.regex, '\\$&') : str;
 }

@@ -11,6 +11,7 @@ import type {
   OpaqueOption,
   OpaqueOptions,
 } from './options';
+import type { Range } from './utils';
 import type {
   OptionInfo,
   ConcreteConfig,
@@ -22,10 +23,9 @@ import type {
 import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
+import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
+import { areEqual, findSimilar, getArgs, isTrue, isComp, max, escapeRegExp } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
-import { format } from './styles';
-import { checkArrayEqual, findSimilarNames, getArgs, isTrue, isComp, max, Range } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -526,7 +526,7 @@ async function resolveVersion(
  * @param name The unknown option name
  */
 function handleUnknownName(validator: OptionValidator, name: string): never {
-  const similar = findSimilarNames(name, [...validator.names.keys()], 0.6);
+  const similar = findSimilar(name, [...validator.names.keys()], 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
   throw validator.error(ErrorItem.unknownOption, args, { alt, sep: ',' });
 }
@@ -818,7 +818,7 @@ async function handleMessage(
 function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOption): HelpMessage {
   const format = option.format ?? {};
   if (option.useFilters) {
-    format.filters = rest.map((arg) => RegExp(arg, 'i'));
+    format.filters = rest.map((arg) => RegExp(escapeRegExp(arg), 'i'));
   }
   const formatter = new HelpFormatter(context[0], format);
   const sections = option.sections ?? defaultSections;
@@ -1054,7 +1054,7 @@ function checkRequiredValue(
   let expected;
   if (array) {
     expected = norm(value.map(norm));
-    if (checkArrayEqual(actual as ReadonlyArray<unknown>, expected, option.unique) !== negate) {
+    if (areEqual(actual as ReadonlyArray<unknown>, expected, option.unique) !== negate) {
       return true;
     }
   } else {
