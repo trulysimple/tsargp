@@ -15,18 +15,18 @@ available types and describe them in detail.
 
 There is a total of ten option types, as summarized in the table below:
 
-| Type       | Parameters                                    | Value              | Normalization            | Constraints               |
-| ---------- | --------------------------------------------- | ------------------ | ------------------------ | ------------------------- |
-| [help]     | [niladic]                                     | `never{:ts}`[^1]   |                          |                           |
-| [version]  | [niladic]                                     | `never{:ts}`[^1]   |                          |                           |
-| [function] | configurable                                  | `unknown{:ts}`[^2] |                          | [param count]             |
-| [command]  | not applicable                                | `unknown{:ts}`[^2] |                          |                           |
-| [flag]     | [niladic]                                     | `boolean{:ts}`     |                          |                           |
-| [boolean]  | [positional], monadic                         | `boolean{:ts}`     |                          | [truth], [falsity]        |
-| [string]   | [positional], monadic                         | `string{:ts}`      | [trim], [case]           | [enums], [regex]          |
-| [number]   | [positional], monadic                         | `number{:ts}`      | [conv]                   | [enums], [range]          |
-| [strings]  | [positional], [delimited], variadic, [append] | `string[]{:ts}`    | [unique], [trim], [case] | [enums], [regex], [limit] |
-| [numbers]  | [positional], [delimited], variadic, [append] | `number[]{:ts}`    | [unique], [conv]         | [enums], [range], [limit] |
+| Type       | Parameters                              | Value              | Normalization            | Constraints               |
+| ---------- | --------------------------------------- | ------------------ | ------------------------ | ------------------------- |
+| [help]     | niladic                                 | `never{:ts}`[^1]   |                          |                           |
+| [version]  | niladic                                 | `never{:ts}`[^1]   |                          |                           |
+| [function] | configurable                            | `unknown{:ts}`[^2] |                          | [param count]             |
+| [command]  | not applicable                          | `unknown{:ts}`[^2] |                          |                           |
+| [flag]     | niladic                                 | `boolean{:ts}`     |                          |                           |
+| [boolean]  | positional, monadic                     | `boolean{:ts}`     |                          | [truth], [falsity]        |
+| [string]   | positional, monadic                     | `string{:ts}`      | [trim], [case]           | [enums], [regex]          |
+| [number]   | positional, monadic                     | `number{:ts}`      | [conv]                   | [enums], [range]          |
+| [strings]  | positional, delimited, variadic, append | `string[]{:ts}`    | [unique], [trim], [case] | [enums], [regex], [limit] |
+| [numbers]  | positional, delimited, variadic, append | `number[]{:ts}`    | [unique], [conv]         | [enums], [range], [limit] |
 
 The meaning of each column is explained below.
 
@@ -821,11 +821,9 @@ attributes:
 [separator]: #separator
 [appended]: #append-values
 [positional]: #positional--marker
-[delimited]: #separator
 [append]: #append-values
 [append values]: #append-values
 [format]: #help-format
-[niladic]: #niladic-options
 [truth]: #truth-names
 [falsity]: #falsity-names
 [truth names]: #truth-names
