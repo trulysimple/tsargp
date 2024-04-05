@@ -185,7 +185,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
     }
     let cmds = this.commands;
     for (let i = 0; i < pos && i < command.length; ++i) {
-      cmds = cmds.filter((cmd) => i < cmd.length && cmd[i] == line[i]);
+      cmds = cmds.filter((cmd) => i < cmd.length && cmd[i] === line[i]);
     }
     if (cmds.length > 1) {
       this.readline.print(`\n> ${cmds.join(' ')}\n> `);
@@ -215,7 +215,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
     } else {
       const word = words[0];
       for (let i = compIndex - word.length; i < compIndex; ++i) {
-        if (line.slice(i, compIndex) == word.slice(0, compIndex - i)) {
+        if (line.slice(i, compIndex) === word.slice(0, compIndex - i)) {
           this.term.paste(word.slice(compIndex - i) + ' ');
           break;
         }

@@ -126,6 +126,16 @@ const formatFunctions = {
   p(str: TerminalString, _styles, result) {
     result.other(str);
   },
+  /**
+   * The formatting function for custom format callbacks.
+   * @param arg The format argument
+   * @param _styles The format styles
+   * @param result The resulting string
+   * @param flags The formatting flags
+   */
+  c(arg: unknown, _styles, result, flags) {
+    flags.custom?.bind(result)(arg);
+  },
 } as const satisfies FormatFunctions;
 
 //--------------------------------------------------------------------------------------------------
@@ -181,9 +191,9 @@ export type StyleAttr = tf | fg | bg | FgColor | BgColor | UlColor | UlStyle;
 /**
  * A callback that processes a format specifier when splitting text.
  * @param this The terminal string to append to
- * @param spec The format specifier (e.g., '%s')
+ * @param arg The format specifier or argument
  */
-export type FormatCallback = (this: TerminalString, spec: string) => void;
+export type FormatCallback<T = string> = (this: TerminalString, arg: T) => void;
 
 /**
  * A set of formatting arguments.
@@ -263,6 +273,11 @@ export type FormattingFlags = {
    * Whether the separator should be merged with the next value. (Defaults to false)
    */
   readonly mergeNext?: boolean;
+  /**
+   * A custom callback to format arguments.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly custom?: FormatCallback<any>;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -271,8 +286,13 @@ export type FormattingFlags = {
 /**
  * A formatting function.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FormatFunction = (value: any, styles: FormatStyles, result: TerminalString) => void;
+type FormatFunction = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  value: any,
+  styles: FormatStyles,
+  result: TerminalString,
+  flags: FormattingFlags,
+) => void;
 
 /**
  * A set of formatting functions.
@@ -544,7 +564,7 @@ export class TerminalString {
       start = 0; // wrap to the first column instead
     }
     const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
-    if (column != start && !this.strings[0].startsWith('\n')) {
+    if (column !== start && !this.strings[0].startsWith('\n')) {
       adjust();
       column = start;
     }
@@ -708,7 +728,7 @@ export class CompletionMessage extends Array<string> {
 function splitParagraph(result: TerminalString, para: string, format?: FormatCallback) {
   const count = result.count;
   para.split(regexps.item).forEach((item, i) => {
-    if (i % 2 == 0) {
+    if (i % 2 === 0) {
       splitItem(result, item, format);
     } else {
       if (result.count > count) {
@@ -770,7 +790,7 @@ function formatArgs(
       const formatFn = (formatFunctions as FormatFunctions)[fmt];
       if (Array.isArray(value)) {
         value.forEach((val, i) => {
-          formatFn(val, styles, this);
+          formatFn(val, styles, this, flags);
           if (flags?.sep && i < value.length - 1) {
             this.setMerge(flags.mergePrev)
               .word(flags.sep)
@@ -778,7 +798,7 @@ function formatArgs(
           }
         });
       } else {
-        formatFn(value, styles, this);
+        formatFn(value, styles, this, flags);
       }
     }
   };

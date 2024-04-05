@@ -150,7 +150,9 @@ parsing loop:
   callback].
 - `isComp` -
   An additional property only available to a [function callback] to check whether any of the
-  remaining arguments is to be completed, when `comp` is true.
+  remaining arguments is to be completed, when `comp` is true. It accepts a single string parameter
+  and returns the word to be completed, if any (it may be an empty string); otherwise it returns
+  `undefined{:ts}`.
 
 ### Word completion
 

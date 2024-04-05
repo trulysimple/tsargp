@@ -10,7 +10,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('');
     });
 
-    it('should filter options using regular expressions', () => {
+    it('should filter options using a single regular expression', () => {
       const options = {
         flag1: {
           type: 'flag',
@@ -31,7 +31,7 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual(`  -f, --flag\n  A flag option\n`);
     });
 
-    it('should filter an option with environment variable using regular expressions', () => {
+    it('should filter an option with environment variable using multiple regular expressions', () => {
       const options = {
         flag1: {
           type: 'flag',

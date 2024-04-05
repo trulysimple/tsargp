@@ -95,14 +95,14 @@ export const defaultConfig: ConcreteConfig = {
  */
 const namingConventions: NamingRules = {
   cases: {
-    lowercase: (name, lower, upper) => name == lower && name != upper, // has at least one lower
-    UPPERCASE: (name, lower, upper) => name != lower && name == upper, // has at least one upper
-    Capitalized: (name, lower, upper) => name[0] != lower[0] && name != upper, // has at least one lower
+    lowercase: (name, lower, upper) => name === lower && name !== upper, // has at least one lower
+    UPPERCASE: (name, lower, upper) => name !== lower && name === upper, // has at least one upper
+    Capitalized: (name, lower, upper) => name[0] !== lower[0] && name !== upper, // has at least one lower
   },
   dashes: {
-    noDash: (name) => name[0] != '-',
-    '-singleDash': (name) => name[0] == '-' && name[1] != '-',
-    '--doubleDash': (name) => name[0] == '-' && name[1] == '-',
+    noDash: (name) => name[0] !== '-',
+    '-singleDash': (name) => name[0] === '-' && name[1] !== '-',
+    '--doubleDash': (name) => name[0] === '-' && name[1] === '-',
   },
   delimiters: {
     'kebab-case': (name) => !!name.match(/[^-]+-[^-]+/),

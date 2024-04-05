@@ -276,7 +276,7 @@ export type WithIsComp = {
    * Checks whether an option parameter is a word to be completed.
    * You can `throw new CompletionMessage(...words)` inside the function callback, if needed.
    * @param param The option parameter
-   * @returns The word being completed, if any
+   * @returns The word being completed, if any (it may be an empty string); else undefined
    */
   isComp: (param: string) => string | undefined;
 };
@@ -482,6 +482,10 @@ export type WithNumber = {
  */
 export type WithArray = {
   /**
+   * True if duplicate elements should be removed.
+   */
+  readonly unique?: true;
+  /**
    * Allows appending elements if specified multiple times.
    */
   readonly append?: true;
@@ -489,10 +493,6 @@ export type WithArray = {
    * The parameter value separator. If specified, the option accepts a single parameter.
    */
   readonly separator?: string | RegExp;
-  /**
-   * True if duplicate elements should be removed.
-   */
-  readonly unique?: true;
   /**
    * The maximum allowed number of elements.
    */
@@ -819,7 +819,7 @@ export type OpaqueOptions = Readonly<Record<string, OpaqueOption>>;
 export type OpaqueOptionValues = Record<string, unknown>;
 
 /**
- * Defines attributes for a required option.
+ * Removes mutually exclusive attributes from an option that is always `required`.
  */
 type WithRequired = {
   /**

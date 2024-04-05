@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { OpaqueOption, OpaqueOptions, Requires, RequiresVal } from './options';
+import type { OpaqueOption, OpaqueOptions, Requires, RequiresEntry, RequiresVal } from './options';
 import type { Style, FormatStyles } from './styles';
-import { max, type Concrete, combineRegExp } from './utils';
+import type { Concrete } from './utils';
 import type { ConcreteConfig, OptionValidator } from './validator';
 
 import { tf, HelpItem, ConnectiveWords } from './enums';
@@ -16,6 +16,7 @@ import {
   getOptionNames,
 } from './options';
 import { HelpMessage, TerminalString, style, format } from './styles';
+import { max, combineRegExp } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Public types
@@ -217,11 +218,7 @@ type ConcreteFormat = Concrete<FormatterConfig>;
 /**
  * Precomputed texts used by the formatter.
  */
-type HelpEntry = {
-  readonly names: Array<TerminalString>;
-  readonly param: TerminalString;
-  readonly descr: TerminalString;
-};
+type HelpEntry = [names: Array<TerminalString>, param: TerminalString, descr: TerminalString];
 
 /**
  * Information about the current help message.
@@ -473,11 +470,9 @@ function formatOption(
 ): number {
   const [styles] = context;
   const names = formatNames(config, styles, option, nameWidths);
-  const param = new TerminalString();
-  const paramLen = formatParams(config, styles, option, param);
-  const descr = new TerminalString();
-  formatDescription(config, context, option, descr);
-  const entry: HelpEntry = { names, param, descr };
+  const [param, paramLen] = formatParams(config, styles, option);
+  const descr = formatDescription(config, context, option);
+  const entry: HelpEntry = [names, param, descr];
   const group = groups.get(option.group ?? '');
   if (!group) {
     groups.set(option.group ?? '', [entry]);
@@ -493,7 +488,7 @@ function formatOption(
  * @param styles The set of styles
  * @param option The option definition
  * @param nameWidths The name slot widths
- * @returns The list of terminal strings, one for each name
+ * @returns The list of formatted strings, one for each name
  */
 function formatNames(
   config: ConcreteFormat,
@@ -513,20 +508,20 @@ function formatNames(
  * @param config The format configuration
  * @param styles The set of styles
  * @param option The option definition
- * @param result The resulting string
- * @returns The string length
+ * @returns [the formatted string, the string length]
  */
 function formatParams(
   config: ConcreteFormat,
   styles: FormatStyles,
   option: OpaqueOption,
-  result: TerminalString,
-): number {
+): [TerminalString, number] {
+  const result = new TerminalString();
   if (config.param.hidden) {
-    return 0;
+    return [result, 0];
   }
   const len = formatParam(option, styles, result, config.param.breaks);
-  return (result.indent = len); // hack: save the length, since we will need it in `adjustEntries`
+  result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
+  return [result, len];
 }
 
 /**
@@ -535,15 +530,14 @@ function formatParams(
  * @param config The format configuration
  * @param context The help context
  * @param option The option definition
- * @param result The resulting string
- * @returns A terminal string with the formatted option description
+ * @returns The formatted string
  */
 function formatDescription(
   config: ConcreteFormat,
   context: HelpContext,
   option: OpaqueOption,
-  result: TerminalString,
-) {
+): TerminalString {
+  const result = new TerminalString();
   if (config.descr.hidden || !config.items.length) {
     return result.break(1);
   }
@@ -561,11 +555,12 @@ function formatDescription(
   } finally {
     delete styles.current;
   }
-  if (result.count == count) {
+  if (result.count === count) {
     result.pop(count).break(1); // this string does not contain any word
   } else {
     result.clear().break(); // add ending breaks after styles
   }
+  return result;
 }
 
 /**
@@ -650,7 +645,7 @@ function adjustEntries(
     ? max(0, descr.indent)
     : paramIndent + paramWidth + descr.indent;
   for (const entries of groups.values()) {
-    for (const { param, descr } of entries) {
+    for (const [, param, descr] of entries) {
       param.indent = paramIndent + (alignLeft ? 0 : paramWidth - param.indent);
       descr.indent = descrIndent;
     }
@@ -712,7 +707,7 @@ function formatNameSlots(
  */
 function formatEntries(entries: Array<HelpEntry>): HelpMessage {
   const result = new HelpMessage();
-  for (const { names, param, descr } of entries) {
+  for (const [names, param, descr] of entries) {
     result.push(...names, param, descr);
   }
   return result;
@@ -778,7 +773,7 @@ function formatGroupsSection(
   const { title, noWrap, filter, exclude, style: sty } = section;
   const filterGroups = filter && new Set(filter);
   for (const [group, entries] of groups.entries()) {
-    if ((filterGroups?.has(group) ?? !exclude) != !!exclude) {
+    if ((filterGroups?.has(group) ?? !exclude) !== !!exclude) {
       const title2 = group || title;
       const heading = title2
         ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap).break(2)
@@ -855,7 +850,7 @@ function formatUsage(
   if (comment) {
     result.split(comment);
   }
-  if (result.count == count) {
+  if (result.count === count) {
     return new TerminalString(); // this string does not contain any word
   }
   return result.clear(); // to simplify client code
@@ -1446,25 +1441,18 @@ function formatRequiresExp(
   result: TerminalString,
   negate: boolean,
 ) {
+  /** @ignore */
+  function custom(item: Requires) {
+    formatRequirements(context, item, result, negate);
+  }
   const [, , connectives] = context;
-  const op =
+  const items = requires.items;
+  const phrase = items.length > 1 ? '(%c)' : '%c';
+  const sep =
     requires instanceof RequiresAll === negate
       ? connectives[ConnectiveWords.or]
       : connectives[ConnectiveWords.and];
-  const items = requires.items;
-  const length = items.length;
-  if (length > 1) {
-    result.open('(');
-  }
-  items.forEach((item, i) => {
-    formatRequirements(context, item, result, negate);
-    if (i < length - 1) {
-      result.word(op);
-    }
-  });
-  if (length > 1) {
-    result.close(')');
-  }
+  result.format(context[0], phrase, { c: items }, { sep, custom, mergePrev: false });
 }
 
 /**
@@ -1481,21 +1469,15 @@ function formatRequiresVal(
   result: TerminalString,
   negate: boolean,
 ) {
+  /** @ignore */
+  function custom([key, value]: RequiresEntry) {
+    formatRequiredValue(context, options[key], value, result, negate);
+  }
   const [, options, connectives] = context;
   const entries = Object.entries(requires);
-  const length = entries.length;
-  if (length > 1) {
-    result.open('(');
-  }
-  entries.forEach(([key, value], i) => {
-    formatRequiredValue(context, options[key], value, result, negate);
-    if (i < length - 1) {
-      result.word(connectives[ConnectiveWords.and]);
-    }
-  });
-  if (length > 1) {
-    result.close(')');
-  }
+  const phrase = entries.length > 1 ? '(%c)' : '%c';
+  const sep = connectives[ConnectiveWords.and];
+  result.format(context[0], phrase, { c: entries }, { sep, custom, mergePrev: false });
 }
 
 /**

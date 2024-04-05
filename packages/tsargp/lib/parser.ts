@@ -4,12 +4,12 @@
 import type {
   Options,
   OptionValues,
+  OpaqueOption,
+  OpaqueOptions,
   OpaqueOptionValues,
   Requires,
   RequiresEntry,
   ResolveCallback,
-  OpaqueOption,
-  OpaqueOptions,
 } from './options';
 import type { Range } from './utils';
 import type {
@@ -117,7 +117,7 @@ export class ArgumentParser<T extends Options = Options> {
    * @param options The option definitions
    * @param config The validator configuration
    */
-  constructor(options: T, config: ValidatorConfig = {}) {
+  constructor(options: T, config?: ValidatorConfig) {
     this.validator = new OptionValidator(options, mergeConfig(config));
   }
 
@@ -268,7 +268,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
   }
   for (let j = 0, i = 0; j < cluster.length; ++j) {
     const letter = cluster[j];
-    if (letter === '-' && j == 0) {
+    if (letter === '-' && j === 0) {
       continue; // skip the first dash in the cluster
     }
     if (letter === '\0') {
@@ -504,7 +504,7 @@ async function resolveVersion(
   const { promises } = await import('fs');
   for (
     let path = './package.json', lastResolved = '', resolved = resolve(path);
-    resolved != lastResolved;
+    resolved !== lastResolved;
     path = '../' + path, lastResolved = resolved, resolved = resolve(path)
   ) {
     try {
@@ -512,7 +512,7 @@ async function resolveVersion(
       const { version } = JSON.parse(jsonData.toString());
       return version;
     } catch (err) {
-      if ((err as ErrnoException).code != 'ENOENT') {
+      if ((err as ErrnoException).code !== 'ENOENT') {
         throw err;
       }
     }
@@ -567,13 +567,11 @@ async function checkRequireItems<T>(
   invert: boolean,
   and: boolean,
 ): Promise<boolean> {
+  const connectives = validator.config.connectives;
+  const connective = invert ? connectives[ConnectiveWords.and] : connectives[ConnectiveWords.or];
   if (!and && items.length > 1) {
     error.open('(');
   }
-  const config = validator.config;
-  const connective = invert
-    ? config.connectives[ConnectiveWords.and]
-    : config.connectives[ConnectiveWords.or];
   let first = true;
   for (const item of items) {
     if (and || first) {
@@ -688,7 +686,7 @@ async function handleNiladic(
   index: number,
   rest: Array<string>,
 ): Promise<[boolean, number]> {
-  const [, values, , , comp, warning] = context;
+  const [, values, , , comp, warnings] = context;
   const [key, name, option] = info;
   switch (option.type) {
     case 'flag': {
@@ -707,9 +705,9 @@ async function handleNiladic(
       if (!comp) {
         await checkRequired(context);
       }
-      const res = await handleCommand(context, index, rest, info);
-      if (res.warning) {
-        warning.push(...res.warning);
+      const { warning } = await handleCommand(context, index, rest, info);
+      if (warning) {
+        warnings.push(...warning);
       }
       return [true, 0];
     }
@@ -741,7 +739,8 @@ async function handleFunction(
   if (option.exec) {
     const [, values, , , comp] = context;
     try {
-      values[key] = await option.exec({ values, index, name, param, comp, isComp });
+      const seq = { values, index, name, param, comp, isComp };
+      values[key] = await option.exec(seq);
     } catch (err) {
       // do not propagate common errors during completion
       if (!comp || err instanceof CompletionMessage) {
@@ -775,7 +774,8 @@ async function handleCommand(
   const result = await doParse(cmdValidator, param, rest, comp, shortStyle, name);
   // comp === false, otherwise completion will have taken place by now
   if (option.exec) {
-    values[key] = await option.exec({ values, index, name, param });
+    const seq = { values, index, name, param };
+    values[key] = await option.exec(seq);
   }
   return result;
 }
@@ -845,7 +845,8 @@ async function handleCompletion(
   let words: Array<string>;
   if (option.complete) {
     try {
-      words = await option.complete({ values, index, name, param, comp });
+      const seq = { values, index, name, param, comp };
+      words = await option.complete(seq);
     } catch (err) {
       // do not propagate errors during completion
       words = [];
@@ -878,8 +879,8 @@ async function checkRequired(context: ParseContext) {
   }
   const [validator] = context;
   const keys = Object.keys(validator.options);
-  await Promise.all(keys.map(checkEnv));
-  await Promise.all(keys.map(checkReq));
+  await Promise.all(keys.map(checkEnv)); // <<-- we may need to serialize this
+  await Promise.all(keys.map(checkReq)); // <<-- this does not need to be serialized
 }
 
 /**
@@ -901,7 +902,7 @@ async function checkEnvVarAndDefaultValue(context: ParseContext, key: string) {
     const name = option.preferredName ?? '';
     throw validator.error(ErrorItem.missingRequiredOption, { o: name });
   } else if ('default' in option) {
-    return setValue(context, key, option, option.default);
+    return setValue(context, key, option, option.default); // sets undefined as well
   }
 }
 
@@ -975,9 +976,9 @@ async function checkRequires(
     const entries = Object.entries(requires);
     return checkRequireItems(validator, entries, checkEntry, error, negate, invert, !negate);
   }
-  if ((await requires(values)) == negate) {
+  if ((await requires(values)) === negate) {
     const config = validator.config;
-    if (negate != invert) {
+    if (negate !== invert) {
       error.word(config.connectives[ConnectiveWords.not]);
     }
     format.v(requires, config.styles, error);
@@ -1009,11 +1010,11 @@ function checkRequirement(
   const specified = specifiedKeys.has(key) || actual !== undefined; // consider default values
   const required = value !== null;
   if (isOpt.msg(option) || isOpt.ukn(option) || !specified || !required || value === undefined) {
-    if ((specified == required) != negate) {
+    if ((specified === required) !== negate) {
       return true;
     }
     const config = validator.config;
-    if (specified != invert) {
+    if (specified !== invert) {
       error.word(config.connectives[ConnectiveWords.no]);
     }
     format.o(option.preferredName ?? '', config.styles, error);
@@ -1064,12 +1065,14 @@ function checkRequiredValue(
     }
   }
   const config = validator.config;
+  const styles = config.styles;
+  const connectives = config.connectives;
   const connective =
-    negate != invert
-      ? config.connectives[ConnectiveWords.notEquals]
-      : config.connectives[ConnectiveWords.equals];
+    negate !== invert
+      ? connectives[ConnectiveWords.notEquals]
+      : connectives[ConnectiveWords.equals];
   const phrase = array ? `[%${spec}]` : `%${spec}`;
-  format.o(name, config.styles, error);
-  error.word(connective).format(config.styles, phrase, { [spec]: expected });
+  format.o(name, styles, error);
+  error.word(connective).format(styles, phrase, { [spec]: expected });
   return false;
 }

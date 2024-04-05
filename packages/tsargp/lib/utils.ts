@@ -178,7 +178,7 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
   const result: Array<string> = [];
   let arg: string | undefined;
   for (let i = 0, quote = ''; i < line.length; ++i) {
-    if (i == compIndex) {
+    if (i === compIndex) {
       append('\0');
     }
     switch (line[i]) {
@@ -193,7 +193,7 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
         break;
       case `'`:
       case '"':
-        if (quote == line[i]) {
+        if (quote === line[i]) {
           quote = '';
         } else if (quote) {
           append(line[i]);
@@ -205,7 +205,7 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
         append(line[i]);
     }
   }
-  if (line.length == compIndex) {
+  if (line.length === compIndex) {
     append('\0');
   }
   if (arg !== undefined) {
@@ -263,8 +263,8 @@ function longestCommonSubstrings(S: string, T: string): [number, Array<[number, 
   let z = 0;
   for (let i = 0, last = 0; i < S.length; ++i) {
     for (let j = 0; j < T.length; ++j) {
-      if (S[i] == T[j]) {
-        const a = i == 0 || j == 0 ? 1 : last + 1;
+      if (S[i] === T[j]) {
+        const a = i === 0 || j === 0 ? 1 : last + 1;
         if (a >= z) {
           if (a > z) {
             z = a;
@@ -331,7 +331,7 @@ export function findSimilar(
   const search = norm(needle);
   for (const name of haystack) {
     // skip the original name
-    if (name != needle) {
+    if (name !== needle) {
       const sim = gestaltSimilarity(search, norm(name));
       if (sim >= threshold) {
         result.push([name, sim]);
@@ -361,7 +361,7 @@ export function selectAlternative(phrase: string, alt = 0): string {
         }
       } else if (c === ')') {
         s = startIndices.pop() ?? 0;
-        if (groupLevel == level) {
+        if (groupLevel === level) {
           groups.push([s, i]);
           groupLevel = 0; // reset
         }
