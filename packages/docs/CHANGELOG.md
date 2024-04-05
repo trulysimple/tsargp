@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.3.1
+
+### Patch Changes
+
+- [`2e9fce0`](https://github.com/trulysimple/tsargp/commit/2e9fce0c3a432e589a0db0359fb8ba581007344a) Thanks [@disog](https://github.com/disog)! - Fixed the readme
+
 ## 0.3.0
 
 ### Minor Changes
