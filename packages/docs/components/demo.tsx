@@ -23,8 +23,12 @@ class DemoCommand extends Command {
 
   override async run(line: string, compIndex?: number) {
     try {
-      const values = await this.parser.parse(line, { compIndex });
-      if (!values['command']) {
+      const values: { hello?: number } = {};
+      const { warning } = await this.parser.parseInto(values, line, { compIndex });
+      if (warning) {
+        this.println(warning.wrap(this.state.width));
+      }
+      if (!values.hello) {
         this.println(JSON.stringify(values, null, 2));
       }
     } catch (err) {

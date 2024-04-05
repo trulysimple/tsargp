@@ -19,7 +19,7 @@ There is a total of ten option types, as summarized in the table below:
 | ---------- | --------------------------------------------- | ------------------ | ------------------------ | ------------------------- |
 | [help]     | [niladic]                                     | `never{:ts}`[^1]   |                          |                           |
 | [version]  | [niladic]                                     | `never{:ts}`[^1]   |                          |                           |
-| [function] | [configurable]                                | `unknown{:ts}`[^2] |                          | [param count]             |
+| [function] | configurable                                  | `unknown{:ts}`[^2] |                          | [param count]             |
 | [command]  | not applicable                                | `unknown{:ts}`[^2] |                          |                           |
 | [flag]     | [niladic]                                     | `boolean{:ts}`     |                          |                           |
 | [boolean]  | [positional], monadic                         | `boolean{:ts}`     |                          | [truth], [falsity]        |
@@ -431,8 +431,8 @@ option value. This normalization is applied _after_ other normalizations and _be
 [count limit] constraint.
 
 <Callout type="info">
-  Due to the nature of JavaScript's [Set] type, the order of elements is preserved (i.e., they
-  reflect the order in which they were parsed).
+  Due to the nature of JavaScript's [Set] type, the order of elements is preserved (i.e., it
+  reflects the order in which they were parsed).
 </Callout>
 
 #### Append values
@@ -798,7 +798,6 @@ attributes:
 - [array attributes]
 - [miscellaneous attributes]
 
-[configurable]: #parameter-count
 [param count]: #parameter-count
 [trim]: #trim-whitespace
 [case]: #case-conversion
