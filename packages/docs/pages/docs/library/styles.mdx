@@ -33,7 +33,7 @@ In the next sections we present the various styling attributes available.
 The `tf` enumeration declares text type faces that can be combined together. Here is the full list:
 
 - `clear` - reset or normal (resets any other preceding SGR attribute)
-- enable attributes:
+- enabling attributes:
   - `bold` - bold or increased intensity
   - `faint` - faint, decreased intensity, or dim
   - `italic` - italic
@@ -45,11 +45,11 @@ The `tf` enumeration declares text type faces that can be combined together. Her
   - `crossedOut` - crossed-out or strikethrough
   - `doublyUnderlined` - doubly underlined
   - `proportionalSpacing` - proportional spacing
-- change font:
+- font-changing attributes:
   - `primaryFont` - primary font
   - `alternative[1-9]` - alternative font 1 through 9
   - `fraktur` - black-letter font
-- disable attributes:
+- disabling attributes:
   - `notBoldOrFaint` - normal intensity (neither bold nor faint)
   - `notItalicNorFraktur` - regular face (neither italic nor black-letter)
   - `notUnderlined` - not underlined
@@ -58,7 +58,7 @@ The `tf` enumeration declares text type faces that can be combined together. Her
   - `notInvisible` - visible (reveal, or not hidden)
   - `notCrossedOut` - not crossed out (no strikethrough)
   - `notProportionalSpacing` - disable proportional spacing
-- framing:
+- framing attributes:
   - `framed` - framed
   - `encircled` - encircled
   - `overlined` - overlined
@@ -123,24 +123,27 @@ The `ul` constant holds the styles of underlined text:
 
 The `TerminalString` class is an internal component that handles the construction of strings that
 can be printed in a terminal. It has methods to split, append and wrap strings, with or without
-control sequences, and is used both by the [parser] (to create error and warning messages) and by
-the [formatter] (to build help messages).
+control sequences, and is used by the library in different places:
+
+- by both the [parser] and [validator], to create error and warning messages
+- by the [formatter], to build help messages
 
 The main logic implemented in this class is divided into _splitting_ and _wrapping_, as is explained
 in the next sections.
 
 ### Text splitting
 
-Text is split on paragraph, list item and word boundaries using a combination of simple regular
+Text is split on paragraphs, list items and word boundaries using a combination of simple regular
 expressions. The features supported in text splitting are described below.
 
 #### Format specifiers
 
-During splitting, format specifiers prefixed with a percent sign `%` are extracted from the text and
-processed by a formatting callback. This is used by the library in different places:
+During splitting, format specifiers prefixed with a percent sign `%` may be extracted from the text
+and processed by a formatting callback. This is used by the library in different places:
 
-- by the parser to produce error messages based on configured [error phrases]
-- by the formatter to assemble help items from configured [help phrases]
+- by the both the [parser] and [validator], to produce error and warning messages based on
+  configured [error phrases]
+- by the [formatter], to assemble help items from configured [help phrases]
 
 This particular feature is only available in _phrases_, not in text attributes of option definitions.
 Specifiers are meant to be replaced with a value (or values, in case of arrays). The available ones
@@ -151,9 +154,9 @@ are:
 - `n` - a number value
 - `r` - a regular expression
 - `o` - an option name
-- `v` - a generic value enclosed in angle brackets (like the [parameter column])
+- `v` - an unknown value (enclosed in angle brackets, like the [parameter column])
 - `u` - a URL hyperlink
-- `t` - general text
+- `t` - a general text
 - `p` - a previously formatted string
 
 If a phrase supports values, the specifier can be used to indicate where in the phrase to place the
@@ -165,7 +168,7 @@ or help item.
 #### Inline styles
 
 Text can contain inline styles. This applies as well to phrases as to text attributes, which the
-formatter splits into words before adding to the option description.
+formatter splits into words before adding to the help message.
 
 When splitting text, the terminal string instance will try its best to preserve styles. However,
 if you find some corner case that is not currently covered by unit tests, please submit a [bug
@@ -207,8 +210,8 @@ Text is wrapped according to a configured _width_: the number of terminal column
 each line of text.
 
 When a width of zero or `undefined{:ts}` is provided (which may happen if the output is being
-redirected), the terminal string instance will avoid wrapping and will suppress control sequences
-that would otherwise be used to render text in a terminal.
+redirected), the terminal string will avoid wrapping and will suppress some control sequences that
+would otherwise be used to render the text in a terminal.
 
 The following features are supported in text wrapping.
 
@@ -217,15 +220,15 @@ The following features are supported in text wrapping.
 A terminal string optionally has an indentation level: the starting column respective to the first
 terminal column.
 
-When wrapping text to a desired width, the terminal string instance will try to respect this
-setting, but if the desired width does not accommodate the text while respecting its indentation
-level, the text is instead wrapped relative to the beginning of each line.
+When wrapping text to a desired width, the terminal string will try to respect this setting, but if
+the desired width does not accommodate the length of the largest word in the text while respecting
+its indentation level, the text will instead be wrapped relative to the beginning of each line.
 
 #### Text alignment
 
 A terminal string optionally has a flag that indicates whether the text should be aligned to the
-terminal's right boundary when being wrapped. This feature is used by the formatter in the help's
-[description column].
+terminal's right boundary when being wrapped. This feature is used by the formatter in the help
+message's [description column].
 
 ## Terminal messages
 
@@ -285,9 +288,9 @@ standard `Error` class. It should be printed with `console.error` or equivalent.
 
 ### Completion words
 
-The `CompletionMessage` class represents a list of completion words. It inherits from a string array
-and, on Linux, produces a string with the words separated by line feeds. It should be printed with
-`console.log` or equivalent.
+The `CompletionMessage` class represents a list of completion words. It inherits from
+`Array<string>{:ts}` and, on Linux, produces a string with the words separated by line feeds. It
+should be printed with `console.log` or equivalent.
 
 ### Version message
 
@@ -301,6 +304,7 @@ or equivalent.
 </Callout>
 
 [parser]: parser
+[validator]: validator
 [formatter]: formatter
 [help phrases]: formatter#help-phrases
 [error phrases]: validator#error-phrases

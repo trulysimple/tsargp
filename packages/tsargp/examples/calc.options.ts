@@ -37,12 +37,12 @@ const binaryOpts = {
  */
 const addOpts = {
   /**
-   * A command that sums multiple numbers.
+   * A command that adds multiple numbers.
    */
   add: {
     type: 'command',
     names: ['add'],
-    desc: 'A command that sums multiple numbers.',
+    desc: 'A command that adds multiple numbers.',
     options: (): Options => ({ ...multiOpts, ...mainOpts }),
     exec({ param }): number {
       const vals = param as OptionValues<typeof multiOpts & typeof mainOpts>;

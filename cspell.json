@@ -4,7 +4,7 @@
   "language": "en",
   "dictionaries": ["cpp", "typescript"],
   "words": ["uncategorized"],
-  "flagWords": ["contraint"],
+  "flagWords": ["contraint", "environemnt"],
   "ignoreWords": [
     "Sogari",
     "lockb",

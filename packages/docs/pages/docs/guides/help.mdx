@@ -6,7 +6,8 @@ import { Callout } from 'nextra/components';
 
 # Help
 
-In this guide, we will be creating a command-line interface that provides different help mechanisms.
+In this guide, we will be creating a command-line interface that provides different help mechanisms
+for end-users.
 
 ## Help option
 
@@ -41,8 +42,8 @@ export default {
       },
       {
         type: 'groups',
+        title: 'Options:', // heading for the default option group
         style: style(tf.underlined), // underlined option group headings
-        phrase: '%s:', // add colon to option group headings
       },
       {
         type: 'text',
@@ -66,7 +67,7 @@ export default {
       param: { hidden: true }, // hide option parameter/examples
       items: [HelpItem.synopsis, HelpItem.required, HelpItem.deprecated],
       phrases: {
-        [HelpItem.synopsis]: '💡 %s', // option synopsis with emoji
+        [HelpItem.synopsis]: '💡 %t', // option synopsis with emoji
       },
     },
     styles: {
@@ -81,10 +82,12 @@ Which, when invoked with `--help`, would render something like:
 ```ansi
 A command-line interface for <purpose>.
 
+play [[95m--help[0m]
+
 [4mOptions:[0m
 
-    [95m-h[0m, [95m--help[0m
-                [3m💡 Prints this help message.[0m
+    [95m--help[0m
+              [3m💡 Prints this help message.[0m
 
 Refer to [90m<website>[39m for support.
 ```

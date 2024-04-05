@@ -7,7 +7,7 @@ import { style, req, fg8, bg8, ul8, ul } from 'tsargp';
 import { HelpItem, ErrorItem, tf, fg, bg } from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
 
-const tsargp = { req, tf, fg, bg, ul, HelpItem, ErrorItem, style, fg8, bg8, ul8 };
+const tsargp = { ArgumentParser, req, tf, fg, bg, ul, HelpItem, ErrorItem, style, fg8, bg8, ul8 };
 
 //--------------------------------------------------------------------------------------------------
 // Types

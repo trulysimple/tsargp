@@ -23,12 +23,12 @@ This method accepts a `ValidationFlags` argument with the following optional pro
 - `detectNamingInconsistencies` - whether the validation procedure should try to detect
   inconsistencies across option names
 
-It returns a `ValidationResult` object with the following optional properties:
+It returns a `ValidationResult` object with the following properties:
 
-- `warning` - A list of warning messages that represent non-impeditive issues encountered in the
-  option definitions. You may want to print this to see if they are important to your application.
+- `warning` - A compilation of warning messages that represent non-impeditive issues encountered in
+  the option definitions. You may want to print it to see if they are important to your application.
 
-The following sections describe the various kinds of validation performed by this method. Unless
+The following sections describe the various kinds of validation performed by the validator. Unless
 otherwise noted, any option definition that does not satisfy one of these restrictions will raise an
 error with an explanatory message that may include the option's key.
 
@@ -46,7 +46,7 @@ Option names are subject to the restrictions listed below:
   contain at least one _non-empty_ name.
 - **Invalid option name** -
   An option name must not contain whitespace or the equals sign `'='{:ts}`, since this character can
-  be used as option-value separator on the command-line. Any other Unicode character is allowed.
+  be used as option-parameter separator on the command-line. Any other Unicode character is allowed.
 - **Duplicate option name** -
   An option should not have duplicate names, and there cannot be two options with the same name.
 
@@ -73,7 +73,7 @@ such as:
 
 ### Cluster letter validation
 
-Cluster letters are subject to the restrictions listed below:
+[Cluster letters] are subject to the restrictions listed below:
 
 - **Duplicate cluster letter** -
   An option should not have duplicate cluster letters, and there cannot be two options with the
@@ -94,11 +94,11 @@ In addition to the above, the validator may generate the following warning:
 Constraint definitions are subject to the restrictions listed below:
 
 - **Zero enum values** -
-  In number-valued and string-valued options, if the [enums] attribute is present, it must _not_ be
-  empty. It should have non-zero length.
+  In string- and number-valued options, if the [enums] attribute is present, it must _not_ be empty.
+  It should have non-zero length.
 - **Duplicate enum value** -
-  In number-valued and string-valued options, if the [enums] attribute is present, it must _not_
-  contain duplicate elements.
+  In string- and number-valued options, if the [enums] attribute is present, it must _not_ contain
+  duplicate elements.
 - **Invalid numeric range** -
   In a number-valued option, if the [range] attribute is present, then its minimum value should be
   strictly less than the maximum.
@@ -140,19 +140,19 @@ the restrictions listed below:
   An option must not declare a requirement that references an _unknown_ option.
 - **Invalid required option** -
   An option must not declare a requirement that references either a non-valued option (help and
-  version) or an option with unknown values (function and command) in a requirement.
+  version) or an unknown-valued option (function and command) in a requirement.
 - **Invalid required value** -
   An option must not declare a requirement that references another option that is either [always
   required] or has a [default value], if the required value is nullish (`null{:ts}` or
   `undefined{:ts}`).
 - **Incompatible required value** -
-  Since a requirement may be an object with values of any kind, the data type of these values must
-  be validated at run-time. Thus, an option must not declare a requirement that references a valued
-  option, if it requires a value that does _not_ conform to the data type expected by that option.
+  Since a requirement can be an object with values of any kind, their data type must be validated at
+  run-time. Thus, an option must not declare a requirement that references a known-valued option, if
+  it requires a value that does _not_ conform to the data type expected by that option.
 - **Constraint violation** -
   If an option declares a requirement that includes a required value, then that value is subject to
   the same set of constraints as that of the command-line arguments, so it must satisfy the
-  restrictions listed in [value validation].
+  restrictions listed in [value validation] for the required option.
 
 <Callout type="info">
   This does not apply to [requirement callbacks]. They are ignored during validation.
@@ -190,9 +190,9 @@ optional properties:
 - `number` - the style of number values (defaults to `fg.yellow`)
 - `regex` - the style of regular expressions (defaults to `fg.red`)
 - `option` - the style of option names (defaults to `fg.brightMagenta`)
-- `value` - the style of generic (or unknown) values (defaults to `fg.brightBlack`)
+- `value` - the style of unknown values (defaults to `fg.brightBlack`)
 - `url` - the style of URLs (defaults to `fg.brightBlack`)
-- `text` - The style of general text (defaults to `tf.clear`)
+- `text` - the style of general text (defaults to `tf.clear`)
 
 <Callout type="default">
   You can also set these styles to the empty string, if you know that your user&apos;s terminal does
@@ -215,25 +215,25 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
   raised by the parser when it fails to find a "package.json" file when resolving the version
 - `disallowedInlineValue` -
   raised by the parser when either a niladic option or a positional marker is specified with an
-  inline value
+  [inline parameter]
 - `emptyPositionalMarker` -
   raised by the validator when a positional option has an empty positional marker
 - `unnamedOption` -
   raised by the validator when a non-positional option has no name
 - `invalidOptionName` -
   raised by the validator when an option has an invalid name
-- `emptyVersionDefinition` -
+- `invalidVersionDefinition` -
   raised by the validator when a version option has an empty version string
 - `invalidSelfRequirement` -
   raised by the validator when an option references itself in a requirement
 - `unknownRequiredOption` -
   raised by the validator when an option references an unknown option in a requirement
 - `invalidRequiredOption` -
-  raised by the validator when an option references either a non-valued option or an option with
-  unknown values in a requirement
+  raised by the validator when an option references either a non-valued or an unknown-valued option
+  in a requirement
 - `invalidRequiredValue` -
-  raised by the validator when an option uses a nullish value in a requirement that references an
-  option that is either always required or has a default value
+  raised by the validator when an option uses a nullish value in a requirement referencing an option
+  that is either always required or has a default value
 - `incompatibleRequiredValue` -
   raised by the validator when an option is required with a value of incompatible data type
 - `emptyEnumsDefinition` -
@@ -256,7 +256,7 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `deprecatedOption` -
   warning produced by the parser when a deprecated option is specified on the command-line
 - `unsatisfiedCondRequirement` -
-  raised by the parser when a conditional option requirement is not satisfied
+  raised by the parser when an option's conditional requirement is not satisfied
 - `duplicateClusterLetter` -
   raised by the validator when an option has a duplicate cluster letter
 - `invalidClusterOption` -
@@ -267,7 +267,7 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 - `tooSimilarOptionNames` -
   warning produced by the validator when an option name is too similar to other names
 - `mixedNamingConvention` -
-  warning produced by the validator when a name slot contains names with different naming
+  warning produced by the validator when a [name slot] contains names with different naming
   conventions
 - `invalidNumericRange` -
   raised by the validator when a number-valued option has an invalid numeric range
@@ -281,18 +281,18 @@ The `ErrorItem` enumeration lists the kinds of error messages that may be raised
 ### Error phrases
 
 The `phrases` property specifies the phrases to be used for each kind of error message. It has the
-following optional properties, which are the enumerators from `ErrorItem`:
+following optional properties, which are enumerators from `ErrorItem`:
 
 - `unknownOption` - `'Unknown option (%o|%o1).(| Similar names are [%o2].)'{:ts}`
 - `unsatisfiedRequirement` - `'Option %o requires %p.'{:ts}`
 - `missingRequiredOption` - `'Option %o is required.'{:ts}`
 - `missingParameter` - `'Missing parameter to %o.'{:ts}`
 - `missingPackageJson` - `'Could not find a "package.json" file.'{:ts}`
-- `disallowedInlineValue` - `'(Option|Positional marker) %o does not accept inline values.'{:ts}`
+- `disallowedInlineValue` - `'(Option|Positional marker) %o does not accept inline parameters.'{:ts}`
 - `emptyPositionalMarker` - `'Option %o contains empty positional marker.'{:ts}`
 - `unnamedOption` - `'Non-positional option %o has no name.'{:ts}`
 - `invalidOptionName` - `'Option %o has invalid name %s.'{:ts}`
-- `emptyVersionDefinition` - `'Option %o contains empty version.'{:ts}`
+- `invalidVersionDefinition` - `'Option %o contains empty version.'{:ts}`
 - `invalidSelfRequirement` - `'Option %o requires itself.'{:ts}`
 - `unknownRequiredOption` - `'Unknown option %o in requirement.'{:ts}`
 - `invalidRequiredOption` - `'Invalid option %o in requirement.'{:ts}`
@@ -337,7 +337,7 @@ with a description of the corresponding value:
 | emptyPositionalMarker      | `%o` = the option's key                                                                            |
 | unnamedOption              | `%o` = the option's key                                                                            |
 | invalidOptionName          | `%o` = the option's key; `%s` = the invalid name                                                   |
-| emptyVersionDefinition     | `%o` = the option's key                                                                            |
+| invalidVersionDefinition   | `%o` = the option's key                                                                            |
 | invalidSelfRequirement     | `%o` = the option's key                                                                            |
 | unknownRequiredOption      | `%o` = the required option's key                                                                   |
 | invalidRequiredOption      | `%o` = the required option's key                                                                   |
@@ -357,7 +357,7 @@ with a description of the corresponding value:
 | invalidClusterOption       | `%o` = the specified cluster letter                                                                |
 | invalidClusterLetter       | `%o` = the option's key; `%s` = the invalid letter                                                 |
 | tooSimilarOptionNames      | `%o` = the command prefix[^1]; `%s1` = the option name; `%s2` = the similar names                  |
-| mixedNamingConvention      | `%o` = the command prefix[^1]; `%n` = the slot index; `%s` = the naming conventions                |
+| mixedNamingConvention      | `%o` = the command prefix[^1]; `%n` = the [name slot] index; `%s` = the naming conventions         |
 | invalidNumericRange        | `%o` = the option's key; `%n` = the numeric range                                                  |
 | invalidParamCount          | `%o` = the option's key; `%n` = the parameter count                                                |
 | variadicWithClusterLetter  | `%o` = the option's key                                                                            |
@@ -367,7 +367,7 @@ with a description of the corresponding value:
 
 The `connectives` property specifies the connective words to be used in the formatting of option
 requirements, in both error and help messages. It has the following optional properties, which are
-the enumerators from `ConnectiveWords`:
+enumerators from `ConnectiveWords`:
 
 - `and` - the word used to connect two logical expressions in conjunction
 - `or` - the word used to connect two logical expressions in disjunction
@@ -388,12 +388,14 @@ the enumerators from `ConnectiveWords`:
 [positional]: options#positional--marker
 [text formatting]: styles#text-splitting
 [name suggestions]: parser#name-suggestions
-[name slot]: formatter#names-column
+[inline parameter]: parser#inline-parameters
+[name slot]: formatter#name-slots
 [nested command]: options#command-option
 [format specifiers]: styles#format-specifiers
 [always required]: options#always-required
 [default value]: options#default-value
 [parameter count]: options#parameter-count
+[Cluster letters]: options#cluster-letters
 
 [^1]:
     the command prefix is a series of option keys interspersed with periods, denoting the current

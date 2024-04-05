@@ -42,11 +42,11 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
     [ErrorItem.missingPackageJson]: 'Could not find a "package.json" file.',
     [ErrorItem.disallowedInlineValue]:
-      '(Option|Positional marker) %o does not accept inline values.',
+      '(Option|Positional marker) %o does not accept inline parameters.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o contains empty positional marker.',
     [ErrorItem.unnamedOption]: 'Non-positional option %o has no name.',
     [ErrorItem.invalidOptionName]: 'Option %o has invalid name %s.',
-    [ErrorItem.emptyVersionDefinition]: 'Option %o contains empty version.',
+    [ErrorItem.invalidVersionDefinition]: 'Option %o contains empty version.',
     [ErrorItem.invalidSelfRequirement]: 'Option %o requires itself.',
     [ErrorItem.unknownRequiredOption]: 'Unknown option %o in requirement.',
     [ErrorItem.invalidRequiredOption]: 'Invalid option %o in requirement.',
@@ -497,7 +497,7 @@ function validateOption(context: ValidateContext, key: string, option: OpaqueOpt
     validateRequirements(context, key, option.requiredIf);
   }
   if (option.version === '') {
-    throw error(config, ErrorItem.emptyVersionDefinition, { o: prefix + key });
+    throw error(config, ErrorItem.invalidVersionDefinition, { o: prefix + key });
   }
   if (option.type === 'command') {
     const cmdOpts = option.options;

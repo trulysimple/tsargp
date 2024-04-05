@@ -91,8 +91,8 @@ const formatFunctions = {
     result.style(styles.option, name, styles.current ?? styles.text);
   },
   /**
-   * The formatting function for generic values.
-   * @param value The generic value
+   * The formatting function for unknown values.
+   * @param value The unknown value
    * @param styles The format styles
    * @param result The resulting string
    */
@@ -230,7 +230,7 @@ export type MessageStyles = {
    */
   readonly option?: Style;
   /**
-   * The style of generic values.
+   * The style of unknown values.
    */
   readonly value?: Style;
   /**

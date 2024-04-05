@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { type Options, ArgumentParser } from '../../lib';
+import type { Options, ParsingFlags } from '../../lib';
+import { ArgumentParser } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
+    const flags: ParsingFlags = { shortStyle: true };
+
     it('should accept no arguments when expecting a cluster argument', async () => {
       const options = {
         flag: {
@@ -13,7 +16,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse([], { shortStyle: true })).resolves.toEqual({ flag: undefined });
+      await expect(parser.parse([], flags)).resolves.toEqual({ flag: undefined });
     });
 
     it('should skip the first dash in a cluster argument', async () => {
@@ -25,7 +28,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-f'], { shortStyle: true })).resolves.toEqual({ flag: true });
+      await expect(parser.parse(['-f'], flags)).resolves.toEqual({ flag: true });
     });
 
     it('should throw an error on unknown option in cluster', async () => {
@@ -37,7 +40,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['f-'], { shortStyle: true })).rejects.toThrow(`Unknown option -.`);
+      await expect(parser.parse(['f-'], flags)).rejects.toThrow(`Unknown option -.`);
     });
 
     it('should skip options with no names in a cluster argument', async () => {
@@ -49,9 +52,8 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['b'], { shortStyle: true })).resolves.toEqual({
-        boolean: undefined,
-      });
+      await expect(parser.parse(['b'], flags)).resolves.toEqual({ boolean: undefined });
+      await expect(parser.parse(['b', '1'], flags)).resolves.toEqual({ boolean: true });
     });
 
     it('should parse a boolean option in a cluster argument', async () => {
@@ -63,9 +65,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['b', '1'], { shortStyle: true })).resolves.toEqual({
-        boolean: true,
-      });
+      await expect(parser.parse(['b', '1'], flags)).resolves.toEqual({ boolean: true });
     });
 
     it('should parse a string option in a cluster argument', async () => {
@@ -77,9 +77,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['s', '1'], { shortStyle: true })).resolves.toEqual({
-        string: '1',
-      });
+      await expect(parser.parse(['s', '1'], flags)).resolves.toEqual({ string: '1' });
     });
 
     it('should parse a number option in a cluster argument', async () => {
@@ -91,7 +89,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['n', '1'], { shortStyle: true })).resolves.toEqual({ number: 1 });
+      await expect(parser.parse(['n', '1'], flags)).resolves.toEqual({ number: 1 });
     });
 
     it('should parse a strings option in a cluster argument', async () => {
@@ -103,9 +101,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['s', '1', '2'], { shortStyle: true })).resolves.toEqual({
-        strings: ['1', '2'],
-      });
+      await expect(parser.parse(['s', '1', '2'], flags)).resolves.toEqual({ strings: ['1', '2'] });
     });
 
     it('should parse a numbers option in a cluster argument', async () => {
@@ -117,9 +113,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['n', '1', '2'], { shortStyle: true })).resolves.toEqual({
-        numbers: [1, 2],
-      });
+      await expect(parser.parse(['n', '1', '2'], flags)).resolves.toEqual({ numbers: [1, 2] });
     });
 
     it('should parse a function option in a cluster argument', async () => {
@@ -132,7 +126,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['f'], { shortStyle: true })).resolves.toEqual({ function: true });
+      await expect(parser.parse(['f'], flags)).resolves.toEqual({ function: true });
     });
 
     it('should throw an error on string option with fallback value in the middle of a cluster argument', async () => {
@@ -145,7 +139,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['sx'], { shortStyle: true })).rejects.toThrow(
+      await expect(parser.parse(['sx'], flags)).rejects.toThrow(
         `Option letter s must be the last in a cluster.`,
       );
     });
@@ -160,7 +154,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['nx'], { shortStyle: true })).rejects.toThrow(
+      await expect(parser.parse(['nx'], flags)).rejects.toThrow(
         `Option letter n must be the last in a cluster.`,
       );
     });
@@ -174,7 +168,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['sx'], { shortStyle: true })).rejects.toThrow(
+      await expect(parser.parse(['sx'], flags)).rejects.toThrow(
         `Option letter s must be the last in a cluster.`,
       );
     });
@@ -188,7 +182,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['nx'], { shortStyle: true })).rejects.toThrow(
+      await expect(parser.parse(['nx'], flags)).rejects.toThrow(
         `Option letter n must be the last in a cluster.`,
       );
     });
@@ -203,7 +197,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['fx'], { shortStyle: true })).rejects.toThrow(
+      await expect(parser.parse(['fx'], flags)).rejects.toThrow(
         `Option letter f must be the last in a cluster.`,
       );
     });
@@ -218,7 +212,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['fx'], { shortStyle: true })).rejects.toThrow(
+      await expect(parser.parse(['fx'], flags)).rejects.toThrow(
         `Option letter f must be the last in a cluster.`,
       );
     });
@@ -234,7 +228,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['cx'], { shortStyle: true })).rejects.toThrow(
+      await expect(parser.parse(['cx'], flags)).rejects.toThrow(
         `Option letter c must be the last in a cluster.`,
       );
     });
@@ -267,7 +261,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['c', 'fsn', '1', '2'], { shortStyle: true })).resolves.toEqual({
+      await expect(parser.parse(['c', 'fsn', '1', '2'], flags)).resolves.toEqual({
         command: {
           flag: true,
           string: '1',

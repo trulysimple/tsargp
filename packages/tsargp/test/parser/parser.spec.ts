@@ -262,10 +262,10 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-f='])).rejects.toThrow(
-          `Option -f does not accept inline values.`,
+          `Option -f does not accept inline parameters.`,
         );
         await expect(parser.parse(['-f=a'])).rejects.toThrow(
-          `Option -f does not accept inline values.`,
+          `Option -f does not accept inline parameters.`,
         );
         expect(options.function.exec).not.toHaveBeenCalled();
       });
@@ -405,10 +405,10 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-c='])).rejects.toThrow(
-          `Option -c does not accept inline values.`,
+          `Option -c does not accept inline parameters.`,
         );
         await expect(parser.parse(['-c=a'])).rejects.toThrow(
-          `Option -c does not accept inline values.`,
+          `Option -c does not accept inline parameters.`,
         );
         expect(options.command.exec).not.toHaveBeenCalled();
       });
@@ -545,10 +545,10 @@ describe('ArgumentParser', () => {
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-f='])).rejects.toThrow(
-          `Option -f does not accept inline values.`,
+          `Option -f does not accept inline parameters.`,
         );
         await expect(parser.parse(['-f=a'])).rejects.toThrow(
-          `Option -f does not accept inline values.`,
+          `Option -f does not accept inline parameters.`,
         );
       });
 
@@ -709,7 +709,7 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ss'])).rejects.toThrow(`Missing parameter to -ss.`);
       });
 
-      it('should parse an inline value of a strings option as a single parameter', async () => {
+      it('should parse an inline parameter of a strings option as a single parameter', async () => {
         const options = {
           strings: {
             type: 'strings',
@@ -797,7 +797,7 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ns'])).rejects.toThrow(`Missing parameter to -ns.`);
       });
 
-      it('should parse an inline value of a numbers option as a single parameter', async () => {
+      it('should parse an inline parameter of a numbers option as a single parameter', async () => {
         const options = {
           numbers: {
             type: 'numbers',

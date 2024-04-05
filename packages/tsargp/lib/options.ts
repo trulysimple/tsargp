@@ -748,7 +748,7 @@ export type Option =
 export type Options = Readonly<Record<string, Option>>;
 
 /**
- * A generic collection of option values.
+ * A collection of option values.
  * @template T The type of the option definitions
  */
 export type OptionValues<T extends Options = Options> = Resolve<{

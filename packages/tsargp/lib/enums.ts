@@ -32,7 +32,7 @@ export const enum ErrorItem {
   missingPackageJson,
   /**
    * Raised by the parser when either a niladic option or a positional marker is specified with an
-   * inline value.
+   * inline parameter.
    */
   disallowedInlineValue,
   /**
@@ -50,7 +50,7 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when a version option has an empty version string.
    */
-  emptyVersionDefinition,
+  invalidVersionDefinition,
   /**
    * Raised by the validator when an option references itself in a requirement.
    */
@@ -60,12 +60,12 @@ export const enum ErrorItem {
    */
   unknownRequiredOption,
   /**
-   * Raised by the validator when an option references either a non-valued option or an option with
-   * unknown values in a requirement.
+   * Raised by the validator when an option references either a non-valued or an unknown-valued
+   * option in a requirement.
    */
   invalidRequiredOption,
   /**
-   * Raised by the validator when an option uses a nullish value in a requirement that references an
+   * Raised by the validator when an option uses a nullish value in a requirement referencing an
    * option that is either always required or has a default value.
    */
   invalidRequiredValue,
@@ -111,7 +111,7 @@ export const enum ErrorItem {
    */
   deprecatedOption,
   /**
-   * Raised by the parser when a conditional option requirement is not satisfied.
+   * Raised by the parser when an option's conditional requirement is not satisfied.
    */
   unsatisfiedCondRequirement,
   /**

@@ -74,10 +74,10 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['--='])).rejects.toThrow(
-        `Positional marker -- does not accept inline values.`,
+        `Positional marker -- does not accept inline parameters.`,
       );
       await expect(parser.parse(['--=a'])).rejects.toThrow(
-        `Positional marker -- does not accept inline values.`,
+        `Positional marker -- does not accept inline parameters.`,
       );
     });
 

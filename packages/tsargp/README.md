@@ -26,10 +26,10 @@ Define your command-line options (we recommend placing them in a separate file):
 
 ```ts
 // <your_cli_name>.options.ts
-import { Options, ... } from 'tsargp';
+import { type Options, ... } from 'tsargp';
 
 export default {
-  // define options' attributes...
+  // define the options' attributes...
 } as const satisfies Options;
 ```
 
@@ -47,7 +47,7 @@ try {
   // await parser.parseInto(myValues); // use this for an existing object or class instance
 } catch (err) {
   if (err instanceof Error) {
-    console.error(`${err}`);
+    console.error(`${err}`); // genuine errors
     process.exitCode = 1;
   } else {
     console.log(`${err}`); // help message, version or completion words
@@ -58,7 +58,7 @@ try {
 Optionally, enable word completion:
 
 ```sh
-complete -o default -C <your_cli_name> <your_cli_name>
+complete -o default -C <your_cli_name> <path/to/your/main_script>
 ```
 
 ## Build

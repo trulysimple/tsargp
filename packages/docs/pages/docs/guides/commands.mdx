@@ -60,7 +60,7 @@ const multiOpts = {
 
 Since this option accepts [positional] arguments, we do not want to give it a name. However, we gave
 it a [preferred name] that will be displayed in error messages, as well as a separate [group] for it
-to be displayed in the help message. This option is optional, since it [defaults] to an empty array.
+to be displayed in the help message. This option is optional and [defaults] to an empty array.
 
 Now let's define a similar option for the parameters of a dual-argument operation. It has the same
 definition as above, with additional constraints: it is [required] and accepts [at most] two values.
@@ -85,7 +85,7 @@ With this in place, we can define each one of the basic operations, as follows:
       add: {
         type: 'command',
         names: ['add'],
-        desc: 'A command that sums multiple numbers.',
+        desc: 'A command that adds multiple numbers.',
         options: (): Options => ({ ...multiOpts, ...mainOpts }),
         exec({ param }): number {
           const vals = param as OptionValues<typeof multiOpts & typeof mainOpts>;
@@ -153,7 +153,7 @@ With this in place, we can define each one of the basic operations, as follows:
 
 Notice how we use an [options callback] to provide the option definitions for each command. This is
 necessary because JavaScript does not allow us to reference the containing object from one of its
-members, before initialization. (The `mainOpts` variable will be defined next, and the above
+members, before its initialization. (The `mainOpts` variable will be defined later, and the above
 definitions will be embedded in it.)
 
 Inside the [command callback], we perform a typecast to access the values parsed for the command.
