@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-import { ArgumentParser, WarnMessage } from 'tsargp';
+import { ArgumentParser } from 'tsargp';
 import options from './demo.options.js';
 
 /**
  * An interface for the option values. (To make sure that they comply with it.)
  */
 interface Values {
+  help: never;
+  version: never;
   helpCmd: undefined;
   flag: boolean | undefined;
-  command: number | undefined;
+  hello: number | undefined;
   boolean: boolean;
   stringRegex: string;
   numberRange: number;
@@ -20,18 +22,20 @@ interface Values {
   numbersEnum: Array<1 | 2> | undefined;
 }
 
-const values = {} as Values;
-const error = await new ArgumentParser(options).tryParse(values);
-if (error instanceof Error) {
-  console.error(`${error}`);
-  process.exitCode = 1;
-} else if (error instanceof WarnMessage) {
-  console.error(`${error}`);
-  if (!values.command) {
+try {
+  const values = {} as Values;
+  const { warning } = await new ArgumentParser(options).parseInto(values);
+  if (warning) {
+    console.log(`${warning}`);
+  }
+  if (!values.hello) {
     console.log(values);
   }
-} else if (error) {
-  console.log(`${error}`); // help, version or completion words
-} else if (!values.command) {
-  console.log(values);
+} catch (err) {
+  if (err instanceof Error) {
+    console.error(`${err}`);
+    process.exitCode = 1;
+  } else {
+    console.log(`${err}`); // help, version or completion words
+  }
 }

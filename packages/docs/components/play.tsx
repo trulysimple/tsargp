@@ -3,11 +3,11 @@
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
 import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
-import { style, req, fg8, bg8, ul8 } from 'tsargp';
-import { HelpItem, ErrorItem, tf, fg, bg, ul } from 'tsargp/enums';
+import { style, req, fg8, bg8, ul8, ul } from 'tsargp';
+import { HelpItem, ErrorItem, tf, fg, bg } from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
 
-const tsargp = { req, tf, fg, bg, ul, HelpItem, ErrorItem, style, fg8, bg8, ul8 };
+const tsargp = { ArgumentParser, req, tf, fg, bg, ul, HelpItem, ErrorItem, style, fg8, bg8, ul8 };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -40,10 +40,15 @@ class PlayCommand extends Command<PlayProps> {
   private init() {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
-    this.parser = new ArgumentParser(options).validate();
+    const parser = new ArgumentParser(options);
+    const { warning } = parser.validate();
+    if (warning) {
+      this.println(warning.wrap(this.state.width));
+    }
+    this.parser = parser;
   }
 
-  override run(line: string, compIndex?: number) {
+  override async run(line: string, compIndex?: number) {
     try {
       if (line.startsWith('init')) {
         if (!compIndex) {
@@ -51,7 +56,10 @@ class PlayCommand extends Command<PlayProps> {
         }
       } else if (this.parser) {
         const values = {};
-        this.parser.doParse(values, line, { compIndex });
+        const { warning } = await this.parser.parseInto(values, line, { compIndex });
+        if (warning) {
+          this.println(warning.wrap(this.state.width));
+        }
         this.println(JSON.stringify(values, null, 2));
       } else {
         this.println(`Please call ${style(1)}init${style(0)} first.`);

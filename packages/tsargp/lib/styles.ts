@@ -1,30 +1,145 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Alias, Enumerate } from './utils';
-import { cs, tf, fg, bg, ul } from './enums';
-import { overrides } from './utils';
+import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
+import { cs, tf, fg, bg } from './enums';
+import { max, overrides, regexps, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
+export { underlineStyle as ul, formatFunctions as format };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
 /**
- * A set of regular expressions for terminal strings.
+ * A predefined underline style.
  */
-const regex = {
-  para: /(?:[ \t]*\r?\n){2,}/,
-  item: /^[ \t]*(-|\*|\d+\.) /m,
-  punct: /[.,:;!?]$/,
-  word: /\s+/,
-  spec: /(%[a-z][0-9]?)/,
-  // eslint-disable-next-line no-control-regex
-  styles: /(?:\x9b[\d;]+m)+/g,
-};
+const underlineStyle = {
+  /**
+   * No underline.
+   */
+  none: [4, 0],
+  /**
+   * Single underline.
+   */
+  single: [4, 1],
+  /**
+   * Double underline.
+   */
+  double: [4, 2],
+  /**
+   * Curly underline.
+   */
+  curly: [4, 3],
+  /**
+   * Dotted underline.
+   */
+  dotted: [4, 4],
+  /**
+   * Dashed underline.
+   */
+  dashed: [4, 5],
+} as const satisfies Record<string, [4, number]>;
+
+/**
+ * The formatting functions.
+ */
+const formatFunctions = {
+  /**
+   * The formatting function for boolean values.
+   * @param value The boolean value
+   * @param styles The format styles
+   * @param result The resulting string
+   */
+  b(value: boolean, styles, result) {
+    result.style(styles.boolean, `${value}`, styles.current ?? styles.text);
+  },
+  /**
+   * The formatting function for string values.
+   * @param value The string value
+   * @param styles The format styles
+   * @param result The resulting string
+   */
+  s(value: string, styles, result) {
+    result.style(styles.string, `'${value}'`, styles.current ?? styles.text);
+  },
+  /**
+   * The formatting function for number values.
+   * @param value The number value
+   * @param styles The format styles
+   * @param result The resulting string
+   */
+  n(value: number, styles, result) {
+    result.style(styles.number, `${value}`, styles.current ?? styles.text);
+  },
+  /**
+   * The formatting function for regular expressions.
+   * @param value The regular expression
+   * @param styles The format styles
+   * @param result The resulting string
+   */
+  r(value: RegExp, styles, result) {
+    result.style(styles.regex, `${value}`, styles.current ?? styles.text);
+  },
+  /**
+   * The formatting function for option names.
+   * @param name The option name
+   * @param styles The format styles
+   * @param result The resulting string
+   */
+  o(name: string, styles, result) {
+    result.style(styles.option, name, styles.current ?? styles.text);
+  },
+  /**
+   * The formatting function for unknown values.
+   * @param value The unknown value
+   * @param styles The format styles
+   * @param result The resulting string
+   */
+  v(value: unknown, styles, result) {
+    result.style(styles.value, `<${value}>`, styles.current ?? styles.text);
+  },
+  /**
+   * The formatting function for URLs.
+   * @param url The URL object
+   * @param styles The format styles
+   * @param result The resulting string
+   */
+  u(url: URL, styles, result) {
+    result.style(styles.url, url.href, styles.current ?? styles.text);
+  },
+  /**
+   * The formatting function for general text.
+   * @param text The text to be split
+   * @param _styles The format styles
+   * @param result The resulting string
+   */
+  t(text: string, _styles, result) {
+    result.split(text);
+  },
+  /**
+   * The formatting function for terminal strings.
+   * @param str The terminal string
+   * @param _styles The format styles
+   * @param result The resulting string
+   */
+  p(str: TerminalString, _styles, result) {
+    result.other(str);
+  },
+  /**
+   * The formatting function for custom format callbacks.
+   * @param arg The format argument
+   * @param _styles The format styles
+   * @param result The resulting string
+   * @param flags The formatting flags
+   */
+  c(arg: unknown, _styles, result, flags) {
+    flags.custom?.bind(result)(arg);
+  },
+} as const satisfies FormatFunctions;
 
 //--------------------------------------------------------------------------------------------------
-// Types
+// Public types
 //--------------------------------------------------------------------------------------------------
 /**
  * A control sequence introducer.
@@ -64,21 +179,125 @@ export type BgColor = [48, 5, Decimal];
 export type UlColor = [58, 5, Decimal];
 
 /**
+ * An underline style.
+ */
+export type UlStyle = ValuesOf<typeof underlineStyle>;
+
+/**
  * A text styling attribute.
  */
-export type StyleAttr = tf | fg | bg | ul | FgColor | BgColor | UlColor;
+export type StyleAttr = tf | fg | bg | FgColor | BgColor | UlColor | UlStyle;
 
 /**
  * A callback that processes a format specifier when splitting text.
  * @param this The terminal string to append to
- * @param spec The format specifier (e.g., '%s')
+ * @param arg The format specifier or argument
  */
-export type FormatCallback = (this: TerminalString, spec: string) => void;
+export type FormatCallback<T = string> = (this: TerminalString, arg: T) => void;
+
+/**
+ * A set of formatting arguments.
+ */
+export type FormatArgs = Record<string, unknown>;
 
 /**
  * A message that can be printed on a terminal.
  */
-export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage | CompletionMessage;
+export type Message = ErrorMessage | HelpMessage | WarnMessage | CompletionMessage;
+
+/**
+ * A set of styles for terminal messages.
+ */
+export type MessageStyles = {
+  /**
+   * The style of boolean values.
+   */
+  readonly boolean?: Style;
+  /**
+   * The style of string values.
+   */
+  readonly string?: Style;
+  /**
+   * The style of number values.
+   */
+  readonly number?: Style;
+  /**
+   * The style of regular expressions.
+   */
+  readonly regex?: Style;
+  /**
+   * The style of option names.
+   */
+  readonly option?: Style;
+  /**
+   * The style of unknown values.
+   */
+  readonly value?: Style;
+  /**
+   * The style of URLs.
+   */
+  readonly url?: Style;
+  /**
+   * The style of general text.
+   */
+  readonly text?: Style;
+};
+
+/**
+ * A concrete version of the format styles.
+ */
+export type FormatStyles = Concrete<MessageStyles> & {
+  /**
+   * The current style in use.
+   */
+  current?: Style;
+};
+
+/**
+ * The formatting flags.
+ */
+export type FormattingFlags = {
+  /**
+   * The phrase alternative, if any.
+   */
+  readonly alt?: number;
+  /**
+   * An element separator for array values.
+   */
+  readonly sep?: string;
+  /**
+   * Whether the separator should be merged with the previous value. (Defaults to true)
+   */
+  readonly mergePrev?: boolean;
+  /**
+   * Whether the separator should be merged with the next value. (Defaults to false)
+   */
+  readonly mergeNext?: boolean;
+  /**
+   * A custom callback to format arguments.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly custom?: FormatCallback<any>;
+};
+
+//--------------------------------------------------------------------------------------------------
+// Internal types
+//--------------------------------------------------------------------------------------------------
+/**
+ * A formatting function.
+ */
+type FormatFunction = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  value: any,
+  styles: FormatStyles,
+  result: TerminalString,
+  flags: FormattingFlags,
+) => void;
+
+/**
+ * A set of formatting functions.
+ */
+type FormatFunctions = Record<string, FormatFunction>;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -87,17 +306,20 @@ export type Message = ErrorMessage | HelpMessage | WarnMessage | VersionMessage 
  * Implements concatenation of strings that can be printed on a terminal.
  */
 export class TerminalString {
+  /**
+   * Whether the next string should be merged with the last string.
+   */
   private merge = false;
 
   /**
    * The list of internal strings that have been appended.
    */
-  readonly strings = new Array<string>();
+  readonly strings: Array<string> = [];
 
   /**
    * The lengths of the internal strings, ignoring control characters and sequences.
    */
-  readonly lengths = new Array<number>();
+  readonly lengths: Array<number> = [];
 
   /**
    * @returns The combined length of all internal strings, ignoring control characters and sequences
@@ -124,7 +346,7 @@ export class TerminalString {
     breaks = 0,
     public rightAlign = false,
   ) {
-    this.addBreak(breaks);
+    this.break(breaks);
   }
 
   /**
@@ -134,7 +356,7 @@ export class TerminalString {
    */
   pop(count = 1): this {
     if (count > 0) {
-      const len = Math.max(0, this.count - count);
+      const len = max(0, this.count - count);
       this.strings.length = len;
       this.lengths.length = len;
     }
@@ -143,23 +365,25 @@ export class TerminalString {
 
   /**
    * Appends another terminal string to the list.
+   * We deliberately avoided optimizing this code, in order to keep it short.
    * @param other The other terminal string
    * @returns The terminal string instance
    */
-  addOther(other: TerminalString): this {
-    this.strings.push(...other.strings);
-    this.lengths.push(...other.lengths);
+  other(other: TerminalString): this {
+    for (let i = 0; i < other.count; ++i) {
+      this.add(other.strings[i], other.lengths[i]);
+    }
     this.merge = other.merge;
     return this;
   }
 
   /**
    * Sets a flag to merge the next word to the last word.
-   * @param value The flag value
+   * @param merge The flag value (defaults to true)
    * @returns The terminal string instance
    */
-  setMerge(value = true): this {
-    this.merge = value;
+  setMerge(merge = true): this {
+    this.merge = merge;
     return this;
   }
 
@@ -168,8 +392,8 @@ export class TerminalString {
    * @param word The opening word
    * @returns The terminal string instance
    */
-  addOpening(word: string): this {
-    return this.addWord(word).setMerge();
+  open(word: string): this {
+    return word ? this.word(word).setMerge() : this;
   }
 
   /**
@@ -177,19 +401,19 @@ export class TerminalString {
    * @param word The closing word
    * @returns The terminal string instance
    */
-  addClosing(word: string): this {
-    return this.setMerge().addWord(word);
+  close(word: string): this {
+    return this.setMerge().word(word);
   }
 
   /**
-   * Appends a word with surrounding sequences.
-   * @param seq The starting sequence
+   * Appends a word with surrounding styles.
+   * @param begin The starting style
    * @param word The word to be appended
-   * @param rev The ending sequence
+   * @param end The ending style (optional)
    * @returns The terminal string instance
    */
-  addAndRevert(seq: Sequence, word: string, rev: Sequence): this {
-    return this.addText(seq + word + rev, word.length);
+  style(begin: Style, word: string, end: Style = ''): this {
+    return this.add(begin + word + end, word.length);
   }
 
   /**
@@ -197,8 +421,8 @@ export class TerminalString {
    * @param word The word to be appended. Should not contain control characters or sequences.
    * @returns The terminal string instance
    */
-  addWord(word: string): this {
-    return this.addText(word, word.length);
+  word(word: string): this {
+    return this.add(word, word.length);
   }
 
   /**
@@ -206,8 +430,8 @@ export class TerminalString {
    * @param count The number of line breaks to insert (non-positive values are ignored)
    * @returns The terminal string instance
    */
-  addBreak(count = 1): this {
-    return count > 0 ? this.addText('\n'.repeat(count), 0) : this;
+  break(count = 1): this {
+    return count > 0 ? this.add('\n'.repeat(count), 0) : this;
   }
 
   /**
@@ -215,8 +439,18 @@ export class TerminalString {
    * @param seq The sequence to insert
    * @returns The terminal string instance
    */
-  addSequence(seq: Sequence): this {
-    return this.addText(seq, 0);
+  seq(seq: Sequence): this {
+    return this.add(seq, 0);
+  }
+
+  /**
+   * Appends an SGR clear sequence to the list.
+   * This is different from the {@link pop} method (we are aware of this ambiguity, but we want
+   * method names to be short).
+   * @returns The terminal string instance
+   */
+  clear(): this {
+    return this.add(sgr(tf.clear), 0);
   }
 
   /**
@@ -225,7 +459,7 @@ export class TerminalString {
    * @param length The length of the text without control characters or sequences
    * @returns The terminal string instance
    */
-  private addText(text: string, length: number): this {
+  add(text: string, length: number): this {
     if (text) {
       const count = this.count;
       if (count && this.merge) {
@@ -246,64 +480,29 @@ export class TerminalString {
    * @param format An optional callback to process format specifiers
    * @returns The terminal string instance
    */
-  splitText(text: string, format?: FormatCallback): this {
-    const paragraphs = text.split(regex.para);
+  split(text: string, format?: FormatCallback): this {
+    const paragraphs = text.split(regexps.para);
     paragraphs.forEach((para, i) => {
-      this.splitParagraph(para, format);
+      splitParagraph(this, para, format);
       if (i < paragraphs.length - 1) {
-        this.addBreak(2);
+        this.break(2);
       }
     });
     return this;
   }
 
   /**
-   * Splits a paragraph into words and style sequences, and appends them to the list.
-   * @param para The paragraph to be split
-   * @param format An optional callback to process format specifiers
+   * Formats a set of arguments.
+   * @param styles The format styles
+   * @param phrase The custom phrase
+   * @param args The format arguments
+   * @param flags The formatting flags
+   * @returns The terminal string instance
    */
-  private splitParagraph(para: string, format?: FormatCallback) {
-    const count = this.count;
-    para.split(regex.item).forEach((item, i) => {
-      if (i % 2 == 0) {
-        this.splitItem(item, format);
-      } else {
-        if (this.count > count) {
-          this.addBreak();
-        }
-        this.addWord(item);
-      }
-    });
-  }
-
-  /**
-   * Splits a list item into words and style sequences, and appends them to the list.
-   * @param item The list item to be split
-   * @param format An optional callback to process format specifiers
-   */
-  private splitItem(item: string, format?: FormatCallback) {
-    const boundFormat = format?.bind(this);
-    const words = item.split(regex.word);
-    for (const word of words) {
-      if (!word) {
-        continue;
-      }
-      if (boundFormat) {
-        const parts = word.split(regex.spec);
-        if (parts.length > 1) {
-          this.addWord(parts[0]);
-          for (let i = 1, merge = parts[0] !== ''; i < parts.length; i += 2, merge = true) {
-            this.setMerge(merge);
-            boundFormat(parts[i]);
-            this.addClosing(parts[i + 1]);
-          }
-          continue;
-        }
-      }
-      const styles = word.match(regex.styles) ?? [];
-      const length = styles.reduce((acc, str) => acc + str.length, 0);
-      this.addText(word, word.length - length);
-    }
+  format(styles: FormatStyles, phrase: string, args?: FormatArgs, flags?: FormattingFlags): this {
+    const formatFn = args && formatArgs(styles, args, flags);
+    const alternative = flags?.alt !== undefined ? selectAlternative(phrase, flags.alt) : phrase;
+    return this.split(alternative, formatFn);
   }
 
   /**
@@ -314,18 +513,19 @@ export class TerminalString {
    * @param emitStyles True if styles should be emitted
    * @returns The updated terminal column
    */
-  wrapToWidth(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
+  wrap(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
     /** @ignore */
     function shorten() {
-      while (result.length && column > start) {
-        const last = result[result.length - 1];
+      let length = result.length;
+      for (; length && column > start; --length) {
+        const last = result[length - 1];
         if (last.length > column - start) {
-          result[result.length - 1] = last.slice(0, start - column); // cut the last string
+          result[length - 1] = last.slice(0, start - column); // cut the last string
           break;
         }
         column -= last.length;
-        result.length--; // pop the last string
       }
+      result.length = length;
     }
     /** @ignore */
     function align() {
@@ -354,9 +554,9 @@ export class TerminalString {
     if (!this.count) {
       return column;
     }
-    column = Math.max(0, column);
-    width = Math.max(0, width);
-    let start = Math.max(0, this.indent);
+    column = max(0, column);
+    width = max(0, width);
+    let start = max(0, this.indent);
 
     const needToAlign = width && this.rightAlign;
     const largestFits = !width || width >= start + Math.max(...this.lengths);
@@ -364,7 +564,7 @@ export class TerminalString {
       start = 0; // wrap to the first column instead
     }
     const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
-    if (column != start && !this.strings[0].startsWith('\n')) {
+    if (column !== start && !this.strings[0].startsWith('\n')) {
       adjust();
       column = start;
     }
@@ -390,7 +590,7 @@ export class TerminalString {
         continue;
       }
       if (!emitStyles) {
-        str = str.replace(regex.styles, '');
+        str = str.replace(regexps.style, '');
       }
       if (column === start) {
         result.push(str);
@@ -420,10 +620,10 @@ export class TerminalMessage extends Array<TerminalString> {
    * @returns The message to be printed on a terminal
    */
   wrap(width = 0, emitStyles = !omitStyles(width)): string {
-    const result = new Array<string>();
+    const result: Array<string> = [];
     let column = 0;
     for (const str of this) {
-      column = str.wrapToWidth(result, column, width, emitStyles);
+      column = str.wrap(result, column, width, emitStyles);
     }
     if (emitStyles) {
       result.push(sgr(tf.clear));
@@ -516,21 +716,94 @@ export class CompletionMessage extends Array<string> {
   }
 }
 
-/**
- * A version message.
- */
-export class VersionMessage extends String {
-  /**
-   * @returns The wrapped message
-   */
-  get message(): string {
-    return this.toString();
-  }
-}
-
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Splits a paragraph into words and style sequences, and appends them to the list.
+ * @param result The resulting string
+ * @param para The paragraph to be split
+ * @param format An optional callback to process format specifiers
+ */
+function splitParagraph(result: TerminalString, para: string, format?: FormatCallback) {
+  const count = result.count;
+  para.split(regexps.item).forEach((item, i) => {
+    if (i % 2 === 0) {
+      splitItem(result, item, format);
+    } else {
+      if (result.count > count) {
+        result.break();
+      }
+      result.word(item);
+    }
+  });
+}
+
+/**
+ * Splits a list item into words and style sequences, and appends them to the list.
+ * @param result The resulting string
+ * @param item The list item to be split
+ * @param format An optional callback to process format specifiers
+ */
+function splitItem(result: TerminalString, item: string, format?: FormatCallback) {
+  const boundFormat = format?.bind(result);
+  const words = item.split(regexps.word);
+  for (const word of words) {
+    if (!word) {
+      continue;
+    }
+    if (boundFormat) {
+      const parts = word.split(regexps.spec);
+      if (parts.length > 1) {
+        result.open(parts[0]);
+        for (let i = 1; i < parts.length; i += 2) {
+          boundFormat(parts[i]);
+          result.close(parts[i + 1]).setMerge();
+        }
+        result.setMerge(false);
+        continue;
+      }
+    }
+    const styles = word.match(regexps.style) ?? [];
+    const length = styles.reduce((acc, str) => acc + str.length, 0);
+    result.add(word, word.length - length);
+  }
+}
+
+/**
+ * Creates a formatting callback from a set of styles and arguments.
+ * @param styles The format styles
+ * @param args The format arguments
+ * @param flags The formatting flags
+ * @returns The formatting callback
+ */
+function formatArgs(
+  styles: FormatStyles,
+  args: FormatArgs,
+  flags: FormattingFlags = { sep: ',' },
+): FormatCallback {
+  return function (this: TerminalString, spec: string) {
+    const arg = spec.slice(1);
+    const fmt = arg[0];
+    if (fmt in formatFunctions && arg in args) {
+      const value = args[arg];
+      const formatFn = (formatFunctions as FormatFunctions)[fmt];
+      if (Array.isArray(value)) {
+        value.forEach((val, i) => {
+          formatFn(val, styles, this, flags);
+          if (flags?.sep && i < value.length - 1) {
+            this.setMerge(flags.mergePrev)
+              .word(flags.sep)
+              .setMerge(flags.mergeNext ?? false);
+          }
+        });
+      } else {
+        formatFn(value, styles, this, flags);
+      }
+    }
+  };
+}
+
 /**
  * @param width The terminal width (in number of columns)
  * @returns True if styles should be omitted from terminal strings

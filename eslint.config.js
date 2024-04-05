@@ -14,7 +14,16 @@ export default [
   jsdoc.configs['flat/recommended-typescript-error'],
   {
     plugins: { '@cspell': cspell },
-    rules: { '@cspell/spellchecker': 'error' },
+    rules: {
+      '@cspell/spellchecker': [
+        'error',
+        {
+          cspell: {
+            words: ['ruleset', 'rulesets'],
+          },
+        },
+      ],
+    },
   },
   {
     files: ['**/*.ts'],
@@ -57,6 +66,7 @@ export default [
       ...hooks.configs.recommended.rules,
       ...next.configs.recommended.rules,
       ...next.configs['core-web-vitals'].rules,
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {

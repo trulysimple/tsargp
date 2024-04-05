@@ -45,7 +45,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Non-positional option flag has no name\./);
+      expect(() => validator.validate()).toThrow(`Non-positional option flag has no name.`);
     });
 
     it('should throw an error on option with invalid name', () => {
@@ -56,7 +56,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
+      expect(() => validator.validate()).toThrow(`Option flag has invalid name 'a = b'.`);
     });
 
     it('should throw an error on flag option with invalid negation name', () => {
@@ -68,19 +68,108 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
+      expect(() => validator.validate()).toThrow(`Option flag has invalid name 'a = b'.`);
     });
 
-    it('should accept an option with cluster letters', () => {
+    it('should throw an error on option with invalid positional marker', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          positional: 'a = b',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option boolean has invalid name 'a = b'.`);
+    });
+
+    it('should throw an error on option with invalid cluster letter', () => {
       const options = {
         flag: {
           type: 'flag',
           names: ['-f'],
-          clusterLetters: 'abc',
+          clusterLetters: 'a = b',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).not.toThrow();
+      expect(() => validator.validate()).toThrow(`Option flag has invalid cluster letter ' '.`);
+    });
+
+    it('should return a warning on option name too similar to other names', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['flag1'],
+        },
+        flag2: {
+          type: 'flag',
+          names: ['flag2'],
+        },
+        flag3: {
+          type: 'flag',
+          names: ['flag3'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,
+      );
+    });
+
+    it('should return a warning on mixed naming conventions', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['lower', 'abc', 'keb-ab'],
+        },
+        flag2: {
+          type: 'flag',
+          names: ['UPPER', '-def', 'sna_ke'],
+        },
+        flag3: {
+          type: 'flag',
+          names: ['Capital', '--ghi', 'col:on'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      expect(warning).toHaveLength(3);
+      expect(warning?.message).toEqual(
+        `: Name slot 0 has mixed naming conventions ['lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'].\n` +
+          `: Name slot 1 has mixed naming conventions ['noDash: abc', '-singleDash: -def', '--doubleDash: --ghi'].\n` +
+          `: Name slot 2 has mixed naming conventions ['kebab-case: keb-ab', 'snake_case: sna_ke', 'colon:case: col:on'].\n`,
+      );
+    });
+
+    it('should return a warning on nested command option name too similar to other names', () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            flag1: {
+              type: 'flag',
+              names: ['flag1'],
+            },
+            flag2: {
+              type: 'flag',
+              names: ['flag2'],
+            },
+            flag3: {
+              type: 'flag',
+              names: ['flag3'],
+            },
+          },
+          exec() {},
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `command: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,
+      );
     });
   });
 });

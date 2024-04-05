@@ -1,13 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Exports - NOTE: some enumerations are abbreviated for ease of use in client code.
 //--------------------------------------------------------------------------------------------------
-export {
-  ControlSequence as cs,
-  TypeFace as tf,
-  Foreground as fg,
-  Background as bg,
-  Underline as ul,
-};
+export { ControlSequence as cs, TypeFace as tf, Foreground as fg, Background as bg };
 
 //--------------------------------------------------------------------------------------------------
 // Constants - NOTE: please add new enumerators at the _end_ of the enumeration.
@@ -17,22 +11,9 @@ export {
  */
 export const enum ErrorItem {
   /**
-   * Raised by the parser when an option parameter fails to be parsed.
-   */
-  parseError,
-  /**
-   * Raised by the parser when an option parameter fails to be parsed, and there are option name
-   * suggestions.
-   */
-  parseErrorWithSimilar,
-  /**
-   * Raised by the parser when an option name is not found.
+   * Raised by the parser when an option name is not found, with possible option name suggestions.
    */
   unknownOption,
-  /**
-   * Raised by the parser when an option name is not found, and there are option name suggestions.
-   */
-  unknownOptionWithSimilar,
   /**
    * Raised by the parser when an option requirement is not satisfied.
    */
@@ -50,8 +31,8 @@ export const enum ErrorItem {
    */
   missingPackageJson,
   /**
-   * Raised by the parser when wither a niladic option or a positional marker is specified with an
-   * inline value.
+   * Raised by the parser when either a niladic option or a positional marker is specified with an
+   * inline parameter.
    */
   disallowedInlineValue,
   /**
@@ -69,19 +50,29 @@ export const enum ErrorItem {
   /**
    * Raised by the validator when a version option has an empty version string.
    */
-  emptyVersionDefinition,
+  invalidVersionDefinition,
   /**
-   * Raised by the validator when an option requires itself.
+   * Raised by the validator when an option references itself in a requirement.
    */
   invalidSelfRequirement,
   /**
-   * Raised by the validator when an option requires an unknown option.
+   * Raised by the validator when an option references an unknown option in a requirement.
    */
   unknownRequiredOption,
   /**
-   * Raised by the validator when an option requires a non-valued option.
+   * Raised by the validator when an option references either a non-valued or an unknown-valued
+   * option in a requirement.
    */
   invalidRequiredOption,
+  /**
+   * Raised by the validator when an option uses a nullish value in a requirement referencing an
+   * option that is either always required or has a default value.
+   */
+  invalidRequiredValue,
+  /**
+   * Raised by the validator when an option uses a value of incompatible data type in a requirement.
+   */
+  incompatibleRequiredValue,
   /**
    * Raised by the validator when an option has a zero-length enumeration array.
    */
@@ -95,48 +86,32 @@ export const enum ErrorItem {
    */
   duplicatePositionalOption,
   /**
-   * Raised by the validator when a string enumeration constraint has duplicate values.
+   * Raised by the validator when a string or number enumeration constraint has duplicate values.
    */
-  duplicateStringOptionEnum,
+  duplicateEnumValue,
   /**
-   * Raised by the validator when a number enumeration constraint has duplicate values.
+   * Raised by both the parser and validator when a value fails to satisfy either a string or a
+   * number enumeration constraint.
    */
-  duplicateNumberOptionEnum,
+  enumsConstraintViolation,
   /**
-   * Raised by the validator when an option is required with a value of incompatible data type.
-   */
-  incompatibleRequiredValue,
-  /**
-   * Raised by either the parser or validator when a value fails to satisfy a string option's
-   * enumeration constraint.
-   */
-  stringEnumsConstraintViolation,
-  /**
-   * Raised by either the parser or validator when a value fails to satisfy a string option's
-   * regex constraint.
+   * Raised by both the parser and validator when a value fails to satisfy a string regex constraint.
    */
   regexConstraintViolation,
   /**
-   * Raised by either the parser or validator when a value fails to satisfy a number option's
-   * enumeration constraint.
-   */
-  numberEnumsConstraintViolation,
-  /**
-   * Raised by either the parser or validator when a value fails to satisfy a number option's
-   * range constraint.
+   * Raised by both the parser and validator when a value fails to satisfy a number range constraint.
    */
   rangeConstraintViolation,
   /**
-   * Raised by either the parser or validator when a value fails to satisfy an array option's
-   * limit constraint.
+   * Raised by both the parser and validator when a value fails to satisfy an array limit constraint.
    */
   limitConstraintViolation,
   /**
-   * Warning saved by the parser when a deprecated option is specified on the command-line.
+   * Warning produced by the parser when a deprecated option is specified on the command-line.
    */
   deprecatedOption,
   /**
-   * Raised by the parser when a conditional option requirement is not satisfied.
+   * Raised by the parser when an option's conditional requirement is not satisfied.
    */
   unsatisfiedCondRequirement,
   /**
@@ -144,10 +119,39 @@ export const enum ErrorItem {
    */
   duplicateClusterLetter,
   /**
-   * Raised by the parser when either a variadic array option or a command option is specified in
-   * the middle of a cluster argument.
+   * Raised by the parser when either a variadic option or a command option is specified in the
+   * middle of a cluster argument.
    */
   invalidClusterOption,
+  /**
+   * Raised by the validator when an option has an invalid cluster letter.
+   */
+  invalidClusterLetter,
+  /**
+   * Warning produced by the validator when an option name is too similar to other names.
+   */
+  tooSimilarOptionNames,
+  /**
+   * Warning produced by the validator when a name slot contains names with different naming
+   * conventions.
+   */
+  mixedNamingConvention,
+  /**
+   * Raised by the validator when a number-valued option has an invalid numeric range.
+   */
+  invalidNumericRange,
+  /**
+   * Raised by the validator when a function option has an invalid parameter count.
+   */
+  invalidParamCount,
+  /**
+   * Warning produced by the validator when a variadic option declares cluster letters.
+   */
+  variadicWithClusterLetter,
+  /**
+   * Raised by the parser when a parameter to a boolean option fails to be converted.
+   */
+  invalidBooleanParameter,
 }
 
 /**
@@ -167,9 +171,9 @@ export const enum HelpItem {
    */
   separator,
   /**
-   * Reports if an array option accepts multiple parameters.
+   * Reports the parameter count of a variadic or polyadic option.
    */
-  variadic,
+  paramCount,
   /**
    * Reports if an option accepts positional arguments.
    */
@@ -187,9 +191,9 @@ export const enum HelpItem {
    */
   case,
   /**
-   * The kind of rounding applied to number parameters, if enabled.
+   * The kind of math conversion applied to number parameters, if enabled.
    */
-  round,
+  conv,
   /**
    * The enumerated values that the option accepts as parameters, if any.
    */
@@ -219,7 +223,7 @@ export const enum HelpItem {
    */
   required,
   /**
-   * The option's default value, if not a callback.
+   * The option's default value, if any.
    */
   default,
   /**
@@ -242,6 +246,40 @@ export const enum HelpItem {
    * The option's cluster letters, if any.
    */
   clusterLetters,
+  /**
+   * The option's fallback value, if any.
+   */
+  fallback,
+}
+
+/**
+ * The kind of connective words used in option requirements.
+ */
+export const enum ConnectiveWords {
+  /**
+   * The word used to connect two logical expressions in conjunction.
+   */
+  and,
+  /**
+   * The word used to connect two logical expressions in disjunction.
+   */
+  or,
+  /**
+   * The word used to connect a logical expression in negation.
+   */
+  not,
+  /**
+   * The word used to connect a logical expression in non-existence.
+   */
+  no,
+  /**
+   * The word used to connect two expressions in equality comparison.
+   */
+  equals,
+  /**
+   * The word used to connect two expressions in non-equality comparison.
+   */
+  notEquals,
 }
 
 /**
@@ -441,9 +479,9 @@ const enum TypeFace {
    */
   crossedOut,
   /**
-   * Primary (default) font.
+   * Primary font.
    */
-  primary,
+  primaryFont,
   /**
    * Alternative font 1.
    */
@@ -481,9 +519,9 @@ const enum TypeFace {
    */
   alternative9,
   /**
-   * Black-letter font (Fraktur/Gothic).
+   * Black-letter font.
    */
-  gothic,
+  fraktur,
   /**
    * Doubly underlined.
    */
@@ -495,7 +533,7 @@ const enum TypeFace {
   /**
    * Regular face (neither italic nor black-letter).
    */
-  notItalic,
+  notItalicNorFraktur,
   /**
    * Not underlined.
    */
@@ -626,11 +664,4 @@ const enum Background {
   brightMagenta,
   brightCyan,
   brightWhite,
-}
-
-/**
- * A predefined text underline color.
- */
-const enum Underline {
-  default = 59,
 }

@@ -10,18 +10,6 @@ describe('OptionValidator', () => {
   });
 
   describe('validate', () => {
-    it('should throw an error on boolean option with invalid positional marker', () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-s'],
-          positional: 'a = b',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Invalid option name a = b\./);
-    });
-
     it('should throw an error on boolean option with empty positional marker', () => {
       const options = {
         boolean: {
@@ -32,7 +20,7 @@ describe('OptionValidator', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Option boolean contains empty positional marker\./,
+        `Option boolean contains empty positional marker.`,
       );
     });
 
@@ -45,55 +33,74 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option version contains empty version\./);
+      expect(() => validator.validate()).toThrow(`Option version contains empty version.`);
     });
 
-    it('should throw an error on string option with zero enumerated values', () => {
+    it('should return a warning on string option with fallback value and cluster letters', () => {
       const options = {
         string: {
           type: 'string',
           names: ['-s'],
-          enums: [],
+          fallback: '',
+          clusterLetters: 'a',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option string has zero enum values\./);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option string has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
     });
 
-    it('should throw an error on number option with zero enumerated values', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n'],
-          enums: [],
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option number has zero enum values\./);
-    });
-
-    it('should throw an error on strings option with zero enumerated values', () => {
+    it('should return a warning on variadic strings option with cluster letters', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss'],
-          enums: [],
+          clusterLetters: 'a',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option strings has zero enum values\./);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option strings has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
     });
 
-    it('should throw an error on numbers option with zero enumerated values', () => {
+    it('should return a warning on variadic function option with cluster letters (1)', () => {
       const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns'],
-          enums: [],
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: -1,
+          clusterLetters: 'a',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(/Option numbers has zero enum values\./);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
+    });
+
+    it('should return a warning on variadic function option with cluster letters (2)', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: [0, 1],
+          clusterLetters: 'a',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
+      );
     });
 
     it('should validate nested command options recursively', () => {
@@ -106,15 +113,15 @@ describe('OptionValidator', () => {
               type: 'command',
               names: ['-c'],
               options: { flag: { type: 'flag' } },
-              cmd() {},
+              exec() {},
             },
           },
-          cmd() {},
+          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        /Non-positional option command\.command\.flag has no name\./,
+        `Non-positional option command.command.flag has no name.`,
       );
     });
 
@@ -128,10 +135,10 @@ describe('OptionValidator', () => {
               type: 'command',
               names: ['-c'],
               options: (): Options => options,
-              cmd() {},
+              exec() {},
             },
           },
-          cmd() {},
+          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);

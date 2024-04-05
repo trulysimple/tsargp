@@ -21,16 +21,11 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 
 ## Things to try out
 
-### Bash completion
+### Word completion
 
 - check if completion works by pressing `Tab` (it behaves slightly differently than a real bash)
 - check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`)
 - check if an option parameter gets completed (e.g., `o<Tab>`, `-se <Tab>`, `--ne <Tab>`)
-
-### Option names
-
-- check if similar names are suggested for unkown options (e.g., `-nof`)
-- check if option names can be used as option parameters (e.g., `-ss -s`)
 
 ### Positional arguments
 
@@ -65,6 +60,7 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 - check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
 - check if the `-b` option can be specified in combination with other options
 - check if values can be inlined with option names (e.g., `-ss=abc`)
+- check if the help option accepts option filters (e.g., `-h -b`)
 
 ### Nested commands
 

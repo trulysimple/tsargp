@@ -6,6 +6,15 @@ import { fg, style, req, tf, fg8, ArgumentParser } from 'tsargp';
  */
 const helloOpts = {
   /**
+   * A strings option that receives positional arguments for the hello command.
+   */
+  strings: {
+    type: 'strings',
+    default: ['world'],
+    positional: true,
+    group: 'Arguments:',
+  },
+  /**
    * A help option that throws the help message of the hello command.
    */
   help: {
@@ -14,24 +23,16 @@ const helloOpts = {
     desc: 'The help option for the hello command. Prints this help message.',
   },
   /**
-   * A strings option that receives positional arguments for the hello command.
-   */
-  strings: {
-    type: 'strings',
-    default: ['world'],
-    positional: true,
-  },
-  /**
    * A recursive command option that logs the arguments passed after it.
    */
-  command: {
+  hello: {
     type: 'command',
     names: ['hello'],
     desc: 'A recursive command option. Logs the arguments passed after it.',
     options: (): Options => helloOpts,
-    cmd(_, cmdValues): number {
-      const vals = cmdValues as OptionValues<typeof helloOpts>;
-      const calls = vals.command ?? 0;
+    exec({ param }): number {
+      const vals = param as OptionValues<typeof helloOpts>;
+      const calls = vals.hello ?? 0;
       console.log(`[tail call #${calls}]`, ...vals.strings);
       return calls + 1;
     },
@@ -64,8 +65,8 @@ export default {
     names: ['help'],
     desc: 'Prints the help of a nested command.',
     options: helpOpts,
-    cmd() {
-      new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
+    async exec() {
+      await new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
     },
   },
   /**
@@ -82,12 +83,28 @@ export default {
       },
       {
         type: 'groups',
-        phrase: '%s:',
       },
       {
         type: 'usage',
         title: 'Usage:',
         indent: 2,
+        filter: ['help', 'version', 'helpCmd'],
+        comment: `${style(fg.green)}# get help`,
+      },
+      {
+        type: 'usage',
+        indent: 2,
+        breaks: 1,
+        filter: ['hello'],
+        comment: `${style(fg.green)}# execute the hello command`,
+        required: ['hello'],
+      },
+      {
+        type: 'usage',
+        indent: 2,
+        breaks: 1,
+        filter: ['help', 'version', 'helpCmd', 'hello'],
+        exclude: true,
       },
       {
         type: 'text',
@@ -98,6 +115,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
         noWrap: true,
       },
     ],
+    useFilter: true,
   },
   /**
    * A version option that throws the package version.
@@ -125,7 +143,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
   /**
    * A command option that logs the arguments passed after it.
    */
-  command: helloOpts.command,
+  hello: helloOpts.hello,
   /**
    * A boolean option that has inline styles and requirements.
    */
@@ -153,7 +171,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'string',
     names: ['-s', '--stringRegex'],
     desc: 'A string option.',
-    group: 'String options',
+    group: 'String options:',
     regex: /^\d+$/,
     default: '123456789',
     paramName: 'my str',
@@ -165,7 +183,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'number',
     names: ['-n', '--numberRange'],
     desc: 'A number option.',
-    group: 'Number options',
+    group: 'Number options:',
     range: [-Infinity, 0],
     default: -1.23,
     paramName: 'my num',
@@ -177,7 +195,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'string',
     names: ['-se', '--stringEnum'],
     desc: 'A string option.',
-    group: 'String options',
+    group: 'String options:',
     enums: ['one', 'two'],
     example: 'one',
   },
@@ -188,7 +206,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'number',
     names: ['-ne', '--numberEnum'],
     desc: 'A number option.',
-    group: 'Number options',
+    group: 'Number options:',
     enums: [1, 2],
     example: 1,
   },
@@ -199,9 +217,10 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'strings',
     names: ['-ss', '--strings'],
     desc: 'A strings option.',
-    group: 'String options',
+    group: 'String options:',
     regex: /^[\w-]+$/,
     default: ['one', 'two'],
+    fallback: [],
     separator: ',',
     trim: true,
     case: 'upper',
@@ -213,10 +232,10 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'numbers',
     names: ['-ns', '--numbers'],
     desc: 'A numbers option.',
-    group: 'Number options',
+    group: 'Number options:',
     range: [0, Infinity],
     default: [1, 2],
-    round: 'round',
+    conv: 'round',
   },
   /**
    * A strings option that has an enumeration constraint.
@@ -225,7 +244,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'strings',
     names: ['', '--stringsEnum'],
     desc: 'A strings option.',
-    group: 'String options',
+    group: 'String options:',
     enums: ['one', 'two'],
     example: ['one', 'two'],
     positional: '--',
@@ -238,7 +257,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     type: 'numbers',
     names: ['', '--numbersEnum'],
     desc: 'A numbers option.',
-    group: 'Number options',
+    group: 'Number options:',
     enums: [1, 2],
     example: [1, 2],
     separator: ',',

@@ -26,10 +26,10 @@ Define your command-line options (we recommend placing them in a separate file):
 
 ```ts
 // <your_cli_name>.options.ts
-import { Options, ... } from 'tsargp';
+import { type Options, ... } from 'tsargp';
 
 export default {
-  // define options' attributes...
+  // define the options' attributes...
 } as const satisfies Options;
 ```
 
@@ -42,13 +42,12 @@ import options from './<your_cli_name>.options.js';
 
 try {
   const parser = new ArgumentParser(options);
-  parser.validate(); // validate the options' definitions (you can skip this in production)
-  // const values = parser.parse();             // use this to get the options' values
-  // const values = await parser.parseAsync();  // use this if you declare async function options
-  // parser.parseInto(myValues);                // use this if your values are enclosed in a class
+  parser.validate(); // validate the option definitions (you can skip this in production)
+  const values = await parser.parse(); // use this to get the options' values
+  // await parser.parseInto(myValues); // use this for an existing object or class instance
 } catch (err) {
   if (err instanceof Error) {
-    console.error(`${err}`);
+    console.error(`${err}`); // genuine errors
     process.exitCode = 1;
   } else {
     console.log(`${err}`); // help message, version or completion words
@@ -56,10 +55,10 @@ try {
 }
 ```
 
-Optionally, enable bash completion:
+Optionally, enable word completion:
 
 ```sh
-complete -o default -C <your_cli_name> <your_cli_name>
+complete -o default -C <your_cli_name> <path/to/your/main_script>
 ```
 
 ## Build

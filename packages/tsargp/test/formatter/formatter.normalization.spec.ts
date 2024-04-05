@@ -15,7 +15,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -s, --string  <string>  A string option. Values will be trimmed.\n',
+        `  -s, --string  <string>  A string option. Values will be trimmed.\n`,
       );
     });
 
@@ -30,7 +30,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -s, --string  <string>  A string option. Values will be converted to lowercase.\n',
+        `  -s, --string  <string>  A string option. Values will be converted to lowercase.\n`,
       );
     });
 
@@ -45,211 +45,112 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -s, --string  <string>  A string option. Values will be converted to uppercase.\n',
+        `  -s, --string  <string>  A string option. Values will be converted to uppercase.\n`,
       );
     });
 
-    it('should handle a number option with truncation', () => {
+    it('should handle a number option with math conversion', () => {
       const options = {
         number: {
           type: 'number',
           names: ['-n', '--number'],
           desc: 'A number option.',
-          round: 'trunc',
+          conv: 'trunc',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded towards zero.\n',
+        `  -n, --number  <number>  A number option. Values will be converted with Math.trunc.\n`,
       );
     });
 
-    it('should handle a number option with ceil rounding', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n', '--number'],
-          desc: 'A number option.',
-          round: 'ceil',
-        },
-      } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded up.\n',
-      );
-    });
-
-    it('should handle a number option with floor rounding', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n', '--number'],
-          desc: 'A number option.',
-          round: 'floor',
-        },
-      } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded down.\n',
-      );
-    });
-
-    it('should handle a number option with nearest rounding', () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['-n', '--number'],
-          desc: 'A number option.',
-          round: 'round',
-        },
-      } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(
-        '  -n, --number  <number>  A number option. Values will be rounded to the nearest integer.\n',
-      );
-    });
-
-    it('should handle a delimited strings option whose values will be trimmed', () => {
+    it('should handle a variadic strings option whose values will be trimmed', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           trim: true,
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be trimmed.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be trimmed.\n`,
       );
     });
 
-    it('should handle a delimited strings option whose values will be converted to lowercase', () => {
+    it('should handle a variadic strings option whose values will be converted to lowercase', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           case: 'lower',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be converted to lowercase.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be converted to lowercase.\n`,
       );
     });
 
-    it('should handle a delimited strings option whose values will be converted to uppercase', () => {
+    it('should handle a variadic strings option whose values will be converted to uppercase', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           case: 'upper',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Values will be converted to uppercase.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be converted to uppercase.\n`,
       );
     });
 
-    it('should handle a delimited strings option whose values are unique', () => {
+    it('should handle a variadic strings option whose values are unique', () => {
       const options = {
         strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
-          separator: ',',
           unique: true,
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. Duplicate values will be removed.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Duplicate values will be removed.\n`,
       );
     });
 
-    it('should handle a delimited numbers option whose values are unique', () => {
+    it('should handle a variadic numbers option whose values are unique', () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
-          separator: ',',
           unique: true,
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Duplicate values will be removed.\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Duplicate values will be removed.\n`,
       );
     });
 
-    it('should handle a delimited numbers option with truncation', () => {
+    it('should handle a variadic numbers option with math conversion', () => {
       const options = {
         numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
-          separator: ',',
-          round: 'trunc',
+          conv: 'trunc',
         },
       } as const satisfies Options;
       const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded towards zero.\n`,
-      );
-    });
-
-    it('should handle a delimited numbers option with ceil rounding', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns', '--numbers'],
-          desc: 'A numbers option.',
-          separator: ',',
-          round: 'ceil',
-        },
-      } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded up.\n`,
-      );
-    });
-
-    it('should handle a delimited numbers option with floor rounding', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns', '--numbers'],
-          desc: 'A numbers option.',
-          separator: ',',
-          round: 'floor',
-        },
-      } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded down.\n`,
-      );
-    });
-
-    it('should handle a delimited numbers option with nearest rounding', () => {
-      const options = {
-        numbers: {
-          type: 'numbers',
-          names: ['-ns', '--numbers'],
-          desc: 'A numbers option.',
-          separator: ',',
-          round: 'round',
-        },
-      } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
-      expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. Values will be rounded to the nearest integer.\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Values will be converted with Math.trunc.\n`,
       );
     });
   });
