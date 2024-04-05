@@ -1,5 +1,39 @@
 # @trulysimple/tsargp-docs
 
+## 0.3.0
+
+### Minor Changes
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `ParseInfo` type, along with information regarding the parsing callbacks. The Options page was updated to document changes made to the parsing callbacks. The `parseError` enumerator was removed from the Validator page, since it is no longer supported.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added a sub-section called "Connective words" in the Validator page, to document the new `ConnectiveWords` enumeration.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Documented the new `fallback` attribute in the Options page.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Validator page was updated to document the new behaviour of the `validate` method, namely, that it returns validation warnings as a result. The "Names validation" section was updated to document the detection of naming inconsistencies. The Playground page was updated to report validation warnings when validating the input source.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - A whole section about asynchronous parsing was removed from the Parser page, according to changes made in the code. The Validator page was updated to document a new kind of validation, namely, `invalidRequiredValue`.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `paramCount` attribute of the function option. The Validator page was updated to document the new validations related to variadic options and the fuction option's parameter count.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new `breaks`, `required` and `comment` properties of help sections.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Some subsections of the "Parameter attributes" section of the Options page were moved to a new section called "Known value attributes", to reflect changes made in the code.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Removed the `parseDelimited` attribute from the "Parameter attributes" in the Options page, to reflect changes in code. Moved some text about custom phrases and format specifiers from both Formatter and Validator pages to the Styles page, where the information on this subject is now centralized.
+
+  Updated the "Error items" section of the Validator page, to reflect changes in code. In the same page, the "Enums validation" section was renamed to "Constraints validation", where the new validation rule for numeric ranges was documented.
+
+  Updated the "Help phrases" of the Formatter page to reflect changes in code. Also added a table of format specifiers to document the available phrase specifiers for help items.
+
+### Patch Changes
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Updated the Options page to document the new `useFilters` attribute for help options. Also added a tip in the Demo page for users to try out the new feature.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Documented the new `skipCount` attribute for function options in the Options page.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the possibility of specifying a `parse` callback in conjunction with a `separator`. The Parser page was updated with more details about the behavior of the custom parsing callbacks.
+
 ## 0.3.0-dev.3
 
 ### Minor Changes
