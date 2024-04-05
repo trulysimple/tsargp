@@ -73,7 +73,7 @@ const formatFunctions = {
     result.style(styles.number, `${value}`, styles.current ?? styles.text);
   },
   /**
-   * The formatting function for regex values.
+   * The formatting function for regular expressions.
    * @param value The regular expression
    * @param styles The format styles
    * @param result The resulting string
@@ -220,7 +220,7 @@ export type MessageStyles = {
    */
   readonly option?: Style;
   /**
-   * The style of generic (or unknown) values.
+   * The style of generic values.
    */
   readonly value?: Style;
   /**

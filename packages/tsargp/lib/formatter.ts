@@ -123,7 +123,7 @@ export type WithTitle = {
    */
   readonly breaks?: number;
   /**
-   * True to disable text wrapping of the provided text or headings.
+   * True to disable wrapping of the provided text or headings.
    */
   readonly noWrap?: true;
 };
@@ -163,16 +163,6 @@ export type WithFilter = {
 };
 
 /**
- * Defines attributes for a help section with phrase.
- */
-export type WithPhrase = {
-  /**
-   * A custom phrase for group headings.
-   */
-  readonly phrase?: string;
-};
-
-/**
  * Defines additional attributes for the usage section.
  */
 export type WithRequired = {
@@ -199,7 +189,7 @@ export type HelpUsage = WithKind<'usage'> & WithTitle & WithIndent & WithFilter 
 /**
  * A help groups section.
  */
-export type HelpGroups = WithKind<'groups'> & WithTitle & WithPhrase & WithFilter;
+export type HelpGroups = WithKind<'groups'> & WithTitle & WithFilter;
 
 /**
  * A help section.
@@ -785,13 +775,13 @@ function formatGroupsSection(
   section: HelpGroups,
   result: HelpMessage,
 ) {
-  const { phrase, title, noWrap, filter, exclude, style: sty } = section;
+  const { title, noWrap, filter, exclude, style: sty } = section;
   const filterGroups = filter && new Set(filter);
   for (const [group, entries] of groups.entries()) {
     if ((filterGroups?.has(group) ?? !exclude) != !!exclude) {
       const title2 = group || title;
       const heading = title2
-        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap, phrase).break(2)
+        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap).break(2)
         : new TerminalString(0, breaks);
       result.push(heading, ...formatEntries(entries));
       result[result.length - 1].pop(); // remove trailing break
@@ -807,7 +797,6 @@ function formatGroupsSection(
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
  * @param noWrap True if the provided text should not be split
- * @param phrase The custom phrase, if any
  * @returns The terminal string
  */
 function formatText(
@@ -816,21 +805,12 @@ function formatText(
   indent?: number,
   breaks?: number,
   noWrap = false,
-  phrase?: string,
 ): TerminalString {
-  /** @ignore */
-  function format() {
-    if (noWrap) {
-      result.word(text); // warning: may be larger than the terminal width
-    } else {
-      result.split(text);
-    }
-  }
   const result = new TerminalString(indent, breaks).seq(defStyle);
-  if (phrase) {
-    result.split(phrase, format);
+  if (noWrap) {
+    result.word(text); // warning: may be larger than the terminal width
   } else {
-    format();
+    result.split(text);
   }
   return result.clear(); // to simplify client code
 }
@@ -1154,7 +1134,7 @@ function formatCase(
   const conv = option.case;
   if (conv) {
     const alt = conv === 'lower' ? 0 : 1;
-    result.format(context[0], phrase, {}, { alt });
+    result.format(context[0], phrase, undefined, { alt });
   }
 }
 

@@ -166,6 +166,19 @@ export type ConcreteConfig = Concrete<ValidatorConfig>;
  */
 export type OptionInfo = [key: string, name: string, option: OpaqueOption, marker?: string];
 
+/**
+ * The validation context.
+ * @internal
+ */
+type ValidateContext = [
+  config: ConcreteConfig,
+  options: OpaqueOptions,
+  flags: ValidationFlags,
+  warning: WarnMessage,
+  visited: Set<OpaqueOptions>,
+  prefix: string,
+];
+
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
@@ -204,7 +217,11 @@ export class OptionValidator {
    * @returns The validation result
    */
   validate(flags: ValidationFlags = {}): ValidationResult {
-    return validate(this.config, this.options, flags);
+    const warning = new WarnMessage();
+    const visited = new Set<OpaqueOptions>();
+    const context: ValidateContext = [this.config, this.options, flags, warning, visited, ''];
+    validate(context);
+    return warning.length ? { warning } : {};
   }
 
   /**
@@ -257,43 +274,29 @@ export class OptionValidator {
 //--------------------------------------------------------------------------------------------------
 /**
  * Validates all options' definitions, including command options recursively.
- * @param config The validator configuration
- * @param options The option definitions
- * @param flags The validation flags
- * @param prefix The command prefix
- * @param visited The set of visited option definitions
- * @returns The validation result
+ * @param context The validation context
  * @throws On duplicate positional option
  */
-function validate(
-  config: ConcreteConfig,
-  options: OpaqueOptions,
-  flags: ValidationFlags,
-  prefix: string = '',
-  visited = new Set<OpaqueOptions>(),
-): ValidationResult {
-  const warning = new WarnMessage();
+function validate(context: ValidateContext) {
+  const [config, options, flags, , , prefix] = context;
   const names = new Map<string, string>();
   const letters = new Map<string, string>();
   let positional = ''; // to check for duplicate positional options
   for (const key in options) {
     const option = options[key];
-    validateNames(config, names, letters, key, option, prefix);
-    validateOption(config, options, flags, prefix, key, option, visited, warning);
+    validateNames(context, names, letters, key, option);
+    validateOption(context, key, option);
     if (option.positional) {
       if (positional) {
-        throw error(config, ErrorItem.duplicatePositionalOption, {
-          o1: prefix + key,
-          o2: prefix + positional,
-        });
+        const args = { o1: prefix + key, o2: prefix + positional };
+        throw error(config, ErrorItem.duplicatePositionalOption, args);
       }
       positional = key;
     }
   }
   if (flags.detectNamingInconsistencies) {
-    validateAllNames(config, names, options, prefix, warning);
+    validateAllNames(context, names.keys());
   }
-  return warning.length ? { warning } : {};
 }
 
 /**
@@ -325,23 +328,22 @@ function registerNames(
 
 /**
  * Registers or validates an option's names.
- * @param config The validator configuration
+ * @param context The validation context
  * @param nameToKey The map of option names to keys
  * @param letterToKey The map of cluster letters to key
  * @param key The option key
  * @param option The option definition
- * @param prefix The command prefix, if any
  * @throws On empty positional marker, option with no name, invalid option name, duplicate name or
  * duplicate cluster letter
  */
 function validateNames(
-  config: ConcreteConfig,
+  context: ValidateContext,
   nameToKey: Map<string, string>,
   letterToKey: Map<string, string>,
   key: string,
   option: OpaqueOption,
-  prefix = '',
 ) {
+  const [config, , , , , prefix] = context;
   if (option.positional === '') {
     throw error(config, ErrorItem.emptyPositionalMarker, { o: prefix + key });
   }
@@ -373,29 +375,21 @@ function validateNames(
 
 /**
  * Validates the options' names against a set of rules.
- * @param config The validator configuration
- * @param nameToKey The map of option names to keys
- * @param options The option definitions
- * @param prefix The command prefix, if any
- * @param warning The warnings to append to
+ * @param context The validation context
+ * @param names The list of option names
  */
-function validateAllNames(
-  config: ConcreteConfig,
-  nameToKey: Map<string, string>,
-  options: OpaqueOptions,
-  prefix: string,
-  warning: WarnMessage,
-) {
-  prefix = prefix.slice(0, -1);
+function validateAllNames(context: ValidateContext, names: Iterable<string>) {
+  const [config, options, , warning, , prefix] = context;
+  const prefix2 = prefix.slice(0, -1); // remove trailing dot
   const visited = new Set<string>();
-  for (const name of nameToKey.keys()) {
+  for (const name of names) {
     if (visited.has(name)) {
       continue;
     }
-    const similar = findSimilar(name, [...nameToKey.keys()], 0.8);
+    const similar = findSimilar(name, names, 0.8);
     if (similar.length) {
       warning.push(
-        format(config, ErrorItem.tooSimilarOptionNames, { o: prefix, s1: name, s2: similar }),
+        format(config, ErrorItem.tooSimilarOptionNames, { o: prefix2, s1: name, s2: similar }),
       );
       for (const similarName of similar) {
         visited.add(similarName);
@@ -404,6 +398,8 @@ function validateAllNames(
   }
   getNamesInEachSlot(options).forEach((slot, i) => {
     const match = matchNamingRules(slot, namingConventions);
+    // produce a warning for each naming rule category with more than one match,
+    // with a list of key-value pairs (rule name, first match) as info
     for (const key in match) {
       const entries = Object.entries(match[key]);
       if (entries.length > 1) {
@@ -416,6 +412,7 @@ function validateAllNames(
 
 /**
  * Creates a formatted message.
+ * The message always ends with a single line break.
  * @param config The validator configuration
  * @param kind The kind of error or warning
  * @param args The message arguments
@@ -474,26 +471,13 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
 
 /**
  * Validates an option's requirements.
- * @param config The validator configuration
- * @param options The option definitions
- * @param flags The validation flags
- * @param prefix The command prefix
+ * @param context The validation context
  * @param key The option key
  * @param option The option definition
- * @param visited The set of visited option definitions
- * @param warning The warnings to append to
  * @throws On invalid constraint definition, invalid default, example or fallback value
  */
-function validateOption(
-  config: ConcreteConfig,
-  options: OpaqueOptions,
-  flags: ValidationFlags,
-  prefix: string,
-  key: string,
-  option: OpaqueOption,
-  visited: Set<OpaqueOptions>,
-  warning: WarnMessage,
-) {
+function validateOption(context: ValidateContext, key: string, option: OpaqueOption) {
+  const [config, , , warning, visited, prefix] = context;
   const [min, max] = getParamCount(option);
   // no need to verify a flag option's default value
   if (max) {
@@ -507,10 +491,10 @@ function validateOption(
     warning.push(format(config, ErrorItem.variadicWithClusterLetter, { o: prefix + key }));
   }
   if (option.requires) {
-    validateRequirements(options, config, prefix, key, option.requires);
+    validateRequirements(context, key, option.requires);
   }
   if (option.requiredIf) {
-    validateRequirements(options, config, prefix, key, option.requiredIf);
+    validateRequirements(context, key, option.requiredIf);
   }
   if (option.version === '') {
     throw error(config, ErrorItem.emptyVersionDefinition, { o: prefix + key });
@@ -521,10 +505,9 @@ function validateOption(
       const opts = (typeof cmdOpts === 'function' ? cmdOpts() : cmdOpts) as OpaqueOptions;
       if (!visited.has(opts)) {
         visited.add(opts);
-        const result = validate(config, opts, flags, prefix + key + '.', visited);
-        if (result.warning) {
-          warning.push(...result.warning);
-        }
+        context[1] = opts;
+        context[5] = prefix + key + '.';
+        validate(context);
       }
     }
   }
@@ -532,39 +515,29 @@ function validateOption(
 
 /**
  * Validates an option's requirements.
- * @param options The option definitions
- * @param config The validator configuration
- * @param prefix The command prefix
+ * @param context The validation context
  * @param key The option key
  * @param requires The option requirements
  */
-function validateRequirements(
-  options: OpaqueOptions,
-  config: ConcreteConfig,
-  prefix: string,
-  key: string,
-  requires: Requires,
-) {
+function validateRequirements(context: ValidateContext, key: string, requires: Requires) {
   if (typeof requires === 'string') {
-    validateRequirement(options, config, prefix, key, requires);
+    validateRequirement(context, key, requires);
   } else if (requires instanceof RequiresNot) {
-    validateRequirements(options, config, prefix, key, requires.item);
+    validateRequirements(context, key, requires.item);
   } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
     for (const item of requires.items) {
-      validateRequirements(options, config, prefix, key, item);
+      validateRequirements(context, key, item);
     }
   } else if (typeof requires === 'object') {
     for (const requiredKey in requires) {
-      validateRequirement(options, config, prefix, key, requiredKey, requires[requiredKey]);
+      validateRequirement(context, key, requiredKey, requires[requiredKey]);
     }
   }
 }
 
 /**
  * Validates an option requirement.
- * @param options The option definitions
- * @param config The validator configuration
- * @param prefix The command prefix
+ * @param context The validation context
  * @param key The option key
  * @param requiredKey The required option key
  * @param requiredValue The required value, if any
@@ -572,13 +545,12 @@ function validateRequirements(
  * incompatible required values
  */
 function validateRequirement(
-  options: OpaqueOptions,
-  config: ConcreteConfig,
-  prefix: string,
+  context: ValidateContext,
   key: string,
   requiredKey: string,
   requiredValue?: RequiresVal[string],
 ) {
+  const [config, options, , , , prefix] = context;
   if (requiredKey === key) {
     throw error(config, ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
   }
@@ -628,7 +600,7 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
   const range = option.range;
   if (range) {
     const [min, max] = range;
-    // handles NaN as well
+    // handles NaN
     if (!(min < max)) {
       throw error(config, ErrorItem.invalidNumericRange, { o: key, n: range });
     }
@@ -636,7 +608,7 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
   const paramCount = option.paramCount;
   if (typeof paramCount === 'object') {
     const [min, max] = paramCount;
-    // handles NaN as well
+    // handles NaN
     if (!(min < max) || min < 0) {
       throw error(config, ErrorItem.invalidParamCount, { o: key, n: paramCount });
     }
@@ -716,12 +688,14 @@ function normalizeString(
   if (option.case) {
     value = option.case === 'lower' ? value.toLowerCase() : value.toLocaleUpperCase();
   }
-  if (option.enums && !option.enums.includes(value)) {
-    const args = { o: name, s1: value, s2: option.enums };
+  const enums = option.enums;
+  if (enums && !enums.includes(value)) {
+    const args = { o: name, s1: value, s2: enums };
     throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 0, sep: ',' });
   }
-  if (option.regex && !option.regex.test(value)) {
-    const args = { o: name, s: value, r: option.regex };
+  const regex = option.regex;
+  if (regex && !regex.test(value)) {
+    const args = { o: name, s: value, r: regex };
     throw error(config, ErrorItem.regexConstraintViolation, args);
   }
   return value;
@@ -745,14 +719,14 @@ function normalizeNumber(
   if (option.conv) {
     value = Math[option.conv](value);
   }
-  if (option.enums && !option.enums.includes(value)) {
-    const args = { o: name, n1: value, n2: option.enums };
+  const enums = option.enums;
+  if (enums && !enums.includes(value)) {
+    const args = { o: name, n1: value, n2: enums };
     throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 1, sep: ',' });
   }
-  if (
-    option.range &&
-    !(value >= option.range[0] && value <= option.range[1]) // handles NaN as well
-  ) {
+  const range = option.range;
+  // handles NaN
+  if (range && !(value >= range[0] && value <= range[1])) {
     const args = { o: name, n1: value, n2: option.range };
     throw error(config, ErrorItem.rangeConstraintViolation, args);
   }
@@ -779,12 +753,10 @@ function normalizeArray<T extends string | number>(
     value.length = 0;
     value.push(...unique);
   }
-  if (option.limit !== undefined && value.length > option.limit) {
-    throw error(config, ErrorItem.limitConstraintViolation, {
-      o: name,
-      n1: value.length,
-      n2: option.limit,
-    });
+  const limit = option.limit;
+  if (limit !== undefined && value.length > limit) {
+    const args = { o: name, n1: value.length, n2: limit };
+    throw error(config, ErrorItem.limitConstraintViolation, args);
   }
   return value;
 }

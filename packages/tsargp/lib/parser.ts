@@ -35,7 +35,7 @@ import { OptionValidator, defaultConfig } from './validator';
  */
 const defaultSections: HelpSections = [
   { type: 'usage', title: 'Usage:', indent: 2 },
-  { type: 'groups', title: 'Options', phrase: '%s:' },
+  { type: 'groups', title: 'Options:' },
 ];
 
 //--------------------------------------------------------------------------------------------------
@@ -526,7 +526,7 @@ async function resolveVersion(
  * @param name The unknown option name
  */
 function handleUnknownName(validator: OptionValidator, name: string): never {
-  const similar = findSimilar(name, [...validator.names.keys()], 0.6);
+  const similar = findSimilar(name, validator.names.keys(), 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
   throw validator.error(ErrorItem.unknownOption, args, { alt, sep: ',' });
 }

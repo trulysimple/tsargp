@@ -318,25 +318,27 @@ export function gestaltSimilarity(S: string, T: string): number {
  * @param threshold The similarity threshold
  * @returns The list of similar names in decreasing order of similarity
  */
-export function findSimilar(needle: string, haystack: Array<string>, threshold = 0): Array<string> {
+export function findSimilar(
+  needle: string,
+  haystack: Iterable<string>,
+  threshold = 0,
+): Array<string> {
   /** @ignore */
   function norm(name: string) {
     return name.replace(regexps.punct, '').toLowerCase();
   }
+  const result: Array<[string, number]> = [];
   const search = norm(needle);
-  return haystack
-    .reduce((acc: Array<[string, number]>, name) => {
-      // skip the original name
-      if (name != needle) {
-        const sim = gestaltSimilarity(search, norm(name));
-        if (sim >= threshold) {
-          acc.push([name, sim]);
-        }
+  for (const name of haystack) {
+    // skip the original name
+    if (name != needle) {
+      const sim = gestaltSimilarity(search, norm(name));
+      if (sim >= threshold) {
+        result.push([name, sim]);
       }
-      return acc;
-    }, [])
-    .sort(([, as], [, bs]) => bs - as)
-    .map(([str]) => str);
+    }
+  }
+  return result.sort(([, as], [, bs]) => bs - as).map(([str]) => str);
 }
 
 /**
@@ -426,7 +428,7 @@ export function isTrue(
  * @internal
  */
 export function matchNamingRules<T extends NamingRules>(
-  names: ReadonlyArray<string>,
+  names: Iterable<string>,
   rules: T,
 ): NamingMatch<T> {
   const result: Record<string, Record<string, string>> = {};

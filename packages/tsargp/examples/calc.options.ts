@@ -13,7 +13,7 @@ const multiOpts = {
     desc: 'The numbers to operate on.',
     default: [],
     positional: true,
-    group: 'Arguments',
+    group: 'Arguments:',
   },
 } as const satisfies Options;
 

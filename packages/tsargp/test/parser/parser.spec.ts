@@ -71,7 +71,7 @@ describe('ArgumentParser', () => {
           flag: {
             type: 'flag',
             names: ['-f'],
-            group: 'Args',
+            group: 'Args:',
           },
           help: {
             type: 'help',

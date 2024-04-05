@@ -166,20 +166,6 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('title\n\n  -f, --flag    A flag option.');
     });
 
-    it('should render a groups section with a custom phrase for group headings', () => {
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option.',
-          group: 'group',
-        },
-      } as const satisfies Options;
-      const sections: HelpSections = [{ type: 'groups', phrase: '[%s]' }];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
-      expect(message.wrap()).toEqual('[group]\n\n  -f, --flag    A flag option.');
-    });
-
     it('should break a groups section with a default group', () => {
       const options = {
         flag: {
