@@ -1,5 +1,41 @@
 # tsargp
 
+## 0.4.0
+
+### Minor Changes
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added the `skipCount` attribute to function options to indicate the number of remaining command-line arguments to skip after returning from the execute callback.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added the `ConnectiveWords` enumeration to be used together with the `connectives` property of the validator configuration, in order to customize the formatting of option requirements.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Removed the `parseDelimited` attribute in anticipation for a new and better feature yet to be implemented. This parsing callback was not really important, whereas the same effect can be achieved with the `parse` callback by modifying the previous option value.
+
+  Improved the formatting of custom phrases for both error and help messages. Now they can contain multiple groups referencing the same phrase alternatives across groups. This also allowed the help item phrases to use specifiers for different value data types.
+
+  Added a new kind of validation, `invalidNumericRange`, for the option's numeric range definition. Some other enumerators were merged into one that uses a phrase containing different format specifiers for each alternative.
+
+  Refactored the `ul` enumeration into a constant that holds underline styles instead of underline colors (since it had just one color that was not strictly necessary).
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added new attributes for the boolean option: `truthNames`, `falsityNames` and `caseSensitive`. They can be used to configure how option parameters are converted to boolean.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added the `fallback` attribute for non-niladic options. It specifies a value that is used if the option is specified in the command-line without any parameter.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added the `paramCount` attribute to the function option, to specify the number of parameters that the option expects in the command-line. New enumerators, `invalidParamCount` and `variadicWithClusterLetter`, were added to `ErrorItem`, that are used by the validator when validating the new attribute. The formatter was updated to take this attribute into account when rendering the description of variadic options.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added a `breaks` property to help sections, to specify the number of line breaks to insert before a section. Added the `required` and `comment` properties to the usage section, to specify options that should be considered required in the usage, as well as to append a commentary to the usage, respectively. The demo was updated to include multiple usage sections.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The `validate` method now returns a list of warnings. The validator was updated to detect naming inconsistencies in the option definitions and report them as warnings.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Added the `useFilters` attribute to help option to allow remaining arguments to be used as option filters for the help message.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The parser was refactored to more easily handle asynchronous callbacks. As a consequence, it no longer supports a synchronous parsing method.
+
+  A new kind of validation, `invalidRequiredValue`, was implemented for the verification of required option values in the case of options that are either always required or have a default value.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The parsing callbacks were refactored to accept a single parameter of type `ParseInfo`, which contains information about the current argument sequence in the parsing loop. The loop itself was refactored to accumulate a sequence of arguments that will be passed to the parsing callbacks as the option parameter(s). The `parseError` enumerator was removed from the `ErrorItem`, since it is no longer supported.
+
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The `separator` attribute can now be used in conjunction with the `parse` callback. In this case, the callback will be called for each element split by the separator.
+
 ## 0.4.0-dev.3
 
 ### Minor Changes
