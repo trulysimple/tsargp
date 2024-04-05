@@ -58,7 +58,7 @@ try {
 Optionally, enable word completion:
 
 ```sh
-complete -o default -C <your_cli_name> <path/to/your/main_script>
+complete -o default -C <path/to/your/main_script> <your_cli_name>
 ```
 
 ## Build
