@@ -127,9 +127,52 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-h', '-F', '-B'], { progName: 'prog' })).rejects.toThrow(
+        await expect(parser.parse(['-h', '-F', '-B'])).rejects.toThrow(
           `  -f, --flag\n  -b, --boolean  <boolean>`,
         );
+      });
+
+      it('should throw the help message of a nested command with filter', async () => {
+        const options = {
+          help: {
+            type: 'help',
+            names: ['-h'],
+            sections: [{ type: 'groups' }],
+            useFilter: true,
+            useNested: true,
+          },
+          command1: {
+            type: 'command',
+            names: ['cmd1'],
+            options: {
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+            },
+          },
+          command2: {
+            type: 'command',
+            names: ['cmd2'],
+            options: {
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+              help: {
+                type: 'help',
+                names: ['-h'],
+                sections: [{ type: 'groups' }],
+                useFilter: true,
+              },
+            },
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-h', '-h'])).rejects.toThrow(`  -h`);
+        await expect(parser.parse(['-h', 'cmd1'])).rejects.toThrow(`  cmd1  ...`);
+        await expect(parser.parse(['-h', 'cmd2'])).rejects.toThrow(`  -f\n  -h`);
+        await expect(parser.parse(['-h', 'cmd2', '-f'])).rejects.toThrow(`  -f`);
       });
     });
 

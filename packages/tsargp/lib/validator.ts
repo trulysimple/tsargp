@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { OpaqueOption, Options, Requires, RequiresVal, OpaqueOptions } from './options';
+import type { OpaqueOption, Requires, RequiresVal, OpaqueOptions } from './options';
 import type { FormatArgs, FormattingFlags, MessageStyles } from './styles';
 import type { Concrete, NamingRules } from './utils';
 
@@ -189,7 +189,6 @@ export class OptionValidator {
   readonly names = new Map<string, string>();
   readonly letters = new Map<string, string>();
   readonly positional: OptionInfo | undefined;
-  readonly options: OpaqueOptions;
 
   /**
    * Creates an option validator based on a set of option definitions.
@@ -197,7 +196,7 @@ export class OptionValidator {
    * @param config The validator configuration
    */
   constructor(
-    options: Options,
+    readonly options: OpaqueOptions,
     readonly config: ConcreteConfig = defaultConfig,
   ) {
     this.options = options as OpaqueOptions;
@@ -500,12 +499,12 @@ function validateOption(context: ValidateContext, key: string, option: OpaqueOpt
     throw error(config, ErrorItem.invalidVersionDefinition, { o: prefix + key });
   }
   if (option.type === 'command') {
-    const cmdOpts = option.options;
-    if (cmdOpts) {
-      const opts = (typeof cmdOpts === 'function' ? cmdOpts() : cmdOpts) as OpaqueOptions;
-      if (!visited.has(opts)) {
-        visited.add(opts);
-        context[1] = opts;
+    const options = option.options;
+    if (options) {
+      const resolved = (typeof options === 'function' ? options() : options) as OpaqueOptions;
+      if (!visited.has(resolved)) {
+        visited.add(resolved);
+        context[1] = resolved;
         context[5] = prefix + key + '.';
         validate(context);
       }

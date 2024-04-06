@@ -493,3 +493,21 @@ export function escapeRegExp(str: string): string {
 export function combineRegExp(patterns: ReadonlyArray<string>): string {
   return `(${patterns.map(escapeRegExp).join('|')})`;
 }
+
+/**
+ * Finds a value in an object that matches a predicate.
+ * @param obj The object to search
+ * @param pred The predicate function
+ * @returns The first value matching the predicate
+ */
+export function findInObject<T extends object>(
+  obj: T,
+  pred: (val: T[keyof T]) => boolean,
+): T[keyof T] | undefined {
+  for (const key in obj) {
+    const val = obj[key];
+    if (pred(val)) {
+      return val;
+    }
+  }
+}

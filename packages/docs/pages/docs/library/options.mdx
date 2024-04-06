@@ -499,6 +499,18 @@ The `useFilter` attribute is an opt-in feature that allows the remaining argumen
 message those options whose names, synopsis or environment variable name match the regex
 `/flag/i{:ts}`.
 
+#### Enable nested
+
+The `useNested` attribute is an opt-in feature that allows the next argument to be used as the name
+of a [nested command] for which the help message should be assembled. For example, the invocation
+`cli --help cmd` would throw the help of the `cmd` command, if it exists. If not, or if it does not
+have a help option, the argument may still be used as an option filter, if [enable filter] is set.
+
+<Callout type="default">
+  The nested command may also [enable filter] in its help option definition. For example, the
+  invocation `cli --help cmd -f` would throw the help of the `cmd` command, filtered by `-f`.
+</Callout>
+
 #### Save message
 
 By default, the help option will _throw_ the help message, as a convenient way to print it in the
@@ -877,6 +889,7 @@ attributes:
 [cluster letters]: #cluster-letters
 [fallback value]: #fallback-value
 [parameter count]: #parameter-count
+[enable filter]: #enable-filter
 [skip count]: #skip-count
 [help formatter]: formatter
 [commands guide]: ../guides/commands
