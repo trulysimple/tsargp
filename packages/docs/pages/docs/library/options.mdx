@@ -283,6 +283,7 @@ Notes about this feature:
 - variadic options and command options are supported, but they must be the last in a cluster
 - if a single dash is specified as the first character in a cluster argument, it is ignored
 - if word completion is attempted in a cluster argument, the default [completion message] is thrown
+- if a nameless positional option appears in a cluster, its argument will be treated as positional
 
 ### Parameter attributes
 
@@ -570,7 +571,7 @@ The `exec` attribute specifies the [custom callback] that should be executed. It
 parameter that contains the current [argument sequence] information:
 
 - `param` -
-  Holds either the option parameter(s) (if [parameter count] is set to a non-zero value), or all
+  Holds either the option parameter(s) (if [parameter count] is set to a non-zero value) or all
   remaining arguments.
 - `comp` -
   Indicates whether [word completion] is in effect (but not in the current sequence).

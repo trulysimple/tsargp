@@ -539,7 +539,7 @@ export type WithHelp = {
    */
   readonly useFilter?: true;
   /**
-   * Whether to throw the help of a nested command when the option has a parameter.
+   * Whether to throw the help of a nested command whose names include the next argument.
    */
   readonly useNested?: true;
 };

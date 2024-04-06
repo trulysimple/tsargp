@@ -169,10 +169,10 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-h', '-h'])).rejects.toThrow(`  -h`);
-        await expect(parser.parse(['-h', 'cmd1'])).rejects.toThrow(`  cmd1  ...`);
-        await expect(parser.parse(['-h', 'cmd2'])).rejects.toThrow(`  -f\n  -h`);
-        await expect(parser.parse(['-h', 'cmd2', '-f'])).rejects.toThrow(`  -f`);
+        await expect(parser.parse(['-h', '-h'])).rejects.toThrow('  -h');
+        await expect(parser.parse(['-h', 'cmd1'])).rejects.toThrow('  cmd1  ...');
+        await expect(parser.parse(['-h', 'cmd2'])).rejects.toThrow('  -f\n  -h');
+        await expect(parser.parse(['-h', 'cmd2', '-f'])).rejects.toThrow('  -f');
       });
     });
 

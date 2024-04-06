@@ -495,7 +495,7 @@ export function combineRegExp(patterns: ReadonlyArray<string>): string {
 }
 
 /**
- * Finds a value in an object that matches a predicate.
+ * Finds a value that matches a predicate in an object.
  * @param obj The object to search
  * @param pred The predicate function
  * @returns The first value matching the predicate
