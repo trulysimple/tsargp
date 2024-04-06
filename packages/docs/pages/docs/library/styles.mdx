@@ -6,19 +6,19 @@ import { Callout } from 'nextra/components';
 
 # Styles
 
-The `Style` type is a string literal consisting of a Select Graphic Rendition ([SGR]) sequence. It
-can be used to customize the display of text in a terminal.
+The `Style` type is a string literal consisting of Select Graphic Rendition ([SGR]) sequences. It
+can be used to customize the display of text in terminals that support it.
 
 ## Styling attributes
 
 The `style` function accepts a list of styling attributes and creates a `Style` that can be used in
 any part of the API that expects this type, or it can be embedded directly in text attributes, such
-as the [synopsis and deprecation] reason, [help section] texts, [error phrases] and [help phrases].
+as the [synopsis and deprecation] notice, [help section] texts, [error phrases] and [help phrases].
 
 Styles are cumulative, i.e., they can be combined with previous styles depending on the kind of
 styling attribute. For instance, if the style of an option's description is `tf.bold{:ts}` and the
-style of number values is `fg.yellow{:ts}`, then any number value that appears in the option
-description (except those embedded in text attributes) is rendered in bold intensity with yellow
+style of number values is `fg.yellow{:ts}`, then any number value (except those embedded in text
+attributes) that appears in the option description will be rendered in bold intensity with yellow
 foreground color.
 
 In the next sections we present the various styling attributes available.
@@ -30,75 +30,88 @@ In the next sections we present the various styling attributes available.
 
 ### Type faces
 
-The `tf` enumeration declares text type faces that can be combined together. Here is the full list:
+The `tf` enumeration declares text type faces that can be combined together. They are listed below.
 
-- `clear` - reset or normal (resets any other preceding SGR attribute)
-- enabling attributes:
-  - `bold` - bold or increased intensity
-  - `faint` - faint, decreased intensity, or dim
-  - `italic` - italic
-  - `underlined` - underlined
-  - `slowlyBlinking` - slowly blinking
-  - `rapidlyBlinking` - rapidly blinking
-  - `inverse` - reverse video or inverse (flips foreground and background color)
-  - `invisible` - invisible, concealed or hidden
-  - `crossedOut` - crossed-out or strikethrough
-  - `doublyUnderlined` - doubly underlined
-  - `proportionalSpacing` - proportional spacing
-- font-changing attributes:
-  - `primaryFont` - primary font
-  - `alternative[1-9]` - alternative font 1 through 9
-  - `fraktur` - black-letter font
-- disabling attributes:
-  - `notBoldOrFaint` - normal intensity (neither bold nor faint)
-  - `notItalicNorFraktur` - regular face (neither italic nor black-letter)
-  - `notUnderlined` - not underlined
-  - `notBlinking` - steady (not blinking)
-  - `notInverse` - positive (not inverse)
-  - `notInvisible` - visible (reveal, or not hidden)
-  - `notCrossedOut` - not crossed out (no strikethrough)
-  - `notProportionalSpacing` - disable proportional spacing
-- framing attributes:
-  - `framed` - framed
-  - `encircled` - encircled
-  - `overlined` - overlined
-  - `notFramedOrEncircled` - neither framed nor encircled
-  - `notOverlined` - not overlined
-- ideogram attributes:
-  - `ideogramUnderline` - ideogram underline or right side line
-  - `ideogramDoubleUnderline` - ideogram double underline, or double line on the right side
-  - `ideogramOverline` - ideogram overline or left side line
-  - `ideogramDoubleOverline` - ideogram double overline, or double line on the left side
-  - `ideogramStressMarking` - ideogram stress marking
-  - `noIdeogram` - no ideogram attributes
-- superscript or subscript:
-  - `superscript` - superscript
-  - `subscript` - subscript.
-  - `notSuperscriptOrSubscript` - neither superscript nor subscript
+#### Enabling attributes
+
+- `bold` - bold or increased intensity
+- `faint` - faint, decreased intensity, or dim
+- `italic` - italic
+- `underlined` - underlined
+- `slowlyBlinking` - slowly blinking
+- `rapidlyBlinking` - rapidly blinking
+- `inverse` - reverse video or inverse (flips foreground and background color)
+- `invisible` - invisible, concealed or hidden
+- `crossedOut` - crossed-out or strikethrough
+- `doublyUnderlined` - doubly underlined
+- `proportionalSpacing` - proportional spacing
+
+#### Font-changing attributes
+
+- `primaryFont` - primary font
+- `alternative[1-9]` - alternative font 1 through 9
+- `fraktur` - black-letter font
+
+#### Ideogram attributes
+
+- `ideogramUnderline` - ideogram underline or right side line
+- `ideogramDoubleUnderline` - ideogram double underline, or double line on the right side
+- `ideogramOverline` - ideogram overline or left side line
+- `ideogramDoubleOverline` - ideogram double overline, or double line on the left side
+- `ideogramStressMarking` - ideogram stress marking
+
+#### Miscellaneous attributes
+
+- `framed` - framed
+- `encircled` - encircled
+- `overlined` - overlined
+- `superscript` - superscript
+- `subscript` - subscript
+
+#### Resetting attributes
+
+- `clear` - resets any other preceding SGR attribute
+- `notBoldOrFaint` - normal intensity (neither bold nor faint)
+- `notItalicNorFraktur` - regular face (neither italic nor black-letter)
+- `notUnderlined` - not underlined
+- `notBlinking` - steady (not blinking)
+- `notInverse` - positive (not inverse)
+- `notInvisible` - visible (reveal, or not hidden)
+- `notCrossedOut` - not crossed out (no strikethrough)
+- `notProportionalSpacing` - disable proportional spacing
+- `notFramedOrEncircled` - neither framed nor encircled
+- `notOverlined` - not overlined
+- `noIdeogram` - no ideogram attributes
+- `notSuperscriptOrSubscript` - neither superscript nor subscript
 
 ### Predefined text colors
 
-The `fg` and `bg` enumerations declare predefined foreground and background colors, respectively:
+The `fg` and `bg` enumerations declare predefined foreground and background colors, respectively.
+They both have the same colors, which are listed below.
 
 - `default` - the default color
-- standard colors:
-  - `black` - black
-  - `red` - red
-  - `green` - green
-  - `yellow` - yellow
-  - `blue` - blue
-  - `magenta` - magenta
-  - `cyan` - cyan
-  - `white` - white
-- high-intensity colors:
-  - `brightBlack` - bright black (gray)
-  - `brightRed` - bright red
-  - `brightGreen` - bright green
-  - `brightYellow` - bright yellow
-  - `brightBlue` - bright blue
-  - `brightMagenta` - bright magenta
-  - `brightCyan` - bright cyan
-  - `brightWhite` - bright white
+
+#### Standard colors
+
+- `black` - black
+- `red` - red
+- `green` - green
+- `yellow` - yellow
+- `blue` - blue
+- `magenta` - magenta
+- `cyan` - cyan
+- `white` - white
+
+#### High-intensity colors
+
+- `brightBlack` - bright black (gray)
+- `brightRed` - bright red
+- `brightGreen` - bright green
+- `brightYellow` - bright yellow
+- `brightBlue` - bright blue
+- `brightMagenta` - bright magenta
+- `brightCyan` - bright cyan
+- `brightWhite` - bright white
 
 ### Extended text colors
 
@@ -122,7 +135,7 @@ The `ul` constant holds the styles of underlined text:
 ## Terminal strings
 
 The `TerminalString` class is an internal component that handles the construction of strings that
-can be printed in a terminal. It has methods to split, append and wrap strings, with or without
+can be printed on a terminal. It has methods to split, append and wrap strings, with or without
 control sequences, and is used by the library in different places:
 
 - by both the [parser] and [validator], to create error and warning messages
@@ -133,7 +146,7 @@ in the next sections.
 
 ### Text splitting
 
-Text is split on paragraphs, list items and word boundaries using a combination of simple regular
+Text is split into paragraphs, list items and words using a combination of simple regular
 expressions. The features supported in text splitting are described below.
 
 #### Format specifiers
@@ -170,14 +183,13 @@ or help item.
 Text can contain inline styles. This applies as well to phrases as to text attributes, which the
 formatter splits into words before adding to the help message.
 
-When splitting text, the terminal string instance will try its best to preserve styles. However,
-if you find some corner case that is not currently covered by unit tests, please submit a [bug
-report].
+When splitting text, the terminal string will try its best to preserve styles. However, if you find
+some corner case that is not currently covered by our unit tests, please submit a [bug report].
 
 <Callout type="warning">
   Phrases can contain inline styles, but not in the _same_ word as a format specifier. Otherwise,
   they will mess up the text wrapping. For example, the following phrase is not valid:
-  ``` `Requires ${style(tf.bold)}%v`{:ts} ```. You must insert a space between them.
+  ``` `Requires ${style(tf.bold)}%p`{:ts} ```. You must insert a space between them.
 </Callout>
 
 #### Paragraphs and lists
@@ -206,8 +218,8 @@ Another paragraph
 
 ### Text wrapping
 
-Text is wrapped according to a configured _width_: the number of terminal columns by which to limit
-each line of text.
+Text is wrapped according to a configured _width_, i.e., the number of terminal columns by which to
+limit each line of text.
 
 When a width of zero or `undefined{:ts}` is provided (which may happen if the output is being
 redirected), the terminal string will avoid wrapping and will suppress some control sequences that
@@ -217,16 +229,16 @@ The following features are supported in text wrapping.
 
 #### Indentation level
 
-A terminal string optionally has an indentation level: the starting column respective to the first
-terminal column.
+A terminal string optionally has an indentation level, i.e., the starting column of the text
+content, relative to the first terminal column.
 
-When wrapping text to a desired width, the terminal string will try to respect this setting, but if
-the desired width does not accommodate the length of the largest word in the text while respecting
-its indentation level, the text will instead be wrapped relative to the beginning of each line.
+When wrapping text to the desired width, the terminal string will attempt to respect this setting,
+but if the desired width does not accommodate the length of the largest word while respecting the
+string's indentation level, it will instead wrap lines relatively to the first terminal column.
 
 #### Text alignment
 
-A terminal string optionally has a flag that indicates whether the text should be aligned to the
+A terminal string has an optional flag that indicates whether the text should be aligned to the
 terminal's right boundary when being wrapped. This feature is used by the formatter in the help
 message's [description column].
 
@@ -235,7 +247,7 @@ message's [description column].
 The `TerminalMessage` is a base class that wraps a list of terminal strings. It provides a `wrap`
 method to get a normal string compiled from the list. This method accepts two optional parameters:
 
-- `width` - the terminal width (defaults to `0`)
+- `width` - the terminal width (defaults to `0{:ts}`, i.e., no wrapping)
 - `emitStyles` - whether styles should be emitted
 
 The default value of `emitStyles` depends on a few environment variables:
@@ -244,7 +256,7 @@ The default value of `emitStyles` depends on a few environment variables:
 - `NO_COLOR` - force _omission_ of styles regardless of the terminal width
 - `TERM` - set to `'dumb'{:ts}` to achieve the same behavior as `NO_COLOR`
 
-Generally, you should not alter the returned string after being wrapped, as this will mess the
+Generally, you should not alter the returned string after being wrapped, as this will mess up the
 disposition of text in the terminal. If you do need to, you can _prepend_ additional text ending
 with a line feed character `'\n'{:ts}`, or _append_ text starting with a line feed, as this will
 preserve the disposition of wrapped text.
@@ -260,14 +272,15 @@ In addition to the `wrap` method, this class overrides the `toString` method and
 `message` property, both of which can be used to obtain a string wrapped with a default terminal
 width.
 
-The default width depends on the kind of message: in the case of `TerminalMessage`, it is
-`process.stdout.columns{:ts}` (the width of the standard _output_ stream). Therefore, this kind of
-message should be printed with `console.log` or equivalent, unless you are calling `wrap` directly.
+The default width depends on the kind of message: in the case of `TerminalMessage`, it is the width
+of the standard _output_ stream (`process.stdout.columns{:ts}`). Therefore, this kind of message
+should be printed with `console.log` or equivalent, unless you are calling `wrap` directly.
 
 <Callout type="info">
-  When redirecting the output of a command to a file, the associated stream will not have the 
-  `columns` property. Hence, if `stdout` is being redirected, the default value used by the above
-  procedure will be `undefined{:ts}` (thus disabling wrapping and, possibly, omitting styles).
+  When redirecting the output of a command (e.g., writing to a file or piping to another command),
+  the associated stream will not have a `columns` property. Hence, if `stdout` is being redirected,
+  the default value used by the above procedure will be `undefined{:ts}` (thus disabling wrapping
+  and, possibly, omitting styles).
 </Callout>
 
 ### Help message
@@ -278,19 +291,19 @@ should be printed with `console.log` or equivalent.
 ### Warning message
 
 The `WarnMessage` class is a specialization of a terminal message that uses the width of the
-standard _error_ stream (`process.stderr.columns{:ts}`) as the default width. It should be printed
-with `console.error` or equivalent.
+standard _error_ stream (`process.stderr.columns{:ts}`) by default. It should be printed with
+`console.error` or equivalent.
 
 ### Error message
 
 The `ErrorMessage` class is a specialization of a warning message that actually derives from the
 standard `Error` class. It should be printed with `console.error` or equivalent.
 
-### Completion words
+### Completion message
 
-The `CompletionMessage` class represents a list of completion words. It inherits from
-`Array<string>{:ts}` and, on Linux, produces a string with the words separated by line feeds. It
-should be printed with `console.log` or equivalent.
+The `CompletionMessage` class represents a list of completion words. It has no wrapping: instead,
+it produces a string with words separated by line feeds. It should be printed with `console.log` or
+equivalent.
 
 ### Version message
 

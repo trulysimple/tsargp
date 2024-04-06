@@ -1317,7 +1317,7 @@ function formatValue(
 }
 
 /**
- * Formats an option's deprecation reason to be included in the description.
+ * Formats an option's deprecation notice to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
  * @param context The help context

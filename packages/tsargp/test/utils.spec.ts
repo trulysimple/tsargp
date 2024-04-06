@@ -38,40 +38,41 @@ describe('getArgs', () => {
   describe('with no completion index', () => {
     it('should handle zero arguments', () => {
       expect(getArgs('')).toEqual([]);
+      expect(getArgs('cmd')).toEqual([]);
     });
 
     it('should ignore whitespace', () => {
-      expect(getArgs(' type script ')).toEqual(['type', 'script']);
+      expect(getArgs(' cmd type script ')).toEqual(['type', 'script']);
     });
 
     it('should handle arguments with quotes', () => {
-      expect(getArgs(`"type script" 'is fun'`)).toEqual(['type script', 'is fun']);
+      expect(getArgs(`cmd "type script" 'is fun'`)).toEqual(['type script', 'is fun']);
     });
 
     it('should handle quotes alongside arguments', () => {
-      expect(getArgs(`type" script is "fun`)).toEqual(['type script is fun']);
+      expect(getArgs(`cmd type" script is "fun`)).toEqual(['type script is fun']);
     });
 
     it('should handle quotes inside quotes', () => {
-      expect(getArgs(`"'type' 'script'"`)).toEqual([`'type' 'script'`]);
-      expect(getArgs(`'"type" "script"'`)).toEqual([`"type" "script"`]);
+      expect(getArgs(`cmd "'type' 'script'"`)).toEqual([`'type' 'script'`]);
+      expect(getArgs(`cmd '"type" "script"'`)).toEqual([`"type" "script"`]);
     });
   });
 
   describe('with completion index', () => {
     it('when it is by itself', () => {
-      expect(getArgs('', 0)).toEqual(['\0']);
-      expect(getArgs('  ', 1)).toEqual(['\0']);
+      expect(getArgs('cmd  ', 4)).toEqual(['\0']);
+      expect(getArgs('cmd  ', 5)).toEqual(['\0']);
     });
 
     it('when it is inside an argument', () => {
-      expect(getArgs('type', 2)).toEqual(['ty\0pe']);
-      expect(getArgs('"type script"', 5)).toEqual(['type\0 script']);
+      expect(getArgs('cmd type', 6)).toEqual(['ty\0pe']);
+      expect(getArgs('cmd "type script"', 9)).toEqual(['type\0 script']);
     });
 
     it('when it is at either side of an argument', () => {
-      expect(getArgs('type', 0)).toEqual(['\0type']);
-      expect(getArgs('type', 4)).toEqual(['type\0']);
+      expect(getArgs('cmd type', 4)).toEqual(['\0type']);
+      expect(getArgs('cmd type', 8)).toEqual(['type\0']);
     });
   });
 });

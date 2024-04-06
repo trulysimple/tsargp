@@ -170,6 +170,21 @@ describe('ArgumentParser', () => {
       });
     });
 
+    it('should handle the completion of a function option with a parameter count', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          paramCount: 2,
+          exec: vi.fn(),
+          complete: () => ['abc'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd -f 1 2', { compIndex: 10 })).rejects.toThrow(/^abc$/);
+      expect(options.function.exec).not.toHaveBeenCalled();
+    });
+
     it('should handle the completion of a command option', async () => {
       const options = {
         command: {
@@ -467,6 +482,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -s o', { compIndex: 8 })).rejects.toThrow(/^one$/);
       await expect(parser.parse('cmd -s t', { compIndex: 8 })).rejects.toThrow(/^two$/);
       await expect(parser.parse('cmd -s x', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -s=', { compIndex: 7 })).rejects.toThrow(/^one\ntwo$/);
       await expect(parser.parse('cmd -s=o', { compIndex: 8 })).rejects.toThrow(/^one$/);
       await expect(parser.parse('cmd -s=t', { compIndex: 8 })).rejects.toThrow(/^two$/);
       await expect(parser.parse('cmd -s=x', { compIndex: 8 })).rejects.toThrow(/^$/);
@@ -504,6 +520,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -n 1', { compIndex: 8 })).rejects.toThrow(/^123$/);
       await expect(parser.parse('cmd -n 4', { compIndex: 8 })).rejects.toThrow(/^456$/);
       await expect(parser.parse('cmd -n x', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -n=', { compIndex: 7 })).rejects.toThrow(/^123\n456$/);
       await expect(parser.parse('cmd -n=1', { compIndex: 8 })).rejects.toThrow(/^123$/);
       await expect(parser.parse('cmd -n=4', { compIndex: 8 })).rejects.toThrow(/^456$/);
       await expect(parser.parse('cmd -n=x', { compIndex: 8 })).rejects.toThrow(/^$/);

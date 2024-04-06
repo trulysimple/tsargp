@@ -25,7 +25,7 @@ export default {
 } as const satisfies Options;
 ```
 
-You can also provide an introduction, usage and footer:
+You can increment it with an introduction, usage and footer:
 
 ```ts
 import { type Options, style, fg } from 'tsargp';
@@ -54,7 +54,7 @@ export default {
 } as const satisfies Options;
 ```
 
-You may want to customize the help message format, e.g.:
+You may also want to customize the help message format, e.g.:
 
 ```ts
 import { type Options, HelpItem, style, tf } from 'tsargp';
@@ -82,7 +82,7 @@ Which, when invoked with `--help`, would render something like:
 ```ansi
 A command-line interface for <purpose>.
 
-play [[95m--help[0m]
+my_cmd [[95m--help[0m]
 
 [4mOptions:[0m
 
