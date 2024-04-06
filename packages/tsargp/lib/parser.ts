@@ -285,7 +285,8 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
     }
     const name = option.names?.find((name) => name);
     if (!name) {
-      continue; // skip options with no names
+      i += min; // positional option with no name
+      continue;
     }
     args.splice(i, 0, name);
     i += 1 + min;

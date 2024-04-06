@@ -43,17 +43,36 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['f-'], flags)).rejects.toThrow(`Unknown option -.`);
     });
 
-    it('should skip options with no names in a cluster argument', async () => {
+    it('should parse a positional option with no name in a cluster argument', async () => {
       const options = {
         boolean: {
           type: 'boolean',
           positional: true,
           clusterLetters: 'b',
         },
+        string: {
+          type: 'string',
+          names: ['-s'],
+          clusterLetters: 's',
+        },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['b'], flags)).resolves.toEqual({ boolean: undefined });
-      await expect(parser.parse(['b', '1'], flags)).resolves.toEqual({ boolean: true });
+      await expect(parser.parse(['b'], flags)).resolves.toEqual({
+        boolean: undefined,
+        string: undefined,
+      });
+      await expect(parser.parse(['b', '1'], flags)).resolves.toEqual({
+        boolean: true,
+        string: undefined,
+      });
+      await expect(parser.parse(['bs', '1', 'abc'], flags)).resolves.toEqual({
+        boolean: true,
+        string: 'abc',
+      });
+      await expect(parser.parse(['sb', 'abc', '1'], flags)).resolves.toEqual({
+        boolean: true,
+        string: 'abc',
+      });
     });
 
     it('should parse a boolean option in a cluster argument', async () => {
