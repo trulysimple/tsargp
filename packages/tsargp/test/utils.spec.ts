@@ -12,6 +12,7 @@ import {
   isComp,
   escapeRegExp,
   combineRegExp,
+  findInObject,
 } from '../lib/utils';
 
 /*
@@ -276,5 +277,17 @@ describe('combineRegExp', () => {
     expect(
       combineRegExp(['\\', '^', '$', '.', '*', '+', '?', '(', ')', '[', ']', '{', '}', '|']),
     ).toEqual('(\\\\|\\^|\\$|\\.|\\*|\\+|\\?|\\(|\\)|\\[|\\]|\\{|\\}|\\|)');
+  });
+});
+
+describe('findInObject', () => {
+  it('should return undefined on no match', () => {
+    expect(findInObject({}, () => true)).toBeUndefined();
+    expect(findInObject({ a: 1, b: 'a' }, () => false)).toBeUndefined();
+  });
+
+  it('should return the first match', () => {
+    expect(findInObject({ a: 1, b: 'a' }, () => true)).toEqual(1);
+    expect(findInObject({ a: 1, b: 'a' }, (val) => val === 'a')).toEqual('a');
   });
 });

@@ -165,13 +165,13 @@ toString() {
 
 If the value is not known beforehand (e.g., if it depends on the values of other options), you may
 want to use a callback to inspect parsed values and determine the default based on those values. It
-accepts one parameter:
+receives one parameter:
 
 - `values` - the parsed values
 
 Notes about this callback:
 
-- if can be asynchronous
+- it can be asynchronous
 - it may be configured with a custom `toString` method to render it in the help message
 
 #### Forward requirements
@@ -189,7 +189,7 @@ In the case of an object, every referenced option must have the corresponding va
 In the case of an expression, it is evaluated as follows:
 
 - `req.all` - an expression that is satisfied only when _all_ requirements are satisfied
-- `req.one` - an expression that is satisfied when _at least one_ requirement is satisfied
+- `req.one` - an expression that is satisfied when at least _one_ requirement is satisfied
 - `req.not` - an expression that is satisfied when the requirement is _not_ satisfied.
 
 <Callout type="default">
@@ -261,7 +261,7 @@ Here is an example that illustrates how it works. Suppose we have the following 
 - [string option], with name `'--str'{:ts}` and letters `'sS'{:ts}`
 - [number option], with name `'--num'{:ts}` and letters `'nN'{:ts}`
 
-Given these options, the following invocations would be equivalent:
+Given these options, the following invocations would all be equivalent:
 
 ```sh
 my_cli fsn 'my string' 123
@@ -270,7 +270,7 @@ my_cli fSN 'my string' 123
 my_cli -Fsn 'my string' 123
 ```
 
-They would all be transformed to their "canonical" form, i.e.:
+They would be transformed to their "canonical" form, i.e.:
 
 ```sh
 my_cli --flag --str 'my string' --num 123
@@ -283,7 +283,7 @@ Notes about this feature:
 - variadic options and command options are supported, but they must be the last in a cluster
 - if a single dash is specified as the first character in a cluster argument, it is ignored
 - if word completion is attempted in a cluster argument, the default [completion message] is thrown
-- positional options with no names are skipped in a cluster argument
+- if a nameless positional option appears in a cluster, its argument will be treated as positional
 
 ### Parameter attributes
 
@@ -378,23 +378,22 @@ String-valued options share a set of attributes, as described below.
 
 #### Regular expression
 
-The `regex` attribute, if present, specifies a regular expression that string parameters should
-match. Any parameter whose normalized value that does _not_ match the regular expression will cause
-an error to be thrown.
+The `regex` attribute, if present, specifies a regular expression that string values should match.
+Any parameter whose normalized value that does _not_ match the regular expression will cause an
+error to be thrown.
 
 Mutually exclusive with [enumeration].
 
 #### Trim whitespace
 
-The `trim` attribute, if present, indicates that string parameters will be trimmed (i.e., have
-leading and trailing whitespace removed). This normalization is applied _before_ checking value
-constraints.
+The `trim` attribute, if present, indicates that string values will be trimmed (i.e., have leading
+and trailing whitespace removed). This normalization is applied _before_ checking value constraints.
 
 #### Case conversion
 
-The `case` attribute, if present, specifies the kind of case conversion to apply to string
-parameters. Can be one of `'lower'{:ts}` (convert to lowercase) or `'upper'{:ts}` (convert to
-uppercase). This normalization is applied _before_ checking value constraints.
+The `case` attribute, if present, specifies the kind of case conversion to apply to string values.
+Can be one of `'lower'{:ts}` (convert to lowercase) or `'upper'{:ts}` (convert to uppercase). This
+normalization is applied _before_ checking value constraints.
 
 ### Number attributes
 
@@ -402,7 +401,7 @@ Number-valued options share a set of attributes, as described below.
 
 #### Numeric range
 
-The `range` attribute, if present, specifies a (closed) numeric range within which number parameters
+The `range` attribute, if present, specifies a (closed) numeric range within which number values
 should fall. Any parameter whose parsed and normalized value is _not_ within the given range will
 cause an error to be thrown. You may want to use `[-Infinity, Infinity]{:ts}` to disallow `NaN{:ts}`.
 
@@ -410,8 +409,8 @@ Mutually exclusive with [enumeration].
 
 #### Math conversion
 
-The `conv` attribute, if present, specifies the kind of math conversion to apply to number
-parameters. Can be any of JavaScript's [Math] functions that accept a single number parameter. This
+The `conv` attribute, if present, specifies the kind of math conversion to apply to number values.
+Can be any of JavaScript's [Math] functions that accept a single number parameter. This
 normalization is applied _before_ checking value constraints.
 
 ### Array attributes
@@ -420,8 +419,8 @@ Array-valued options share a set of attributes, as described below.
 
 #### Separator
 
-The `separator` attribute, if present, specifies a delimiter by which to split parameter values. If
-specified, the option will accept a single parameter[^3] on the command-line, not multiple
+The `separator` attribute, if present, specifies a delimiter by which to split the option parameter.
+If specified, the option will accept a single parameter[^3] on the command-line, not multiple
 parameters (as is the default). It can be either a string or a regular expression.
 
 #### Remove duplicates
@@ -480,7 +479,7 @@ formatting of help messages. Internally, it instantiates a [help formatter] clas
 configuration, obtains a formatted message and throws it. The application is responsible for
 catching this message and printing it in a terminal.
 
-This option has the following attributes.
+In addition to the set of [basic attributes], this option has the attributes described below.
 
 #### Help format
 
@@ -491,7 +490,7 @@ The `format` attribute specifies a custom [formatter configuration].
 The `sections` attribute specifies [help sections] to be rendered in the help message. By default,
 two sections are included:
 
-- [usage section] - with `'Usage:'{:ts}` as heading - indented by 2 spaces
+- [usage section] - with `'Usage:'{:ts}` as heading, indented by 2 spaces
 - [groups section] - with `'Options:'{:ts}` as the default group heading
 
 #### Enable filter
@@ -500,6 +499,18 @@ The `useFilter` attribute is an opt-in feature that allows the remaining argumen
 [option filter]. For example, the invocation `cli --help flag` would only include in the help
 message those options whose names, synopsis or environment variable name match the regex
 `/flag/i{:ts}`.
+
+#### Enable nested
+
+The `useNested` attribute is an opt-in feature that allows the next argument to be used as the name
+of a [nested command] for which the help message should be assembled. For example, the invocation
+`cli --help cmd` would throw the help of the `cmd` command, if it exists. If not, or if it does not
+have a help option, the argument may still be used as an option filter, if [enable filter] is set.
+
+<Callout type="default">
+  The nested command may also [enable filter] in its help option definition. For example, the
+  invocation `cli --help cmd -f` would throw the help of the `cmd` command, filtered by `-f`.
+</Callout>
 
 #### Save message
 
@@ -510,7 +521,7 @@ indicates that the message should be saved as the option value instead of being 
 ### Version option
 
 The **version** option is another specialization of the [function option] that throws a version
-message. It has the following attributes.
+message. In addition to the set of [basic attributes], it has the attributes described below.
 
 #### Version info
 
@@ -521,7 +532,7 @@ Mutually exclusive with [resolve callback].
 #### Resolve callback
 
 The `resolve` attribute specifies a resolution function scoped to the module where a `package.json`
-file will be searched and read to extract its `version` field.
+file will be searched for and read to extract its `version` field.
 
 Notes about this callback:
 
@@ -547,8 +558,12 @@ value. You can use it to perform many kinds of actions, such as:
 - altering the option definitions in response to an option value
   - e.g., if `--verbose` is set, add more help items to the help option's [format]
 
-In addition to the set of [value attributes] and [parameter attributes], this option has the
-following attributes.
+This option has the following sets of attributes:
+
+- [basic attributes]
+- [value attributes]
+- [parameter attributes]
+- the attributes described below
 
 #### Function callback
 
@@ -556,7 +571,7 @@ The `exec` attribute specifies the [custom callback] that should be executed. It
 parameter that contains the current [argument sequence] information:
 
 - `param` -
-  Holds either the option parameter(s), if [parameter count] is set to a non-zero value, or all
+  Holds either the option parameter(s) (if [parameter count] is set to a non-zero value) or all
   remaining arguments.
 - `comp` -
   Indicates whether [word completion] is in effect (but not in the current sequence).
@@ -639,7 +654,11 @@ callback, subsequently exiting the parsing loop.
   _recursive_ ones. This is explained in detail in the [commands guide].
 </Callout>
 
-In addition to the set of [value attributes], this option has the following attributes.
+This option has the following sets of attributes:
+
+- [basic attributes]
+- [value attributes]
+- the attributes described below
 
 #### Command callback
 
@@ -701,8 +720,12 @@ option completely solves this ambiguity.
   a parameter.
 </Callout>
 
-In addition to the set of [value attributes] and [miscellaneous attributes], it has the following
-attribute.
+This option has the following sets of attributes:
+
+- [basic attributes]
+- [value attributes]
+- [miscellaneous attributes]
+- the attribute described below
 
 #### Negation names
 
@@ -730,6 +753,7 @@ following rules:
 
 This option has the following sets of attributes:
 
+- [basic attributes]
 - [value attributes]
 - [parameter attributes]
 - [known value attributes] for a `boolean{:ts}` data type
@@ -756,6 +780,7 @@ considered case-sensitive.
 The **string** option accepts a single parameter that is normalized according to the constraints
 specified in its definition. It has the following sets of attributes:
 
+- [basic attributes]
 - [value attributes]
 - [parameter attributes]
 - [known value attributes] for a `string{:ts}` data type
@@ -767,6 +792,7 @@ specified in its definition. It has the following sets of attributes:
 The **number** option accepts a single parameter that is converted to `Number{:ts}` and normalized
 according to the constraints specified in its definition. It has the following sets of attributes:
 
+- [basic attributes]
 - [value attributes]
 - [parameter attributes]
 - [known value attributes] for a `number{:ts}` data type
@@ -778,6 +804,7 @@ according to the constraints specified in its definition. It has the following s
 The **strings** option accepts multiple parameters that are normalized according to the constraints
 specified in its definition. It has the following sets of attributes:
 
+- [basic attributes]
 - [value attributes]
 - [parameter attributes]
 - [known value attributes] for a `string[]{:ts}` data type
@@ -791,6 +818,7 @@ The **numbers** option accepts multiple parameters that are converted to `Number
 normalized according to the constraints specified in its definition. It has the following sets of
 attributes:
 
+- [basic attributes]
 - [value attributes]
 - [parameter attributes]
 - [known value attributes] for a `number[]{:ts}` data type
@@ -851,6 +879,7 @@ attributes:
 [remove duplicates]: #remove-duplicates
 [resolve callback]: #resolve-callback
 [version info]: #version-info
+[basic attributes]: #basic-attributes
 [value attributes]: #value-attributes
 [miscellaneous attributes]: #miscellaneous-attributes
 [parameter attributes]: #parameter-attributes
@@ -861,6 +890,7 @@ attributes:
 [cluster letters]: #cluster-letters
 [fallback value]: #fallback-value
 [parameter count]: #parameter-count
+[enable filter]: #enable-filter
 [skip count]: #skip-count
 [help formatter]: formatter
 [commands guide]: ../guides/commands

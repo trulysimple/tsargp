@@ -24,7 +24,7 @@ import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
-import { areEqual, findSimilar, getArgs, isTrue, isComp, max } from './utils';
+import { areEqual, findSimilar, getArgs, isTrue, isComp, max, findInObject } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
 //--------------------------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ export class ArgumentParser<T extends Options = Options> {
    * @param config The validator configuration
    */
   constructor(options: T, config?: ValidatorConfig) {
-    this.validator = new OptionValidator(options, mergeConfig(config));
+    this.validator = new OptionValidator(options as OpaqueOptions, mergeConfig(config));
   }
 
   /**
@@ -285,7 +285,8 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
     }
     const name = option.names?.find((name) => name);
     if (!name) {
-      continue; // skip options with no names
+      i += min; // positional option with no name
+      continue;
     }
     args.splice(i, 0, name);
     i += 1 + min;
@@ -769,7 +770,7 @@ async function handleCommand(
   const [key, name, option] = info;
   const { options, shortStyle } = option;
   const cmdOptions = typeof options === 'function' ? options() : options ?? {};
-  const cmdValidator = new OptionValidator(cmdOptions, validator.config);
+  const cmdValidator = new OptionValidator(cmdOptions as OpaqueOptions, validator.config);
   const param: OpaqueOptionValues = {};
   const result = await doParse(cmdValidator, param, rest, comp, shortStyle, name);
   // comp === false, otherwise completion will have taken place by now
@@ -816,13 +817,32 @@ async function handleMessage(
  * @returns The help message
  */
 function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOption): HelpMessage {
+  let [validator, , , , , , progName] = context;
+  if (option.useNested && rest.length) {
+    const command = findInObject(
+      validator.options,
+      (opt) => opt.type === 'command' && !!opt.names?.includes(rest[0]),
+    );
+    if (command) {
+      const options = command.options;
+      if (options) {
+        const resolved = (typeof options === 'function' ? options() : options) as OpaqueOptions;
+        const help = findInObject(resolved, (opt) => opt.type === 'help');
+        if (help) {
+          validator = new OptionValidator(resolved, validator.config);
+          option = help;
+          rest.splice(0, 1); // only if the command has help; otherwise, it may be an option filter
+        }
+      }
+    }
+  }
   const format = option.format ?? {};
   if (option.useFilter) {
     format.filter = rest;
   }
-  const formatter = new HelpFormatter(context[0], format);
+  const formatter = new HelpFormatter(validator, format);
   const sections = option.sections ?? defaultSections;
-  return formatter.formatSections(sections, context[6]);
+  return formatter.formatSections(sections, progName);
 }
 
 /**
