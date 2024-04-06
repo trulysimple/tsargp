@@ -19,9 +19,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
-        `Option boolean contains empty positional marker.`,
-      );
+      expect(() => validator.validate()).toThrow(`Option boolean has empty positional marker.`);
     });
 
     it('should throw an error on version option with empty version', () => {
@@ -33,7 +31,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option version contains empty version.`);
+      expect(() => validator.validate()).toThrow(`Option version has empty version.`);
     });
 
     it('should return a warning on string option with fallback value and cluster letters', () => {

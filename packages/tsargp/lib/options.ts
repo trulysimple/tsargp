@@ -317,7 +317,7 @@ export type WithBasic = {
    */
   readonly desc?: string;
   /**
-   * The option deprecation reason. It may contain inline styles.
+   * The option deprecation notice. It may contain inline styles.
    */
   readonly deprecated?: string;
   /**

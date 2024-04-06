@@ -42,8 +42,10 @@ we need is to import the necessary library types:
 import type { Options, OptionValues } from 'tsargp';
 ```
 
-Then let's define a reusable option definition for the parameters of a multi-argument operation. It
-has a single [numbers option] that receives (unlimited) positional arguments:
+### Reusable definitions
+
+Let's define a reusable option definition for the parameters of a multi-argument operation. It has a
+single [numbers option] that receives (unlimited) positional arguments:
 
 ```ts /preferredName/ /default/ /positional/ /group/
 const multiOpts = {
@@ -58,7 +60,7 @@ const multiOpts = {
 } as const satisfies Options;
 ```
 
-Since this option accepts [positional] arguments, we do not want to give it a name. However, we gave
+Since this option accepts [positional] arguments, we do not want to give it a name. However, we give
 it a [preferred name] that will be displayed in error messages, as well as a separate [group] for it
 to be displayed in the help message. This option is optional and [defaults] to an empty array.
 
@@ -75,6 +77,8 @@ const binaryOpts = {
   },
 } as const satisfies Options;
 ```
+
+### Operation definitions
 
 With this in place, we can define each one of the basic operations, as follows:
 
@@ -170,6 +174,8 @@ provided before a recursive call, then the result of that call is ignored).
   In TypeScript, it's necessary to specify the return type of both the `options` and `exec` callback
   attributes. Otherwise, the compiler will not be able to resolve the type of the containing object.
 </Callout>
+
+### Main definitions
 
 Finally, we can define our main command-line options:
 

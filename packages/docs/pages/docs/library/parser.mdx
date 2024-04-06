@@ -20,13 +20,13 @@ as explained below.
 This is the easiest, most common method: you just call `parse` and await the returned promise. This
 method accepts two optional parameters:
 
-- `command` - the raw command line (`string{:ts}`) or the command-line arguments (`string[]{:ts}`)
+- `cmdLine` - the raw command line (`string{:ts}`) or the command-line arguments (`string[]{:ts}`)
 - `flags` - a `ParsingFlags` object with the [parsing flags]
 
 Normally you should _not_ need to pass these parameters, as they have sensible default values:
 
-- `command` - `process.env['COMP_LINE']{:ts}` or `process.argv.slice(2){:ts}`
-- `flags.progName` - command name from `command` or `process.argv[1].split(/[\\/]/).at(-1){:ts}`
+- `cmdLine` - `process.env['COMP_LINE']{:ts}` or `process.argv.slice(2){:ts}`
+- `flags.progName` - `process.argv[1].split(/[\\/]/).at(-1){:ts}`
 - `flags.compIndex` - `Number(process.env['COMP_POINT']){:ts}`
 
 If you feel the need to configure the parsing procedure, make sure to first understand how [word
@@ -45,9 +45,9 @@ the previous one, except for an additional (first) parameter:
 
 - `values` - the option values to parse into
 
-Existing values are preserved until they get overriden by values passed either in the command-line
-or in environment variables. When using TypeScript, this parameter will be type-checked at compile
-time against the expected type of the option values for a given set of option definitions.
+Existing values are preserved until they get overriden by values parsed either from the command-line
+or from environment variables. When using TypeScript, this parameter will be type-checked against
+the expected type of the option values for a given set of option definitions.
 
 <Callout type="default">
   You may want to use IntelliSense to peak at the resulting type of the `parse` method (or declare a
@@ -68,8 +68,10 @@ properties, as described below.
 ### Program name
 
 The `progName` property is a custom name for the program, which is used to update the [process
-title]. It defaults to the basename of the executing script (if no command-line is explicitly
-provided) or to the command name (in case a raw command-line string is provided).
+title] and is rendered in the help message's [usage section]. It defaults to the basename of the
+executing script. You can set it to the empty string in order to suppress its appearance.
+
+<Callout type="info">This flag is ignored when word completion is in effect.</Callout>
 
 ### Completion index
 
@@ -120,14 +122,14 @@ option, or if the latter is variadic.
 
 For example, if the option initiating a sequence is a string option with a [fallback value], the
 parser starts looking for new options as soon as it advances to the next argument, since that may be
-either a parameter to the option or the start of a new sequence. Once it advances past this
-argument, it knows that the next one must be a new sequence.
+either the option parameter or the start of a new sequence. Supposing that it was a parameter, once
+the parser advances past this argument, it knows that the next one must be the start of a sequence.
 
-The same algorithm works for function options with variable [parameter count]. For example, if an
+The same algorithm works for function options with a variable [parameter count]. For example, if the
 option expects between 1 and 3 parameters, the parser treats the next argument as a parameter to the
-option, regardless of it being an option name or not. As soon as the first parameter is saved, the
-parser resumes the search until 3 parameters are accumulated, at which point it _must_ find an
-option specification (even if it is a new occurrence of the same option).
+option, regardless of whether it is an option name or not. Once the first parameter is saved, the
+parser resumes searching until 3 parameters are accumulated, at which point it _must_ find an option
+specification (even if it is a new occurrence of the same option).
 
 #### Sequence information
 
@@ -150,7 +152,7 @@ parsing loop:
   True if performing word completion, or the word being completed. Not available for the [command
   callback].
 - `isComp` -
-  An additional property only available to a [function callback] to check whether any of the
+  An additional property only available to the [function callback] to check whether any of the
   remaining arguments is to be completed, when `comp` is true. It accepts a single string parameter
   and returns the word to be completed, if any (it may be an empty string); otherwise it returns
   `undefined{:ts}`.
@@ -191,21 +193,26 @@ an empty string):
 
 1. If _comp_ is expected to be an option name:
    - If _comp_ is a known option name, that name is returned; else
-   - If there's no positional option, the available option names are filtered by the prefix _comp_,
-     and then returned; else
+   - If there is no positional option, the available option names are filtered by the prefix _comp_
+     and returned; else
    - _comp_ is treated as a parameter of the positional option; go to step 2
-2. _comp_ is the parameter of a non-niladic option:
-   - If the option has a [complete callback], it is called with _comp_ and its result is returned;
-     else
-   - If it is a boolean option, the option's [truth names] and [falsity names] are filtered by the
-     prefix _comp_, and then returned; else
-   - If the option has [enumerated values], those values are converted to string, filtered by the
-     prefix _comp_, and then returned; else
-   - If it is a variadic array option, and the parameter was specified neither with a positional
-     marker nor as an [inline parameter], the available option names are filtered by the prefix
-     _comp_ and returned; else
-   - No words are returned, and the default completion (if enabled with `complete -o`) will be
-     attempted
+2. _comp_ is the parameter of a non-niladic option, then either of the following is executed and its
+   result is combined with that of step 3:
+   - If the option has a [complete callback], it is called with _comp_; else
+   - If it is a boolean option, the option's [truth names] and [falsity names] (if any) are filtered
+     by the prefix _comp_; else
+   - If the option has [enumerated values], those values are converted to string and filtered by the
+     prefix _comp_; else
+   - An empty list is returned
+3. If the option was not specified with a [positional marker], then, if either of the following
+   holds true, the available option names are filtered by the prefix _comp_ and returned:
+   - It is the first argument in a sequence of positional arguments; or
+   - It is not the first argument in a sequence, and is not short of the minimum expected parameter
+     count of an option
+
+If all of the above results in an empty list, the default completion (if enabled with `complete -o`)
+will be attempted. Note that the conditions of the third step exclude the possibility of it being an
+[inline parameter], when considering option names.
 
 During completion, both the help and version options are skipped, and the [command callback] does
 not get executed. Other options are processed as usual, which means that a completion callback can
@@ -221,7 +228,7 @@ also be performed in two more situations:
 - before calling a [command callback]
 
 However, requirements are not checked when performing word completion. This is due to the fact that
-the completion builtin always expects a list of words as result. Hence, the library must suppress
+the completion builtin always expects a list of words as a result. Hence, the library must suppress
 any errors that occur during parsing and it does not make sense to verify requirements in that case.
 
 ### Name suggestions
@@ -280,13 +287,15 @@ they would pollute the output of process management utilities such as `ps`.
 [complete callback]: options#complete-callback
 [function callback]: options#function-callback
 [command callback]: options#command-callback
+[positional marker]: options#positional--marker
 [warning messages]: styles#warning-message
-[completion message]: styles#completion-words
+[completion message]: styles#completion-message
 [preferred name]: options#names--preferred-name
 [truth names]: options#truth-names
 [falsity names]: options#falsity-names
 [fallback value]: options#fallback-value
 [parameter count]: options#parameter-count
+[usage section]: formatter#usage-section
 [`break`]: options#break-loop
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

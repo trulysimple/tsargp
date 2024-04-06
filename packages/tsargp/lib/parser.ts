@@ -133,32 +133,35 @@ export class ArgumentParser<T extends Options = Options> {
 
   /**
    * Parses command-line arguments into option values.
-   * @param command The raw command line or command-line arguments
+   * @param cmdLine The command line or arguments
    * @param flags The parsing flags
    * @returns The options' values
    */
-  async parse(command?: CommandLine, flags?: ParsingFlags): Promise<OptionValues<T>> {
+  async parse(cmdLine?: CommandLine, flags?: ParsingFlags): Promise<OptionValues<T>> {
     const values = {} as OptionValues<T>;
-    await this.parseInto(values, command, flags);
+    await this.parseInto(values, cmdLine, flags);
     return values;
   }
 
   /**
    * Parses command-line arguments into option values.
    * @param values The options' values to parse into
-   * @param command The raw command line or command-line arguments
+   * @param cmdLine The command line or arguments
    * @param flags The parsing flags
    * @returns The parsing result
    */
   async parseInto(
     values: OptionValues<T>,
-    command?: CommandLine,
-    flags?: ParsingFlags,
+    cmdLine = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
+    flags: ParsingFlags = {
+      progName: process?.argv[1].split(/[\\/]/).at(-1),
+      compIndex: Number(process?.env['COMP_POINT']),
+    },
   ): Promise<ParsingResult> {
-    const [args, progName] = initArgs(command, flags);
+    const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
     const completing = !!flags?.compIndex;
     const shortStyle = flags?.shortStyle;
-    return doParse(this.validator, values, args, completing, shortStyle, progName);
+    return doParse(this.validator, values, args, completing, shortStyle, flags.progName);
   }
 }
 
@@ -218,28 +221,6 @@ async function doParse(
     await checkRequired(context);
   }
   return warning.length ? { warning } : {};
-}
-
-/**
- * Initializes the command-line arguments.
- * @param command The raw command line or command-line arguments
- * @param flags The parsing flags
- * @returns [the arguments, the program name]
- */
-function initArgs(
-  command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
-  flags: ParsingFlags = { compIndex: Number(process?.env['COMP_POINT']) },
-): [Array<string>, string?] {
-  let args, progName;
-  if (typeof command === 'string') {
-    [progName, ...args] = getArgs(command, flags.compIndex);
-  } else {
-    [progName, args] = [flags.progName, command];
-    if (progName === undefined) {
-      progName = process?.argv[1].split(/[\\/]/).at(-1);
-    }
-  }
-  return [args, progName];
 }
 
 /**

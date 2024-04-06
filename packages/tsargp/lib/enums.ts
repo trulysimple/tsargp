@@ -227,7 +227,7 @@ export const enum HelpItem {
    */
   default,
   /**
-   * Reports if the option is deprecated, and why.
+   * The option's deprecation notice, if any.
    */
   deprecated,
   /**

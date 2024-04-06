@@ -160,8 +160,8 @@ export type Range = [min: number, max: number];
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Gets a list of command arguments from a raw command line.
- * @param line The command line
+ * Gets a list of arguments from a raw command line.
+ * @param line The command line, including the command name
  * @param compIndex The completion index, if any
  * @returns The list of arguments
  * @internal
@@ -211,7 +211,7 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
   if (arg !== undefined) {
     result.push(arg);
   }
-  return result;
+  return result.slice(1); // remove the command name
 }
 
 /**

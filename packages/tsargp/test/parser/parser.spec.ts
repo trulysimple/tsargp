@@ -29,10 +29,10 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['boo'])).rejects.toThrow(`Unknown option boo.`);
       await expect(parser.parse(['bool'])).rejects.toThrow(
-        `Unknown option bool. Similar names are [--boolean1, --boolean2].`,
+        `Unknown option bool. Similar names are --boolean1, --boolean2.`,
       );
       await expect(parser.parse(['bool-ean'])).rejects.toThrow(
-        `Unknown option bool-ean. Similar names are [--boolean1, --boolean2].`,
+        `Unknown option bool-ean. Similar names are --boolean1, --boolean2.`,
       );
     });
 
