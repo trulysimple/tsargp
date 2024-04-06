@@ -285,8 +285,7 @@ They are listed in the next sub-sections.
 - `tooSimilarOptionNames` -
   when an option name is too similar to other names
 - `mixedNamingConvention` -
-  when a [name slot] contains names with different naming
-  conventions
+  when a [name slot] contains names with different naming conventions
 - `variadicWithClusterLetter` -
   when a variadic option declares cluster letters
 
@@ -295,7 +294,7 @@ They are listed in the next sub-sections.
 The `phrases` property specifies the phrases to be used for each kind of error or warning message.
 It has the following optional properties, whose keys are enumerators from `ErrorItem`:
 
-- `unknownOption` - `'Unknown option (%o|%o1).(| Similar names are %o2.)'{:ts}`
+- `unknownOption` - `'Unknown option (%o|%o1).(| Similar names are: %o2.)'{:ts}`
 - `unsatisfiedRequirement` - `'Option %o requires %p.'{:ts}`
 - `missingRequiredOption` - `'Option %o is required.'{:ts}`
 - `missingParameter` - `'Missing parameter to %o.'{:ts}`
@@ -377,7 +376,7 @@ message, along with a description of the corresponding value:
 
 ### Connective words
 
-The `connectives` property specifies the connective words that are used to format option
+The `connectives` property specifies the connective words that are used to format options'
 requirements, in both error and help messages. It has the following optional properties, which are
 enumerators from `ConnectiveWords`:
 

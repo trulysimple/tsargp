@@ -277,10 +277,10 @@ of the standard _output_ stream (`process.stdout.columns{:ts}`). Therefore, this
 should be printed with `console.log` or equivalent, unless you are calling `wrap` directly.
 
 <Callout type="info">
-  When redirecting the output of a command (e.g., writing it to a file or piping it to another
-  command), the associated stream will not have a `columns` property. Hence, if `stdout` is being
-  redirected, the default value used by the above procedure will be `undefined{:ts}` (thus disabling
-  wrapping and, possibly, omitting styles).
+  When redirecting the output of a command (e.g., writing to a file or piping to another command),
+  the associated stream will not have a `columns` property. Hence, if `stdout` is being redirected,
+  the default value used by the above procedure will be `undefined{:ts}` (thus disabling wrapping
+  and, possibly, omitting styles).
 </Callout>
 
 ### Help message
