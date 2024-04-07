@@ -177,8 +177,8 @@ The way it does this is by inserting a placeholder into the command-line argumen
 completion index. This placeholder is then looked for at each iteration in the parsing loop to know
 when to perform completion.
 
-The result of completion is a list of words separated by line breaks (on Linux), and should be
-printed on the terminal so that the `complete` builtin can perform the final completion step.
+The result of completion is a list of words separated by line breaks, and should be printed on the
+terminal so that the `complete` builtin can perform the final completion step.
 
 <Callout type="info">
   The parser ignores any errors thrown by callbacks during completion. If an error is thrown by a
