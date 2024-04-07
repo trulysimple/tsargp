@@ -569,18 +569,9 @@ This option has the following sets of attributes:
 #### Function callback
 
 The `exec` attribute specifies the [custom callback] that should be executed. It receives a single
-parameter that contains the current [argument sequence] information:
-
-- `param` -
-  Holds either the option parameter(s) (if [parameter count] is set to a non-zero value) or all
-  remaining arguments.
-- `comp` -
-  Indicates whether [word completion] is in effect (but not in the current sequence).
-- `isComp` -
-  A utility function that can be used to check whether any of the remaining arguments is to be
-  completed, when `comp` is true. If so, you can throw a [completion message] inside the callback.
-  This should only be used when [parameter count] is _not_ set; otherwise, the detection logic is
-  performed by the parser.
+parameter that contains the current [argument sequence] information, in which `param` holds either
+the remaining arguments or the option parameters (if [parameter count] is set), and `comp` indicates
+whether [word completion] is in effect.
 
 Notes about this callback:
 
@@ -621,7 +612,9 @@ Mutually exclusive with [skip count].
 #### Skip count
 
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
-returns. Its value is meant to be changed by the callback.
+returns. Its value is meant to be changed by the callback (the parser does not alter it).
+
+Mutually exclusive with [parameter count].
 
 It is useful in cases where the number of parameters is unknown, and the callback wants to have
 control over where an argument sequence ends. Here is an example of how it might be used inside the
@@ -639,9 +632,10 @@ callback:
 }
 ```
 
-Mutually exclusive with [parameter count].
-
-<Callout type="info">The parser does not alter the value of this attribute.</Callout>
+<Callout type="info">
+  When [word completion] is in effect, the last argument will be the word to complete. If the latter
+  pertains to the current sequence, you can throw a [completion message] inside the callback.
+</Callout>
 
 ### Command option
 

@@ -9,7 +9,6 @@ import {
   selectAlternative,
   isTrue,
   matchNamingRules,
-  isComp,
   escapeRegExp,
   combineRegExp,
   findInObject,
@@ -41,43 +40,36 @@ describe('getArgs', () => {
       expect(getArgs('cmd')).toEqual([]);
     });
 
-    it('should ignore whitespace', () => {
-      expect(getArgs(' cmd type script ')).toEqual(['type', 'script']);
+    it('should ignore leading and trailing whitespace', () => {
+      expect(getArgs(' cmd')).toEqual([]);
+      expect(getArgs(' cmd  type  script ')).toEqual(['type', 'script']);
     });
 
-    it('should handle arguments with quotes', () => {
+    it('should handle quoted arguments', () => {
+      expect(getArgs(`cmd "" ''`)).toEqual(['', '']);
+      expect(getArgs(`cmd " " ' '`)).toEqual([' ', ' ']);
+      expect(getArgs(`cmd "'" '"'`)).toEqual([`'`, '"']);
       expect(getArgs(`cmd "type script" 'is fun'`)).toEqual(['type script', 'is fun']);
-    });
-
-    it('should handle quotes alongside arguments', () => {
-      expect(getArgs(`cmd type" script is "fun`)).toEqual(['type script is fun']);
-    });
-
-    it('should handle quotes inside quotes', () => {
-      expect(getArgs(`cmd "'type' 'script'"`)).toEqual([`'type' 'script'`]);
-      expect(getArgs(`cmd '"type" "script"'`)).toEqual([`"type" "script"`]);
+      expect(getArgs(`cmd type" "script' 'is fun`)).toEqual(['type script is', 'fun']);
+      expect(getArgs(`cmd "'type' script" 'is "fun"'`)).toEqual([`'type' script`, 'is "fun"']);
     });
   });
 
   describe('with completion index', () => {
     it('when it is by itself', () => {
-      expect(getArgs('cmd  ', 4)).toEqual(['\0']);
-      expect(getArgs('cmd  ', 5)).toEqual(['\0']);
+      expect(getArgs('cmd ', 4)).toEqual(['']);
     });
 
-    it('when it is inside an argument', () => {
-      expect(getArgs('cmd type', 6)).toEqual(['ty\0pe']);
-      expect(getArgs('cmd "type script"', 9)).toEqual(['type\0 script']);
-    });
-
-    it('when it is at either side of an argument', () => {
-      expect(getArgs('cmd type', 4)).toEqual(['\0type']);
-      expect(getArgs('cmd type', 8)).toEqual(['type\0']);
+    it('when it is over an argument', () => {
+      expect(getArgs('cmd type', 4)).toEqual(['']);
+      expect(getArgs('cmd type', 6)).toEqual(['ty']);
+      expect(getArgs('cmd "type script"', 10)).toEqual(['type ']);
     });
 
     it('when it is past the end of the line', () => {
-      expect(getArgs('cmd', 4)).toEqual(['\0']);
-      expect(getArgs('cmd type', 9)).toEqual(['type', '\0']);
+      expect(getArgs('cmd', 4)).toEqual(['']);
+      expect(getArgs('cmd ""', 8)).toEqual(['', '']);
+      expect(getArgs('cmd type', 9)).toEqual(['type', '']);
     });
   });
 });
@@ -257,18 +249,6 @@ describe('matchNamingRules', () => {
     );
     expect(rules.ruleset.rule1).toHaveBeenCalledTimes(1);
     expect(rules.ruleset.rule2).toHaveBeenCalledTimes(3);
-  });
-});
-
-describe('isComp', () => {
-  it('should return undefined on normal argument', () => {
-    expect(isComp('')).toBeUndefined();
-    expect(isComp('abc')).toBeUndefined();
-  });
-
-  it('should return the word being completed on completion argument', () => {
-    expect(isComp('\0')).toEqual('');
-    expect(isComp('a\0bc')).toEqual('a');
   });
 });
 

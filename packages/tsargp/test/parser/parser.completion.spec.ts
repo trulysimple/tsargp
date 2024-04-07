@@ -48,29 +48,9 @@ describe('ArgumentParser', () => {
         values: { function: undefined },
         index: 0,
         name: '-f',
-        param: ['\0'],
+        param: [''],
         comp: true,
-        isComp: expect.anything(),
       });
-    });
-
-    it('can check whether any remaining argument is a word to be completed', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let savedParam: any, savedIsComp: any;
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
-          exec({ param, isComp }) {
-            savedParam = param;
-            savedIsComp = isComp;
-          },
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd -f ab cd', { compIndex: 8 })).rejects.toThrow(/^$/);
-      expect(savedIsComp(savedParam[0])).toEqual('a');
-      expect(savedIsComp(savedParam[1])).toBeUndefined();
     });
 
     it('can throw completion words from a function callback during completion', async () => {
@@ -138,9 +118,8 @@ describe('ArgumentParser', () => {
         values: { function: undefined },
         index: 0,
         name: '-f',
-        param: ['\0'],
+        param: [''],
         comp: true,
-        isComp: expect.anything(),
       });
       options.function.exec.mockClear();
       await expect(parser.parse('cmd -f=', { compIndex: 7 })).rejects.toThrow(/^$/);
@@ -164,9 +143,8 @@ describe('ArgumentParser', () => {
         values: { function: undefined },
         index: 0,
         name: '-f',
-        param: ['\0'],
+        param: [''],
         comp: true,
-        isComp: expect.anything(),
       });
     });
 

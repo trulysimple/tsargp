@@ -332,7 +332,6 @@ describe('ArgumentParser', () => {
           name: '-f',
           param: [],
           comp: false,
-          isComp: expect.anything(),
         });
         options.function.exec.mockClear();
         await expect(parser.parse(['-f', '-f'])).resolves.toEqual({ function: 'abc' });
@@ -343,7 +342,6 @@ describe('ArgumentParser', () => {
           name: '-f',
           param: ['-f'],
           comp: false,
-          isComp: expect.anything(),
         });
         expect(options.function.exec).toHaveBeenCalledTimes(2);
       });

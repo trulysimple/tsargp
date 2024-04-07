@@ -163,29 +163,24 @@ export type Range = [min: number, max: number];
  * Gets a list of arguments from a raw command line.
  * @param line The command line, including the command name
  * @param compIndex The completion index, if any
- * @returns The list of arguments
+ * @returns The list of arguments up to the completion index
  * @internal
  */
 export function getArgs(line: string, compIndex = NaN): Array<string> {
   /** @ignore */
   function append(char: string) {
-    if (arg === undefined) {
-      arg = char;
-    } else {
-      arg += char;
-    }
+    arg = (arg ?? '') + char;
   }
   const result: Array<string> = [];
+  const rest = line.length - compIndex;
+  line = rest < 0 ? line + ' ' : rest >= 0 ? line.slice(0, compIndex) : line.trimEnd();
   let arg: string | undefined;
-  for (let i = 0, quote = ''; i < line.length; ++i) {
-    if (i === compIndex) {
-      append('\0');
-    }
-    switch (line[i]) {
-      case '\n':
+  let quote = '';
+  for (const char of line) {
+    switch (char) {
       case ' ':
         if (quote) {
-          append(line[i]);
+          append(char);
         } else if (arg !== undefined) {
           result.push(arg);
           arg = undefined;
@@ -193,28 +188,20 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
         break;
       case `'`:
       case '"':
-        if (quote === line[i]) {
+        if (quote === char) {
           quote = '';
         } else if (quote) {
-          append(line[i]);
+          append(char);
         } else {
-          quote = line[i];
+          quote = char;
+          append(''); // handles empty quotes
         }
         break;
       default:
-        append(line[i]);
+        append(char);
     }
   }
-  if (line.length === compIndex) {
-    append('\0');
-  }
-  if (arg !== undefined) {
-    result.push(arg);
-  }
-  // the following check is needed for PowerShell support
-  if (line.length < compIndex) {
-    result.push('\0');
-  }
+  result.push(arg ?? '');
   return result.slice(1); // remove the command name
 }
 
@@ -456,17 +443,6 @@ export function matchNamingRules<T extends NamingRules>(
     }
   }
   return result as NamingMatch<T>;
-}
-
-/**
- * Checks whether an argument is a word to be completed.
- * @param arg The command-line argument
- * @returns The word being completed; else undefined
- * @internal
- */
-export function isComp(arg: string): string | undefined {
-  const [a, b] = arg.split('\0', 2);
-  return b !== undefined ? a : undefined;
 }
 
 /**

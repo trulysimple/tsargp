@@ -75,10 +75,10 @@ executing script. You can set it to the empty string in order to suppress its ap
 
 ### Completion index
 
-The `compIndex` property is the completion index of a raw command line. When supplying the parsing
-methods with a command-line string, this value instructs the parser to perform word completion when
-parsing the argument that overlaps this position in the string. It defaults to the value of the
-`COMP_POINT` environment variable.
+The `compIndex` property is the cursor position in a command line for which the user pressed `Tab`.
+When invoking the parsing methods with a raw command line, and this flag is set, the parser knows
+to perform word completion for the argument ending at this position. It defaults to the value of the
+`COMP_POINT` environment variable, if it exists.
 
 ### Short-option style
 
@@ -151,11 +151,6 @@ parsing loop:
 - `comp` -
   True if performing word completion, or the word being completed. Not available for the [command
   callback].
-- `isComp` -
-  An additional property only available to the [function callback] to check whether any of the
-  remaining arguments is to be completed, when `comp` is true. It accepts a single string parameter
-  and returns the word to be completed, if any (it may be an empty string); otherwise it returns
-  `undefined{:ts}`.
 
 ### Word completion
 
@@ -165,20 +160,18 @@ Quoting the [Bash docs]:
 > specification (a compspec) has been defined using the `complete` builtin (see Programmable
 > Completion Builtins), the programmable completion facilities are invoked.
 
-The parser does not use the completion facilities, because it relies on the command line string and
-the completion index into that string, which can be retrieved from the following environment
-variables (available when performing completion):
+The parser does not use the completion facilities, because it relies on the command line and the
+cursor position in that line, which can be retrieved from the following environment variables:
 
 - `COMP_LINE` - the current command line
 - `COMP_POINT` - the index of the current cursor position relative to the beginning of the current
   command
 
-The way it does this is by inserting a placeholder into the command-line argument that is under the
-completion index. This placeholder is then looked for at each iteration in the parsing loop to know
-when to perform completion.
+When both of these variables are available, the parser enters into completion mode: it truncates the
+command line at the cursor position and performs completion of the last argument.
 
-The result of completion is a list of words separated by line breaks, and should be printed on the
-terminal so that the `complete` builtin can perform the final completion step.
+The result of completion is a list of words separated by line breaks, which should be printed on the
+terminal so that the completion builtins can perform the final completion step.
 
 <Callout type="info">
   The parser ignores any errors thrown by callbacks during completion. If an error is thrown by a
