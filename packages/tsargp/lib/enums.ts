@@ -74,7 +74,8 @@ export const enum ErrorItem {
    */
   incompatibleRequiredValue,
   /**
-   * Raised by the validator when an option has a zero-length enumeration array.
+   * Raised by the validator when either an enumeration constraint or the truth and falsity names
+   * have zero length.
    */
   emptyEnumsDefinition,
   /**
@@ -86,12 +87,13 @@ export const enum ErrorItem {
    */
   duplicatePositionalOption,
   /**
-   * Raised by the validator when a string or number enumeration constraint has duplicate values.
+   * Raised by the validator when either an enumeration constraint or the truth and falsity names
+   * have duplicate values.
    */
   duplicateEnumValue,
   /**
-   * Raised by both the parser and validator when a value fails to satisfy either a string or a
-   * number enumeration constraint.
+   * Raised by both the parser and validator when a value fails to satisfy either an enumeration
+   * constraint or the truth and falsity names.
    */
   enumsConstraintViolation,
   /**
@@ -148,10 +150,6 @@ export const enum ErrorItem {
    * Warning produced by the validator when a variadic option declares cluster letters.
    */
   variadicWithClusterLetter,
-  /**
-   * Raised by the parser when a parameter to a boolean option fails to be converted.
-   */
-  invalidBooleanParameter,
 }
 
 /**
@@ -195,7 +193,7 @@ export const enum HelpItem {
    */
   conv,
   /**
-   * The enumerated values that the option accepts as parameters, if any.
+   * Either the enumerated values or the truth and falsity names that the option accepts, if any.
    */
   enums,
   /**

@@ -1154,6 +1154,7 @@ function formatConv(
 
 /**
  * Formats an option's enumerated values to be included in the description.
+ * This includes truth and falsity names of a boolean option.
  * @param option The option definition
  * @param phrase The description item phrase
  * @param context The help context
@@ -1166,9 +1167,12 @@ function formatEnums(
   result: TerminalString,
 ) {
   const enums = option.enums;
-  if (enums) {
-    const [spec, alt] = isOpt.str(option) ? ['s', 0] : ['n', 1];
-    result.format(context[0], phrase, { [spec]: enums }, { alt, sep: ',' });
+  const truth = option.truthNames;
+  const falsity = option.falsityNames;
+  if (enums || truth || falsity) {
+    const values = [...(enums ?? []), ...(truth ?? []), ...(falsity ?? [])];
+    const [spec, alt] = isOpt.num(option) ? ['n', 1] : ['s', 0];
+    result.format(context[0], phrase, { [spec]: values }, { alt, sep: ',' });
   }
 }
 

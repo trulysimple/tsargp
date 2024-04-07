@@ -408,16 +408,19 @@ export function isTrue(
   str = str.trim();
   const { truthNames, falsityNames, caseSensitive } = flags;
   const regexFlags = caseSensitive ? '' : 'i';
-  const hasTruth = truthNames?.length;
-  if (hasTruth && match(truthNames)) {
+  if (truthNames && match(truthNames)) {
     return true;
   }
-  const hasFalsity = falsityNames?.length;
-  if (hasFalsity && match(falsityNames)) {
+  if (falsityNames && match(falsityNames)) {
     return false;
   }
-  // consider NaN true
-  return hasTruth ? (hasFalsity ? undefined : false) : hasFalsity ? true : !(Number(str) === 0);
+  return truthNames
+    ? falsityNames
+      ? undefined
+      : false
+    : falsityNames
+      ? true
+      : !(Number(str) === 0); // consider NaN true
 }
 
 /**

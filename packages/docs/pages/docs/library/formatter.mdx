@@ -234,12 +234,13 @@ and in what order. It is an array whose values can be one of the enumerators fro
 - `paramCount` - reports the [parameter count] of a variadic or polyadic[^1] option
 - `positional` - reports if an option accepts [positional] arguments
 - `append` - reports if an array option can be specified [multiple times]
-- `trim` - reports if string parameters will be [trimmed] (have leading and trailing whitespace removed)
-- `case` - the kind of [case-conversion] applied to string parameters, if enabled
-- `conv` - the kind of [math-conversion] applied to number parameters, if enabled
-- `enums` - the [enumerated values] that the option accepts as parameters, if any
-- `regex` - the [regular expression] that string parameters should match, if enabled
-- `range` - the [numeric range] that number parameters should be within, if enabled
+- `trim` - reports if string values will be [trimmed] (have leading and trailing whitespace removed)
+- `case` - the kind of [case-conversion] applied to string values, if enabled
+- `conv` - the kind of [math-conversion] applied to number values, if enabled
+- `enums` - either the [enumerated values] or the [truth and falsity] names that the option accepts,
+  if any
+- `regex` - the [regular expression] that string values should match, if enabled
+- `range` - the [numeric range] that number values should be within, if enabled
 - `unique` - reports if [duplicate elements] will be removed from an array option value
 - `limit` - the element [count limit] of an array option, if enabled
 - `requires` - the option [requirements], if any
@@ -380,6 +381,7 @@ that they may get overriden by (or combined with) an option's [display styles], 
 [conditional requirements]: options#conditional-requirements
 [cluster letters]: options#cluster-letters
 [fallback value]: options#fallback-value
+[truth and falsity]: options#truth--falsity-names
 
 [^1]:
     _polyadic_ means that the option accepts more than one parameter, but the parameter count is

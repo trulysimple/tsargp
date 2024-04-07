@@ -94,11 +94,11 @@ In addition to the above, the validator may generate the following warning:
 Constraint definitions are subject to the restrictions listed below:
 
 - **Zero enum values** -
-  In string- and number-valued options, if the [enums] attribute is present, it must _not_ be empty.
-  It should have non-zero length.
+  In a known-valued option, if either the [enumeration] or the [truth and falsity] names are
+  present, they must contain at least _one_ element.
 - **Duplicate enum value** -
-  In string- and number-valued options, if the [enums] attribute is present, it must _not_ contain
-  duplicate elements.
+  In a known-valued option, if either the [enumeration] or the [truth and falsity] names are
+  present, they must _not_ contain duplicate elements.
 - **Invalid numeric range** -
   In a number-valued option, if the [range] attribute is present, then its minimum value should be
   strictly less than the maximum.
@@ -113,8 +113,8 @@ values. If present, these attributes are subject to the same set of constraints 
 command-line arguments, which is listed below:
 
 - **Enums constraint violation** -
-  If the [enums] attribute is present, then the default, example and fallback values must, after
-  being normalized, equal one of the enumerated values.
+  If the [enumeration] attribute is present, then the default, example and fallback values must,
+  after being normalized, equal one of the enumerated values.
 - **Regex constraint violation** -
   In a string-valued option, if the [regex] attribute is present, then the default, example and
   fallback values must, after being normalized, match the regular expression.
@@ -142,8 +142,8 @@ the restrictions listed below:
   An option must not declare a requirement that references either a non-valued option (help and
   version) or an unknown-valued option (function and command) in a requirement.
 - **Invalid required value** -
-  An option must not declare a requirement that references another option that is either [always
-  required] or has a [default value], if the required value is nullish (`null{:ts}` or
+  An option must not declare a requirement that references another option that is either always
+  [required] or has a [default value], if the required value is nullish (`null{:ts}` or
   `undefined{:ts}`).
 - **Incompatible required value** -
   Since a requirement can be an object with values of any kind, the data type of these values must
@@ -212,24 +212,23 @@ They are listed in the next sub-sections.
 - `unsatisfiedRequirement` -
   when an option requirement is not satisfied
 - `missingRequiredOption` -
-  when an option that is always required was not specified
+  when an option that is always [required] was not specified
 - `missingParameter` -
   when an option parameter is expected but was not specified
 - `missingPackageJson` -
   when it fails to find a "package.json" file when resolving the version
 - `disallowedInlineValue` -
-  when either a niladic option or a positional marker is specified with an [inline parameter]
+  when either a niladic option or a [positional marker] is specified with an [inline parameter]
 - `unsatisfiedCondRequirement` -
   when an option's conditional requirement is not satisfied
 - `invalidClusterOption` -
-  when either a variadic option or a command option is specified in the middle of a cluster argument
-- `invalidBooleanParameter` -
-  when a parameter to a boolean option fails to be converted
+  when either a variadic option or a command option is specified in the middle of a [cluster
+  argument]
 
 #### Validation errors
 
 - `emptyPositionalMarker` -
-  when a positional option has an empty positional marker
+  when a positional option has an empty [positional marker]
 - `unnamedOption` -
   when a non-positional option has no name
 - `invalidOptionName` -
@@ -244,36 +243,36 @@ They are listed in the next sub-sections.
   when an option references either a non-valued or an unknown-valued option in a requirement
 - `invalidRequiredValue` -
   when an option uses a nullish value in a requirement referencing an option that is either always
-  required or has a default value
+  [required] or has a [default value]
 - `incompatibleRequiredValue` -
   when an option is required with a value of incompatible data type
 - `emptyEnumsDefinition` -
-  when an option has a zero-length enumeration array
+  either an [enumeration] constraint or the [truth and falsity] names have zero length
 - `duplicateOptionName` -
   when an option has a duplicate name
 - `duplicatePositionalOption` -
-  when there are two or more positional options
+  when there are two or more [positional] options
 - `duplicateEnumValue` -
-  when a string or number enumeration constraint has duplicate values
+  when either an [enumeration] constraint or the [truth and falsity] names have duplicate values
 - `duplicateClusterLetter` -
-  when an option has a duplicate cluster letter
+  when an option has a duplicate [cluster letter]
 - `invalidClusterLetter` -
-  when an option has an invalid cluster letter
+  when an option has an invalid [cluster letter]
 - `invalidNumericRange` -
-  when a number-valued option has an invalid numeric range
+  when a number-valued option has an invalid numeric [range]
 - `invalidParamCount` -
-  when a function option has an invalid parameter count
+  when a function option has an invalid [parameter count]
 
 #### Errors raised by both the parser and validator
 
 - `enumsConstraintViolation` -
-  when a value fails to satisfy either a string or a number enumeration constraint
+  when a value fails to satisfy either an [enumeration] constraint or the [truth and falsity] names
 - `regexConstraintViolation` -
-  when a value fails to satisfy a string regex constraint
+  when a value fails to satisfy a string [regex] constraint
 - `rangeConstraintViolation` -
-  when a value fails to satisfy a number range constraint
+  when a value fails to satisfy a number [range] constraint
 - `limitConstraintViolation` -
-  when a value fails to satisfy an array limit constraint
+  when a value fails to satisfy an array [limit] constraint
 
 #### Parsing warnings
 
@@ -287,7 +286,7 @@ They are listed in the next sub-sections.
 - `mixedNamingConvention` -
   when a [name slot] contains names with different naming conventions
 - `variadicWithClusterLetter` -
-  when a variadic option declares cluster letters
+  when a variadic option declares [cluster letters]
 
 ### Error phrases
 
@@ -327,7 +326,6 @@ It has the following optional properties, whose keys are enumerators from `Error
 - `invalidNumericRange` - `'Option %o has invalid numeric range [%n].'{:ts}`
 - `invalidParamCount` - `'Option %o has invalid parameter count [%n].'{:ts}`
 - `variadicWithClusterLetter` - `'Variadic option %o has cluster letters. It may only appear as the last option in a cluster.'{:ts}`
-- `invalidBooleanParameter` - `'Invalid parameter to %o: %s1. Possible values are {%s2}.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
@@ -337,42 +335,41 @@ Error phrases may have [format specifiers] prefixed with a percent sign `%`, whi
 a value. The following table lists the available specifiers for each kind of error or warning
 message, along with a description of the corresponding value:
 
-| Error                      | Specifiers                                                                                                  |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| unknownOption              | `%o`/`%o1` = the unknown option name; `%o2` = similar option names                                          |
-| unsatisfiedRequirement     | `%o` = the specified option name; `%p` = the option's requirements                                          |
-| missingRequiredOption      | `%o` = the option's preferred name                                                                          |
-| missingParameter           | `%o` = the specified option name                                                                            |
-| missingPackageJson         |                                                                                                             |
-| disallowedInlineValue      | `%o` = the specified option name or positional marker                                                       |
-| emptyPositionalMarker      | `%o` = the option's key                                                                                     |
-| unnamedOption              | `%o` = the option's key                                                                                     |
-| invalidOptionName          | `%o` = the option's key; `%s` = the invalid name                                                            |
-| invalidVersionDefinition   | `%o` = the option's key                                                                                     |
-| invalidSelfRequirement     | `%o` = the option's key                                                                                     |
-| unknownRequiredOption      | `%o` = the required option's key                                                                            |
-| invalidRequiredOption      | `%o` = the required option's key                                                                            |
-| invalidRequiredValue       | `%o` = the required option's key                                                                            |
-| incompatibleRequiredValue  | `%o` = the required option's key; `%v` = the incompatible value; `%s` = the expected type                   |
-| emptyEnumsDefinition       | `%o` = the option's key                                                                                     |
-| duplicateOptionName        | `%o` = the option's key; `%s` = the duplicate name                                                          |
-| duplicatePositionalOption  | `%o1` = the duplicate option's key; `%o2` = the previous option's key                                       |
-| duplicateEnumValue         | `%o` = the option's key; `%s`/`%n` = the duplicate enum value                                               |
-| enumsConstraintViolation   | `%o` = the option's key or specified name; `%s1`/`%n1` = the specified value; `%s2`/`%n2` = the enum values |
-| regexConstraintViolation   | `%o` = the option's key or specified name; `%s` = the specified value; `%r` = the regular expression        |
-| rangeConstraintViolation   | `%o` = the option's key or specified name; `%n1` = the specified value; `%n2` = the numeric range           |
-| limitConstraintViolation   | `%o` = the option's key or specified name; `%n1` = the value count; `%n2` = the count limit                 |
-| deprecatedOption           | `%o` = the specified option name                                                                            |
-| unsatisfiedCondRequirement | `%o` = the specified option name; `%p` = the option's requirements                                          |
-| duplicateClusterLetter     | `%o` = the option's key; `%s` = the duplicate letter                                                        |
-| invalidClusterOption       | `%o` = the specified cluster letter                                                                         |
-| invalidClusterLetter       | `%o` = the option's key; `%s` = the invalid letter                                                          |
-| tooSimilarOptionNames      | `%o` = the command prefix[^1]; `%s1` = the option name; `%s2` = the similar names                           |
-| mixedNamingConvention      | `%o` = the command prefix[^1]; `%n` = the [name slot] index; `%s` = the naming conventions                  |
-| invalidNumericRange        | `%o` = the option's key; `%n` = the numeric range                                                           |
-| invalidParamCount          | `%o` = the option's key; `%n` = the parameter count                                                         |
-| variadicWithClusterLetter  | `%o` = the option's key                                                                                     |
-| invalidBooleanParameter    | `%o` = the specified option name; `%s1` = the specified value; `%s2` = the truth and falsity names          |
+| Error                      | Specifiers                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| unknownOption              | `%o`/`%o1` = the unknown option name; `%o2` = similar option names                                                                         |
+| unsatisfiedRequirement     | `%o` = the specified option name; `%p` = the option's requirements                                                                         |
+| missingRequiredOption      | `%o` = the option's preferred name                                                                                                         |
+| missingParameter           | `%o` = the specified option name                                                                                                           |
+| missingPackageJson         |                                                                                                                                            |
+| disallowedInlineValue      | `%o` = the specified option name or positional marker                                                                                      |
+| emptyPositionalMarker      | `%o` = the option's key                                                                                                                    |
+| unnamedOption              | `%o` = the option's key                                                                                                                    |
+| invalidOptionName          | `%o` = the option's key; `%s` = the invalid name                                                                                           |
+| invalidVersionDefinition   | `%o` = the option's key                                                                                                                    |
+| invalidSelfRequirement     | `%o` = the option's key                                                                                                                    |
+| unknownRequiredOption      | `%o` = the required option's key                                                                                                           |
+| invalidRequiredOption      | `%o` = the required option's key                                                                                                           |
+| invalidRequiredValue       | `%o` = the required option's key                                                                                                           |
+| incompatibleRequiredValue  | `%o` = the required option's key; `%v` = the incompatible value; `%s` = the expected type                                                  |
+| emptyEnumsDefinition       | `%o` = the option's key                                                                                                                    |
+| duplicateOptionName        | `%o` = the option's key; `%s` = the duplicate name                                                                                         |
+| duplicatePositionalOption  | `%o1` = the duplicate option's key; `%o2` = the previous option's key                                                                      |
+| duplicateEnumValue         | `%o` = the option's key; `%s`/`%n` = the duplicate enum value                                                                              |
+| enumsConstraintViolation   | `%o` = the option's key or specified name; `%s1`/`%n1` = the specified value; `%s2`/`%n2` = the enum values or the truth and falsity names |
+| regexConstraintViolation   | `%o` = the option's key or specified name; `%s` = the specified value; `%r` = the regular expression                                       |
+| rangeConstraintViolation   | `%o` = the option's key or specified name; `%n1` = the specified value; `%n2` = the numeric range                                          |
+| limitConstraintViolation   | `%o` = the option's key or specified name; `%n1` = the value count; `%n2` = the count limit                                                |
+| deprecatedOption           | `%o` = the specified option name                                                                                                           |
+| unsatisfiedCondRequirement | `%o` = the specified option name; `%p` = the option's requirements                                                                         |
+| duplicateClusterLetter     | `%o` = the option's key; `%s` = the duplicate letter                                                                                       |
+| invalidClusterOption       | `%o` = the specified cluster letter                                                                                                        |
+| invalidClusterLetter       | `%o` = the option's key; `%s` = the invalid letter                                                                                         |
+| tooSimilarOptionNames      | `%o` = the command prefix[^1]; `%s1` = the option name; `%s2` = the similar names                                                          |
+| mixedNamingConvention      | `%o` = the command prefix[^1]; `%n` = the [name slot] index; `%s` = the naming conventions                                                 |
+| invalidNumericRange        | `%o` = the option's key; `%n` = the numeric range                                                                                          |
+| invalidParamCount          | `%o` = the option's key; `%n` = the parameter count                                                                                        |
+| variadicWithClusterLetter  | `%o` = the option's key                                                                                                                    |
 
 ### Connective words
 
@@ -390,7 +387,7 @@ enumerators from `ConnectiveWords`:
 [value validation]: #value-validation
 [negation names]: options#negation-names
 [positional marker]: options#positional--marker
-[enums]: options#enumeration
+[enumeration]: options#enumeration
 [regex]: options#regular-expression
 [range]: options#numeric-range
 [limit]: options#count-limit
@@ -403,10 +400,14 @@ enumerators from `ConnectiveWords`:
 [name slot]: formatter#name-slots
 [nested command]: options#command-option
 [format specifiers]: styles#format-specifiers
-[always required]: options#always-required
+[required]: options#always-required
 [default value]: options#default-value
 [parameter count]: options#parameter-count
 [Cluster letters]: options#cluster-letters
+[cluster letters]: options#cluster-letters
+[cluster letter]: options#cluster-letters
+[cluster argument]: options#cluster-letters
+[truth and falsity]: options#truth--falsity-names
 
 [^1]:
     The command prefix is a series of option keys interspersed with periods, denoting the current

@@ -54,10 +54,10 @@ export const defaultConfig: ConcreteConfig = {
       'Invalid required value for option %o. Option is always required or has a default value.',
     [ErrorItem.incompatibleRequiredValue]:
       'Incompatible required value %v for option %o. Should be of type %s.',
-    [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
+    [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero-length enumeration.',
     [ErrorItem.duplicateOptionName]: 'Option %o has duplicate name %s.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o1: previous was %o2.',
-    [ErrorItem.duplicateEnumValue]: 'Option %o has duplicate enum (%s|%n).',
+    [ErrorItem.duplicateEnumValue]: 'Option %o has duplicate enumerator (%s|%n).',
     [ErrorItem.enumsConstraintViolation]:
       'Invalid parameter to %o: (%s1|%n1). Possible values are {(%s2|%n2)}.',
     [ErrorItem.regexConstraintViolation]:
@@ -77,7 +77,6 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.invalidParamCount]: 'Option %o has invalid parameter count [%n].',
     [ErrorItem.variadicWithClusterLetter]:
       'Variadic option %o has cluster letters. It may only appear as the last option in a cluster.',
-    [ErrorItem.invalidBooleanParameter]: 'Invalid parameter to %o: %s1. Possible values are {%s2}.',
   },
   connectives: {
     [ConnectiveWords.and]: 'and',
@@ -582,15 +581,18 @@ function validateRequirement(
  */
 function validateConstraints(config: ConcreteConfig, key: string, option: OpaqueOption) {
   const enums = option.enums;
-  if (enums) {
-    if (!enums.length) {
-      throw error(config, ErrorItem.emptyEnumsDefinition, { o: key });
-    }
-    const set = new Set(enums);
-    if (set.size !== enums.length) {
-      for (const value of enums) {
+  const truth = option.truthNames;
+  const falsity = option.falsityNames;
+  if ((enums && !enums.length) || (truth && !truth.length) || (falsity && !falsity.length)) {
+    throw error(config, ErrorItem.emptyEnumsDefinition, { o: key });
+  }
+  if (enums || truth || falsity) {
+    const values = [...(enums ?? []), ...(truth ?? []), ...(falsity ?? [])];
+    const set = new Set(values);
+    if (set.size !== values.length) {
+      for (const value of values) {
         if (!set.delete(value)) {
-          const [spec, alt] = isOpt.str(option) ? ['s', 0] : ['n', 1];
+          const [spec, alt] = isOpt.num(option) ? ['n', 1] : ['s', 0];
           throw error(config, ErrorItem.duplicateEnumValue, { o: key, [spec]: value }, { alt });
         }
       }

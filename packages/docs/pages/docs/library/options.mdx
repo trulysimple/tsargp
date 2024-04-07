@@ -22,7 +22,7 @@ There is a total of ten option types, as summarized in the table below:
 | [function] | configurable                            | `unknown{:ts}`[^2] |                          | [param count]             |
 | [command]  | not applicable                          | `unknown{:ts}`[^2] |                          |                           |
 | [flag]     | niladic                                 | `boolean{:ts}`     |                          |                           |
-| [boolean]  | positional, monadic                     | `boolean{:ts}`     |                          | [truth], [falsity]        |
+| [boolean]  | positional, monadic                     | `boolean{:ts}`     |                          | [truth and falsity]       |
 | [string]   | positional, monadic                     | `string{:ts}`      | [trim], [case]           | [enums], [regex]          |
 | [number]   | positional, monadic                     | `number{:ts}`      | [conv]                   | [enums], [range]          |
 | [strings]  | positional, delimited, variadic, append | `string[]{:ts}`    | [unique], [trim], [case] | [enums], [regex], [limit] |
@@ -353,7 +353,8 @@ Notes about this callback:
 
 The `enums` attribute, if present, specifies enumerated values that the option accepts as the result
 of parsing a single option parameter. Any parameter whose parsed and normalized value does not equal
-one of these values will cause an error to be thrown.
+one of these values will cause an error to be thrown. They are also considered by the [completion
+algorithm] when a word is being completed.
 
 Mutually exclusive with [regular expression] and [numeric range]. Explicitly _not_ available for the
 [boolean option].
@@ -556,7 +557,7 @@ value. You can use it to perform many kinds of actions, such as:
 - parsing key-value pairs into an object
 - altering the values of previous options
 - altering the option definitions in response to an option value
-  - e.g., if `--verbose` is set, add more help items to the help option's [format]
+  - e.g., if `--verbose` is set, add more [help items] to the help option's [format]
 
 This option has the following sets of attributes:
 
@@ -743,8 +744,8 @@ The **boolean** option accepts a single parameter that is converted to boolean a
 following rules:
 
 - if:
-  - it matches one of the names in [truth names], it is considered `true{:ts}`
-  - it matches one of the names in [falsity names], it is considered `false{:ts}`
+  - it matches one of the [truth names], it is considered `true{:ts}`
+  - it matches one of the [falsity names], it is considered `false{:ts}`
 - else if:
   - there are truth names, but no falsity name, the result is `false{:ts}`
   - there are falsity names, but no truth name, the result is `true{:ts}`
@@ -760,15 +761,18 @@ This option has the following sets of attributes:
 - [miscellaneous attributes]
 - the attributes described below
 
-#### Truth names
+#### Truth & falsity names
 
 The `truthNames` attribute, if present, specifies the names of the boolean truth value (e.g. `true`,
-`yes`, `on`). They are also used by the [completion algorithm].
+`yes`, `on`). The `falsityNames` attribute, if present, specifies the names of the boolean falsity
+value. (e.g. `false`, `no`, `off`).
 
-#### Falsity names
+These names are equivalent to the [enumeration], but for a boolean value. As such, they share some
+of the same behaviors:
 
-The `falsityNames` attribute, if present, specifies the names of the boolean falsity value. (e.g.
-`false`, `no`, `off`). They are also used by the [completion algorithm].
+- they are considered by the [completion algorithm]
+- they are included in the [constraints validation]
+- they appear under the same [help item]
 
 #### Case sensitive
 
@@ -852,10 +856,9 @@ attributes:
 [append]: #append-values
 [append values]: #append-values
 [format]: #help-format
-[truth]: #truth-names
-[falsity]: #falsity-names
-[truth names]: #truth-names
-[falsity names]: #falsity-names
+[truth names]: #truth--falsity-names
+[falsity names]: #truth--falsity-names
+[truth and falsity]: #truth--falsity-names
 [flag option]: #flag-option
 [string option]: #string-option
 [number option]: #number-option
@@ -911,6 +914,9 @@ attributes:
 [completion message]: styles#completion-message
 [`parseInto`]: parser#using-your-own-object
 [`shortStyle`]: parser#short-option-style
+[constraints validation]: validator#constraints-validation
+[help items]: formatter#help-items
+[help item]: formatter#help-items
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Math]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve

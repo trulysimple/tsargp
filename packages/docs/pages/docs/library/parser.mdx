@@ -199,8 +199,8 @@ an empty string):
 2. _comp_ is the parameter of a non-niladic option, then either of the following is executed and its
    result is combined with that of step 3:
    - If the option has a [complete callback], it is called with _comp_; else
-   - If it is a boolean option, the option's [truth names] and [falsity names] (if any) are filtered
-     by the prefix _comp_; else
+   - If it is a boolean option, the option's [truth and falsity] names (if any) are filtered by the
+     prefix _comp_; else
    - If the option has [enumerated values], those values are converted to string and filtered by the
      prefix _comp_; else
    - An empty list is returned
@@ -291,8 +291,7 @@ they would pollute the output of process management utilities such as `ps`.
 [warning messages]: styles#warning-message
 [completion message]: styles#completion-message
 [preferred name]: options#names--preferred-name
-[truth names]: options#truth-names
-[falsity names]: options#falsity-names
+[truth and falsity]: options#truth--falsity-names
 [fallback value]: options#fallback-value
 [parameter count]: options#parameter-count
 [usage section]: formatter#usage-section

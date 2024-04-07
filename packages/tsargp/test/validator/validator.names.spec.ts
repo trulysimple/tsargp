@@ -82,16 +82,54 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(`Option boolean has invalid name 'a = b'.`);
     });
 
-    it('should throw an error on option with invalid cluster letter', () => {
+    it('should throw an error on duplicate option name in the same option', () => {
       const options = {
         flag: {
           type: 'flag',
-          names: ['-f'],
-          clusterLetters: 'a = b',
+          names: ['dup', 'dup'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option flag has invalid cluster letter ' '.`);
+      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
+    });
+
+    it('should throw an error on duplicate option name across options', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['dup'],
+        },
+        flag2: {
+          type: 'flag',
+          names: ['dup'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option flag2 has duplicate name 'dup'.`);
+    });
+
+    it('should throw an error on flag option with duplicate negation name', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['dup'],
+          negationNames: ['dup'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
+    });
+
+    it('should throw an error on option with duplicate positional marker', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['dup'],
+          positional: 'dup',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option boolean has duplicate name 'dup'.`);
     });
 
     it('should return a warning on option name too similar to other names', () => {
