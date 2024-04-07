@@ -76,9 +76,9 @@ executing script. You can set it to the empty string in order to suppress its ap
 ### Completion index
 
 The `compIndex` property is the cursor position in a command line for which the user pressed `Tab`.
-When invoking the parsing methods with a raw command line, and this flag is set, the parser knows
-to perform word completion for the argument ending at this position. It defaults to the value of the
-`COMP_POINT` environment variable, if it exists.
+When invoking the parsing methods with a raw command line, and this flag is set, the parser will
+know to perform word completion for the argument ending at this position. It defaults to the value
+of the `COMP_POINT` environment variable, if it exists.
 
 ### Short-option style
 
@@ -160,7 +160,7 @@ Quoting the [Bash docs]:
 > specification (a compspec) has been defined using the `complete` builtin (see Programmable
 > Completion Builtins), the programmable completion facilities are invoked.
 
-The parser does not use the completion facilities, because it relies on the command line and the
+The parser does not use the completion facilities, because it relies on the raw command line and the
 cursor position in that line, which can be retrieved from the following environment variables:
 
 - `COMP_LINE` - the current command line

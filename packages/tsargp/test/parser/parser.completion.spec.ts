@@ -4,6 +4,11 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
+    it('should complete an empty command line', async () => {
+      const parser = new ArgumentParser({});
+      await expect(parser.parse('cmd', { compIndex: 4 })).rejects.toThrow(/^$/);
+    });
+
     it('should ignore parsing errors during completion', async () => {
       const options = {
         string: {
@@ -682,6 +687,20 @@ describe('ArgumentParser', () => {
       const flags = { shortStyle: true, compIndex: 5 };
       await expect(parser.parse('cmd --', flags)).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd ff', flags)).rejects.toThrow(/^$/);
+    });
+
+    it('should complete the paramater of an option specified in a cluster argument (and ignore the rest)', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          truthNames: ['yes'],
+          clusterLetters: 'b',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      const flags = { shortStyle: true, compIndex: 7 };
+      await expect(parser.parse('cmd bx  rest', flags)).rejects.toThrow(/^yes$/);
     });
 
     it('should handle the completion of a boolean option with async custom completion', async () => {

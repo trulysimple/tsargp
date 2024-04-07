@@ -41,7 +41,7 @@ describe('getArgs', () => {
     });
 
     it('should ignore leading and trailing whitespace', () => {
-      expect(getArgs(' cmd')).toEqual([]);
+      expect(getArgs(' cmd ')).toEqual([]);
       expect(getArgs(' cmd  type  script ')).toEqual(['type', 'script']);
     });
 
@@ -68,7 +68,7 @@ describe('getArgs', () => {
 
     it('when it is past the end of the line', () => {
       expect(getArgs('cmd', 4)).toEqual(['']);
-      expect(getArgs('cmd ""', 8)).toEqual(['', '']);
+      expect(getArgs('cmd ""', 7)).toEqual(['', '']);
       expect(getArgs('cmd type', 9)).toEqual(['type', '']);
     });
   });

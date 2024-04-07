@@ -163,7 +163,7 @@ export type Range = [min: number, max: number];
  * Gets a list of arguments from a raw command line.
  * @param line The command line, including the command name
  * @param compIndex The completion index, if any
- * @returns The list of arguments up to the completion index
+ * @returns The list of arguments, up to the completion index
  * @internal
  */
 export function getArgs(line: string, compIndex = NaN): Array<string> {
