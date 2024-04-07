@@ -76,20 +76,25 @@ try {
 
 Optionally, enable word completion:
 
-<Tabs items={['Bash', 'PowerShell']}>
+<Tabs items={['Bash', 'PowerShell', 'Zsh']}>
   <Tabs.Tab>
-    ```sh copy /<your_cli_name>/
-    complete -o default -C <path/to/your/main_script> <your_cli_name>
+    ```bash copy /<your_cli_name>/ /<path_to_main_script>/
+    complete -o default -C <path_to_main_script> <your_cli_name>
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```ps copy /<your_cli_name>/
+    ```ps copy /<your_cli_name>/ /<path_to_main_script>/
     Register-ArgumentCompleter -Native -CommandName <your_cli_name> -ScriptBlock { ^
       param($word, $cmdLine, $cursorPos) ^
-        $env:COMP_LINE="$cmdLine"; $env:COMP_POINT=$cursorPos ^
-        <path/to/your/main_script> ^
-        $env:COMP_LINE=$null; $env:COMP_POINT=$null ^ # reset variables
+        $env:BUFFER="$cmdLine"; $env:CURSOR=$cursorPos ^
+        <path_to_main_script> ^
+        $env:BUFFER=$null; $env:CURSOR=$null ^ # reset variables
     }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```zsh copy /<your_cli_name>/ /<path_to_main_script>/
+    compdef 'export BUFFER CURSOR; _values <your_cli_name> `<path_to_main_script>`' <your_cli_name>
     ```
   </Tabs.Tab>
 </Tabs>

@@ -152,10 +152,10 @@ export class ArgumentParser<T extends Options = Options> {
    */
   async parseInto(
     values: OptionValues<T>,
-    cmdLine = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
+    cmdLine = process?.env['COMP_LINE'] ?? process?.env['BUFFER'] ?? process?.argv.slice(2) ?? [],
     flags: ParsingFlags = {
       progName: process?.argv[1].split(/[\\/]/).at(-1),
-      compIndex: Number(process?.env['COMP_POINT']),
+      compIndex: Number(process?.env['COMP_POINT'] ?? process?.env['CURSOR']),
     },
   ): Promise<ParsingResult> {
     const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
