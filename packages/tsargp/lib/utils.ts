@@ -46,7 +46,7 @@ export const regexps = {
    * A regular expression to match SGR sequences.
    */
   // eslint-disable-next-line no-control-regex
-  style: /(?:\x9b[\d;]+m)+/g,
+  style: /(?:\x1b\[[\d;]+m)+/g,
   /**
    * A regular expression to match `RegExp` special characters.
    */
@@ -210,6 +210,10 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
   }
   if (arg !== undefined) {
     result.push(arg);
+  }
+  // the following check is needed for PowerShell support
+  if (line.length < compIndex) {
+    result.push('\0');
   }
   return result.slice(1); // remove the command name
 }

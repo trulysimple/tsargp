@@ -13,7 +13,7 @@ describe('TerminalString', () => {
         .seq(seq(cs.rm, 1, 2, 3));
       expect(str).toHaveLength(0);
       expect(str.count).toEqual(4);
-      expect(str.strings).toEqual(['\x9bu', '\x9b1Z', '\x9b1;2r', '\x9b1;2;3l']);
+      expect(str.strings).toEqual(['\x1b[u', '\x1b[1Z', '\x1b[1;2r', '\x1b[1;2;3l']);
     });
   });
 
@@ -50,7 +50,7 @@ describe('TerminalString', () => {
       );
       expect(str).toHaveLength(4);
       expect(str.count).toEqual(1);
-      expect(str.strings).toEqual(['\x9b38;5;0;48;5;0;58;5;0m' + 'type' + '\x9b0m']);
+      expect(str.strings).toEqual(['\x1b[38;5;0;48;5;0;58;5;0m' + 'type' + '\x1b[0m']);
     });
   });
 
@@ -104,7 +104,7 @@ describe('TerminalString', () => {
         .close('.');
       expect(str).toHaveLength(6);
       expect(str.count).toEqual(2);
-      expect(str.strings).toEqual(['type', '\x9b39;49;4;3m].']);
+      expect(str.strings).toEqual(['type', '\x1b[39;49;4;3m].']);
     });
 
     it('should not merge next words if the closing is empty', () => {

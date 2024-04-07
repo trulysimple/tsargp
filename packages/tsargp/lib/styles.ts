@@ -146,7 +146,7 @@ const formatFunctions = {
  * @template P The type of the sequence parameter
  * @template C The type of the sequence command
  */
-export type CSI<P extends string, C extends cs> = `\x9b${P}${C}`;
+export type CSI<P extends string, C extends cs> = `\x1b[${P}${C}`;
 
 /**
  * A control sequence.
@@ -824,7 +824,7 @@ function omitStyles(width: number): boolean {
  * @returns The control sequence
  */
 function sequence<T extends cs>(cmd: T, ...params: Array<number>): CSI<string, T> {
-  return `\x9b${params.join(';')}${cmd}`;
+  return `\x1b[${params.join(';')}${cmd}`;
 }
 
 /**

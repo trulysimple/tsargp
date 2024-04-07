@@ -74,6 +74,11 @@ describe('getArgs', () => {
       expect(getArgs('cmd type', 4)).toEqual(['\0type']);
       expect(getArgs('cmd type', 8)).toEqual(['type\0']);
     });
+
+    it('when it is past the end of the line', () => {
+      expect(getArgs('cmd', 4)).toEqual(['\0']);
+      expect(getArgs('cmd type', 9)).toEqual(['type', '\0']);
+    });
   });
 });
 
