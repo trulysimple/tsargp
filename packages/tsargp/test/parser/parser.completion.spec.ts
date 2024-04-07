@@ -333,6 +333,23 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd x y', { compIndex: 7 })).rejects.toThrow(/^yes$/);
     });
 
+    it('should handle the completion of a positional boolean option with falsity names', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          falsityNames: ['no'],
+          positional: true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^no\n-b$/);
+      await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-b$/);
+      await expect(parser.parse('cmd n', { compIndex: 5 })).rejects.toThrow(/^no$/);
+      await expect(parser.parse('cmd x', { compIndex: 5 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd x n', { compIndex: 7 })).rejects.toThrow(/^no$/);
+    });
+
     it('should handle the completion of a positional string option with enums', async () => {
       const options = {
         string: {
@@ -447,6 +464,26 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -b y', { compIndex: 8 })).rejects.toThrow(/^yes$/);
       await expect(parser.parse('cmd -b x', { compIndex: 8 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd -b=y', { compIndex: 8 })).rejects.toThrow(/^yes$/);
+      await expect(parser.parse('cmd -b=x', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -b x -b', { compIndex: 11 })).rejects.toThrow(/^-b$/);
+    });
+
+    it('should handle the completion of a boolean option with falsity names', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          falsityNames: ['no'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd ', { compIndex: 4 })).rejects.toThrow(/^-b$/);
+      await expect(parser.parse('cmd -', { compIndex: 5 })).rejects.toThrow(/^-b$/);
+      await expect(parser.parse('cmd -b', { compIndex: 6 })).rejects.toThrow(/^-b$/);
+      await expect(parser.parse('cmd -b ', { compIndex: 7 })).rejects.toThrow(/^no$/);
+      await expect(parser.parse('cmd -b n', { compIndex: 8 })).rejects.toThrow(/^no$/);
+      await expect(parser.parse('cmd -b x', { compIndex: 8 })).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -b=n', { compIndex: 8 })).rejects.toThrow(/^no$/);
       await expect(parser.parse('cmd -b=x', { compIndex: 8 })).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd -b x -b', { compIndex: 11 })).rejects.toThrow(/^-b$/);
     });

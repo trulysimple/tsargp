@@ -4,9 +4,55 @@ import '../utils.spec'; // initialize globals
 
 describe('HelpFormatter', () => {
   describe('formatHelp', () => {
+    it('should handle a boolean option with truth names', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          truthNames: ['true', 'yes'],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  <boolean>  A boolean option. Values must be one of {'true', 'yes'}.\n`,
+      );
+    });
+
+    it('should handle a boolean option with falsity names', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          falsityNames: ['false', 'no'],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  <boolean>  A boolean option. Values must be one of {'false', 'no'}.\n`,
+      );
+    });
+
+    it('should handle a boolean option with truth and falsity names', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          truthNames: ['true'],
+          falsityNames: ['false'],
+        },
+      } as const satisfies Options;
+      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  <boolean>  A boolean option. Values must be one of {'true', 'false'}.\n`,
+      );
+    });
+
     it('should handle a string option with enumeration constraint', () => {
       const options = {
-        stringEnum: {
+        string: {
           type: 'string',
           names: ['-s', '--string'],
           desc: 'A string option.',
@@ -21,7 +67,7 @@ describe('HelpFormatter', () => {
 
     it('should handle a string option with a regex constraint', () => {
       const options = {
-        stringRegex: {
+        string: {
           type: 'string',
           names: ['-s', '--string'],
           desc: 'A string option.',
@@ -66,7 +112,7 @@ describe('HelpFormatter', () => {
 
     it('should handle a variadic strings option with a regex constraint', () => {
       const options = {
-        stringsRegex: {
+        strings: {
           type: 'strings',
           names: ['-ss', '--strings'],
           desc: 'A strings option.',
@@ -81,7 +127,7 @@ describe('HelpFormatter', () => {
 
     it('should handle a variadic numbers option with a range constraint', () => {
       const options = {
-        numbersRange: {
+        numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',
@@ -141,7 +187,7 @@ describe('HelpFormatter', () => {
 
     it('should handle a variadic numbers option with enumeration constraint', () => {
       const options = {
-        numbersEnum: {
+        numbers: {
           type: 'numbers',
           names: ['-ns', '--numbers'],
           desc: 'A numbers option.',

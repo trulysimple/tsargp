@@ -133,6 +133,8 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     
     `,
     default: false,
+    truthNames: ['yes'],
+    falsityNames: ['no'],
     requires: req.all(
       'stringEnum',
       { numberEnum: 2 },

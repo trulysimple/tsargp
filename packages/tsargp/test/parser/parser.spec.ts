@@ -638,6 +638,32 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-b', '1', '-b', '0'])).resolves.toEqual({ boolean: false });
       });
 
+      it('should handle a boolean option with truth names', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            truthNames: ['true'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b', ' abc '])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b', ' True '])).resolves.toEqual({ boolean: true });
+      });
+
+      it('should handle a boolean option with falsity names', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            falsityNames: ['false'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b', ' False '])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b', ' abc '])).resolves.toEqual({ boolean: true });
+      });
+
       it('should handle a boolean option with truth and falsity names', async () => {
         const options = {
           boolean: {

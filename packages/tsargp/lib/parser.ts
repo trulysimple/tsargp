@@ -597,8 +597,9 @@ async function parseParam(
   function bool(str: string): boolean {
     const result = isTrue(str, option);
     if (result === undefined) {
-      const names = option.truthNames?.concat(option.falsityNames ?? []) ?? [];
-      throw validator.error(ErrorItem.invalidBooleanParameter, { o: name, s1: str, s2: names });
+      const names = [...(option.truthNames ?? []), ...(option.falsityNames ?? [])];
+      const args = { o: name, s1: str, s2: names };
+      throw validator.error(ErrorItem.enumsConstraintViolation, args, { alt: 0, sep: ',' });
     }
     return result;
   }
@@ -607,8 +608,11 @@ async function parseParam(
     return setValue(context, key, option, option.fallback);
   }
   const [validator, values, , , comp] = context;
-  const convertFn: (val: string) => unknown =
-    option.type === 'boolean' ? bool : isOpt.str(option) ? (str: string) => str : Number;
+  const convertFn: (val: string) => unknown = isOpt.bool(option)
+    ? bool
+    : isOpt.str(option)
+      ? (str: string) => str
+      : Number;
   const parse = option.parse;
   const lastParam = params[params.length - 1];
   let value;
@@ -853,10 +857,9 @@ async function handleCompletion(
       words = [];
     }
   } else {
-    words =
-      (option.type === 'boolean'
-        ? option.truthNames?.concat(option.falsityNames ?? [])
-        : option.enums?.map((val) => `${val}`)) ?? [];
+    words = isOpt.bool(option)
+      ? [...(option.truthNames ?? []), ...(option.falsityNames ?? [])]
+      : option.enums?.map((val) => `${val}`) ?? [];
     if (comp) {
       words = words.filter((word) => word.startsWith(comp));
     }
