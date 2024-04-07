@@ -95,7 +95,7 @@ Constraint definitions are subject to the restrictions listed below:
 
 - **Zero enum values** -
   In a known-valued option, if either the [enumeration] or the [truth and falsity] names are
-  present, they must _not_ be empty. They should have non-zero length.
+  present, they must contain at least _one_ element.
 - **Duplicate enum value** -
   In a known-valued option, if either the [enumeration] or the [truth and falsity] names are
   present, they must _not_ contain duplicate elements.
@@ -113,8 +113,8 @@ values. If present, these attributes are subject to the same set of constraints 
 command-line arguments, which is listed below:
 
 - **Enums constraint violation** -
-  If the [enums] attribute is present, then the default, example and fallback values must, after
-  being normalized, equal one of the enumerated values.
+  If the [enumeration] attribute is present, then the default, example and fallback values must,
+  after being normalized, equal one of the enumerated values.
 - **Regex constraint violation** -
   In a string-valued option, if the [regex] attribute is present, then the default, example and
   fallback values must, after being normalized, match the regular expression.
@@ -388,7 +388,6 @@ enumerators from `ConnectiveWords`:
 [negation names]: options#negation-names
 [positional marker]: options#positional--marker
 [enumeration]: options#enumeration
-[enums]: options#enumeration
 [regex]: options#regular-expression
 [range]: options#numeric-range
 [limit]: options#count-limit

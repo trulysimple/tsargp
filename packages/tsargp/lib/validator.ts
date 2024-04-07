@@ -54,10 +54,10 @@ export const defaultConfig: ConcreteConfig = {
       'Invalid required value for option %o. Option is always required or has a default value.',
     [ErrorItem.incompatibleRequiredValue]:
       'Incompatible required value %v for option %o. Should be of type %s.',
-    [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero enum values.',
+    [ErrorItem.emptyEnumsDefinition]: 'Option %o has zero-length enumeration.',
     [ErrorItem.duplicateOptionName]: 'Option %o has duplicate name %s.',
     [ErrorItem.duplicatePositionalOption]: 'Duplicate positional option %o1: previous was %o2.',
-    [ErrorItem.duplicateEnumValue]: 'Option %o has duplicate enum (%s|%n).',
+    [ErrorItem.duplicateEnumValue]: 'Option %o has duplicate enumerator (%s|%n).',
     [ErrorItem.enumsConstraintViolation]:
       'Invalid parameter to %o: (%s1|%n1). Possible values are {(%s2|%n2)}.',
     [ErrorItem.regexConstraintViolation]:
