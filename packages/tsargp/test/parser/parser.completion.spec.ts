@@ -4,6 +4,11 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
+    it('should complete an empty command line', async () => {
+      const parser = new ArgumentParser({});
+      await expect(parser.parse('cmd', { compIndex: 4 })).rejects.toThrow(/^$/);
+    });
+
     it('should ignore parsing errors during completion', async () => {
       const options = {
         string: {
@@ -48,29 +53,9 @@ describe('ArgumentParser', () => {
         values: { function: undefined },
         index: 0,
         name: '-f',
-        param: ['\0'],
+        param: [''],
         comp: true,
-        isComp: expect.anything(),
       });
-    });
-
-    it('can check whether any remaining argument is a word to be completed', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let savedParam: any, savedIsComp: any;
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
-          exec({ param, isComp }) {
-            savedParam = param;
-            savedIsComp = isComp;
-          },
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd -f ab cd', { compIndex: 8 })).rejects.toThrow(/^$/);
-      expect(savedIsComp(savedParam[0])).toEqual('a');
-      expect(savedIsComp(savedParam[1])).toBeUndefined();
     });
 
     it('can throw completion words from a function callback during completion', async () => {
@@ -138,9 +123,8 @@ describe('ArgumentParser', () => {
         values: { function: undefined },
         index: 0,
         name: '-f',
-        param: ['\0'],
+        param: [''],
         comp: true,
-        isComp: expect.anything(),
       });
       options.function.exec.mockClear();
       await expect(parser.parse('cmd -f=', { compIndex: 7 })).rejects.toThrow(/^$/);
@@ -164,9 +148,8 @@ describe('ArgumentParser', () => {
         values: { function: undefined },
         index: 0,
         name: '-f',
-        param: ['\0'],
+        param: [''],
         comp: true,
-        isComp: expect.anything(),
       });
     });
 
@@ -704,6 +687,20 @@ describe('ArgumentParser', () => {
       const flags = { shortStyle: true, compIndex: 5 };
       await expect(parser.parse('cmd --', flags)).rejects.toThrow(/^$/);
       await expect(parser.parse('cmd ff', flags)).rejects.toThrow(/^$/);
+    });
+
+    it('should complete the paramater of an option specified in a cluster argument (and ignore the rest)', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          truthNames: ['yes'],
+          clusterLetters: 'b',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      const flags = { shortStyle: true, compIndex: 7 };
+      await expect(parser.parse('cmd bx  rest', flags)).rejects.toThrow(/^yes$/);
     });
 
     it('should handle the completion of a boolean option with async custom completion', async () => {

@@ -221,7 +221,7 @@ export type CompleteCallback = CustomCallback<
  * @see CustomCallback
  */
 export type FunctionCallback = CustomCallback<
-  ParseInfo<Array<string>> & WithComp<boolean> & WithIsComp,
+  ParseInfo<Array<string>> & WithComp<boolean>,
   unknown
 >;
 
@@ -266,19 +266,6 @@ export type WithComp<C> = {
    * True if performing word completion, or the word being completed.
    */
   comp: C;
-};
-
-/**
- * Defines additional properties to be used by a function callback.
- */
-export type WithIsComp = {
-  /**
-   * Checks whether an option parameter is a word to be completed.
-   * You can `throw new CompletionMessage(...words)` inside the function callback, if needed.
-   * @param param The option parameter
-   * @returns The word being completed, if any (it may be an empty string); else undefined
-   */
-  isComp: (param: string) => string | undefined;
 };
 
 /**

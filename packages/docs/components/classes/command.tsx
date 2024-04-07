@@ -83,9 +83,9 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
    * @param props The component properties
    * @param names The command names
    */
-  constructor(props: P, ...names: Array<string>) {
+  constructor(props: P, ...names: ReadonlyArray<string>) {
     super(props);
-    this.commands = ['clear', ...names];
+    this.commands = names;
     this.term = new Terminal({
       cursorBlink: true,
       convertEol: true,
@@ -174,26 +174,26 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
   private onTab() {
     // @ts-expect-error since we need to use the private line buffer
     const buffer: { buf: string; pos: number } = this.readline.state.line;
-    const cmdAndLine = processEnvVars(buffer.buf.trimStart());
-    if (!cmdAndLine) {
+    const cmdLine = processEnvVars(buffer.buf.trimStart());
+    if (!cmdLine) {
       return; // happens when there is no command beyond the environment variables
     }
-    const [command, line] = cmdAndLine;
+    const [command, line] = cmdLine;
     const pos = buffer.pos - (buffer.buf.length - line.length);
     if (pos <= 0) {
       return; // happens when the cursor is positioned before the start of the command
     }
-    let cmds = this.commands;
+    let commands = ['clear', this.commands];
     for (let i = 0; i < pos && i < command.length; ++i) {
-      cmds = cmds.filter((cmd) => i < cmd.length && cmd[i] === line[i]);
+      commands = commands.filter((cmd) => i < cmd.length && cmd[i] === line[i]);
     }
-    if (cmds.length > 1) {
-      this.readline.print(`\n> ${cmds.join(' ')}\n> `);
-    } else if (cmds.length) {
-      const cmd = cmds[0];
+    if (commands.length > 1) {
+      this.readline.print(`\n> ${commands.join(' ')}\n> `);
+    } else if (commands.length) {
+      const cmd = commands[0];
       if (pos <= cmd.length) {
         this.term.paste(`${cmd} `.slice(pos));
-      } else if (cmd !== this.commands[0]) {
+      } else if (cmd !== 'clear') {
         this.run(line, pos).then(null, (comp) => {
           if (Array.isArray(comp) && comp.length) {
             this.onComplete(comp, line, pos);
@@ -228,9 +228,9 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
    * @param line The command-line
    */
   private async onInput(line: string) {
-    const cmdAndLine = processEnvVars(line.trimStart());
-    if (cmdAndLine) {
-      const [command, line] = cmdAndLine;
+    const cmdLine = processEnvVars(line.trimStart());
+    if (cmdLine) {
+      const [command, line] = cmdLine;
       if (this.commands.includes(command)) {
         switch (command) {
           case 'clear':

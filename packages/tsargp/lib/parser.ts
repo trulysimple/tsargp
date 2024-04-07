@@ -24,7 +24,7 @@ import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
-import { areEqual, findSimilar, getArgs, isTrue, isComp, max, findInObject } from './utils';
+import { areEqual, findSimilar, getArgs, isTrue, max, findInObject } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
 //--------------------------------------------------------------------------------------------------
@@ -159,9 +159,8 @@ export class ArgumentParser<T extends Options = Options> {
     },
   ): Promise<ParsingResult> {
     const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
-    const completing = !!flags?.compIndex;
-    const shortStyle = flags?.shortStyle;
-    return doParse(this.validator, values, args, completing, shortStyle, flags.progName);
+    const completing = !!flags.compIndex;
+    return doParse(this.validator, values, args, completing, flags.shortStyle, flags.progName);
   }
 }
 
@@ -203,7 +202,7 @@ async function doParse(
     process.title += ' ' + progName;
   }
   if (shortStyle) {
-    parseCluster(validator, args);
+    parseCluster(validator, args, completing);
   }
   initValues(validator.options, values);
   const specifiedKeys = new Set<string>();
@@ -241,19 +240,20 @@ function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
  * Parses the first argument which is expected to be an option cluster.
  * @param validator The option validator
  * @param args The command-line arguments
+ * @param completing True if performing completion
  */
-function parseCluster(validator: OptionValidator, args: Array<string>) {
+function parseCluster(validator: OptionValidator, args: Array<string>, completing: boolean) {
   const cluster = args.shift();
   if (!cluster) {
     return;
   }
-  for (let j = 0, i = 0; j < cluster.length; ++j) {
+  if (completing && !args.length) {
+    throw new CompletionMessage();
+  }
+  for (let j = 0, i = 0; j < cluster.length && (!completing || i < args.length); ++j) {
     const letter = cluster[j];
     if (letter === '-' && j === 0) {
       continue; // skip the first dash in the cluster
-    }
-    if (letter === '\0') {
-      throw new CompletionMessage();
     }
     const key = validator.letters.get(letter);
     if (!key) {
@@ -396,14 +396,14 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
  * @returns The new parse entry
  */
 function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
-  const [validator, , args] = context;
+  const [validator, , args, , completing] = context;
   const [index, info, prevVal, , marker] = prev;
   const inc = prevVal !== undefined ? 1 : 0;
   const positional = validator.positional;
   const [min, max] = info ? getParamCount(info[2]) : [0, 0];
   for (let i = index + 1; i < args.length; ++i) {
-    const [arg, rest] = args[i].split('\0', 2);
-    const comp = rest !== undefined;
+    const arg = args[i];
+    const comp = completing && i + 1 === args.length;
     if (!info || (!marker && i - index + inc > min)) {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = validator.names.get(name);
@@ -725,7 +725,7 @@ async function handleFunction(
   if (option.exec) {
     const [, values, , , comp] = context;
     try {
-      const seq = { values, index, name, param, comp, isComp };
+      const seq = { values, index, name, param, comp };
       values[key] = await option.exec(seq);
     } catch (err) {
       // do not propagate common errors during completion
