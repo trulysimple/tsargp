@@ -2,6 +2,8 @@
 title: Introduction - Docs
 ---
 
+import { Tabs } from 'nextra/components';
+
 # Introduction
 
 **tsargp** is a command-line argument parsing library that helps you write clean code.
@@ -74,9 +76,23 @@ try {
 
 Optionally, enable word completion:
 
-```sh copy /<your_cli_name>/
-complete -o default -C <path/to/your/main_script> <your_cli_name>
-```
+<Tabs items={['Bash', 'PowerShell']}>
+  <Tabs.Tab>
+    ```sh copy /<your_cli_name>/
+    complete -o default -C <path/to/your/main_script> <your_cli_name>
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```ps copy /<your_cli_name>/
+    Register-ArgumentCompleter -Native -CommandName <your_cli_name> -ScriptBlock { ^
+      param($word, $cmdLine, $cursorPos) ^
+        $env:COMP_LINE="$cmdLine"; $env:COMP_POINT=$cursorPos ^
+        <path/to/your/main_script> ^
+        $env:COMP_LINE=$null; $env:COMP_POINT=$null ^ # reset variables
+    }
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 [^1]: ~32KB minified
 
