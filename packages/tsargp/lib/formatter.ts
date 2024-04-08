@@ -540,7 +540,7 @@ function formatDescription(
   const { descr, items, phrases } = config;
   const result = new TerminalString(0, 0, descr.align === 'right');
   if (descr.hidden || !items.length) {
-    return result.break(1);
+    return result.break();
   }
   const [styles] = context;
   const descrStyle = option.styles?.descr ?? styles.text;
@@ -555,7 +555,7 @@ function formatDescription(
     delete styles.current;
   }
   if (result.count === count) {
-    result.pop(count).break(1); // this string does not contain any word
+    result.pop(count).break(); // this string does not contain any word
   } else {
     result.clear().break(); // add ending breaks after styles
   }
