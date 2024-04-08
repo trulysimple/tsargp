@@ -80,10 +80,17 @@ When invoking the parsing methods with a raw command line, and this flag is set,
 know to perform word completion for the argument ending at this position. It defaults to the value
 of the `COMP_POINT` or `CURSOR` environment variables, whichever is present.
 
-### Short-option style
+### Cluster prefix
 
-The `shortStyle` property indicates whether the first argument is expected to be an option cluster.
-This must be used in conjunction with the [cluster letters] option attribute.
+The `clusterPrefix` property specifies the prefix for option clusters. If set, then eligible
+arguments that have this prefix will be considered a cluster. This must be used in conjunction with
+the [cluster letters] option attribute.
+
+<Callout type="info">
+  Option names have precedence over the cluster prefix. For example, if the prefix is a single dash
+  and there's an option named `'-flag'{:ts}`, then an argument with this name will _not_ be
+  considered a cluster argument.
+</Callout>
 
 ## Parsing features
 

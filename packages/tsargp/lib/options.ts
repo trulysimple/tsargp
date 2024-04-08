@@ -588,9 +588,10 @@ export type WithCommand = {
    */
   readonly options?: Options | (() => Options);
   /**
-   * True if the first argument is expected to be an option cluster (i.e., short-option style).
+   * The prefix of option clusters.
+   * If set, then eligible arguments that have this prefix will be considered a cluster.
    */
-  readonly shortStyle?: true;
+  readonly clusterPrefix?: string;
 };
 
 /**
