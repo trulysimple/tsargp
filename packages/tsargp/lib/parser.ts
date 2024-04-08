@@ -54,9 +54,10 @@ export type ParsingFlags = {
    */
   readonly compIndex?: number;
   /**
-   * True if the first argument is expected to be an option cluster (i.e., short-option style).
+   * The prefix of option clusters.
+   * If set, then eligible arguments that have this prefix will be considered a cluster.
    */
-  readonly shortStyle?: boolean;
+  readonly clusterPrefix?: string;
 };
 
 /**
@@ -83,11 +84,12 @@ export type CommandLine = string | Array<string>;
 type ParseContext = [
   validator: OptionValidator,
   values: OpaqueOptionValues,
-  args: ReadonlyArray<string>,
+  args: Array<string>,
   specifiedKeys: Set<string>,
   completing: boolean,
   warning: WarnMessage,
   progName?: string,
+  clusterPrefix?: string,
 ];
 
 /**
@@ -159,8 +161,14 @@ export class ArgumentParser<T extends Options = Options> {
     },
   ): Promise<ParsingResult> {
     const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
-    const completing = !!flags.compIndex;
-    return doParse(this.validator, values, args, completing, flags.shortStyle, flags.progName);
+    return doParse(
+      this.validator,
+      values,
+      args,
+      !!flags.compIndex,
+      flags.progName,
+      flags.clusterPrefix,
+    );
   }
 }
 
@@ -186,8 +194,8 @@ function mergeConfig(config: ValidatorConfig = {}): ConcreteConfig {
  * @param values The option values
  * @param args The command-line arguments
  * @param completing True if performing completion
- * @param shortStyle True if short-option style is enabled
- * @param progName The program name
+ * @param progName The program name, if any
+ * @param clusterPrefix The cluster prefix, if any
  * @returns The parsing result
  */
 async function doParse(
@@ -195,14 +203,11 @@ async function doParse(
   values: OpaqueOptionValues,
   args: Array<string>,
   completing: boolean,
-  shortStyle?: boolean,
   progName?: string,
+  clusterPrefix?: string,
 ): Promise<ParsingResult> {
   if (!completing && progName && process?.title) {
     process.title += ' ' + progName;
-  }
-  if (shortStyle) {
-    parseCluster(validator, args, completing);
   }
   initValues(validator.options, values);
   const specifiedKeys = new Set<string>();
@@ -215,6 +220,7 @@ async function doParse(
     completing,
     warning,
     progName,
+    clusterPrefix,
   ];
   if (await parseArgs(context)) {
     await checkRequired(context);
@@ -237,26 +243,28 @@ function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
 }
 
 /**
- * Parses the first argument which is expected to be an option cluster.
- * @param validator The option validator
- * @param args The command-line arguments
- * @param completing True if performing completion
+ * Parses a cluster argument.
+ * @param context The parsing context
+ * @param index The argument index
+ * @returns True if the argument was a cluster
  */
-function parseCluster(validator: OptionValidator, args: Array<string>, completing: boolean) {
-  const cluster = args.shift();
-  if (!cluster) {
-    return;
+function parseCluster(context: ParseContext, index: number): boolean {
+  /** @ignore */
+  function isComp() {
+    return completing && index === args.length;
   }
-  if (completing && !args.length) {
-    throw new CompletionMessage();
+  const [validator, , args, , completing, , , clusterPrefix] = context;
+  const cluster = args[index++];
+  if (!clusterPrefix || !cluster.startsWith(clusterPrefix)) {
+    return false;
   }
-  for (let j = 0, i = 0; j < cluster.length && (!completing || i < args.length); ++j) {
+  for (let j = clusterPrefix.length; j < cluster.length && !isComp(); ++j) {
     const letter = cluster[j];
-    if (letter === '-' && j === 0) {
-      continue; // skip the first dash in the cluster
-    }
     const key = validator.letters.get(letter);
     if (!key) {
+      if (completing) {
+        continue; // ignore unknown letter during completion
+      }
       throw validator.error(ErrorItem.unknownOption, { o: letter }, { alt: 0 });
     }
     const option = validator.options[key];
@@ -266,12 +274,13 @@ function parseCluster(validator: OptionValidator, args: Array<string>, completin
     }
     const name = option.names?.find((name) => name);
     if (!name) {
-      i += min; // positional option with no name
+      index += min; // positional option with no name
       continue;
     }
-    args.splice(i, 0, name);
-    i += 1 + min;
+    args.splice(index, 0, name);
+    index += 1 + min;
   }
+  return true;
 }
 
 /**
@@ -414,6 +423,12 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
         const marker = name === positional?.[3];
         const info = marker ? positional : ([key, name, validator.options[key]] as OptionInfo);
         return [i, info, value, comp, marker, true];
+      }
+      if (parseCluster(context, i)) {
+        if (comp) {
+          throw new CompletionMessage();
+        }
+        continue;
       }
       if (!info || i - index + inc > max) {
         if (!positional) {
@@ -753,11 +768,11 @@ async function handleCommand(
 ): Promise<ParsingResult> {
   const [validator, values, , , comp] = context;
   const [key, name, option] = info;
-  const { options, shortStyle } = option;
+  const { options, clusterPrefix } = option;
   const cmdOptions = typeof options === 'function' ? options() : options ?? {};
   const cmdValidator = new OptionValidator(cmdOptions as OpaqueOptions, validator.config);
   const param: OpaqueOptionValues = {};
-  const result = await doParse(cmdValidator, param, rest, comp, shortStyle, name);
+  const result = await doParse(cmdValidator, param, rest, comp, name, clusterPrefix);
   // comp === false, otherwise completion will have taken place by now
   if (option.exec) {
     const seq = { values, index, name, param };

@@ -251,8 +251,8 @@ If they were defined in the `requiredIf` attribute, they would mean:
 #### Cluster letters
 
 The `clusterLetters` attribute, if present, specifies letters (or any Unicode characters except
-whitespace) that can be used to cluster options in the first command-line argument. This is also
-known as [_short-option_ style]. This feature can be enabled via the parser's [`shortStyle`]
+whitespace) that can be used to cluster options in a single command-line argument. This is also
+known as [_short-option_ style]. This feature can be enabled via the parser's [`clusterPrefix`]
 configuration flag.
 
 Here is an example that illustrates how it works. Suppose we have the following options:
@@ -264,26 +264,27 @@ Here is an example that illustrates how it works. Suppose we have the following 
 Given these options, the following invocations would all be equivalent:
 
 ```sh
-my_cli fsn 'my string' 123
-my_cli -fsn 'my string' 123
-my_cli fSN 'my string' 123
-my_cli -Fsn 'my string' 123
+cmd -fsn 'my string' 123
+cmd -Fsn 'my string' 123
 ```
 
 They would be transformed to their "canonical" form, i.e.:
 
 ```sh
-my_cli --flag --str 'my string' --num 123
+cmd --flag --str 'my string' --num 123
 ```
 
 Notes about this feature:
 
-- if enabled, then the first command-line argument _must_ be a cluster
-- the order of the options in the cluster are preserved when converting to the canonical form
+- the order of options in a cluster is preserved when converting to the canonical form
 - variadic options and command options are supported, but they must be the last in a cluster
-- if a single dash is specified as the first character in a cluster argument, it is ignored
-- if word completion is attempted in a cluster argument, the default [completion message] is thrown
+- if word completion is attempted in a cluster, the default [completion message] is thrown
 - if a nameless positional option appears in a cluster, its argument will be treated as positional
+
+<Callout type="info">
+  Sticking option arguments right after a cluster letter, with no intervening space, is _not_
+  supported. For example, the following command line would be invalid: `cmd -s'my str' -n123{:sh}`.
+</Callout>
 
 ### Parameter attributes
 
@@ -907,7 +908,7 @@ attributes:
 [argument sequence]: parser#sequence-information
 [completion message]: styles#completion-message
 [`parseInto`]: parser#using-your-own-object
-[`shortStyle`]: parser#short-option-style
+[`clusterPrefix`]: parser#cluster-prefix
 [constraints validation]: validator#constraints-validation
 [help items]: formatter#help-items
 [help item]: formatter#help-items

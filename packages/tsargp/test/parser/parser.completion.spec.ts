@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type Options, ArgumentParser, CompletionMessage } from '../../lib';
+import type { Options, ParsingFlags } from '../../lib';
+import { ArgumentParser, CompletionMessage } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
@@ -679,28 +680,43 @@ describe('ArgumentParser', () => {
       const options = {
         flag: {
           type: 'flag',
-          names: ['-f'],
+          names: ['--flag'],
           clusterLetters: 'f',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      const flags = { shortStyle: true, compIndex: 5 };
-      await expect(parser.parse('cmd --', flags)).rejects.toThrow(/^$/);
-      await expect(parser.parse('cmd ff', flags)).rejects.toThrow(/^$/);
+      const flags: ParsingFlags = { clusterPrefix: '-', compIndex: 6 };
+      await expect(parser.parse('cmd  -f', flags)).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd --f', flags)).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd -ff', flags)).rejects.toThrow(/^$/);
     });
 
-    it('should complete the parameter of an option specified in a cluster argument (and ignore the rest)', async () => {
+    it('should complete the parameter of a clustered option (and ignore the rest)', async () => {
       const options = {
         boolean: {
           type: 'boolean',
-          names: ['-b'],
+          names: ['--bool'],
           truthNames: ['yes'],
           clusterLetters: 'b',
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      const flags = { shortStyle: true, compIndex: 7 };
-      await expect(parser.parse('cmd bx  rest', flags)).rejects.toThrow(/^yes$/);
+      const flags: ParsingFlags = { clusterPrefix: '-', compIndex: 8 };
+      await expect(parser.parse('cmd -bx  rest', flags)).rejects.toThrow(/^yes$/);
+    });
+
+    it('should ignore unknown cluster letters during completion', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['--bool'],
+          truthNames: ['yes'],
+          clusterLetters: 'b',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      const flags: ParsingFlags = { clusterPrefix: '-', compIndex: 8 };
+      await expect(parser.parse('cmd -xb ', flags)).rejects.toThrow(/^yes$/);
     });
 
     it('should handle the completion of a boolean option with async custom completion', async () => {
