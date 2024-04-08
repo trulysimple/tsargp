@@ -334,6 +334,13 @@ export class TerminalString {
   public context: TerminalContext;
 
   /**
+   * @returns The list of internal strings
+   */
+  get strings(): Array<string> {
+    return this.context[0];
+  }
+
+  /**
    * @returns The combined length of all internal strings, ignoring control sequences
    */
   get length(): number {

@@ -13,7 +13,7 @@ describe('TerminalString', () => {
         .seq(seq(cs.rm, 1, 2, 3));
       expect(str).toHaveLength(0);
       expect(str.count).toEqual(4);
-      expect(str.context[0]).toEqual(['\x1b[u', '\x1b[1Z', '\x1b[1;2r', '\x1b[1;2;3l']);
+      expect(str.strings).toEqual(['\x1b[u', '\x1b[1Z', '\x1b[1;2r', '\x1b[1;2;3l']);
     });
   });
 
@@ -22,7 +22,7 @@ describe('TerminalString', () => {
       const str = new TerminalString().word('type').word('script');
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
-      expect(str.context[0]).toEqual(['type', 'script']);
+      expect(str.strings).toEqual(['type', 'script']);
     });
   });
 
@@ -31,7 +31,7 @@ describe('TerminalString', () => {
       const str = new TerminalString().split('type script').pop();
       expect(str).toHaveLength(4);
       expect(str.count).toEqual(1);
-      expect(str.context[0]).toEqual(['type']);
+      expect(str.strings).toEqual(['type']);
     });
 
     it('should remove all words', () => {
@@ -50,7 +50,7 @@ describe('TerminalString', () => {
       );
       expect(str).toHaveLength(4);
       expect(str.count).toEqual(1);
-      expect(str.context[0]).toEqual(['\x1b[38;5;0;48;5;0;58;5;0m' + 'type' + '\x1b[0m']);
+      expect(str.strings).toEqual(['\x1b[38;5;0;48;5;0;58;5;0m' + 'type' + '\x1b[0m']);
     });
   });
 
@@ -59,14 +59,14 @@ describe('TerminalString', () => {
       const str = new TerminalString().open('[').open('"').word('type');
       expect(str).toHaveLength(6);
       expect(str.count).toEqual(1);
-      expect(str.context[0]).toEqual(['["type']);
+      expect(str.strings).toEqual(['["type']);
     });
 
     it('should not merge previous words if the opening is empty', () => {
       const str = new TerminalString().word('type').open('').word('script');
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
-      expect(str.context[0]).toEqual(['type', 'script']);
+      expect(str.strings).toEqual(['type', 'script']);
     });
   });
 
@@ -76,7 +76,7 @@ describe('TerminalString', () => {
       const str2 = new TerminalString().other(str1).split(': is fun');
       expect(str2).toHaveLength(16);
       expect(str2.count).toEqual(4);
-      expect(str2.context[0]).toEqual(['type', 'script:', 'is', 'fun']);
+      expect(str2.strings).toEqual(['type', 'script:', 'is', 'fun']);
     });
 
     it('should merge the endpoint strings if merge is true in the first string', () => {
@@ -84,7 +84,7 @@ describe('TerminalString', () => {
       const str2 = new TerminalString().open('[').other(str1).close(']');
       expect(str2).toHaveLength(12);
       expect(str2.count).toEqual(2);
-      expect(str2.context[0]).toEqual(['[type', 'script]']);
+      expect(str2.strings).toEqual(['[type', 'script]']);
     });
   });
 
@@ -93,7 +93,7 @@ describe('TerminalString', () => {
       const str = new TerminalString().close(']');
       expect(str).toHaveLength(1);
       expect(str.count).toEqual(1);
-      expect(str.context[0]).toEqual([']']);
+      expect(str.strings).toEqual([']']);
     });
 
     it('should add closing words to the last word', () => {
@@ -104,14 +104,14 @@ describe('TerminalString', () => {
         .close('.');
       expect(str).toHaveLength(6);
       expect(str.count).toEqual(2);
-      expect(str.context[0]).toEqual(['type', '\x1b[39;49;4;3m].']);
+      expect(str.strings).toEqual(['type', '\x1b[39;49;4;3m].']);
     });
 
     it('should not merge next words if the closing is empty', () => {
       const str = new TerminalString().word('type').close('').word('script');
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
-      expect(str.context[0]).toEqual(['type', 'script']);
+      expect(str.strings).toEqual(['type', 'script']);
     });
   });
 
@@ -130,7 +130,7 @@ describe('TerminalString', () => {
     it('should preserve merges outside', () => {
       const str = new TerminalString().open('[').format(styles, '%t', { t: 'some text' });
       expect(str.count).toEqual(2);
-      expect(str.context[0]).toEqual(['[some', 'text']);
+      expect(str.strings).toEqual(['[some', 'text']);
     });
 
     it('should format single-valued arguments', () => {
@@ -146,7 +146,7 @@ describe('TerminalString', () => {
         p: new TerminalString().split('type script'),
       });
       expect(str.count).toEqual(11);
-      expect(str.context[0]).toEqual([
+      expect(str.strings).toEqual([
         'true',
         `'abc'`,
         '123',
@@ -175,7 +175,7 @@ describe('TerminalString', () => {
         p: [str1, str1],
       });
       expect(str2.count).toEqual(22);
-      expect(str2.context[0]).toEqual([
+      expect(str2.strings).toEqual([
         'true,',
         'false',
         `'abc',`,
@@ -220,7 +220,7 @@ describe('TerminalString', () => {
         { sep: '-', mergePrev: false },
       );
       expect(str2.count).toEqual(31);
-      expect(str2.context[0]).toEqual([
+      expect(str2.strings).toEqual([
         'true',
         '-',
         'false',
