@@ -366,19 +366,18 @@ export class HelpFormatter {
     const fmtConfig = mergeConfig(config);
     const valConfig = validator.config;
     const options = validator.options;
-    const filter = fmtConfig.filter.length
-      ? RegExp(combineRegExp(fmtConfig.filter), 'i')
-      : undefined;
-    const nameWidths = fmtConfig.names.hidden
+    const { names, filter } = fmtConfig;
+    const filterRegex = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
+    const nameWidths = names.hidden
       ? 0
-      : fmtConfig.names.align === 'slot'
+      : names.align === 'slot'
         ? getNameWidths(options)
         : getMaxNamesWidth(options);
     this.context = [valConfig.styles, options, valConfig.connectives];
     let paramWidth = 0;
     for (const key in options) {
       const option = options[key];
-      if (!option.hide && (!filter || matchOption(option, filter))) {
+      if (!option.hide && (!filterRegex || matchOption(option, filterRegex))) {
         const paramLen = formatOption(this.groups, fmtConfig, this.context, nameWidths, option);
         paramWidth = max(paramWidth, paramLen);
       }

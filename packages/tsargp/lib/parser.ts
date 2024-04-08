@@ -513,8 +513,7 @@ async function resolveVersion(
   ) {
     try {
       const jsonData = await promises.readFile(new URL(resolved));
-      const { version } = JSON.parse(jsonData.toString());
-      return version;
+      return JSON.parse(jsonData.toString()).version;
     } catch (err) {
       if ((err as ErrnoException).code !== 'ENOENT') {
         throw err;
@@ -639,7 +638,8 @@ async function parseParam(
   const lastParam = params[params.length - 1];
   let value;
   if (isOpt.arr(option)) {
-    const param = option.separator ? lastParam.split(option.separator) : params;
+    const separator = option.separator;
+    const param = separator ? lastParam.split(separator) : params;
     if (parse) {
       const seq = { values, index, name, param, comp };
       value = ((await parse(seq)) as Array<unknown>).map(norm);
@@ -1002,11 +1002,11 @@ async function checkRequires(
     return checkRequireItems(validator, entries, checkEntry, error, negate, invert, !negate);
   }
   if ((await requires(values)) === negate) {
-    const config = validator.config;
+    const { styles, connectives } = validator.config;
     if (negate !== invert) {
-      error.word(config.connectives[ConnectiveWords.not]);
+      error.word(connectives[ConnectiveWords.not]);
     }
-    format.v(requires, config.styles, error);
+    format.v(requires, styles, error);
     return false;
   }
   return true;
@@ -1038,11 +1038,11 @@ function checkRequirement(
     if ((specified === required) !== negate) {
       return true;
     }
-    const config = validator.config;
+    const { styles, connectives } = validator.config;
     if (specified !== invert) {
-      error.word(config.connectives[ConnectiveWords.no]);
+      error.word(connectives[ConnectiveWords.no]);
     }
-    format.o(option.preferredName ?? '', config.styles, error);
+    format.o(option.preferredName ?? '', styles, error);
     return false;
   }
   const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : 'n';

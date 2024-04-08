@@ -76,7 +76,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range [%n].',
     [ErrorItem.invalidParamCount]: 'Option %o has invalid parameter count [%n].',
     [ErrorItem.variadicWithClusterLetter]:
-      'Variadic option %o has cluster letters. It may only appear as the last option in a cluster.',
+      'Variadic option %o may only appear as the last option in a cluster.',
   },
   connectives: {
     [ConnectiveWords.and]: 'and',
@@ -318,8 +318,9 @@ function registerNames(
   if (!option.preferredName) {
     option.preferredName = names[0];
   }
-  if (option.clusterLetters) {
-    for (const letter of option.clusterLetters) {
+  const letters = option.clusterLetters;
+  if (letters) {
+    for (const letter of letters) {
       letterToKey.set(letter, key);
     }
   }
@@ -344,19 +345,20 @@ function validateNames(
 ) {
   const [config, , , , , prefix] = context;
   const positional = option.positional;
+  const prefixedKey = prefix + key;
   if (positional === '') {
-    throw error(config, ErrorItem.emptyPositionalMarker, { o: prefix + key });
+    throw error(config, ErrorItem.emptyPositionalMarker, { o: prefixedKey });
   }
   const names = getOptionNames(option);
   if (!positional && !names.length) {
-    throw error(config, ErrorItem.unnamedOption, { o: prefix + key });
+    throw error(config, ErrorItem.unnamedOption, { o: prefixedKey });
   }
   for (const name of names) {
     if (name.match(/[\s=]+/)) {
-      throw error(config, ErrorItem.invalidOptionName, { o: prefix + key, s: name });
+      throw error(config, ErrorItem.invalidOptionName, { o: prefixedKey, s: name });
     }
     if (nameToKey.has(name)) {
-      throw error(config, ErrorItem.duplicateOptionName, { o: prefix + key, s: name });
+      throw error(config, ErrorItem.duplicateOptionName, { o: prefixedKey, s: name });
     }
     nameToKey.set(name, key);
   }
@@ -364,10 +366,10 @@ function validateNames(
   if (letters) {
     for (const letter of letters) {
       if (letter.includes(' ')) {
-        throw error(config, ErrorItem.invalidClusterLetter, { o: prefix + key, s: letter });
+        throw error(config, ErrorItem.invalidClusterLetter, { o: prefixedKey, s: letter });
       }
       if (letterToKey.has(letter)) {
-        throw error(config, ErrorItem.duplicateClusterLetter, { o: prefix + key, s: letter });
+        throw error(config, ErrorItem.duplicateClusterLetter, { o: prefixedKey, s: letter });
       }
       letterToKey.set(letter, key);
     }

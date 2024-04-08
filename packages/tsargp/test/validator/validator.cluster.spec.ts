@@ -58,7 +58,7 @@ describe('OptionValidator', () => {
       const { warning } = validator.validate();
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
-        `Variadic option string has cluster letters. It may only appear as the last option in a cluster.\n`,
+        `Variadic option string may only appear as the last option in a cluster.\n`,
       );
     });
 
@@ -74,7 +74,7 @@ describe('OptionValidator', () => {
       const { warning } = validator.validate();
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
-        `Variadic option strings has cluster letters. It may only appear as the last option in a cluster.\n`,
+        `Variadic option strings may only appear as the last option in a cluster.\n`,
       );
     });
 
@@ -91,7 +91,7 @@ describe('OptionValidator', () => {
       const { warning } = validator.validate();
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
-        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
+        `Variadic option function may only appear as the last option in a cluster.\n`,
       );
     });
 
@@ -108,7 +108,7 @@ describe('OptionValidator', () => {
       const { warning } = validator.validate();
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
-        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
+        `Variadic option function may only appear as the last option in a cluster.\n`,
       );
     });
   });

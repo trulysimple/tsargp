@@ -308,7 +308,7 @@ type TerminalContext = [
    */
   strings: Array<string>,
   /**
-   * The lengths of the internal strings, ignoring control characters and sequences.
+   * The lengths of the internal strings, ignoring control sequences.
    */
   lengths: Array<number>,
   /**
