@@ -76,7 +76,7 @@ try {
 
 Optionally, enable word completion:
 
-<Tabs items={['Bash', 'PowerShell', 'Zsh', 'Fish']}>
+<Tabs items={['Bash', 'PowerShell', 'Zsh', 'Fish', 'Nushell']}>
   <Tabs.Tab>
     ```bash copy /<your_cli_name>/ /<path_to_main_script>/
     complete -o default -C <path_to_main_script> <your_cli_name>
@@ -99,11 +99,18 @@ Optionally, enable word completion:
   </Tabs.Tab>
   <Tabs.Tab>
     ```fish copy /<your_cli_name>/ /<path_to_main_script>/
-    complete <your_cli_name> -a '(
-      set -x BUFFER (commandline); set -x CURSOR (commandline -C)
-      <path_to_main_script>
-      set -e BUFFER; set -e CURSOR # reset variables
-    )'
+    complete <your_cli_name> -f -a '(set -x BUFFER (commandline -c); <path_to_main_script>; set -e BUFFER)'
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```nu copy /<your_cli_name>/ /<path_to_main_script>/
+    $env.config.completions.external.completer = {|spans|
+      {
+        <your_cli_name>: {
+          with-env { BUFFER: ($spans | str join ' ') } { <path_to_main_script> } | lines
+        }
+      } | get $spans.0 | each { || do $in }
+    }
     ```
   </Tabs.Tab>
 </Tabs>
