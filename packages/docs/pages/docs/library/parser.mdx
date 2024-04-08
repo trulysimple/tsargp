@@ -249,6 +249,11 @@ is only valid for non-niladic options and cannot be used with the positional mar
 with normal parameters, the value may contain any number of equal signs, and even start with one
 (e.g., `-opt==val` would be parsed as `'=val'{:ts}`).
 
+Cluster arguments may also have inline parameters, but their syntax is different. A cluster argument
+is considered to have an inline parameter if it contains an unknown letter that is not the first one
+in the cluster. In this case, the first letter _must_ be an option and the rest is its parameter.
+See [cluster inline parameters] for details about this syntax.
+
 ### Process title
 
 The process title will be updated to reflect the current command being executed. This includes the
@@ -295,6 +300,7 @@ they would pollute the output of process management utilities such as `ps`.
 [fallback value]: options#fallback-value
 [parameter count]: options#parameter-count
 [usage section]: formatter#usage-section
+[cluster inline parameters]: options#inline-parameters
 [`break`]: options#break-loop
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html

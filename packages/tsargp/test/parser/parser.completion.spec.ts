@@ -10,6 +10,17 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd', { compIndex: 4 })).rejects.toThrow(/^$/);
     });
 
+    it('should ignore unknown options during completion', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd x ', { compIndex: 6 })).rejects.toThrow(/^-f$/);
+    });
+
     it('should ignore parsing errors during completion', async () => {
       const options = {
         string: {
@@ -676,7 +687,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -ns 1 -ns', { compIndex: 13 })).rejects.toThrow(/^-ns$/);
     });
 
-    it('should throw the default completion when completing a cluster argument', async () => {
+    it('should handle the completion of a cluster argument', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -686,13 +697,18 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       const flags: ParsingFlags = { clusterPrefix: '-', compIndex: 6 };
-      await expect(parser.parse('cmd  -f', flags)).rejects.toThrow(/^$/);
-      await expect(parser.parse('cmd --f', flags)).rejects.toThrow(/^$/);
+      await expect(parser.parse('cmd  -f', flags)).rejects.toThrow(/^--flag$/);
+      await expect(parser.parse('cmd --f', flags)).rejects.toThrow(/^--flag$/);
       await expect(parser.parse('cmd -ff', flags)).rejects.toThrow(/^$/);
     });
 
     it('should complete the parameter of a clustered option (and ignore the rest)', async () => {
       const options = {
+        flag: {
+          type: 'flag',
+          names: ['--flag'],
+          clusterLetters: 'f',
+        },
         boolean: {
           type: 'boolean',
           names: ['--bool'],
@@ -702,7 +718,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       const flags: ParsingFlags = { clusterPrefix: '-', compIndex: 8 };
-      await expect(parser.parse('cmd -bx  rest', flags)).rejects.toThrow(/^yes$/);
+      await expect(parser.parse('cmd -bf  rest', flags)).rejects.toThrow(/^yes$/);
     });
 
     it('should ignore unknown cluster letters during completion', async () => {
@@ -716,7 +732,7 @@ describe('ArgumentParser', () => {
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       const flags: ParsingFlags = { clusterPrefix: '-', compIndex: 8 };
-      await expect(parser.parse('cmd -xb ', flags)).rejects.toThrow(/^yes$/);
+      await expect(parser.parse('cmd -xb ', flags)).rejects.toThrow(/^--bool$/);
     });
 
     it('should handle the completion of a boolean option with async custom completion', async () => {

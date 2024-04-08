@@ -5,11 +5,10 @@ import React from 'react';
 import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
 import { type Props, Command } from './classes/command';
 
-// @ts-expect-error since tsargp demo does not export types
+// @ts-expect-error since tsargp examples do not export types
 import { demo as options } from 'tsargp/examples';
 
-// remove version option since there's no package.json file in the browser
-delete options.version;
+delete options.version; // remove version option since there's no package.json in the browser
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -24,7 +23,8 @@ class DemoCommand extends Command {
   override async run(line: string, compIndex?: number) {
     try {
       const values: { hello?: number } = {};
-      const { warning } = await this.parser.parseInto(values, line, { compIndex });
+      const flags = { progName: 'tsargp', compIndex, clusterPrefix: '-' };
+      const { warning } = await this.parser.parseInto(values, line, flags);
       if (warning) {
         this.println(warning.wrap(this.state.width));
       }
