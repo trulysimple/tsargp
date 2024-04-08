@@ -281,10 +281,14 @@ Notes about this feature:
 - if word completion is attempted in a cluster, the default [completion message] is thrown
 - if a nameless positional option appears in a cluster, its argument will be treated as positional
 
-<Callout type="info">
-  Sticking option arguments right after a cluster letter, with no intervening space, is _not_
-  supported. For example, the following command line would be invalid: `cmd -s'my str' -n123{:sh}`.
-</Callout>
+##### Inline parameters
+
+Cluster arguments may be considered to have an inline parameter if they contain at least one unknown
+letter that is _not_ the first. For example, using the same option definitions as above, the command
+line `cmd -s'my str' -n123{:sh}` would be parsed as `cmd --str 'my str' --num 123{:sh}`.
+
+Notice how the parameters appear "glued" to the first letter, with no intervening space, and they
+contain characters that are not valid cluster letters. The first letter _must_ be a valid letter.
 
 ### Parameter attributes
 

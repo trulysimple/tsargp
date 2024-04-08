@@ -25,13 +25,18 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 
 - check if completion works by pressing `Tab` (it behaves slightly differently than a real bash)
 - check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`)
-- check if an option parameter gets completed (e.g., `o<Tab>`, `-se <Tab>`, `--ne <Tab>`)
+- check if an option parameter gets completed (e.g., `o<Tab>`, `-b <Tab>`, `-se <Tab>`, `-ne <Tab>`)
 
 ### Positional arguments
 
 - check if positional arguments can be specified before named ones (e.g., `one -s 0`)
 - check if all arguments after `--` are recognized as positional (e.g., try `-- -f` and see that it
   fails)
+
+### Cluster arguments
+
+- check if cluster arguments can be specified (e.g., `-sn 1 -1`)
+- check if cluster arguments can be specified with inline values (e.g., `-s1` or `-n-1`)
 
 ### String parameters
 

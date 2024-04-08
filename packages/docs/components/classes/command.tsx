@@ -183,7 +183,7 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
     if (pos <= 0) {
       return; // happens when the cursor is positioned before the start of the command
     }
-    let commands = ['clear', this.commands];
+    let commands = ['clear', ...this.commands];
     for (let i = 0; i < pos && i < command.length; ++i) {
       commands = commands.filter((cmd) => i < cmd.length && cmd[i] === line[i]);
     }

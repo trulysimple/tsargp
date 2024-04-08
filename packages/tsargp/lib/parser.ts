@@ -250,35 +250,43 @@ function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
  */
 function parseCluster(context: ParseContext, index: number): boolean {
   /** @ignore */
-  function isComp() {
+  function isComp(): boolean {
     return completing && index === args.length;
   }
-  const [validator, , args, , completing, , , clusterPrefix] = context;
+  /** @ignore */
+  function getOpt(letter: string): [string, OpaqueOption, string?] {
+    const key = letters.get(letter) ?? '';
+    const option = validator.options[key];
+    const name = option.names?.find((name): name is string => !!name);
+    return [key, option, name];
+  }
+  const [validator, , args, , completing, , , prefix] = context;
   const cluster = args[index++];
-  if (!clusterPrefix || !cluster.startsWith(clusterPrefix)) {
+  if (!prefix || !cluster.startsWith(prefix) || cluster.length === prefix.length) {
     return false;
   }
-  for (let j = clusterPrefix.length; j < cluster.length && !isComp(); ++j) {
-    const letter = cluster[j];
-    const key = validator.letters.get(letter);
-    if (!key) {
-      if (completing) {
-        continue; // ignore unknown letter during completion
-      }
-      throw validator.error(ErrorItem.unknownOption, { o: letter }, { alt: 0 });
-    }
-    const option = validator.options[key];
+  const letters = validator.letters;
+  const rest = cluster.slice(prefix.length);
+  const unknownIndex = [...rest].findIndex((letter) => !letters.has(letter));
+  if (unknownIndex === 0) {
+    return false; // do not consider it a cluster
+  }
+  if (unknownIndex > 0) {
+    const [, , name] = getOpt(rest[0]);
+    args.splice(index, 0, ...(name ? [name] : []), rest.slice(1));
+    return true; // treat it as an inline parameter
+  }
+  for (let j = 0; j < rest.length && !isComp(); ++j) {
+    const letter = rest[j];
+    const [, option, name] = getOpt(letter);
     const [min, max] = getParamCount(option);
-    if (j < cluster.length - 1 && (option.type === 'command' || min < max)) {
+    if (j < rest.length - 1 && (option.type === 'command' || min < max)) {
       throw validator.error(ErrorItem.invalidClusterOption, { o: letter });
     }
-    const name = option.names?.find((name) => name);
-    if (!name) {
-      index += min; // positional option with no name
-      continue;
+    if (name) {
+      args.splice(index++, 0, name);
     }
-    args.splice(index, 0, name);
-    index += 1 + min;
+    index += min;
   }
   return true;
 }
@@ -434,6 +442,9 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
         if (!positional) {
           if (comp) {
             throw new CompletionMessage(...completeName(validator, arg));
+          }
+          if (completing) {
+            continue; // ignore unknown options during completion
           }
           handleUnknownName(validator, name);
         }

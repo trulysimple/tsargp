@@ -5,7 +5,7 @@ import React from 'react';
 import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
 import { type Props, Command } from './classes/command';
 
-// @ts-expect-error since tsargp demo does not export types
+// @ts-expect-error since tsargp examples do not export types
 import { calc as options } from 'tsargp/examples';
 
 //--------------------------------------------------------------------------------------------------

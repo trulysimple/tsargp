@@ -23,8 +23,9 @@ interface Values {
 }
 
 try {
+  const parser = new ArgumentParser(options);
   const values = {} as Values;
-  const { warning } = await new ArgumentParser(options).parseInto(values);
+  const { warning } = await parser.parseInto(values, undefined, { clusterPrefix: '-' });
   if (warning) {
     console.log(`${warning}`);
   }
