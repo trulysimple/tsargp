@@ -99,7 +99,7 @@ Optionally, enable word completion:
   </Tabs.Tab>
   <Tabs.Tab>
     ```fish copy /<your_cli_name>/ /<path_to_main_script>/
-    complete <your_cli_name> -a '(set -x BUFFER (commandline -c); <path_to_main_script>; set -e BUFFER)'
+    complete <your_cli_name> -f -a '(set -x BUFFER (commandline -c); <path_to_main_script>; set -e BUFFER)'
     ```
   </Tabs.Tab>
   <Tabs.Tab>

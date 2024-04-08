@@ -162,7 +162,7 @@ export type Range = [min: number, max: number];
 /**
  * Gets a list of arguments from a raw command line.
  * @param line The command line, including the command name
- * @param compIndex The completion index, if any (if negative, the line length is used)
+ * @param compIndex The completion index, if any (should be non-negative)
  * @returns The list of arguments, up to the completion index
  * @internal
  */
