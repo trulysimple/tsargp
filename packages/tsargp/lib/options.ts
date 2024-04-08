@@ -107,7 +107,7 @@ export type OptionStyles = {
    */
   readonly names?: Style;
   /**
-   * The style of the option paramater.
+   * The style of the option parameter.
    */
   readonly param?: Style;
   /**

@@ -7,6 +7,8 @@
   "ignoreWords": [
     "tsargp",
     "nextra",
+    "publint",
+    "println",
     "compspec",
     "compdef",
     "oclif",
@@ -14,7 +16,11 @@
     "mult",
     "vals",
     "descr",
-    "conv"
+    "conv",
+    "punct",
+    "charmap",
+    "ruleset",
+    "rulesets"
   ],
   "ignoreRegExpList": ["gh-username", "ga-measurement-id"],
   "ignorePaths": [

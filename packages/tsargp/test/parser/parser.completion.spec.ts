@@ -689,7 +689,7 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd ff', flags)).rejects.toThrow(/^$/);
     });
 
-    it('should complete the paramater of an option specified in a cluster argument (and ignore the rest)', async () => {
+    it('should complete the parameter of an option specified in a cluster argument (and ignore the rest)', async () => {
       const options = {
         boolean: {
           type: 'boolean',

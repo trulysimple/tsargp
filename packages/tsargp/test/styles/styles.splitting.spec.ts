@@ -17,8 +17,8 @@ describe('TerminalString', () => {
       const str = new TerminalString().split(`${style(tf.clear)}type script${style(tf.clear)}`);
       expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
-      expect(str.strings[0]).toEqual('\x1b[0mtype');
-      expect(str.strings[1]).toEqual('script\x1b[0m');
+      expect(str.strings[0]).toEqual('\x1b[0m' + 'type');
+      expect(str.strings[1]).toEqual('script' + '\x1b[0m');
     });
 
     it('should split text with paragraphs', () => {
