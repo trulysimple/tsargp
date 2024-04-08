@@ -76,7 +76,7 @@ try {
 
 Optionally, enable word completion:
 
-<Tabs items={['Bash', 'PowerShell', 'Zsh']}>
+<Tabs items={['Bash', 'PowerShell', 'Zsh', 'Fish']}>
   <Tabs.Tab>
     ```bash copy /<your_cli_name>/ /<path_to_main_script>/
     complete -o default -C <path_to_main_script> <your_cli_name>
@@ -84,17 +84,26 @@ Optionally, enable word completion:
   </Tabs.Tab>
   <Tabs.Tab>
     ```ps copy /<your_cli_name>/ /<path_to_main_script>/
-    Register-ArgumentCompleter -Native -CommandName <your_cli_name> -ScriptBlock { ^
-      param($word, $cmdLine, $cursorPos) ^
-        $env:BUFFER="$cmdLine"; $env:CURSOR=$cursorPos ^
-        <path_to_main_script> ^
-        $env:BUFFER=$null; $env:CURSOR=$null ^ # reset variables
+    Register-ArgumentCompleter -Native -CommandName <your_cli_name> -ScriptBlock {
+      param($word, $cmdLine, $cursorPos)
+        $env:BUFFER="$cmdLine"; $env:CURSOR=$cursorPos
+        <path_to_main_script>
+        $env:BUFFER=$null; $env:CURSOR=$null # reset variables
     }
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```zsh copy /<your_cli_name>/ /<path_to_main_script>/
     compdef 'export BUFFER CURSOR; _values <your_cli_name> `<path_to_main_script>`' <your_cli_name>
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```fish copy /<your_cli_name>/ /<path_to_main_script>/
+    complete <your_cli_name> -a '(
+      set -x BUFFER (commandline); set -x CURSOR (commandline -C)
+      <path_to_main_script>
+      set -e BUFFER; set -e CURSOR # reset variables
+    )'
     ```
   </Tabs.Tab>
 </Tabs>

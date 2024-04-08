@@ -176,8 +176,21 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
   line = rest < 0 ? line + ' ' : rest >= 0 ? line.slice(0, compIndex) : line.trimEnd();
   let arg: string | undefined;
   let quote = '';
+  let escape = false;
   for (const char of line) {
+    if (escape) {
+      append(char);
+      escape = false;
+      continue;
+    }
     switch (char) {
+      case '\\':
+        if (quote) {
+          append(char);
+        } else {
+          escape = true;
+        }
+        break;
       case ' ':
         if (quote) {
           append(char);
