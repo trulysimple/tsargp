@@ -250,10 +250,6 @@ function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
  */
 function parseCluster(context: ParseContext, index: number): boolean {
   /** @ignore */
-  function isComp(): boolean {
-    return completing && index === args.length;
-  }
-  /** @ignore */
   function getOpt(letter: string): [string, OpaqueOption, string?] {
     const key = letters.get(letter) ?? '';
     const option = validator.options[key];
@@ -276,7 +272,7 @@ function parseCluster(context: ParseContext, index: number): boolean {
     args.splice(index, 0, ...(name ? [name] : []), rest.slice(1));
     return true; // treat it as an inline parameter
   }
-  for (let j = 0; j < rest.length && !isComp(); ++j) {
+  for (let j = 0; j < rest.length && (!completing || index < args.length); ++j) {
     const letter = rest[j];
     const [, option, name] = getOpt(letter);
     const [min, max] = getParamCount(option);
@@ -517,8 +513,7 @@ async function resolveVersion(
   ) {
     try {
       const jsonData = await promises.readFile(new URL(resolved));
-      const { version } = JSON.parse(jsonData.toString());
-      return version;
+      return JSON.parse(jsonData.toString()).version;
     } catch (err) {
       if ((err as ErrnoException).code !== 'ENOENT') {
         throw err;
@@ -643,7 +638,8 @@ async function parseParam(
   const lastParam = params[params.length - 1];
   let value;
   if (isOpt.arr(option)) {
-    const param = option.separator ? lastParam.split(option.separator) : params;
+    const separator = option.separator;
+    const param = separator ? lastParam.split(separator) : params;
     if (parse) {
       const seq = { values, index, name, param, comp };
       value = ((await parse(seq)) as Array<unknown>).map(norm);
@@ -751,8 +747,7 @@ async function handleFunction(
   if (option.exec) {
     const [, values, , , comp] = context;
     try {
-      const seq = { values, index, name, param, comp };
-      values[key] = await option.exec(seq);
+      values[key] = await option.exec({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate common errors during completion
       if (!comp || err instanceof CompletionMessage) {
@@ -786,8 +781,7 @@ async function handleCommand(
   const result = await doParse(cmdValidator, param, rest, comp, name, clusterPrefix);
   // comp === false, otherwise completion will have taken place by now
   if (option.exec) {
-    const seq = { values, index, name, param };
-    values[key] = await option.exec(seq);
+    values[key] = await option.exec({ values, index, name, param });
   }
   return result;
 }
@@ -876,8 +870,7 @@ async function handleCompletion(
   let words: Array<string>;
   if (option.complete) {
     try {
-      const seq = { values, index, name, param, comp };
-      words = await option.complete(seq);
+      words = await option.complete({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate errors during completion
       words = [];
@@ -949,10 +942,12 @@ async function checkRequiredOption(context: ParseContext, key: string) {
   }
   const option = validator.options[key];
   const specified = specifiedKeys.has(key);
+  const requires = option.requires;
+  const requiredIf = option.requiredIf;
   const error = new TerminalString();
   if (
-    (specified && option.requires && !(await check(option.requires, false, false))) ||
-    (!specified && option.requiredIf && !(await check(option.requiredIf, true, true)))
+    (specified && requires && !(await check(requires, false, false))) ||
+    (!specified && requiredIf && !(await check(requiredIf, true, true)))
   ) {
     const name = option.preferredName ?? '';
     const kind = specified
@@ -1007,11 +1002,11 @@ async function checkRequires(
     return checkRequireItems(validator, entries, checkEntry, error, negate, invert, !negate);
   }
   if ((await requires(values)) === negate) {
-    const config = validator.config;
+    const { styles, connectives } = validator.config;
     if (negate !== invert) {
-      error.word(config.connectives[ConnectiveWords.not]);
+      error.word(connectives[ConnectiveWords.not]);
     }
-    format.v(requires, config.styles, error);
+    format.v(requires, styles, error);
     return false;
   }
   return true;
@@ -1043,11 +1038,11 @@ function checkRequirement(
     if ((specified === required) !== negate) {
       return true;
     }
-    const config = validator.config;
+    const { styles, connectives } = validator.config;
     if (specified !== invert) {
-      error.word(config.connectives[ConnectiveWords.no]);
+      error.word(connectives[ConnectiveWords.no]);
     }
-    format.o(option.preferredName ?? '', config.styles, error);
+    format.o(option.preferredName ?? '', styles, error);
     return false;
   }
   const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : 'n';

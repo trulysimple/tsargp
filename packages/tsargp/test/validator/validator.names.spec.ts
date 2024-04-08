@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { type Options, OptionValidator } from '../../lib';
+import type { Options, ValidationFlags } from '../../lib';
+import { OptionValidator } from '../../lib';
 import '../utils.spec';
 
 describe('OptionValidator', () => {
@@ -148,7 +149,8 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      const flags: ValidationFlags = { detectNamingIssues: true };
+      const { warning } = validator.validate(flags);
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
         `: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,
@@ -171,7 +173,8 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      const flags: ValidationFlags = { detectNamingIssues: true };
+      const { warning } = validator.validate(flags);
       expect(warning).toHaveLength(3);
       expect(warning?.message).toEqual(
         `: Name slot 0 has mixed naming conventions ['lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'].\n` +
@@ -203,7 +206,8 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      const flags: ValidationFlags = { detectNamingIssues: true };
+      const { warning } = validator.validate(flags);
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
         `command: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,

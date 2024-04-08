@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { OpaqueOption, Requires, RequiresVal, OpaqueOptions } from './options';
 import type { FormatArgs, FormattingFlags, MessageStyles } from './styles';
-import type { Concrete, NamingRules } from './utils';
+import type { Concrete, NamingRules, Range } from './utils';
 
 import { tf, fg, ErrorItem, ConnectiveWords } from './enums';
 import {
@@ -76,7 +76,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range [%n].',
     [ErrorItem.invalidParamCount]: 'Option %o has invalid parameter count [%n].',
     [ErrorItem.variadicWithClusterLetter]:
-      'Variadic option %o has cluster letters. It may only appear as the last option in a cluster.',
+      'Variadic option %o may only appear as the last option in a cluster.',
   },
   connectives: {
     [ConnectiveWords.and]: 'and',
@@ -138,7 +138,7 @@ export type ValidationFlags = {
   /**
    * Whether the validation procedure should try to detect naming inconsistencies.
    */
-  readonly detectNamingInconsistencies?: true;
+  readonly detectNamingIssues?: true;
 };
 
 /**
@@ -202,8 +202,9 @@ export class OptionValidator {
     for (const key in this.options) {
       const option = this.options[key];
       registerNames(this.names, this.letters, key, option);
-      if (option.positional) {
-        const marker = typeof option.positional === 'string' ? option.positional : undefined;
+      const positional = option.positional;
+      if (positional) {
+        const marker = typeof positional === 'string' ? positional : undefined;
         this.positional = [key, option.preferredName ?? '', option, marker];
       }
     }
@@ -263,7 +264,7 @@ export class OptionValidator {
    * @returns The formatted error
    */
   error(kind: ErrorItem, args?: FormatArgs, flags?: FormattingFlags): ErrorMessage {
-    return new ErrorMessage(format(this.config, kind, args, flags));
+    return new ErrorMessage(this.format(kind, args, flags));
   }
 }
 
@@ -292,7 +293,7 @@ function validate(context: ValidateContext) {
       positional = key;
     }
   }
-  if (flags.detectNamingInconsistencies) {
+  if (flags.detectNamingIssues) {
     validateAllNames(context, names.keys());
   }
 }
@@ -317,8 +318,9 @@ function registerNames(
   if (!option.preferredName) {
     option.preferredName = names[0];
   }
-  if (option.clusterLetters) {
-    for (const letter of option.clusterLetters) {
+  const letters = option.clusterLetters;
+  if (letters) {
+    for (const letter of letters) {
       letterToKey.set(letter, key);
     }
   }
@@ -342,29 +344,32 @@ function validateNames(
   option: OpaqueOption,
 ) {
   const [config, , , , , prefix] = context;
-  if (option.positional === '') {
-    throw error(config, ErrorItem.emptyPositionalMarker, { o: prefix + key });
+  const positional = option.positional;
+  const prefixedKey = prefix + key;
+  if (positional === '') {
+    throw error(config, ErrorItem.emptyPositionalMarker, { o: prefixedKey });
   }
   const names = getOptionNames(option);
-  if (!option.positional && !names.length) {
-    throw error(config, ErrorItem.unnamedOption, { o: prefix + key });
+  if (!positional && !names.length) {
+    throw error(config, ErrorItem.unnamedOption, { o: prefixedKey });
   }
   for (const name of names) {
     if (name.match(/[\s=]+/)) {
-      throw error(config, ErrorItem.invalidOptionName, { o: prefix + key, s: name });
+      throw error(config, ErrorItem.invalidOptionName, { o: prefixedKey, s: name });
     }
     if (nameToKey.has(name)) {
-      throw error(config, ErrorItem.duplicateOptionName, { o: prefix + key, s: name });
+      throw error(config, ErrorItem.duplicateOptionName, { o: prefixedKey, s: name });
     }
     nameToKey.set(name, key);
   }
-  if (option.clusterLetters) {
-    for (const letter of option.clusterLetters) {
+  const letters = option.clusterLetters;
+  if (letters) {
+    for (const letter of letters) {
       if (letter.includes(' ')) {
-        throw error(config, ErrorItem.invalidClusterLetter, { o: prefix + key, s: letter });
+        throw error(config, ErrorItem.invalidClusterLetter, { o: prefixedKey, s: letter });
       }
       if (letterToKey.has(letter)) {
-        throw error(config, ErrorItem.duplicateClusterLetter, { o: prefix + key, s: letter });
+        throw error(config, ErrorItem.duplicateClusterLetter, { o: prefixedKey, s: letter });
       }
       letterToKey.set(letter, key);
     }
@@ -423,10 +428,8 @@ function format(
   args?: FormatArgs,
   flags?: FormattingFlags,
 ): TerminalString {
-  return new TerminalString()
-    .seq(config.styles.text)
-    .format(config.styles, config.phrases[kind], args, flags)
-    .break();
+  const { styles, phrases } = config;
+  return new TerminalString().seq(styles.text).format(styles, phrases[kind], args, flags).break();
 }
 
 /**
@@ -476,17 +479,18 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
  */
 function validateOption(context: ValidateContext, key: string, option: OpaqueOption) {
   const [config, , , warning, visited, prefix] = context;
+  const prefixedKey = prefix + key;
   const [min, max] = getParamCount(option);
   // no need to verify a flag option's default value
   if (max) {
-    validateConstraints(config, prefix + key, option);
+    validateConstraints(config, prefixedKey, option);
     // non-niladic function options are ignored in value validation
-    validateValue(config, prefix + key, option, option.default);
-    validateValue(config, prefix + key, option, option.example);
-    validateValue(config, prefix + key, option, option.fallback);
+    validateValue(config, prefixedKey, option, option.default);
+    validateValue(config, prefixedKey, option, option.example);
+    validateValue(config, prefixedKey, option, option.fallback);
   }
   if (min < max && option.clusterLetters) {
-    warning.push(format(config, ErrorItem.variadicWithClusterLetter, { o: prefix + key }));
+    warning.push(format(config, ErrorItem.variadicWithClusterLetter, { o: prefixedKey }));
   }
   if (option.requires) {
     validateRequirements(context, key, option.requires);
@@ -495,7 +499,7 @@ function validateOption(context: ValidateContext, key: string, option: OpaqueOpt
     validateRequirements(context, key, option.requiredIf);
   }
   if (option.version === '') {
-    throw error(config, ErrorItem.invalidVersionDefinition, { o: prefix + key });
+    throw error(config, ErrorItem.invalidVersionDefinition, { o: prefixedKey });
   }
   if (option.type === 'command') {
     const options = option.options;
@@ -504,7 +508,7 @@ function validateOption(context: ValidateContext, key: string, option: OpaqueOpt
       if (!visited.has(resolved)) {
         visited.add(resolved);
         context[1] = resolved;
-        context[5] = prefix + key + '.';
+        context[5] = prefixedKey + '.';
         validate(context);
       }
     }
@@ -549,27 +553,28 @@ function validateRequirement(
   requiredValue?: RequiresVal[string],
 ) {
   const [config, options, , , , prefix] = context;
+  const prefixedKey = prefix + requiredKey;
   if (requiredKey === key) {
-    throw error(config, ErrorItem.invalidSelfRequirement, { o: prefix + requiredKey });
+    throw error(config, ErrorItem.invalidSelfRequirement, { o: prefixedKey });
   }
   if (!(requiredKey in options)) {
-    throw error(config, ErrorItem.unknownRequiredOption, { o: prefix + requiredKey });
+    throw error(config, ErrorItem.unknownRequiredOption, { o: prefixedKey });
   }
   const option = options[requiredKey];
   if (isOpt.msg(option)) {
-    throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
+    throw error(config, ErrorItem.invalidRequiredOption, { o: prefixedKey });
   }
   const noValue = {};
   if ((requiredValue ?? noValue) === noValue) {
     if (option.required || option.default !== undefined) {
-      throw error(config, ErrorItem.invalidRequiredValue, { o: prefix + requiredKey });
+      throw error(config, ErrorItem.invalidRequiredValue, { o: prefixedKey });
     }
     return;
   }
   if (isOpt.ukn(option)) {
-    throw error(config, ErrorItem.invalidRequiredOption, { o: prefix + requiredKey });
+    throw error(config, ErrorItem.invalidRequiredOption, { o: prefixedKey });
   }
-  validateValue(config, prefix + requiredKey, option, requiredValue);
+  validateValue(config, prefixedKey, option, requiredValue);
 }
 
 /**
@@ -580,6 +585,14 @@ function validateRequirement(
  * @throws On invalid enums definition, invalid numeric range or invalid parameter count
  */
 function validateConstraints(config: ConcreteConfig, key: string, option: OpaqueOption) {
+  /** @ignore */
+  function checkRange(range: Range, kind: ErrorItem, checkMin = false) {
+    const [min, max] = range;
+    // handles NaN
+    if (!(min < max) || (checkMin && min < 0)) {
+      throw error(config, kind, { o: key, n: range });
+    }
+  }
   const enums = option.enums;
   const truth = option.truthNames;
   const falsity = option.falsityNames;
@@ -600,19 +613,11 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
   }
   const range = option.range;
   if (range) {
-    const [min, max] = range;
-    // handles NaN
-    if (!(min < max)) {
-      throw error(config, ErrorItem.invalidNumericRange, { o: key, n: range });
-    }
+    checkRange(range, ErrorItem.invalidNumericRange);
   }
   const paramCount = option.paramCount;
   if (typeof paramCount === 'object') {
-    const [min, max] = paramCount;
-    // handles NaN
-    if (!(min < max) || min < 0) {
-      throw error(config, ErrorItem.invalidParamCount, { o: key, n: paramCount });
-    }
+    checkRange(paramCount, ErrorItem.invalidParamCount, true);
   }
 }
 
