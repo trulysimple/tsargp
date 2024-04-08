@@ -24,7 +24,7 @@ import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
-import { areEqual, findSimilar, getArgs, isTrue, max, findInObject } from './utils';
+import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
 //--------------------------------------------------------------------------------------------------
@@ -152,10 +152,10 @@ export class ArgumentParser<T extends Options = Options> {
    */
   async parseInto(
     values: OptionValues<T>,
-    cmdLine = process?.env['COMP_LINE'] ?? process?.env['BUFFER'] ?? process?.argv.slice(2) ?? [],
+    cmdLine = env('COMP_LINE') ?? env('BUFFER') ?? process?.argv.slice(2) ?? [],
     flags: ParsingFlags = {
       progName: process?.argv[1].split(/[\\/]/).at(-1),
-      compIndex: Number(process?.env['COMP_POINT'] ?? process?.env['CURSOR']),
+      compIndex: Number(env('COMP_POINT') ?? env('CURSOR') ?? env('BUFFER')?.length),
     },
   ): Promise<ParsingResult> {
     const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
@@ -283,7 +283,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>, completin
 async function readEnvVar(context: ParseContext, info: OptionInfo): Promise<boolean> {
   const [, values] = context;
   const [key, name, option] = info;
-  const value = process?.env[name];
+  const value = env(name);
   if (value !== undefined) {
     if (option.type === 'flag') {
       // don't parse the flag value, for consistency with the semantics of the command-line

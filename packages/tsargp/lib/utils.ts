@@ -162,7 +162,7 @@ export type Range = [min: number, max: number];
 /**
  * Gets a list of arguments from a raw command line.
  * @param line The command line, including the command name
- * @param compIndex The completion index, if any
+ * @param compIndex The completion index, if any (if negative, the line length is used)
  * @returns The list of arguments, up to the completion index
  * @internal
  */
@@ -506,4 +506,13 @@ export function findInObject<T extends object>(
       return val;
     }
   }
+}
+
+/**
+ * Gets the value of an environment variable.
+ * @param name The variable name
+ * @returns The variable value, if it exists; else undefined
+ */
+export function env(name: string): string | undefined {
+  return process?.env[name];
 }

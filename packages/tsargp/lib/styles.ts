@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
 import { cs, tf, fg, bg } from './enums';
-import { max, overrides, regexps, selectAlternative } from './utils';
+import { env, max, overrides, regexps, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -810,10 +810,7 @@ function formatArgs(
  * @see https://clig.dev/#output
  */
 function omitStyles(width: number): boolean {
-  return (
-    !process?.env['FORCE_COLOR'] &&
-    (!width || !!process?.env['NO_COLOR'] || process?.env['TERM'] === 'dumb')
-  );
+  return !env('FORCE_COLOR') && (!width || !!env('NO_COLOR') || env('TERM') === 'dumb');
 }
 
 /**
