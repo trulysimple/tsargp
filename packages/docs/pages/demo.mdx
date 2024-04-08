@@ -36,7 +36,7 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 ### Cluster arguments
 
 - check if cluster arguments can be specified (e.g., `-sn 1 -1`)
-- check if cluster arguments can be specified with inline values (e.g., `-s1` or `-n-1`)
+- check if cluster arguments can be specified with inline parameters (e.g., `-s1` or `-n-1`)
 
 ### String parameters
 
@@ -64,7 +64,7 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 
 - check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
 - check if the `-b` option can be specified in combination with other options
-- check if values can be inlined with option names (e.g., `-ss=abc`)
+- check if parameters can be inlined with option names (e.g., `-ss=abc`)
 - check if the help option accepts option filters (e.g., `-h -b`)
 
 ### Nested commands

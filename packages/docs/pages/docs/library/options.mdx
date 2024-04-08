@@ -288,7 +288,8 @@ letter that is _not_ the first. For example, using the same option definitions a
 line `cmd -s'my str' -n123{:sh}` would be parsed as `cmd --str 'my str' --num 123{:sh}`.
 
 Notice how the parameters appear "glued" to the first letter, with no intervening space, and they
-contain characters that are not valid cluster letters. The first letter _must_ be a valid letter.
+contain characters that are not valid cluster letters. The first one _must_ be valid, otherwise the
+argument will not be considered a cluster.
 
 ### Parameter attributes
 

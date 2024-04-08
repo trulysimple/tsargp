@@ -250,9 +250,9 @@ with normal parameters, the value may contain any number of equal signs, and eve
 (e.g., `-opt==val` would be parsed as `'=val'{:ts}`).
 
 Cluster arguments may also have inline parameters, but their syntax is different. A cluster argument
-is considered to have an inline parameter if it contains an unknown letter that is _not_ the first
-letter in the cluster. In this case, the first letter is the option and the rest is its parameter.
-See cluster letters' [inline parameters] for details about this syntax.
+is considered to have an inline parameter if it contains an unknown letter that is not the first one
+in the cluster. In this case, the first letter _must_ be an option and the rest is its parameter.
+See [cluster inline parameters] for details about this syntax.
 
 ### Process title
 
@@ -300,7 +300,7 @@ they would pollute the output of process management utilities such as `ps`.
 [fallback value]: options#fallback-value
 [parameter count]: options#parameter-count
 [usage section]: formatter#usage-section
-[inline parameters]: options#inline-parameters
+[cluster inline parameters]: options#inline-parameters
 [`break`]: options#break-loop
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Bash docs]: https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
