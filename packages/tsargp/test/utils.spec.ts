@@ -53,6 +53,13 @@ describe('getArgs', () => {
       expect(getArgs(`cmd type" "script' 'is fun`)).toEqual(['type script is', 'fun']);
       expect(getArgs(`cmd "'type' script" 'is "fun"'`)).toEqual([`'type' script`, 'is "fun"']);
     });
+
+    it('should handle escaped characters', () => {
+      expect(getArgs(`cmd type\\ script`)).toEqual(['type script']);
+      expect(getArgs(`cmd type\\\\script`)).toEqual(['type\\script']);
+      expect(getArgs(`cmd "type\\ script"`)).toEqual(['type\\ script']);
+      expect(getArgs(`cmd 'type\\ script'`)).toEqual(['type\\ script']);
+    });
   });
 
   describe('with completion index', () => {
