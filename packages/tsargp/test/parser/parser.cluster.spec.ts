@@ -9,6 +9,7 @@ describe('ArgumentParser', () => {
 
     it('should throw an error on unrecognized cluster argument', async () => {
       const parser = new ArgumentParser({});
+      await expect(parser.parse(['-'], flags)).rejects.toThrow(`Unknown option -.`);
       await expect(parser.parse(['-x'], flags)).rejects.toThrow(`Unknown option -x.`);
     });
 

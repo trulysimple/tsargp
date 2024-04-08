@@ -250,10 +250,6 @@ function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
  */
 function parseCluster(context: ParseContext, index: number): boolean {
   /** @ignore */
-  function isComp(): boolean {
-    return completing && index === args.length;
-  }
-  /** @ignore */
   function getOpt(letter: string): [string, OpaqueOption, string?] {
     const key = letters.get(letter) ?? '';
     const option = validator.options[key];
@@ -276,7 +272,7 @@ function parseCluster(context: ParseContext, index: number): boolean {
     args.splice(index, 0, ...(name ? [name] : []), rest.slice(1));
     return true; // treat it as an inline parameter
   }
-  for (let j = 0; j < rest.length && !isComp(); ++j) {
+  for (let j = 0; j < rest.length && (!completing || index < args.length); ++j) {
     const letter = rest[j];
     const [, option, name] = getOpt(letter);
     const [min, max] = getParamCount(option);
@@ -751,8 +747,7 @@ async function handleFunction(
   if (option.exec) {
     const [, values, , , comp] = context;
     try {
-      const seq = { values, index, name, param, comp };
-      values[key] = await option.exec(seq);
+      values[key] = await option.exec({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate common errors during completion
       if (!comp || err instanceof CompletionMessage) {
@@ -786,8 +781,7 @@ async function handleCommand(
   const result = await doParse(cmdValidator, param, rest, comp, name, clusterPrefix);
   // comp === false, otherwise completion will have taken place by now
   if (option.exec) {
-    const seq = { values, index, name, param };
-    values[key] = await option.exec(seq);
+    values[key] = await option.exec({ values, index, name, param });
   }
   return result;
 }
@@ -876,8 +870,7 @@ async function handleCompletion(
   let words: Array<string>;
   if (option.complete) {
     try {
-      const seq = { values, index, name, param, comp };
-      words = await option.complete(seq);
+      words = await option.complete({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate errors during completion
       words = [];
@@ -949,10 +942,12 @@ async function checkRequiredOption(context: ParseContext, key: string) {
   }
   const option = validator.options[key];
   const specified = specifiedKeys.has(key);
+  const requires = option.requires;
+  const requiredIf = option.requiredIf;
   const error = new TerminalString();
   if (
-    (specified && option.requires && !(await check(option.requires, false, false))) ||
-    (!specified && option.requiredIf && !(await check(option.requiredIf, true, true)))
+    (specified && requires && !(await check(requires, false, false))) ||
+    (!specified && requiredIf && !(await check(requiredIf, true, true)))
   ) {
     const name = option.preferredName ?? '';
     const kind = specified

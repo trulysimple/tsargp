@@ -299,6 +299,28 @@ type FormatFunction = (
  */
 type FormatFunctions = Record<string, FormatFunction>;
 
+/**
+ * The terminal string context.
+ */
+type TerminalContext = [
+  /**
+   * The list of internal strings that have been appended.
+   */
+  strings: Array<string>,
+  /**
+   * The lengths of the internal strings, ignoring control characters and sequences.
+   */
+  lengths: Array<number>,
+  /**
+   * Whether the next string should be merged with the last string.
+   */
+  merge: boolean,
+  /**
+   * True if the string should be right-aligned to the terminal width.
+   */
+  rightAlign: boolean,
+];
+
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
@@ -307,32 +329,22 @@ type FormatFunctions = Record<string, FormatFunction>;
  */
 export class TerminalString {
   /**
-   * Whether the next string should be merged with the last string.
+   * The terminal string context.
    */
-  private merge = false;
+  public context: TerminalContext;
 
   /**
-   * The list of internal strings that have been appended.
-   */
-  readonly strings: Array<string> = [];
-
-  /**
-   * The lengths of the internal strings, ignoring control characters and sequences.
-   */
-  readonly lengths: Array<number> = [];
-
-  /**
-   * @returns The combined length of all internal strings, ignoring control characters and sequences
+   * @returns The combined length of all internal strings, ignoring control sequences
    */
   get length(): number {
-    return this.lengths.reduce((acc, len) => acc + len, 0);
+    return this.context[1].reduce((acc, len) => acc + len, 0);
   }
 
   /**
    * @returns The number of internal strings
    */
   get count(): number {
-    return this.strings.length;
+    return this.context[1].length;
   }
 
   /**
@@ -342,10 +354,11 @@ export class TerminalString {
    * @param rightAlign True if the string should be right-aligned to the terminal width
    */
   constructor(
-    public indent: number = 0,
+    public indent = 0,
     breaks = 0,
-    public rightAlign = false,
+    rightAlign = false,
   ) {
+    this.context = [[], [], false, rightAlign];
     this.break(breaks);
   }
 
@@ -356,9 +369,10 @@ export class TerminalString {
    */
   pop(count = 1): this {
     if (count > 0) {
-      const len = max(0, this.count - count);
-      this.strings.length = len;
-      this.lengths.length = len;
+      const [strings, lengths] = this.context;
+      const len = max(0, strings.length - count);
+      strings.length = len;
+      lengths.length = len;
     }
     return this;
   }
@@ -370,11 +384,11 @@ export class TerminalString {
    * @returns The terminal string instance
    */
   other(other: TerminalString): this {
-    for (let i = 0; i < other.count; ++i) {
-      this.add(other.strings[i], other.lengths[i]);
+    const [strings, lengths, merge] = other.context;
+    for (let i = 0; i < strings.length; ++i) {
+      this.add(strings[i], lengths[i]);
     }
-    this.merge = other.merge;
-    return this;
+    return this.setMerge(merge);
   }
 
   /**
@@ -383,7 +397,7 @@ export class TerminalString {
    * @returns The terminal string instance
    */
   setMerge(merge = true): this {
-    this.merge = merge;
+    this.context[2] = merge;
     return this;
   }
 
@@ -461,17 +475,17 @@ export class TerminalString {
    */
   add(text: string, length: number): this {
     if (text) {
-      const count = this.count;
-      if (count && this.merge) {
-        this.strings[count - 1] += text;
-        this.lengths[count - 1] += length;
+      const [strings, lengths, merge] = this.context;
+      const count = strings.length;
+      if (count && merge) {
+        strings[count - 1] += text;
+        lengths[count - 1] += length;
       } else {
-        this.strings.push(text);
-        this.lengths.push(length);
+        strings.push(text);
+        lengths.push(length);
       }
     }
-    this.merge = false;
-    return this;
+    return this.setMerge(false);
   }
 
   /**
@@ -551,27 +565,29 @@ export class TerminalString {
         shorten(); // adjust backwards: shorten the current line
       }
     }
-    if (!this.count) {
+    const count = this.count;
+    if (!count) {
       return column;
     }
     column = max(0, column);
     width = max(0, width);
     let start = max(0, this.indent);
 
-    const needToAlign = width && this.rightAlign;
-    const largestFits = !width || width >= start + Math.max(...this.lengths);
+    const [strings, lengths, , rightAlign] = this.context;
+    const needToAlign = width && rightAlign;
+    const largestFits = !width || width >= start + Math.max(...lengths);
     if (!largestFits) {
       start = 0; // wrap to the first column instead
     }
     const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
-    if (column !== start && !this.strings[0].startsWith('\n')) {
+    if (column !== start && !strings[0].startsWith('\n')) {
       adjust();
       column = start;
     }
 
     let j = result.length; // save index for right-alignment
-    for (let i = 0; i < this.count; ++i) {
-      let str = this.strings[i];
+    for (let i = 0; i < count; ++i) {
+      let str = strings[i];
       if (str.startsWith('\n')) {
         align();
         j = result.push(str); // save index for right-alignment
@@ -582,7 +598,7 @@ export class TerminalString {
         j = result.push(indent); // save index for right-alignment
         column = start;
       }
-      const len = this.lengths[i];
+      const len = lengths[i];
       if (!len) {
         if (emitStyles) {
           result.push(str);
