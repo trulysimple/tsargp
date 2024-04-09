@@ -56,7 +56,8 @@ class PlayCommand extends Command<PlayProps> {
         }
       } else if (this.parser) {
         const values = {};
-        const { warning } = await this.parser.parseInto(values, line, { compIndex });
+        const flags = { progName: 'play', compIndex };
+        const { warning } = await this.parser.parseInto(values, line, flags);
         if (warning) {
           this.println(warning.wrap(this.state.width));
         }
