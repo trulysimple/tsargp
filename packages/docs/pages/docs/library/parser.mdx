@@ -56,8 +56,8 @@ When using TypeScript, this parameter will be type-checked against the expected 
 values for a given set of option definitions.
 
 <Callout type="default">
-  You may want to peak at the resulting type of the `parse` method using IntelliSense (or declare a
-  temporary type alias for `OptionValues<typeof _your_options_>{:ts}`) to see how the object is
+  Using IntelliSense, you can peak at the resulting type of the `parse` method, or declare a
+  temporary type alias for `OptionValues<typeof _your_options_>{:ts}`, to see how the object is
   structured.
 </Callout>
 
@@ -134,9 +134,9 @@ to deal with returned promises in a way that would make it hard to maintain (rem
 [callback hell]).
 
 Besides, the asynchronous version has the benefit of allowing us to perform some operations, such as
-[requirements checking], concurrently. This should not be a drawback for most CLI applications,
-since argument parsing is usually done at the top-level of a module or script, where this construct
-is easily available
+[requirements checking], concurrently. This should not be a drawback for most applications, since
+argument parsing is usually done at the top-level of a module or script, where the `await` primitive
+is available.
 
 ### Argument sequence
 
@@ -234,8 +234,9 @@ step exclude the possibility of it being an [inline parameter], when considering
 #### Altered parsing behavior
 
 Since the completion builtins always expect a list of words as a result, the library must suppress
-all errors that occur during parsing, and it does not make sense to perform some operations. Hence,
-when word completion is in effect, the parsing behavior is changed in the following manner:
+all errors that occur during parsing, and it does not make sense to perform some operations that
+might throw. Therefore, when word completion is in effect, parsing behavior will change in the
+following important ways:
 
 - parsing errors, such as unknown option names, are suppressed
 - unknown-valued options (help and version) are skipped

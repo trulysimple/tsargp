@@ -269,8 +269,8 @@ preserve the disposition of wrapped text.
 ### Default width
 
 In addition to providing a `wrap` method, the terminal message overrides the `toString` method and
-has a `message` property, both of which can be used to obtain a string wrapped with a default
-terminal width.
+has a convenient `message` property, both of which can be used to obtain a string wrapped with a
+default terminal width.
 
 The default width depends on the kind of message: in the case of `TerminalMessage`, it is the width
 of the standard _output_ stream (`process.stdout.columns{:ts}`). Therefore, this kind of message
