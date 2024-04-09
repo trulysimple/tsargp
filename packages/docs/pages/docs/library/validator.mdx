@@ -381,16 +381,23 @@ message, along with a description of the corresponding value:
 
 ### Connective words
 
-The `connectives` property specifies the connective words that are used to format options'
-requirements, in both error and help messages. It has the following optional properties, whose keys
-are enumerators from `ConnectiveWords`:
+The `connectives` property specifies connective words that are used to format some text elements
+that cannot be customized using phrases, such as option requirements, array element separators and
+string quoting. This is used in errors, warnings and help messages.
 
-- `and` - the word used to connect two logical expressions in conjunction
-- `or` - the word used to connect two logical expressions in disjunction
-- `not` - the word used to connect a logical expression in negation
-- `no` - the word used to connect a logical expression in non-existence
-- `equals` - the word used to connect two expressions in equality comparison
-- `notEquals` - the word used to connect two expressions in non-equality comparison
+It has the following optional properties, whose keys are enumerators from `ConnectiveWord`:
+
+- `and` - the word used to connect two logical expressions in conjunction (defaults to `'and'{:ts}`)
+- `or` - the word used to connect two logical expressions in disjunction (defaults to `'or'{:ts}`)
+- `not` - the word used to connect a logical expression in negation (defaults to `'not'{:ts}`)
+- `no` - the word used to connect a logical expression in non-existence (defaults to `'no'{:ts}`)
+- `equals` - the word used to connect two expressions in equality comparison (defaults to `'=='{:ts}`)
+- `notEquals` - the word used to connect two expressions in non-equality comparison (defaults to `'!='{:ts}`)
+- `optionAlt` - the word used to connect two option names in alternation (defaults to `'|'{:ts}`)
+- `optionSep` - the word used to connect two option names in succession (defaults to `','{:ts}`)
+- `stringSep` - the word used to connect two string values in succession (defaults to `','{:ts}`)
+- `numberSep` - the word used to connect two number values in succession (defaults to `','{:ts}`)
+- `stringQuote` - the quote character used to enclose a string value (defaults to `"'"{:ts}`)
 
 [value validation]: #value-validation
 [negation names]: options#negation-names

@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Exports - NOTE: some enumerations are abbreviated for ease of use in client code.
 //--------------------------------------------------------------------------------------------------
-export { ControlSequence as cs, TypeFace as tf, Foreground as fg, Background as bg };
+export { ControlSequence as cs, TypeFace as tf, ForegroundColor as fg, BackgroundColor as bg };
 
 //--------------------------------------------------------------------------------------------------
 // Constants - NOTE: please add new enumerators at the _end_ of the enumeration.
@@ -253,7 +253,7 @@ export const enum HelpItem {
 /**
  * The kind of connective words used in option requirements.
  */
-export const enum ConnectiveWords {
+export const enum ConnectiveWord {
   /**
    * The word used to connect two logical expressions in conjunction.
    */
@@ -278,6 +278,26 @@ export const enum ConnectiveWords {
    * The word used to connect two expressions in non-equality comparison.
    */
   notEquals,
+  /**
+   * The word used to connect two option names in alternation.
+   */
+  optionAlt,
+  /**
+   * The word used to connect two option names in succession.
+   */
+  optionSep,
+  /**
+   * The word used to connect two string values in succession.
+   */
+  stringSep,
+  /**
+   * The word used to connect two number values in succession.
+   */
+  numberSep,
+  /**
+   * The quote character used to enclose a string value.
+   */
+  stringQuote,
 }
 
 /**
@@ -621,7 +641,7 @@ const enum TypeFace {
 /**
  * A predefined text foreground color.
  */
-const enum Foreground {
+const enum ForegroundColor {
   black = 30,
   red,
   green,
@@ -644,7 +664,7 @@ const enum Foreground {
 /**
  * A predefined text background color.
  */
-const enum Background {
+const enum BackgroundColor {
   black = 40,
   red,
   green,

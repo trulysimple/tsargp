@@ -5,7 +5,7 @@ import type { OpaqueOption, Requires, RequiresVal, OpaqueOptions } from './optio
 import type { FormatArgs, FormattingFlags, MessageStyles } from './styles';
 import type { Concrete, NamingRules, Range } from './utils';
 
-import { tf, fg, ErrorItem, ConnectiveWords } from './enums';
+import { tf, fg, ErrorItem, ConnectiveWord } from './enums';
 import {
   RequiresAll,
   RequiresOne,
@@ -79,12 +79,17 @@ export const defaultConfig: ConcreteConfig = {
       'Variadic option %o may only appear as the last option in a cluster.',
   },
   connectives: {
-    [ConnectiveWords.and]: 'and',
-    [ConnectiveWords.or]: 'or',
-    [ConnectiveWords.not]: 'not',
-    [ConnectiveWords.no]: 'no',
-    [ConnectiveWords.equals]: '==',
-    [ConnectiveWords.notEquals]: '!=',
+    [ConnectiveWord.and]: 'and',
+    [ConnectiveWord.or]: 'or',
+    [ConnectiveWord.not]: 'not',
+    [ConnectiveWord.no]: 'no',
+    [ConnectiveWord.equals]: '==',
+    [ConnectiveWord.notEquals]: '!=',
+    [ConnectiveWord.optionAlt]: '|',
+    [ConnectiveWord.optionSep]: ',',
+    [ConnectiveWord.stringSep]: ',',
+    [ConnectiveWord.numberSep]: ',',
+    [ConnectiveWord.stringQuote]: `'`,
   },
 };
 
@@ -128,7 +133,7 @@ export type ValidatorConfig = {
   /**
    * The connective words.
    */
-  readonly connectives?: Readonly<Partial<Record<ConnectiveWords, string>>>;
+  readonly connectives?: Readonly<Partial<Record<ConnectiveWord, string>>>;
 };
 
 /**
@@ -293,7 +298,8 @@ async function validate(context: ValidateContext) {
     }
   }
   if (flags.detectNamingIssues) {
-    validateAllNames(context, names.keys());
+    detectTooSimilarOptionNames(context, names.keys());
+    detectMixedNamingConventions(context);
   }
 }
 
@@ -376,12 +382,13 @@ function validateNames(
 }
 
 /**
- * Validates the options' names against a set of rules.
+ * Detects option names that are too similar to each other.
  * @param context The validation context
  * @param names The list of option names
  */
-function validateAllNames(context: ValidateContext, names: Iterable<string>) {
-  const [config, options, , warning, , prefix] = context;
+function detectTooSimilarOptionNames(context: ValidateContext, names: Iterable<string>) {
+  const [config, , , warning, , prefix] = context;
+  const sep = config.connectives[ConnectiveWord.optionSep];
   const prefix2 = prefix.slice(0, -1); // remove trailing dot
   const visited = new Set<string>();
   for (const name of names) {
@@ -390,14 +397,23 @@ function validateAllNames(context: ValidateContext, names: Iterable<string>) {
     }
     const similar = findSimilar(name, names, 0.8);
     if (similar.length) {
-      warning.push(
-        format(config, ErrorItem.tooSimilarOptionNames, { o: prefix2, s1: name, s2: similar }),
-      );
+      const args = { o: prefix2, s1: name, s2: similar };
+      warning.push(format(config, ErrorItem.tooSimilarOptionNames, args, { sep }));
       for (const similarName of similar) {
         visited.add(similarName);
       }
     }
   }
+}
+
+/**
+ * Detects option names with mixed naming conventions.
+ * @param context The validation context
+ */
+function detectMixedNamingConventions(context: ValidateContext) {
+  const [config, options, , warning, , prefix] = context;
+  const sep = config.connectives[ConnectiveWord.stringSep];
+  const prefix2 = prefix.slice(0, -1); // remove trailing dot
   getNamesInEachSlot(options).forEach((slot, i) => {
     const match = matchNamingRules(slot, namingConventions);
     // produce a warning for each naming rule category with more than one match,
@@ -406,7 +422,8 @@ function validateAllNames(context: ValidateContext, names: Iterable<string>) {
       const entries = Object.entries(match[key]);
       if (entries.length > 1) {
         const list = entries.map(([rule, name]) => rule + ': ' + name);
-        warning.push(format(config, ErrorItem.mixedNamingConvention, { o: prefix, n: i, s: list }));
+        const args = { o: prefix2, n: i, s: list };
+        warning.push(format(config, ErrorItem.mixedNamingConvention, args, { sep }));
       }
     }
   });
@@ -477,7 +494,7 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
  * @throws On invalid constraint definition, invalid default, example or fallback value
  */
 async function validateOption(context: ValidateContext, key: string, option: OpaqueOption) {
-  const [config, , , warning, visited, prefix] = context;
+  const [config, , flags, warning, visited, prefix] = context;
   const prefixedKey = prefix + key;
   const [min, max] = getParamCount(option);
   // no need to verify a flag option's default value
@@ -506,9 +523,8 @@ async function validateOption(context: ValidateContext, key: string, option: Opa
       const resolved = (typeof options === 'function' ? await options() : options) as OpaqueOptions;
       if (!visited.has(resolved)) {
         visited.add(resolved);
-        context[1] = resolved;
-        context[5] = prefixedKey + '.';
-        await validate(context);
+        // create a new context, to avoid changing the behavior of functions up in the call stack
+        await validate([config, resolved, flags, warning, visited, prefixedKey + '.']);
       }
     }
   }
@@ -589,7 +605,8 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
     const [min, max] = range;
     // handles NaN
     if (!(min < max) || (checkMin && min < 0)) {
-      throw error(config, kind, { o: key, n: range });
+      const sep = config.connectives[ConnectiveWord.numberSep];
+      throw error(config, kind, { o: key, n: range }, { sep });
     }
   }
   const enums = option.enums;
@@ -696,7 +713,8 @@ function normalizeString(
   const enums = option.enums;
   if (enums && !enums.includes(value)) {
     const args = { o: name, s1: value, s2: enums };
-    throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 0, sep: ',' });
+    const sep = config.connectives[ConnectiveWord.stringSep];
+    throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 0, sep });
   }
   const regex = option.regex;
   if (regex && !regex.test(value)) {
@@ -727,13 +745,15 @@ function normalizeNumber(
   const enums = option.enums;
   if (enums && !enums.includes(value)) {
     const args = { o: name, n1: value, n2: enums };
-    throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 1, sep: ',' });
+    const sep = config.connectives[ConnectiveWord.numberSep];
+    throw error(config, ErrorItem.enumsConstraintViolation, args, { alt: 1, sep });
   }
   const range = option.range;
   // handles NaN
   if (range && !(value >= range[0] && value <= range[1])) {
     const args = { o: name, n1: value, n2: option.range };
-    throw error(config, ErrorItem.rangeConstraintViolation, args);
+    const sep = config.connectives[ConnectiveWord.numberSep];
+    throw error(config, ErrorItem.rangeConstraintViolation, args, { sep });
   }
   return value;
 }

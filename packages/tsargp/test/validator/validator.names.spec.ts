@@ -137,43 +137,26 @@ describe('OptionValidator', () => {
       );
     });
 
-    it('should return a warning on option name too similar to other names', async () => {
+    it('should return a warning on mixed naming conventions in a nested command', async () => {
       const options = {
-        flag1: {
-          type: 'flag',
-          names: ['flag1'],
-        },
-        flag2: {
-          type: 'flag',
-          names: ['flag2'],
-        },
-        flag3: {
-          type: 'flag',
-          names: ['flag3'],
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const flags: ValidationFlags = { detectNamingIssues: true };
-      const { warning } = await validator.validate(flags);
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `: Option name 'flag1' has too similar names: 'flag2', 'flag3'.\n`,
-      );
-    });
-
-    it('should return a warning on mixed naming conventions', async () => {
-      const options = {
-        flag1: {
-          type: 'flag',
-          names: ['lower', 'abc', 'keb-ab'],
-        },
-        flag2: {
-          type: 'flag',
-          names: ['UPPER', '-def', 'sna_ke'],
-        },
-        flag3: {
-          type: 'flag',
-          names: ['Capital', '--ghi', 'col:on'],
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            flag1: {
+              type: 'flag',
+              names: ['lower', 'abc', 'keb-ab'],
+            },
+            flag2: {
+              type: 'flag',
+              names: ['UPPER', '-def', 'sna_ke'],
+            },
+            flag3: {
+              type: 'flag',
+              names: ['Capital', '--ghi', 'col:on'],
+            },
+          },
+          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -181,13 +164,13 @@ describe('OptionValidator', () => {
       const { warning } = await validator.validate(flags);
       expect(warning).toHaveLength(3);
       expect(warning?.message).toEqual(
-        `: Name slot 0 has mixed naming conventions: 'lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'.\n` +
-          `: Name slot 1 has mixed naming conventions: 'noDash: abc', '-singleDash: -def', '--doubleDash: --ghi'.\n` +
-          `: Name slot 2 has mixed naming conventions: 'kebab-case: keb-ab', 'snake_case: sna_ke', 'colon:case: col:on'.\n`,
+        `command: Name slot 0 has mixed naming conventions: 'lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'.\n` +
+          `command: Name slot 1 has mixed naming conventions: 'noDash: abc', '-singleDash: -def', '--doubleDash: --ghi'.\n` +
+          `command: Name slot 2 has mixed naming conventions: 'kebab-case: keb-ab', 'snake_case: sna_ke', 'colon:case: col:on'.\n`,
       );
     });
 
-    it('should return a warning on nested command option name too similar to other names', async () => {
+    it('should return a warning on option name too similar to other names in a nested command', async () => {
       const options = {
         command: {
           type: 'command',
