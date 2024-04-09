@@ -232,6 +232,11 @@ export type FunctionCallback = CustomCallback<
 export type CommandCallback = CustomCallback<ParseInfo<OpaqueOptionValues>, unknown>;
 
 /**
+ * A callback for a command's option definitions.
+ */
+export type OptionsCallback = () => Options | Promise<Options>;
+
+/**
  * Information about the current argument sequence in the parsing loop.
  * @template P The parameter data type
  */
@@ -586,7 +591,7 @@ export type WithCommand = {
    * The command's options.
    * It can be a callback that returns the options (for use with recursive commands).
    */
-  readonly options?: Options | (() => Options);
+  readonly options?: Options | OptionsCallback;
   /**
    * The prefix of cluster arguments.
    * If set, then eligible arguments that have this prefix will be considered a cluster.

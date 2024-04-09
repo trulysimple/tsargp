@@ -691,9 +691,10 @@ Notes about this callback:
 
 #### Command options | callback
 
-The `options` attribute specifies the set of option definitions for the command, or a
-(non-asynchronous) callback that returns these definitions (which allows the implementation of
-[recursive commands]).
+The `options` attribute specifies the set of option definitions for the command. A callback may be
+used to provide these definitions, which allows the implementation of [recursive commands]. An
+asynchronous callback may be used to dynamically load option definitions from a module, in which
+case you can return the result of the `import{:ts}` directive.
 
 <Callout type="warning">
   All incoming arguments will be parsed using the option definitions from this attribute, not those

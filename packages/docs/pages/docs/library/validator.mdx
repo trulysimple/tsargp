@@ -23,11 +23,18 @@ This method accepts a `ValidationFlags` argument with the following optional pro
 - `detectNamingIssues` -
   whether the validation procedure should try to detect inconsistencies across option names
 
-It returns a `ValidationResult` object with the following properties:
+It returns a promise that resolves to a `ValidationResult` object with the following properties:
 
 - `warning` -
   A compilation of warning messages that represent non-impeditive issues encountered in the option
   definitions. You may want to print it to see if they are important to your application.
+
+<Callout type="info">
+  This method is _asynchronous_, so you must use `await{:ts}` in order to resolve the returned
+  promise.
+</Callout>
+
+## Validation rules
 
 The following sections describe the various kinds of validation performed by the validator. Unless
 otherwise noted, any option definition that does not satisfy one of these restrictions will raise an

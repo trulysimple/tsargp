@@ -4,7 +4,7 @@ import '../utils.spec';
 
 describe('OptionValidator', () => {
   describe('validate', () => {
-    it('should throw an error on boolean option with zero truth names', () => {
+    it('should throw an error on boolean option with zero truth names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -13,10 +13,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has zero-length enumeration.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has zero-length enumeration.`,
+      );
     });
 
-    it('should throw an error on boolean option with zero falsity names', () => {
+    it('should throw an error on boolean option with zero falsity names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -25,10 +27,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has zero-length enumeration.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has zero-length enumeration.`,
+      );
     });
 
-    it('should throw an error on boolean option with zero truth and falsity names', () => {
+    it('should throw an error on boolean option with zero truth and falsity names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -38,10 +42,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has zero-length enumeration.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has zero-length enumeration.`,
+      );
     });
 
-    it('should throw an error on string option with zero enumerated values', () => {
+    it('should throw an error on string option with zero enumerated values', async () => {
       const options = {
         string: {
           type: 'string',
@@ -50,10 +56,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option string has zero-length enumeration.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option string has zero-length enumeration.`,
+      );
     });
 
-    it('should throw an error on number option with zero enumerated values', () => {
+    it('should throw an error on number option with zero enumerated values', async () => {
       const options = {
         number: {
           type: 'number',
@@ -62,10 +70,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option number has zero-length enumeration.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option number has zero-length enumeration.`,
+      );
     });
 
-    it('should throw an error on strings option with zero enumerated values', () => {
+    it('should throw an error on strings option with zero enumerated values', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -74,10 +84,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option strings has zero-length enumeration.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option strings has zero-length enumeration.`,
+      );
     });
 
-    it('should throw an error on numbers option with zero enumerated values', () => {
+    it('should throw an error on numbers option with zero enumerated values', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -86,10 +98,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option numbers has zero-length enumeration.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option numbers has zero-length enumeration.`,
+      );
     });
 
-    it('should throw an error on string option with duplicate enumerated values', () => {
+    it('should throw an error on string option with duplicate enumerated values', async () => {
       const options = {
         string: {
           type: 'string',
@@ -98,10 +112,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option string has duplicate enumerator 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option string has duplicate enumerator 'dup'.`,
+      );
     });
 
-    it('should throw an error on number option with duplicate enumerated values', () => {
+    it('should throw an error on number option with duplicate enumerated values', async () => {
       const options = {
         number: {
           type: 'number',
@@ -110,10 +126,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option number has duplicate enumerator 1.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option number has duplicate enumerator 1.`,
+      );
     });
 
-    it('should throw an error on strings option with duplicate enumerated values', () => {
+    it('should throw an error on strings option with duplicate enumerated values', async () => {
       const options = {
         strings: {
           type: 'strings',
@@ -122,10 +140,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option strings has duplicate enumerator 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option strings has duplicate enumerator 'dup'.`,
+      );
     });
 
-    it('should throw an error on numbers option with duplicate enumerated values', () => {
+    it('should throw an error on numbers option with duplicate enumerated values', async () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -134,10 +154,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option numbers has duplicate enumerator 1.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option numbers has duplicate enumerator 1.`,
+      );
     });
 
-    it('should throw an error on boolean option with duplicate truth names', () => {
+    it('should throw an error on boolean option with duplicate truth names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -146,10 +168,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has duplicate enumerator 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has duplicate enumerator 'dup'.`,
+      );
     });
 
-    it('should throw an error on boolean option with duplicate falsity names', () => {
+    it('should throw an error on boolean option with duplicate falsity names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -158,10 +182,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has duplicate enumerator 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has duplicate enumerator 'dup'.`,
+      );
     });
 
-    it('should throw an error on boolean option with duplicate truth and falsity names', () => {
+    it('should throw an error on boolean option with duplicate truth and falsity names', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -171,10 +197,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has duplicate enumerator 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has duplicate enumerator 'dup'.`,
+      );
     });
 
-    it('should throw an error on number option with invalid range', () => {
+    it('should throw an error on number option with invalid range', async () => {
       const options = {
         number: {
           type: 'number',
@@ -183,10 +211,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option number has invalid numeric range [0, 0].`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option number has invalid numeric range [0, 0].`,
+      );
     });
 
-    it('should throw an error on number option with invalid range with NaN', () => {
+    it('should throw an error on number option with invalid range with NaN', async () => {
       const options = {
         number: {
           type: 'number',
@@ -195,12 +225,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
+      await expect(validator.validate()).rejects.toThrow(
         `Option number has invalid numeric range [0, NaN].`,
       );
     });
 
-    it('should throw an error on function option with invalid parameter count', () => {
+    it('should throw an error on function option with invalid parameter count', async () => {
       const options = {
         function: {
           type: 'function',
@@ -210,7 +240,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
+      await expect(validator.validate()).rejects.toThrow(
         `Option function has invalid parameter count [-1, 1].`,
       );
     });

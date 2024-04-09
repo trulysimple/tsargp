@@ -129,7 +129,7 @@ export class ArgumentParser<T extends Options = Options> {
    * @param flags The validation flags
    * @returns The validation result
    */
-  validate(flags?: ValidationFlags): ValidationResult {
+  validate(flags?: ValidationFlags): Promise<ValidationResult> {
     return this.validator.validate(flags);
   }
 
@@ -775,7 +775,7 @@ async function handleCommand(
   const [validator, values, , , comp] = context;
   const [key, name, option] = info;
   const { options, clusterPrefix } = option;
-  const cmdOptions = typeof options === 'function' ? options() : options ?? {};
+  const cmdOptions = typeof options === 'function' ? await options() : options ?? {};
   const cmdValidator = new OptionValidator(cmdOptions as OpaqueOptions, validator.config);
   const param: OpaqueOptionValues = {};
   const result = await doParse(cmdValidator, param, rest, comp, name, clusterPrefix);
@@ -803,7 +803,7 @@ async function handleMessage(
   const [validator, values] = context;
   const message =
     option.type === 'help'
-      ? handleHelp(context, rest, option)
+      ? await handleHelp(context, rest, option)
       : option.resolve
         ? await resolveVersion(validator, option.resolve)
         : option.version ?? '';
@@ -821,7 +821,11 @@ async function handleMessage(
  * @param option The option definition
  * @returns The help message
  */
-function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOption): HelpMessage {
+async function handleHelp(
+  context: ParseContext,
+  rest: Array<string>,
+  option: OpaqueOption,
+): Promise<HelpMessage> {
   let [validator, , , , , , progName] = context;
   if (option.useNested && rest.length) {
     const command = findInObject(
@@ -831,7 +835,9 @@ function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOp
     if (command) {
       const options = command.options;
       if (options) {
-        const resolved = (typeof options === 'function' ? options() : options) as OpaqueOptions;
+        const resolved = (
+          typeof options === 'function' ? await options() : options
+        ) as OpaqueOptions;
         const help = findInObject(resolved, (opt) => opt.type === 'help');
         if (help) {
           validator = new OptionValidator(resolved, validator.config);

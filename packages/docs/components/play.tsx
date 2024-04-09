@@ -37,11 +37,11 @@ class PlayCommand extends Command<PlayProps> {
     super(props, 'init', 'play');
   }
 
-  private init() {
+  private async init() {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
     const parser = new ArgumentParser(options);
-    const { warning } = parser.validate();
+    const { warning } = await parser.validate();
     if (warning) {
       this.println(warning.wrap(this.state.width));
     }
@@ -52,7 +52,7 @@ class PlayCommand extends Command<PlayProps> {
     try {
       if (line.startsWith('init')) {
         if (!compIndex) {
-          this.init();
+          await this.init();
         }
       } else if (this.parser) {
         const values = {};
