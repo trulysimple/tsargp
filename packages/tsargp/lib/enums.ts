@@ -79,7 +79,7 @@ export const enum ErrorItem {
    */
   emptyEnumsDefinition,
   /**
-   * Raised by the validator when an option has a duplicate name.
+   * Raised by the validator when there are two identical option names.
    */
   duplicateOptionName,
   /**
@@ -117,7 +117,7 @@ export const enum ErrorItem {
    */
   unsatisfiedCondRequirement,
   /**
-   * Raised by the validator when an option has a duplicate cluster letter.
+   * Raised by the validator when there are two identical cluster letters.
    */
   duplicateClusterLetter,
   /**

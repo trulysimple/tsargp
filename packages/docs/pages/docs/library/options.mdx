@@ -15,18 +15,18 @@ available types and describe them in detail.
 
 There is a total of ten option types, as summarized in the table below:
 
-| Type       | Parameters                              | Value              | Normalization            | Constraints               |
-| ---------- | --------------------------------------- | ------------------ | ------------------------ | ------------------------- |
-| [help]     | niladic                                 | `never{:ts}`[^1]   |                          |                           |
-| [version]  | niladic                                 | `never{:ts}`[^1]   |                          |                           |
-| [function] | configurable                            | `unknown{:ts}`[^2] |                          | [param count]             |
-| [command]  | not applicable                          | `unknown{:ts}`[^2] |                          |                           |
-| [flag]     | niladic                                 | `boolean{:ts}`     |                          |                           |
-| [boolean]  | positional, monadic                     | `boolean{:ts}`     |                          | [truth and falsity]       |
-| [string]   | positional, monadic                     | `string{:ts}`      | [trim], [case]           | [enums], [regex]          |
-| [number]   | positional, monadic                     | `number{:ts}`      | [conv]                   | [enums], [range]          |
-| [strings]  | positional, delimited, variadic, append | `string[]{:ts}`    | [unique], [trim], [case] | [enums], [regex], [limit] |
-| [numbers]  | positional, delimited, variadic, append | `number[]{:ts}`    | [unique], [conv]         | [enums], [range], [limit] |
+| Type       | Parameters                                   | Value              | Normalization            | Constraints               |
+| ---------- | -------------------------------------------- | ------------------ | ------------------------ | ------------------------- |
+| [help]     | niladic                                      | `never{:ts}`[^1]   |                          |                           |
+| [version]  | niladic                                      | `never{:ts}`[^1]   |                          |                           |
+| [function] | configurable                                 | `unknown{:ts}`[^2] |                          | [param count]             |
+| [command]  | not applicable[^3]                           | `unknown{:ts}`[^2] |                          |                           |
+| [flag]     | niladic                                      | `boolean{:ts}`     |                          |                           |
+| [boolean]  | positional, monadic                          | `boolean{:ts}`     |                          | [truth and falsity]       |
+| [string]   | positional, monadic                          | `string{:ts}`      | [trim], [case]           | [enums], [regex]          |
+| [number]   | positional, monadic                          | `number{:ts}`      | [conv]                   | [enums], [range]          |
+| [strings]  | positional, delimited, variadic, append-able | `string[]{:ts}`    | [unique], [trim], [case] | [enums], [regex], [limit] |
+| [numbers]  | positional, delimited, variadic, append-able | `number[]{:ts}`    | [unique], [conv]         | [enums], [range], [limit] |
 
 The meaning of each column is explained below.
 
@@ -40,14 +40,12 @@ attributes of each specific option.
 
 The parameters column indicates how many parameters an option expects on the command-line:
 
-- _niladic_ - no parameter
-- _monadic_ - single parameter
-- _variadic_ - variable number of parameters
-- _delimited_ - single parameter in which values are delimited by a [separator]
-- _append_ - can be specified multiple times, with values getting [appended]
-- _configurable_ - can be configured with a certain [parameter count]
-- _not applicable_ - does not accept parameters; rather, it starts a new parsing context with the
-  remaining arguments
+- **niladic** - no parameter
+- **monadic** - single parameter
+- **variadic** - variable number of parameters
+- **delimited** - single parameter in which values are delimited by a [separator]
+- **append-able** - can be specified multiple times, with values getting [appended]
+- **configurable** - can be configured with a certain [parameter count]
 
 In the case of non-niladic options, parameters can be made optional by setting a [fallback value].
 
@@ -68,7 +66,7 @@ for the help and version options, which do not have values, the initial value of
 All options that accept parameters can be configured with normalization and constraint attributes.
 
 In the case of string- and number-valued options, these attributes indicate how the option value
-should be transformed after being parsed, and if it should comply with any value constraints.
+should be transformed after being parsed, and if it should comply with value constraints.
 
 In the case of the function and boolean options, there are specialized constraints for the handling
 of option parameters (i.e., before they get parsed).
@@ -142,6 +140,10 @@ other options.
 
 Mutually exclusive with [default value] and [conditional requirements].
 
+<Callout type="default">
+  When using this attribute, we recommend also setting [preferred name] to some explanatory name.
+</Callout>
+
 #### Default value
 
 The `default` attribute, if present, specifies a value to be used in case the option is specified
@@ -163,9 +165,9 @@ toString() {
 
 ##### Default callback
 
-If the value is not known beforehand (e.g., if it depends on the values of other options), you may
-want to use a callback to inspect parsed values and determine the default based on those values. It
-receives one parameter:
+If the default value is not known beforehand (e.g., if it depends on the values of other options),
+you may want to use a callback to inspect parsed values and determine the default based on those
+values. It receives one parameter:
 
 - `values` - the parsed values
 
@@ -179,10 +181,10 @@ Notes about this callback:
 The `requires` attribute, if present, specifies requirements that must be satisfied _if_ the option
 is specified on the command-line. It can be either:
 
-- an option key;
-- an object that maps option keys to required values;
-- a requirement expression; or
-- a requirement callback
+- an option **key**;
+- an object that maps option keys to required **values**;
+- a requirement **expression**; or
+- a requirement **callback**
 
 In the case of an option key, the referenced option must also be present on the command-line.
 In the case of an object, every referenced option must have the corresponding value.
@@ -251,8 +253,8 @@ If they were defined in the `requiredIf` attribute, they would mean:
 #### Cluster letters
 
 The `clusterLetters` attribute, if present, specifies letters (or any Unicode characters except
-whitespace) that can be used to cluster options in a single command-line argument. This is also
-known as [_short-option_ style]. This feature can be enabled via the parser's [`clusterPrefix`]
+whitespace) that can be used to cluster options in a single command-line argument. This feature is
+also known as [_short-option_ style], and it can be enabled via the parser's [`clusterPrefix`]
 configuration flag.
 
 Here is an example that illustrates how it works. Suppose we have the following options:
@@ -264,28 +266,28 @@ Here is an example that illustrates how it works. Suppose we have the following 
 Given these options, the following invocations would all be equivalent:
 
 ```sh
-cmd -fSN 'my string' 123
-cmd -Fsn 'my string' 123
+cli -fSN 'my string' 123
+cli -Fsn 'my string' 123
 ```
 
 They would be transformed to their "canonical" form, i.e.:
 
 ```sh
-cmd --flag --str 'my string' --num 123
+cli --flag --str 'my string' --num 123
 ```
 
 Notes about this feature:
 
 - the order of options in a cluster is preserved when converting to the canonical form
 - variadic options and command options are supported, but they must be the last in a cluster
-- if word completion is attempted in a cluster, the default [completion message] is thrown
+- if word completion is attempted for a cluster, the default [completion message] is thrown
 - if a nameless positional option appears in a cluster, its argument will be treated as positional
 
 ##### Inline parameters
 
 Cluster arguments may be considered to have an inline parameter if they contain at least one unknown
 letter that is _not_ the first. For example, using the same option definitions as above, the command
-line `cmd -s'my str' -n123{:sh}` would be parsed as `cmd --str 'my str' --num 123{:sh}`.
+line `cli -s'my str' -n123{:sh}` would be parsed as `cli --str 'my str' --num 123{:sh}`.
 
 Notice how the parameters appear "glued" to the first letter, with no intervening space, and they
 contain characters that are not valid cluster letters. The first one _must_ be valid, otherwise the
@@ -308,10 +310,12 @@ The `positional` attribute, if present, indicates that the option accepts _posit
 There may be at most _one_ option with this setting.
 
 If set to `true{:ts}`, then any argument not recognized as an option name will be considered
-positional. If set to a string, then it acts as positional marker, and all arguments that appear
-_beyond_ the marker will be considered positional.
+positional. If set to a string, then it acts as positional marker, in which case all arguments that
+appear _beyond_ the marker will be considered positional.
 
-When using this attribute, we recommend also setting [preferred name] to some explanatory name.
+<Callout type="default">
+  When using this attribute, we recommend also setting [preferred name] to some explanatory name.
+</Callout>
 
 #### Complete callback
 
@@ -332,7 +336,7 @@ Notes about this callback:
 
 ### Known value attributes
 
-All options that have known values share a set of attributes, which are described below.
+All non-niladic options that have known values share a set of attributes, which are described below.
 
 #### Example value
 
@@ -427,7 +431,7 @@ Array-valued options share a set of attributes, as described below.
 #### Separator
 
 The `separator` attribute, if present, specifies a delimiter by which to split the option parameter.
-If specified, the option will accept a single parameter[^3] on the command-line, not multiple
+If specified, the option will accept a single parameter[^4] on the command-line, not multiple
 parameters (as is the default). It can be either a string or a regular expression.
 
 #### Remove duplicates
@@ -608,10 +612,10 @@ By default, a function option is niladic. However, this behavior can be changed 
 `paramCount` attribute. If present, it specifies how many parameters the option expects. It can
 have either of the following values:
 
-- a zero value: same as the niladic case
-- a negative number: the option accepts unlimited parameters
-- a positive number: the option expects exactly this number of parameters
-- a numeric range: the option expects between a minimum and maximum count
+- a **zero** value: same as the niladic case
+- a **negative** number: the option accepts unlimited parameters
+- a **positive** number: the option expects exactly this number of parameters
+- a numeric **range**: the option expects between a minimum and maximum count
 
 Mutually exclusive with [skip count].
 
@@ -697,10 +701,10 @@ The `options` attribute specifies the set of option definitions for the command,
   pertaining to the command must be specified _after_ it.
 </Callout>
 
-#### Short-option style
+#### Cluster letters
 
-The `shortStyle` property indicates whether the first command argument is expected to be an option
-cluster. This must be used in conjunction with the [cluster letters] of the command's options.
+The `clusterLetters` property indicates whether the command accepts cluster arguments. This must be
+used in conjunction with the [cluster letters] of the command's options.
 
 ### Flag option
 
@@ -709,7 +713,7 @@ differs from the [boolean option] in that it does _not_ expect a parameter. Whil
 configured to have a [fallback value] (thus making its parameter optional), that potentially
 introduces ambiguity of whether arguments are positional or not.
 
-For example, consider the command line `cmd -b 1`, where `-b` is a boolean option with a fallback
+For example, consider the command line `cli -b 1`, where `-b` is a boolean option with a fallback
 value and there is a positional option. In this case, would `1` be a parameter to `-b` or a
 positional argument? The parser is implemented to consider it a parameter to `-b`. However, the flag
 option completely solves this ambiguity.
@@ -736,7 +740,7 @@ flag that has been previously specified must be reset by a supplementary list of
 
 ## Non-niladic options
 
-Non-niladic options expect one or more parameters on the command-line.
+Non-niladic options accept one or more parameters on the command-line.
 
 ### Boolean option
 
@@ -793,7 +797,7 @@ specified in its definition. It has the following sets of attributes:
 
 ### Number option
 
-The **number** option accepts a single parameter that is converted to `Number{:ts}` and normalized
+The **number** option accepts a single parameter that is converted to `number{:ts}` and normalized
 according to the constraints specified in its definition. It has the following sets of attributes:
 
 - [basic attributes]
@@ -818,7 +822,7 @@ specified in its definition. It has the following sets of attributes:
 
 ### Numbers option
 
-The **numbers** option accepts multiple parameters that are converted to `Number{:ts}` and
+The **numbers** option accepts multiple parameters that are converted to `number{:ts}` and
 normalized according to the constraints specified in its definition. It has the following sets of
 attributes:
 
@@ -925,4 +929,5 @@ attributes:
 
 [^1]: help and version options throw a message instead of having a value.
 [^2]: the return type of the function or command callback.
-[^3]: we say that it is _delimited_, rather than _variadic_.
+[^3]: rather than accepting parameters, it starts a new parsing context with the remaining arguments.
+[^4]: we say that it is _delimited_, rather than _variadic_.

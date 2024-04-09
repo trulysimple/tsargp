@@ -189,7 +189,7 @@ some corner case that is not currently covered by our unit tests, please submit 
 <Callout type="warning">
   Phrases can contain inline styles, but not in the _same_ word as a format specifier. Otherwise,
   they will mess up the text wrapping. For example, the following phrase is not valid:
-  ``` `Requires ${style(tf.bold)}%p`{:ts} ```. You must insert a space between them.
+  ``` `Requires ${style(tf.bold)}%p`{:ts} ```. You must insert a space in-between.
 </Callout>
 
 #### Paragraphs and lists
@@ -268,9 +268,9 @@ preserve the disposition of wrapped text.
 
 ### Default width
 
-In addition to the `wrap` method, this class overrides the `toString` method and provides a
-`message` property, both of which can be used to obtain a string wrapped with a default terminal
-width.
+In addition to providing a `wrap` method, the terminal message overrides the `toString` method and
+has a `message` property, both of which can be used to obtain a string wrapped with a default
+terminal width.
 
 The default width depends on the kind of message: in the case of `TerminalMessage`, it is the width
 of the standard _output_ stream (`process.stdout.columns{:ts}`). Therefore, this kind of message
