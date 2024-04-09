@@ -25,7 +25,7 @@ export default {
 } as const satisfies Options;
 ```
 
-You can also provide an introduction, usage and footer:
+You can increment it with an introduction, usage and footer:
 
 ```ts
 import { type Options, style, fg } from 'tsargp';
@@ -54,7 +54,7 @@ export default {
 } as const satisfies Options;
 ```
 
-You may want to customize the help message format, e.g.:
+You may also want to customize the help message format, e.g.:
 
 ```ts
 import { type Options, HelpItem, style, tf } from 'tsargp';
@@ -82,7 +82,7 @@ Which, when invoked with `--help`, would render something like:
 ```ansi
 A command-line interface for <purpose>.
 
-play [[95m--help[0m]
+cmd [[95m--help[0m]
 
 [4mOptions:[0m
 
@@ -93,6 +93,13 @@ Refer to [90m<website>[39m for support.
 ```
 
 ## Help command
+
+<Callout type="default">
+  Since this guide was written, the [enable nested] attribute for help options was introduced, which
+  offers what is described below in a more convenient way. The only difference is that it does not
+  allow an [enumeration] constraint for the available command names (which is used in error messages
+  and word completion).
+</Callout>
 
 Another way to offer help is by defining a "help" command. This method still uses the help option
 from the previous example, but increments it by providing a new syntax to obtain help for _nested_
@@ -157,22 +164,23 @@ export default {
       const vals = param as OptionValues<typeof helpOpts>;
       const opts = vals.name === 'cmd1' ? cmd1Opts : cmd2Opts;
       // this will throw the help message
-      await new ArgumentParser(opts).parse(['--help'], { progName: vals.name });
+      await new ArgumentParser(opts).parse(['--help'], { progName: '' });
     },
   },
 } as const satisfies Options;
 ```
 
-The `progName` configuration parameter is not strictly necessary, since in this case the operation
-will be quick (so there's no point in updating the process title). It's there just for the sake of
-completeness.
+The `progName` configuration flag is set in order to avoid appending the script name twice to the
+process title.
 
 <Callout type="info">
   Keep in mind that, when word completion is in effect, the command callback [is not called]. Thus,
-  if the callback _does_ get executed, you need not worry about the [`compIndex`] configuration for
-  the delegated `parse` call.
+  if the callback _does_ get executed, you need not worry about the [`compIndex`] flag for the
+  delegated `parse` call.
 </Callout>
 
+[enumeration]: ../library/options#enumeration
+[enable nested]: ../library/options#enable-nested
 [help option]: ../library/options#help-option
 [command option]: ../library/options#command-option
 [is not called]: ../library/options#command-callback

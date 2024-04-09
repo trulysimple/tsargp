@@ -107,7 +107,7 @@ export type OptionStyles = {
    */
   readonly names?: Style;
   /**
-   * The style of the option paramater.
+   * The style of the option parameter.
    */
   readonly param?: Style;
   /**
@@ -221,7 +221,7 @@ export type CompleteCallback = CustomCallback<
  * @see CustomCallback
  */
 export type FunctionCallback = CustomCallback<
-  ParseInfo<Array<string>> & WithComp<boolean> & WithIsComp,
+  ParseInfo<Array<string>> & WithComp<boolean>,
   unknown
 >;
 
@@ -269,19 +269,6 @@ export type WithComp<C> = {
 };
 
 /**
- * Defines additional properties to be used by a function callback.
- */
-export type WithIsComp = {
-  /**
-   * Checks whether an option parameter is a word to be completed.
-   * You can `throw new CompletionMessage(...words)` inside the function callback, if needed.
-   * @param param The option parameter
-   * @returns The word being completed, if any (it may be an empty string); else undefined
-   */
-  isComp: (param: string) => string | undefined;
-};
-
-/**
  * Defines the type of an option.
  * @template T The option type
  */
@@ -317,7 +304,7 @@ export type WithBasic = {
    */
   readonly desc?: string;
   /**
-   * The option deprecation reason. It may contain inline styles.
+   * The option deprecation notice. It may contain inline styles.
    */
   readonly deprecated?: string;
   /**
@@ -438,13 +425,19 @@ export type WithBoolean = {
 };
 
 /**
- * Defines attributes common to string-valued options.
+ * Defines attributes common to enumerable options.
  */
-export type WithString = {
+export type WithEnumerable<T> = {
   /**
    * The enumerated values.
    */
-  readonly enums?: ReadonlyArray<string>;
+  readonly enums?: ReadonlyArray<T>;
+};
+
+/**
+ * Defines attributes common to string-valued options.
+ */
+export type WithString = {
   /**
    * The regular expression.
    */
@@ -463,10 +456,6 @@ export type WithString = {
  * Defines attributes common to number-valued options.
  */
 export type WithNumber = {
-  /**
-   * The enumerated values.
-   */
-  readonly enums?: ReadonlyArray<number>;
   /**
    * The numeric range. You may want to use `[-Infinity, Infinity]` to disallow `NaN`.
    */
@@ -536,6 +525,10 @@ export type WithHelp = {
    * Whether to use the remaining arguments as option filter.
    */
   readonly useFilter?: true;
+  /**
+   * Whether to throw the help of a nested command whose names include the next argument.
+   */
+  readonly useNested?: true;
 };
 
 /**
@@ -595,9 +588,10 @@ export type WithCommand = {
    */
   readonly options?: Options | (() => Options);
   /**
-   * True if the first argument is expected to be an option cluster (i.e., short-option style).
+   * The prefix of cluster arguments.
+   * If set, then eligible arguments that have this prefix will be considered a cluster.
    */
-  readonly shortStyle?: true;
+  readonly clusterPrefix?: string;
 };
 
 /**
@@ -677,6 +671,7 @@ export type StringOption = WithType<'string'> &
   WithParam &
   WithValue<string> &
   WithKnownValue<string, string> &
+  WithEnumerable<string> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithEnums | WithRegex);
@@ -691,6 +686,7 @@ export type NumberOption = WithType<'number'> &
   WithParam &
   WithValue<number> &
   WithKnownValue<string, number> &
+  WithEnumerable<number> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithEnums | WithRange);
@@ -706,6 +702,7 @@ export type StringsOption = WithType<'strings'> &
   WithParam &
   WithValue<Array<string>> &
   WithKnownValue<Array<string>, Array<string>> &
+  WithEnumerable<string> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithAppend | WithParse) &
@@ -722,6 +719,7 @@ export type NumbersOption = WithType<'numbers'> &
   WithParam &
   WithValue<Array<number>> &
   WithKnownValue<Array<string>, Array<number>> &
+  WithEnumerable<number> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithAppend | WithParse) &
@@ -794,6 +792,7 @@ export type OpaqueOption = WithType<OptionTypes> &
   WithParam &
   WithValue<unknown> &
   WithKnownValue<unknown, unknown> &
+  WithEnumerable<unknown> &
   WithHelp &
   WithVersion &
   WithMessage &

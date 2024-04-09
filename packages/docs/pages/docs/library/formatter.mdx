@@ -12,12 +12,13 @@ instantiated with a [validator] instance and provides methods to format help mes
 ## Help message
 
 Internally, the help message is a list of [terminal strings] that may contain control sequences and
-can be printed in a terminal. Visually, it can be divided into the following pieces of content:
+are meant to be printed in a terminal. Visually, it can be divided into the following pieces of
+content:
 
 - section - a group of text lines, like the section of a document
 - entry - the lines corresponding to an option definition
 - item - a single bit of information in an option's description
-- group - a set of entries corresponding to an option group
+- group - a set of entries corresponding to an option [group]
 - column - a horizontal division (as formed by a vertical ruler) across all entries of all groups
 
 There are different ways of obtaining help messages, as described below.
@@ -25,7 +26,7 @@ There are different ways of obtaining help messages, as described below.
 ### Default help
 
 The `formatHelp` method returns a message corresponding to the _default_ option group, which is the
-set of options that did not explicitly declare an [option group] in their definition. It accepts no
+set of options that did not explicitly declare a [group] in their definition. It accepts no
 parameter.
 
 ### Grouped help
@@ -78,7 +79,7 @@ This column contains either the option's type (formatted as `<type>`), the [exam
 When a parameter name is specified and contains an opening angle bracket `'<'{:ts}`, it is printed
 as-is; otherwise, it is enclosed in angle brackets `'<>'{:ts}`.
 
-Except for example values, the parameter is appended with an ellipsis `'...'{:ts}` if the option
+Except for example values, the parameter is suffixed with an ellipsis `'...'{:ts}` if the option
 accepts more than one parameter, and enclosed in square brackets `'[]'{:ts}` if it can be specified
 without parameters (e.g., if it has a [fallback value]). The result might be `[<param>...]`.
 
@@ -128,15 +129,15 @@ The usage text is a concise representation of a program's command-line. Here is 
 {/* cSpell:disable */}
 
 ```ansi
-demo.js [([95m-h[0m|[95m--help[0m)] [([95m-v[0m|[95m--version[0m)] [[95mhelp[0m] [32m# get help[0m
+demo.js [([95m-h[0m|[95m--help[0m)] [([95m-v[0m|[95m--version[0m)] [32m# get help[0m
 demo.js [0m[95mhello[0m [90m...[0m [32m# execute the hello command[0m
 demo.js [([95m-f[0m|[95m--flag[0m|[95m--no-flag[0m)]
         [([95m-b[0m|[95m--boolean[0m) [90m<boolean>[0m]
-        [([95m-s[0m|[95m--stringRegex[0m) [90m<my string>[0m]
-        [([95m-n[0m|[95m--numberRange[0m) [90m<my number>[0m]
+        [([95m-s[0m|[95m--stringRegex[0m) [90m<my str>[0m]
+        [([95m-n[0m|[95m--numberRange[0m) [90m<my num>[0m]
         [([95m-se[0m|[95m--stringEnum[0m) [32m'one'[0m]
         [([95m-ne[0m|[95m--numberEnum[0m) [33m1[0m]
-        [([95m-ss[0m|[95m--strings[0m) [90m<strings>[0m]
+        [([95m-ss[0m|[95m--strings[0m) [90m[<strings>][0m]
         [([95m-ns[0m|[95m--numbers[0m) [90m<numbers>...[0m]
         [[([95m--stringsEnum[0m|[95m--[0m)] [32m'one'[0m [32m'two'[0m]
         [[95m--numbersEnum[0m [32m'1,2'[0m]
@@ -168,8 +169,8 @@ properties] properties, it has the following properties:
 ## Help format
 
 In addition to the validator instance, the formatter constructor accepts a `FormatterConfig` object
-that can be used to customize the message format. This configuration will apply to all help entries.
-Its properties are optional and are described below.
+that can be used to customize the format of help entries in option groups. This configuration will
+apply to all help entries. Its properties are optional and are described below.
 
 ### Help columns
 
@@ -233,18 +234,19 @@ and in what order. It is an array whose values can be one of the enumerators fro
 - `paramCount` - reports the [parameter count] of a variadic or polyadic[^1] option
 - `positional` - reports if an option accepts [positional] arguments
 - `append` - reports if an array option can be specified [multiple times]
-- `trim` - reports if string parameters will be [trimmed] (have leading and trailing whitespace removed)
-- `case` - the kind of [case-conversion] applied to string parameters, if enabled
-- `conv` - the kind of [math-conversion] applied to number parameters, if enabled
-- `enums` - the [enumerated values] that the option accepts as parameters, if any
-- `regex` - the [regular expression] that string parameters should match, if enabled
-- `range` - the [numeric range] that number parameters should be within, if enabled
+- `trim` - reports if string values will be [trimmed] (have leading and trailing whitespace removed)
+- `case` - the kind of [case-conversion] applied to string values, if enabled
+- `conv` - the kind of [math-conversion] applied to number values, if enabled
+- `enums` - either the [enumerated values] or the [truth and falsity] names that the option accepts,
+  if any
+- `regex` - the [regular expression] that string values should match, if enabled
+- `range` - the [numeric range] that number values should be within, if enabled
 - `unique` - reports if [duplicate elements] will be removed from an array option value
 - `limit` - the element [count limit] of an array option, if enabled
 - `requires` - the option [requirements], if any
 - `required` - reports if the option is [always required]
 - `default` - the option's [default value], if any
-- `deprecated` - reports if the option is [deprecated], and why
+- `deprecated` - the option's [deprecation] notice, if any
 - `link` - the [external resource] reference, if any
 - `envVar` - the option's [environment variable], if any
 - `requiredIf` - the option's [conditional requirements], if any
@@ -256,7 +258,7 @@ The default is to print all items in the order listed above.
 ### Help phrases
 
 The `phrases` property specifies the phrases to be used for each kind of help item. It has the
-following optional properties, which are enumerators from `HelpItem`:
+following optional properties, whose keys are enumerators from `HelpItem`:
 
 - `synopsis` - `'%t'{:ts}`
 - `negation` - `'Can be negated with %o.'{:ts}`
@@ -309,7 +311,7 @@ description of the corresponding value:
 | requires       | `%p` = the requirements                  |
 | required       |                                          |
 | default        | `%b`/`%s`/`%n`/`%v` = the default value  |
-| deprecated     | `%t` = the deprecation reason            |
+| deprecated     | `%t` = the deprecation notice            |
 | link           | `%u` = the hyperlink                     |
 | envVar         | `%o` = the variable name                 |
 | requiredIf     | `%p` = the requirements                  |
@@ -331,7 +333,7 @@ multiple patterns are provided, any matched one will suffice to include an optio
 ## Help styles
 
 Help messages are styled with the set of [error styles] from the validator configuration, except
-that they may get overriden by (or combined with) an option's [display styles], if present.
+that they may get overridden by (or combined with) an option's [display styles], if present.
 
 <Callout type="default">
   Whitespace around help entries is not styled. For that purpose, you may need to tweak your
@@ -346,7 +348,7 @@ that they may get overriden by (or combined with) an option's [display styles], 
 [common properties]: #common-properties
 [validator]: validator
 [terminal strings]: styles#terminal-strings
-[option group]: options#group--hide
+[group]: options#group--hide
 [names]: options#names--preferred-name
 [example value]: options#example-value
 [fallback value]: options#fallback-value
@@ -373,12 +375,13 @@ that they may get overriden by (or combined with) an option's [display styles], 
 [requirements]: options#forward-requirements
 [always required]: options#always-required
 [default value]: options#default-value
-[deprecated]: options#synopsis--deprecated
+[deprecation]: options#synopsis--deprecated
 [external resource]: options#external-reference
 [environment variable]: options#environment-variable
 [conditional requirements]: options#conditional-requirements
 [cluster letters]: options#cluster-letters
 [fallback value]: options#fallback-value
+[truth and falsity]: options#truth--falsity-names
 
 [^1]:
     _polyadic_ means that the option accepts more than one parameter, but the parameter count is

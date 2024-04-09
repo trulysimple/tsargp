@@ -24,7 +24,7 @@ import { ConnectiveWords, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
-import { areEqual, findSimilar, getArgs, isTrue, isComp, max } from './utils';
+import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
 //--------------------------------------------------------------------------------------------------
@@ -54,9 +54,10 @@ export type ParsingFlags = {
    */
   readonly compIndex?: number;
   /**
-   * True if the first argument is expected to be an option cluster (i.e., short-option style).
+   * The prefix of cluster arguments.
+   * If set, then eligible arguments that have this prefix will be considered a cluster.
    */
-  readonly shortStyle?: boolean;
+  readonly clusterPrefix?: string;
 };
 
 /**
@@ -83,11 +84,12 @@ export type CommandLine = string | Array<string>;
 type ParseContext = [
   validator: OptionValidator,
   values: OpaqueOptionValues,
-  args: ReadonlyArray<string>,
+  args: Array<string>,
   specifiedKeys: Set<string>,
   completing: boolean,
   warning: WarnMessage,
   progName?: string,
+  clusterPrefix?: string,
 ];
 
 /**
@@ -118,7 +120,7 @@ export class ArgumentParser<T extends Options = Options> {
    * @param config The validator configuration
    */
   constructor(options: T, config?: ValidatorConfig) {
-    this.validator = new OptionValidator(options, mergeConfig(config));
+    this.validator = new OptionValidator(options as OpaqueOptions, mergeConfig(config));
   }
 
   /**
@@ -133,32 +135,40 @@ export class ArgumentParser<T extends Options = Options> {
 
   /**
    * Parses command-line arguments into option values.
-   * @param command The raw command line or command-line arguments
+   * @param cmdLine The command line or arguments
    * @param flags The parsing flags
    * @returns The options' values
    */
-  async parse(command?: CommandLine, flags?: ParsingFlags): Promise<OptionValues<T>> {
+  async parse(cmdLine?: CommandLine, flags?: ParsingFlags): Promise<OptionValues<T>> {
     const values = {} as OptionValues<T>;
-    await this.parseInto(values, command, flags);
+    await this.parseInto(values, cmdLine, flags);
     return values;
   }
 
   /**
    * Parses command-line arguments into option values.
    * @param values The options' values to parse into
-   * @param command The raw command line or command-line arguments
+   * @param cmdLine The command line or arguments
    * @param flags The parsing flags
    * @returns The parsing result
    */
   async parseInto(
     values: OptionValues<T>,
-    command?: CommandLine,
-    flags?: ParsingFlags,
+    cmdLine = env('COMP_LINE') ?? env('BUFFER') ?? process?.argv.slice(2) ?? [],
+    flags: ParsingFlags = {
+      progName: process?.argv[1].split(/[\\/]/).at(-1),
+      compIndex: Number(env('COMP_POINT') ?? env('CURSOR')) || env('BUFFER')?.length,
+    },
   ): Promise<ParsingResult> {
-    const [args, progName] = initArgs(command, flags);
-    const completing = !!flags?.compIndex;
-    const shortStyle = flags?.shortStyle;
-    return doParse(this.validator, values, args, completing, shortStyle, progName);
+    const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
+    return doParse(
+      this.validator,
+      values,
+      args,
+      !!flags.compIndex,
+      flags.progName,
+      flags.clusterPrefix,
+    );
   }
 }
 
@@ -184,8 +194,8 @@ function mergeConfig(config: ValidatorConfig = {}): ConcreteConfig {
  * @param values The option values
  * @param args The command-line arguments
  * @param completing True if performing completion
- * @param shortStyle True if short-option style is enabled
- * @param progName The program name
+ * @param progName The program name, if any
+ * @param clusterPrefix The cluster prefix, if any
  * @returns The parsing result
  */
 async function doParse(
@@ -193,14 +203,11 @@ async function doParse(
   values: OpaqueOptionValues,
   args: Array<string>,
   completing: boolean,
-  shortStyle?: boolean,
   progName?: string,
+  clusterPrefix?: string,
 ): Promise<ParsingResult> {
   if (!completing && progName && process?.title) {
     process.title += ' ' + progName;
-  }
-  if (shortStyle) {
-    parseCluster(validator, args);
   }
   initValues(validator.options, values);
   const specifiedKeys = new Set<string>();
@@ -213,33 +220,12 @@ async function doParse(
     completing,
     warning,
     progName,
+    clusterPrefix,
   ];
   if (await parseArgs(context)) {
     await checkRequired(context);
   }
   return warning.length ? { warning } : {};
-}
-
-/**
- * Initializes the command-line arguments.
- * @param command The raw command line or command-line arguments
- * @param flags The parsing flags
- * @returns [the arguments, the program name]
- */
-function initArgs(
-  command = process?.env['COMP_LINE'] ?? process?.argv.slice(2) ?? [],
-  flags: ParsingFlags = { compIndex: Number(process?.env['COMP_POINT']) },
-): [Array<string>, string?] {
-  let args, progName;
-  if (typeof command === 'string') {
-    [progName, ...args] = getArgs(command, flags.compIndex);
-  } else {
-    [progName, args] = [flags.progName, command];
-    if (progName === undefined) {
-      progName = process?.argv[1].split(/[\\/]/).at(-1);
-    }
-  }
-  return [args, progName];
 }
 
 /**
@@ -257,39 +243,48 @@ function initValues(options: OpaqueOptions, values: OpaqueOptionValues) {
 }
 
 /**
- * Parses the first argument which is expected to be an option cluster.
- * @param validator The option validator
- * @param args The command-line arguments
+ * Parses a cluster argument.
+ * @param context The parsing context
+ * @param index The argument index
+ * @returns True if the argument was a cluster
  */
-function parseCluster(validator: OptionValidator, args: Array<string>) {
-  const cluster = args.shift();
-  if (!cluster) {
-    return;
-  }
-  for (let j = 0, i = 0; j < cluster.length; ++j) {
-    const letter = cluster[j];
-    if (letter === '-' && j === 0) {
-      continue; // skip the first dash in the cluster
-    }
-    if (letter === '\0') {
-      throw new CompletionMessage();
-    }
-    const key = validator.letters.get(letter);
-    if (!key) {
-      throw validator.error(ErrorItem.unknownOption, { o: letter }, { alt: 0 });
-    }
+function parseCluster(context: ParseContext, index: number): boolean {
+  /** @ignore */
+  function getOpt(letter: string): [string, OpaqueOption, string?] {
+    const key = letters.get(letter) ?? '';
     const option = validator.options[key];
+    const name = option.names?.find((name): name is string => !!name);
+    return [key, option, name];
+  }
+  const [validator, , args, , completing, , , prefix] = context;
+  const cluster = args[index++];
+  if (!prefix || !cluster.startsWith(prefix) || cluster.length === prefix.length) {
+    return false;
+  }
+  const letters = validator.letters;
+  const rest = cluster.slice(prefix.length);
+  const unknownIndex = [...rest].findIndex((letter) => !letters.has(letter));
+  if (unknownIndex === 0) {
+    return false; // do not consider it a cluster
+  }
+  if (unknownIndex > 0) {
+    const [, , name] = getOpt(rest[0]);
+    args.splice(index, 0, ...(name ? [name] : []), rest.slice(1));
+    return true; // treat it as an inline parameter
+  }
+  for (let j = 0; j < rest.length && (!completing || index < args.length); ++j) {
+    const letter = rest[j];
+    const [, option, name] = getOpt(letter);
     const [min, max] = getParamCount(option);
-    if (j < cluster.length - 1 && (option.type === 'command' || min < max)) {
+    if (j < rest.length - 1 && (option.type === 'command' || min < max)) {
       throw validator.error(ErrorItem.invalidClusterOption, { o: letter });
     }
-    const name = option.names?.find((name) => name);
-    if (!name) {
-      continue; // skip options with no names
+    if (name) {
+      args.splice(index++, 0, name);
     }
-    args.splice(i, 0, name);
-    i += 1 + min;
+    index += min;
   }
+  return true;
 }
 
 /**
@@ -301,7 +296,7 @@ function parseCluster(validator: OptionValidator, args: Array<string>) {
 async function readEnvVar(context: ParseContext, info: OptionInfo): Promise<boolean> {
   const [, values] = context;
   const [key, name, option] = info;
-  const value = process?.env[name];
+  const value = env(name);
   if (value !== undefined) {
     if (option.type === 'flag') {
       // don't parse the flag value, for consistency with the semantics of the command-line
@@ -414,14 +409,14 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
  * @returns The new parse entry
  */
 function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
-  const [validator, , args] = context;
+  const [validator, , args, , completing] = context;
   const [index, info, prevVal, , marker] = prev;
   const inc = prevVal !== undefined ? 1 : 0;
   const positional = validator.positional;
   const [min, max] = info ? getParamCount(info[2]) : [0, 0];
   for (let i = index + 1; i < args.length; ++i) {
-    const [arg, rest] = args[i].split('\0', 2);
-    const comp = rest !== undefined;
+    const arg = args[i];
+    const comp = completing && i + 1 === args.length;
     if (!info || (!marker && i - index + inc > min)) {
       const [name, value] = arg.split(/=(.*)/, 2);
       const key = validator.names.get(name);
@@ -433,10 +428,19 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
         const info = marker ? positional : ([key, name, validator.options[key]] as OptionInfo);
         return [i, info, value, comp, marker, true];
       }
+      if (parseCluster(context, i)) {
+        if (comp) {
+          throw new CompletionMessage();
+        }
+        continue;
+      }
       if (!info || i - index + inc > max) {
         if (!positional) {
           if (comp) {
             throw new CompletionMessage(...completeName(validator, arg));
+          }
+          if (completing) {
+            continue; // ignore unknown options during completion
           }
           handleUnknownName(validator, name);
         }
@@ -509,8 +513,7 @@ async function resolveVersion(
   ) {
     try {
       const jsonData = await promises.readFile(new URL(resolved));
-      const { version } = JSON.parse(jsonData.toString());
-      return version;
+      return JSON.parse(jsonData.toString()).version;
     } catch (err) {
       if ((err as ErrnoException).code !== 'ENOENT') {
         throw err;
@@ -615,8 +618,9 @@ async function parseParam(
   function bool(str: string): boolean {
     const result = isTrue(str, option);
     if (result === undefined) {
-      const names = option.truthNames?.concat(option.falsityNames ?? []) ?? [];
-      throw validator.error(ErrorItem.invalidBooleanParameter, { o: name, s1: str, s2: names });
+      const names = [...(option.truthNames ?? []), ...(option.falsityNames ?? [])];
+      const args = { o: name, s1: str, s2: names };
+      throw validator.error(ErrorItem.enumsConstraintViolation, args, { alt: 0, sep: ',' });
     }
     return result;
   }
@@ -625,13 +629,17 @@ async function parseParam(
     return setValue(context, key, option, option.fallback);
   }
   const [validator, values, , , comp] = context;
-  const convertFn: (val: string) => unknown =
-    option.type === 'boolean' ? bool : isOpt.str(option) ? (str: string) => str : Number;
+  const convertFn: (val: string) => unknown = isOpt.bool(option)
+    ? bool
+    : isOpt.str(option)
+      ? (str: string) => str
+      : Number;
   const parse = option.parse;
   const lastParam = params[params.length - 1];
   let value;
   if (isOpt.arr(option)) {
-    const param = option.separator ? lastParam.split(option.separator) : params;
+    const separator = option.separator;
+    const param = separator ? lastParam.split(separator) : params;
     if (parse) {
       const seq = { values, index, name, param, comp };
       value = ((await parse(seq)) as Array<unknown>).map(norm);
@@ -739,8 +747,7 @@ async function handleFunction(
   if (option.exec) {
     const [, values, , , comp] = context;
     try {
-      const seq = { values, index, name, param, comp, isComp };
-      values[key] = await option.exec(seq);
+      values[key] = await option.exec({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate common errors during completion
       if (!comp || err instanceof CompletionMessage) {
@@ -767,15 +774,14 @@ async function handleCommand(
 ): Promise<ParsingResult> {
   const [validator, values, , , comp] = context;
   const [key, name, option] = info;
-  const { options, shortStyle } = option;
+  const { options, clusterPrefix } = option;
   const cmdOptions = typeof options === 'function' ? options() : options ?? {};
-  const cmdValidator = new OptionValidator(cmdOptions, validator.config);
+  const cmdValidator = new OptionValidator(cmdOptions as OpaqueOptions, validator.config);
   const param: OpaqueOptionValues = {};
-  const result = await doParse(cmdValidator, param, rest, comp, shortStyle, name);
+  const result = await doParse(cmdValidator, param, rest, comp, name, clusterPrefix);
   // comp === false, otherwise completion will have taken place by now
   if (option.exec) {
-    const seq = { values, index, name, param };
-    values[key] = await option.exec(seq);
+    values[key] = await option.exec({ values, index, name, param });
   }
   return result;
 }
@@ -816,13 +822,32 @@ async function handleMessage(
  * @returns The help message
  */
 function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOption): HelpMessage {
+  let [validator, , , , , , progName] = context;
+  if (option.useNested && rest.length) {
+    const command = findInObject(
+      validator.options,
+      (opt) => opt.type === 'command' && !!opt.names?.includes(rest[0]),
+    );
+    if (command) {
+      const options = command.options;
+      if (options) {
+        const resolved = (typeof options === 'function' ? options() : options) as OpaqueOptions;
+        const help = findInObject(resolved, (opt) => opt.type === 'help');
+        if (help) {
+          validator = new OptionValidator(resolved, validator.config);
+          option = help;
+          rest.splice(0, 1); // only if the command has help; otherwise, it may be an option filter
+        }
+      }
+    }
+  }
   const format = option.format ?? {};
   if (option.useFilter) {
     format.filter = rest;
   }
-  const formatter = new HelpFormatter(context[0], format);
+  const formatter = new HelpFormatter(validator, format);
   const sections = option.sections ?? defaultSections;
-  return formatter.formatSections(sections, context[6]);
+  return formatter.formatSections(sections, progName);
 }
 
 /**
@@ -845,17 +870,15 @@ async function handleCompletion(
   let words: Array<string>;
   if (option.complete) {
     try {
-      const seq = { values, index, name, param, comp };
-      words = await option.complete(seq);
+      words = await option.complete({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate errors during completion
       words = [];
     }
   } else {
-    words =
-      (option.type === 'boolean'
-        ? option.truthNames?.concat(option.falsityNames ?? [])
-        : option.enums?.map((val) => `${val}`)) ?? [];
+    words = isOpt.bool(option)
+      ? [...(option.truthNames ?? []), ...(option.falsityNames ?? [])]
+      : option.enums?.map((val) => `${val}`) ?? [];
     if (comp) {
       words = words.filter((word) => word.startsWith(comp));
     }
@@ -919,10 +942,12 @@ async function checkRequiredOption(context: ParseContext, key: string) {
   }
   const option = validator.options[key];
   const specified = specifiedKeys.has(key);
+  const requires = option.requires;
+  const requiredIf = option.requiredIf;
   const error = new TerminalString();
   if (
-    (specified && option.requires && !(await check(option.requires, false, false))) ||
-    (!specified && option.requiredIf && !(await check(option.requiredIf, true, true)))
+    (specified && requires && !(await check(requires, false, false))) ||
+    (!specified && requiredIf && !(await check(requiredIf, true, true)))
   ) {
     const name = option.preferredName ?? '';
     const kind = specified
@@ -977,11 +1002,11 @@ async function checkRequires(
     return checkRequireItems(validator, entries, checkEntry, error, negate, invert, !negate);
   }
   if ((await requires(values)) === negate) {
-    const config = validator.config;
+    const { styles, connectives } = validator.config;
     if (negate !== invert) {
-      error.word(config.connectives[ConnectiveWords.not]);
+      error.word(connectives[ConnectiveWords.not]);
     }
-    format.v(requires, config.styles, error);
+    format.v(requires, styles, error);
     return false;
   }
   return true;
@@ -1013,11 +1038,11 @@ function checkRequirement(
     if ((specified === required) !== negate) {
       return true;
     }
-    const config = validator.config;
+    const { styles, connectives } = validator.config;
     if (specified !== invert) {
-      error.word(config.connectives[ConnectiveWords.no]);
+      error.word(connectives[ConnectiveWords.no]);
     }
-    format.o(option.preferredName ?? '', config.styles, error);
+    format.o(option.preferredName ?? '', styles, error);
     return false;
   }
   const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : 'n';

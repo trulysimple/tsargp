@@ -46,7 +46,7 @@ export const regexps = {
    * A regular expression to match SGR sequences.
    */
   // eslint-disable-next-line no-control-regex
-  style: /(?:\x9b[\d;]+m)+/g,
+  style: /(?:\x1b\[[\d;]+m)+/g,
   /**
    * A regular expression to match `RegExp` special characters.
    */
@@ -160,32 +160,40 @@ export type Range = [min: number, max: number];
 // Functions
 //--------------------------------------------------------------------------------------------------
 /**
- * Gets a list of command arguments from a raw command line.
- * @param line The command line
- * @param compIndex The completion index, if any
- * @returns The list of arguments
+ * Gets a list of arguments from a raw command line.
+ * @param line The command line, including the command name
+ * @param compIndex The completion index, if any (should be non-negative)
+ * @returns The list of arguments, up to the completion index
  * @internal
  */
 export function getArgs(line: string, compIndex = NaN): Array<string> {
   /** @ignore */
   function append(char: string) {
-    if (arg === undefined) {
-      arg = char;
-    } else {
-      arg += char;
-    }
+    arg = (arg ?? '') + char;
   }
   const result: Array<string> = [];
+  const rest = line.length - compIndex;
+  line = rest < 0 ? line + ' ' : rest >= 0 ? line.slice(0, compIndex) : line.trimEnd();
   let arg: string | undefined;
-  for (let i = 0, quote = ''; i < line.length; ++i) {
-    if (i === compIndex) {
-      append('\0');
+  let quote = '';
+  let escape = false;
+  for (const char of line) {
+    if (escape) {
+      append(char);
+      escape = false;
+      continue;
     }
-    switch (line[i]) {
-      case '\n':
+    switch (char) {
+      case '\\':
+        if (quote) {
+          append(char);
+        } else {
+          escape = true;
+        }
+        break;
       case ' ':
         if (quote) {
-          append(line[i]);
+          append(char);
         } else if (arg !== undefined) {
           result.push(arg);
           arg = undefined;
@@ -193,25 +201,21 @@ export function getArgs(line: string, compIndex = NaN): Array<string> {
         break;
       case `'`:
       case '"':
-        if (quote === line[i]) {
+        if (quote === char) {
           quote = '';
         } else if (quote) {
-          append(line[i]);
+          append(char);
         } else {
-          quote = line[i];
+          quote = char;
+          append(''); // handles empty quotes
         }
         break;
       default:
-        append(line[i]);
+        append(char);
     }
   }
-  if (line.length === compIndex) {
-    append('\0');
-  }
-  if (arg !== undefined) {
-    result.push(arg);
-  }
-  return result;
+  result.push(arg ?? '');
+  return result.slice(1); // remove the command name
 }
 
 /**
@@ -408,16 +412,19 @@ export function isTrue(
   str = str.trim();
   const { truthNames, falsityNames, caseSensitive } = flags;
   const regexFlags = caseSensitive ? '' : 'i';
-  const hasTruth = truthNames?.length;
-  if (hasTruth && match(truthNames)) {
+  if (truthNames && match(truthNames)) {
     return true;
   }
-  const hasFalsity = falsityNames?.length;
-  if (hasFalsity && match(falsityNames)) {
+  if (falsityNames && match(falsityNames)) {
     return false;
   }
-  // consider NaN true
-  return hasTruth ? (hasFalsity ? undefined : false) : hasFalsity ? true : !(Number(str) === 0);
+  return truthNames
+    ? falsityNames
+      ? undefined
+      : false
+    : falsityNames
+      ? true
+      : !(Number(str) === 0); // consider NaN true
 }
 
 /**
@@ -452,17 +459,6 @@ export function matchNamingRules<T extends NamingRules>(
 }
 
 /**
- * Checks whether an argument is a word to be completed.
- * @param arg The command-line argument
- * @returns The word being completed; else undefined
- * @internal
- */
-export function isComp(arg: string): string | undefined {
-  const [a, b] = arg.split('\0', 2);
-  return b !== undefined ? a : undefined;
-}
-
-/**
  * Gets the maximum of two numbers.
  * @param a The first operand
  * @param b The second operand
@@ -492,4 +488,31 @@ export function escapeRegExp(str: string): string {
  */
 export function combineRegExp(patterns: ReadonlyArray<string>): string {
   return `(${patterns.map(escapeRegExp).join('|')})`;
+}
+
+/**
+ * Finds a value that matches a predicate in an object.
+ * @param obj The object to search
+ * @param pred The predicate function
+ * @returns The first value matching the predicate
+ */
+export function findInObject<T extends object>(
+  obj: T,
+  pred: (val: T[keyof T]) => boolean,
+): T[keyof T] | undefined {
+  for (const key in obj) {
+    const val = obj[key];
+    if (pred(val)) {
+      return val;
+    }
+  }
+}
+
+/**
+ * Gets the value of an environment variable.
+ * @param name The variable name
+ * @returns The variable value, if it exists; else undefined
+ */
+export function env(name: string): string | undefined {
+  return process?.env[name];
 }

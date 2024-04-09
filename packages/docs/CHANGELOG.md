@@ -1,5 +1,32 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.0-dev.0
+
+### Minor Changes
+
+- [#110](https://github.com/trulysimple/tsargp/pull/110) [`d78f8cd`](https://github.com/trulysimple/tsargp/commit/d78f8cd6a450e8734ed3d4c4c29662932766f81c) Thanks [@disog](https://github.com/disog)! - Updated the Introduction page to document how word completion can be enabled for PowerShell.
+
+- [#121](https://github.com/trulysimple/tsargp/pull/121) [`fe66f44`](https://github.com/trulysimple/tsargp/commit/fe66f4408ef9a2a8090eafe7b8edb2dc19383004) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `clusterPrefix` configuration flag, which replaced the `shortStyle` flag. The Options page was updated to document the new behavior of cluster arguments.
+
+- [#105](https://github.com/trulysimple/tsargp/pull/105) [`e2f4c78`](https://github.com/trulysimple/tsargp/commit/e2f4c781ebbba78939e5da8a0505e5f141215a8d) Thanks [@disog](https://github.com/disog)! - - Updated Xterm.js to 5.5.0.
+
+  - Added documentation for the `useNested` attribute of help options in the Options page.
+  - Updated the Help guide to discourage the use of help commands in favor of the new attribute.
+
+- [#119](https://github.com/trulysimple/tsargp/pull/119) [`52d1581`](https://github.com/trulysimple/tsargp/commit/52d1581760b489929c5a560632dae7d314964f5d) Thanks [@disog](https://github.com/disog)! - The Introduction page now has documentation on how to enable word completion for Nushell.
+
+- [#113](https://github.com/trulysimple/tsargp/pull/113) [`a0fd953`](https://github.com/trulysimple/tsargp/commit/a0fd9539661773240cb9c3aaa8d6878ca904db56) Thanks [@disog](https://github.com/disog)! - Removed documentation of the `isComp` property from the Parser page, to reflect changes made in the code.
+
+- [#123](https://github.com/trulysimple/tsargp/pull/123) [`755698d`](https://github.com/trulysimple/tsargp/commit/755698d1d7e93adfdb4ceaf5713f919124c13954) Thanks [@disog](https://github.com/disog)! - The Parser and Options pages were updated to document the new syntax for inline cluster parameters.
+
+- [#117](https://github.com/trulysimple/tsargp/pull/117) [`ad11fb7`](https://github.com/trulysimple/tsargp/commit/ad11fb72a571eae7bdbbd0e08831e7c136edf19f) Thanks [@disog](https://github.com/disog)! - Updated the Introduction page to document how word completion can be enabled in Fish shell.
+
+- [#115](https://github.com/trulysimple/tsargp/pull/115) [`2680b4e`](https://github.com/trulysimple/tsargp/commit/2680b4e67988147ef11988ea64236bf0715d4eea) Thanks [@disog](https://github.com/disog)! - Updated the Introduction page to document how to enable word completion in Z shell.
+
+### Patch Changes
+
+- [#111](https://github.com/trulysimple/tsargp/pull/111) [`434bb74`](https://github.com/trulysimple/tsargp/commit/434bb74334101036ca2b43a9fb57c96221c6f87f) Thanks [@disog](https://github.com/disog)! - Updated the documentation to mention the boolean's truth and falsity names wherever the `enums` attribute is documented.
+
 ## 0.3.1
 
 ### Patch Changes
@@ -16,11 +43,11 @@
 
 - [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Documented the new `fallback` attribute in the Options page.
 
-- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Validator page was updated to document the new behaviour of the `validate` method, namely, that it returns validation warnings as a result. The "Names validation" section was updated to document the detection of naming inconsistencies. The Playground page was updated to report validation warnings when validating the input source.
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Validator page was updated to document the new behavior of the `validate` method, namely, that it returns validation warnings as a result. The "Names validation" section was updated to document the detection of naming inconsistencies. The Playground page was updated to report validation warnings when validating the input source.
 
 - [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - A whole section about asynchronous parsing was removed from the Parser page, according to changes made in the code. The Validator page was updated to document a new kind of validation, namely, `invalidRequiredValue`.
 
-- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `paramCount` attribute of the function option. The Validator page was updated to document the new validations related to variadic options and the fuction option's parameter count.
+- [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `paramCount` attribute of the function option. The Validator page was updated to document the new validations related to variadic options and the function option's parameter count.
 
 - [#101](https://github.com/trulysimple/tsargp/pull/101) [`5b0eb88`](https://github.com/trulysimple/tsargp/commit/5b0eb882daaf3798d5d2a7cc3c88e35542c72977) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new `breaks`, `required` and `comment` properties of help sections.
 
@@ -52,7 +79,7 @@
 
 - [#92](https://github.com/trulysimple/tsargp/pull/92) [`34c6d5e`](https://github.com/trulysimple/tsargp/commit/34c6d5efa202bcc09213727f624f0f208409bd55) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `ParseInfo` type, along with information regarding the parsing callbacks. The Options page was updated to document changes made to the parsing callbacks. The `parseError` enumerator was removed from the Validator page, since it is no longer supported.
 
-- [#96](https://github.com/trulysimple/tsargp/pull/96) [`464c113`](https://github.com/trulysimple/tsargp/commit/464c1136aa32767618eacfca685ff054b99d6b0b) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `paramCount` attribute of the function option. The Validator page was updated to document the new validations related to variadic options and the fuction option's parameter count.
+- [#96](https://github.com/trulysimple/tsargp/pull/96) [`464c113`](https://github.com/trulysimple/tsargp/commit/464c1136aa32767618eacfca685ff054b99d6b0b) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `paramCount` attribute of the function option. The Validator page was updated to document the new validations related to variadic options and the function option's parameter count.
 
 - [#95](https://github.com/trulysimple/tsargp/pull/95) [`9d26e81`](https://github.com/trulysimple/tsargp/commit/9d26e81eabf3fb8ebe46c35e3419b7e1d5f46e3e) Thanks [@disog](https://github.com/disog)! - Some subsections of the "Parameter attributes" section of the Options page were moved to a new section called "Known value attributes", to reflect changes made in the code.
 
@@ -76,7 +103,7 @@
 
 ### Minor Changes
 
-- [#78](https://github.com/trulysimple/tsargp/pull/78) [`9ac4ba5`](https://github.com/trulysimple/tsargp/commit/9ac4ba593fde0e78648e2fbc15f6cb633cca2a0d) Thanks [@disog](https://github.com/disog)! - The Validator page was updated to document the new behaviour of the `validate` method, namely, that it returns validation warnings as a result. The "Names validation" section was updated to document the detection of naming inconsistencies. The Playground page was updated to report validation warnings when validating the input source.
+- [#78](https://github.com/trulysimple/tsargp/pull/78) [`9ac4ba5`](https://github.com/trulysimple/tsargp/commit/9ac4ba593fde0e78648e2fbc15f6cb633cca2a0d) Thanks [@disog](https://github.com/disog)! - The Validator page was updated to document the new behavior of the `validate` method, namely, that it returns validation warnings as a result. The "Names validation" section was updated to document the detection of naming inconsistencies. The Playground page was updated to report validation warnings when validating the input source.
 
 ### Patch Changes
 

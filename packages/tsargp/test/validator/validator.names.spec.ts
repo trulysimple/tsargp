@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { type Options, OptionValidator } from '../../lib';
+import type { Options, ValidationFlags } from '../../lib';
+import { OptionValidator } from '../../lib';
 import '../utils.spec';
 
 describe('OptionValidator', () => {
@@ -82,16 +83,54 @@ describe('OptionValidator', () => {
       expect(() => validator.validate()).toThrow(`Option boolean has invalid name 'a = b'.`);
     });
 
-    it('should throw an error on option with invalid cluster letter', () => {
+    it('should throw an error on duplicate option name in the same option', () => {
       const options = {
         flag: {
           type: 'flag',
-          names: ['-f'],
-          clusterLetters: 'a = b',
+          names: ['dup', 'dup'],
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option flag has invalid cluster letter ' '.`);
+      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
+    });
+
+    it('should throw an error on duplicate option name across options', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['dup'],
+        },
+        flag2: {
+          type: 'flag',
+          names: ['dup'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option flag2 has duplicate name 'dup'.`);
+    });
+
+    it('should throw an error on flag option with duplicate negation name', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['dup'],
+          negationNames: ['dup'],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
+    });
+
+    it('should throw an error on option with duplicate positional marker', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['dup'],
+          positional: 'dup',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option boolean has duplicate name 'dup'.`);
     });
 
     it('should return a warning on option name too similar to other names', () => {
@@ -110,7 +149,8 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      const flags: ValidationFlags = { detectNamingIssues: true };
+      const { warning } = validator.validate(flags);
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
         `: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,
@@ -133,7 +173,8 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      const flags: ValidationFlags = { detectNamingIssues: true };
+      const { warning } = validator.validate(flags);
       expect(warning).toHaveLength(3);
       expect(warning?.message).toEqual(
         `: Name slot 0 has mixed naming conventions ['lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'].\n` +
@@ -165,7 +206,8 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      const { warning } = validator.validate({ detectNamingInconsistencies: true });
+      const flags: ValidationFlags = { detectNamingIssues: true };
+      const { warning } = validator.validate(flags);
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
         `command: Option name 'flag1' has too similar names ['flag2', 'flag3'].\n`,

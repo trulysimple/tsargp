@@ -14,16 +14,7 @@ export default [
   jsdoc.configs['flat/recommended-typescript-error'],
   {
     plugins: { '@cspell': cspell },
-    rules: {
-      '@cspell/spellchecker': [
-        'error',
-        {
-          cspell: {
-            words: ['ruleset', 'rulesets'],
-          },
-        },
-      ],
-    },
+    rules: { '@cspell/spellchecker': 'error' },
   },
   {
     files: ['**/*.ts'],

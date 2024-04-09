@@ -19,8 +19,23 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
+      expect(() => validator.validate()).toThrow(`Option boolean has empty positional marker.`);
+    });
+
+    it('should throw an error on duplicate positional option', () => {
+      const options = {
+        boolean1: {
+          type: 'boolean',
+          positional: true,
+        },
+        boolean2: {
+          type: 'boolean',
+          positional: true,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
       expect(() => validator.validate()).toThrow(
-        `Option boolean contains empty positional marker.`,
+        `Duplicate positional option boolean2: previous was boolean1.`,
       );
     });
 
@@ -33,74 +48,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option version contains empty version.`);
-    });
-
-    it('should return a warning on string option with fallback value and cluster letters', () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          fallback: '',
-          clusterLetters: 'a',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const { warning } = validator.validate();
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `Variadic option string has cluster letters. It may only appear as the last option in a cluster.\n`,
-      );
-    });
-
-    it('should return a warning on variadic strings option with cluster letters', () => {
-      const options = {
-        strings: {
-          type: 'strings',
-          names: ['-ss'],
-          clusterLetters: 'a',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const { warning } = validator.validate();
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `Variadic option strings has cluster letters. It may only appear as the last option in a cluster.\n`,
-      );
-    });
-
-    it('should return a warning on variadic function option with cluster letters (1)', () => {
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
-          paramCount: -1,
-          clusterLetters: 'a',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const { warning } = validator.validate();
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
-      );
-    });
-
-    it('should return a warning on variadic function option with cluster letters (2)', () => {
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
-          paramCount: [0, 1],
-          clusterLetters: 'a',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const { warning } = validator.validate();
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `Variadic option function has cluster letters. It may only appear as the last option in a cluster.\n`,
-      );
+      expect(() => validator.validate()).toThrow(`Option version has empty version.`);
     });
 
     it('should validate nested command options recursively', () => {

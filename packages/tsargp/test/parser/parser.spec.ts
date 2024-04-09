@@ -29,10 +29,10 @@ describe('ArgumentParser', () => {
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['boo'])).rejects.toThrow(`Unknown option boo.`);
       await expect(parser.parse(['bool'])).rejects.toThrow(
-        `Unknown option bool. Similar names are [--boolean1, --boolean2].`,
+        `Unknown option bool. Similar names are: --boolean1, --boolean2.`,
       );
       await expect(parser.parse(['bool-ean'])).rejects.toThrow(
-        `Unknown option bool-ean. Similar names are [--boolean1, --boolean2].`,
+        `Unknown option bool-ean. Similar names are: --boolean1, --boolean2.`,
       );
     });
 
@@ -127,9 +127,52 @@ describe('ArgumentParser', () => {
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-h', '-F', '-B'], { progName: 'prog' })).rejects.toThrow(
+        await expect(parser.parse(['-h', '-F', '-B'])).rejects.toThrow(
           `  -f, --flag\n  -b, --boolean  <boolean>`,
         );
+      });
+
+      it('should throw the help message of a nested command with filter', async () => {
+        const options = {
+          help: {
+            type: 'help',
+            names: ['-h'],
+            sections: [{ type: 'groups' }],
+            useFilter: true,
+            useNested: true,
+          },
+          command1: {
+            type: 'command',
+            names: ['cmd1'],
+            options: {
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+            },
+          },
+          command2: {
+            type: 'command',
+            names: ['cmd2'],
+            options: {
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+              help: {
+                type: 'help',
+                names: ['-h'],
+                sections: [{ type: 'groups' }],
+                useFilter: true,
+              },
+            },
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-h', '-h'])).rejects.toThrow('  -h');
+        await expect(parser.parse(['-h', 'cmd1'])).rejects.toThrow('  cmd1  ...');
+        await expect(parser.parse(['-h', 'cmd2'])).rejects.toThrow('  -f\n  -h');
+        await expect(parser.parse(['-h', 'cmd2', '-f'])).rejects.toThrow('  -f');
       });
     });
 
@@ -289,7 +332,6 @@ describe('ArgumentParser', () => {
           name: '-f',
           param: [],
           comp: false,
-          isComp: expect.anything(),
         });
         options.function.exec.mockClear();
         await expect(parser.parse(['-f', '-f'])).resolves.toEqual({ function: 'abc' });
@@ -300,7 +342,6 @@ describe('ArgumentParser', () => {
           name: '-f',
           param: ['-f'],
           comp: false,
-          isComp: expect.anything(),
         });
         expect(options.function.exec).toHaveBeenCalledTimes(2);
       });
@@ -593,6 +634,32 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['--boolean', ''])).resolves.toEqual({ boolean: false });
         await expect(parser.parse(['-b=1', '-b=0'])).resolves.toEqual({ boolean: false });
         await expect(parser.parse(['-b', '1', '-b', '0'])).resolves.toEqual({ boolean: false });
+      });
+
+      it('should handle a boolean option with truth names', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            truthNames: ['true'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b', ' abc '])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b', ' True '])).resolves.toEqual({ boolean: true });
+      });
+
+      it('should handle a boolean option with falsity names', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            falsityNames: ['false'],
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b', ' False '])).resolves.toEqual({ boolean: false });
+        await expect(parser.parse(['-b', ' abc '])).resolves.toEqual({ boolean: true });
       });
 
       it('should handle a boolean option with truth and falsity names', async () => {

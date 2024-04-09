@@ -9,9 +9,9 @@ import {
   selectAlternative,
   isTrue,
   matchNamingRules,
-  isComp,
   escapeRegExp,
   combineRegExp,
+  findInObject,
 } from '../lib/utils';
 
 /*
@@ -37,40 +37,46 @@ describe('getArgs', () => {
   describe('with no completion index', () => {
     it('should handle zero arguments', () => {
       expect(getArgs('')).toEqual([]);
+      expect(getArgs('cmd')).toEqual([]);
     });
 
-    it('should ignore whitespace', () => {
-      expect(getArgs(' type script ')).toEqual(['type', 'script']);
+    it('should ignore leading and trailing whitespace', () => {
+      expect(getArgs(' cmd ')).toEqual([]);
+      expect(getArgs(' cmd  type  script ')).toEqual(['type', 'script']);
     });
 
-    it('should handle arguments with quotes', () => {
-      expect(getArgs(`"type script" 'is fun'`)).toEqual(['type script', 'is fun']);
+    it('should handle quoted arguments', () => {
+      expect(getArgs(`cmd "" ''`)).toEqual(['', '']);
+      expect(getArgs(`cmd " " ' '`)).toEqual([' ', ' ']);
+      expect(getArgs(`cmd "'" '"'`)).toEqual([`'`, '"']);
+      expect(getArgs(`cmd "type script" 'is fun'`)).toEqual(['type script', 'is fun']);
+      expect(getArgs(`cmd type" "script' 'is fun`)).toEqual(['type script is', 'fun']);
+      expect(getArgs(`cmd "'type' script" 'is "fun"'`)).toEqual([`'type' script`, 'is "fun"']);
     });
 
-    it('should handle quotes alongside arguments', () => {
-      expect(getArgs(`type" script is "fun`)).toEqual(['type script is fun']);
-    });
-
-    it('should handle quotes inside quotes', () => {
-      expect(getArgs(`"'type' 'script'"`)).toEqual([`'type' 'script'`]);
-      expect(getArgs(`'"type" "script"'`)).toEqual([`"type" "script"`]);
+    it('should handle escaped characters', () => {
+      expect(getArgs(`cmd type\\ script`)).toEqual(['type script']);
+      expect(getArgs(`cmd type\\\\script`)).toEqual(['type\\script']);
+      expect(getArgs(`cmd "type\\ script"`)).toEqual(['type\\ script']);
+      expect(getArgs(`cmd 'type\\ script'`)).toEqual(['type\\ script']);
     });
   });
 
   describe('with completion index', () => {
     it('when it is by itself', () => {
-      expect(getArgs('', 0)).toEqual(['\0']);
-      expect(getArgs('  ', 1)).toEqual(['\0']);
+      expect(getArgs('cmd ', 4)).toEqual(['']);
     });
 
-    it('when it is inside an argument', () => {
-      expect(getArgs('type', 2)).toEqual(['ty\0pe']);
-      expect(getArgs('"type script"', 5)).toEqual(['type\0 script']);
+    it('when it is over an argument', () => {
+      expect(getArgs('cmd type', 4)).toEqual(['']);
+      expect(getArgs('cmd type', 6)).toEqual(['ty']);
+      expect(getArgs('cmd "type script"', 10)).toEqual(['type ']);
     });
 
-    it('when it is at either side of an argument', () => {
-      expect(getArgs('type', 0)).toEqual(['\0type']);
-      expect(getArgs('type', 4)).toEqual(['type\0']);
+    it('when it is past the end of the line', () => {
+      expect(getArgs('cmd', 4)).toEqual(['']);
+      expect(getArgs('cmd ""', 7)).toEqual(['', '']);
+      expect(getArgs('cmd type', 9)).toEqual(['type', '']);
     });
   });
 });
@@ -253,18 +259,6 @@ describe('matchNamingRules', () => {
   });
 });
 
-describe('isComp', () => {
-  it('should return undefined on normal argument', () => {
-    expect(isComp('')).toBeUndefined();
-    expect(isComp('abc')).toBeUndefined();
-  });
-
-  it('should return the word being completed on completion argument', () => {
-    expect(isComp('\0')).toEqual('');
-    expect(isComp('a\0bc')).toEqual('a');
-  });
-});
-
 describe('escapeRegExp', () => {
   it('should escape the regex symbols', () => {
     expect(escapeRegExp('\\^$.*+?()[]{}|')).toEqual('\\\\\\^\\$\\.\\*\\+\\?\\(\\)\\[\\]\\{\\}\\|');
@@ -276,5 +270,17 @@ describe('combineRegExp', () => {
     expect(
       combineRegExp(['\\', '^', '$', '.', '*', '+', '?', '(', ')', '[', ']', '{', '}', '|']),
     ).toEqual('(\\\\|\\^|\\$|\\.|\\*|\\+|\\?|\\(|\\)|\\[|\\]|\\{|\\}|\\|)');
+  });
+});
+
+describe('findInObject', () => {
+  it('should return undefined on no match', () => {
+    expect(findInObject({}, () => true)).toBeUndefined();
+    expect(findInObject({ a: 1, b: 'a' }, () => false)).toBeUndefined();
+  });
+
+  it('should return the first match', () => {
+    expect(findInObject({ a: 1, b: 'a' }, () => true)).toEqual(1);
+    expect(findInObject({ a: 1, b: 'a' }, (val) => val === 'a')).toEqual('a');
   });
 });

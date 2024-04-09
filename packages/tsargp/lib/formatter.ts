@@ -366,19 +366,18 @@ export class HelpFormatter {
     const fmtConfig = mergeConfig(config);
     const valConfig = validator.config;
     const options = validator.options;
-    const filter = fmtConfig.filter.length
-      ? RegExp(combineRegExp(fmtConfig.filter), 'i')
-      : undefined;
-    const nameWidths = fmtConfig.names.hidden
+    const { names, filter } = fmtConfig;
+    const filterRegex = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
+    const nameWidths = names.hidden
       ? 0
-      : fmtConfig.names.align === 'slot'
+      : names.align === 'slot'
         ? getNameWidths(options)
         : getMaxNamesWidth(options);
     this.context = [valConfig.styles, options, valConfig.connectives];
     let paramWidth = 0;
     for (const key in options) {
       const option = options[key];
-      if (!option.hide && (!filter || matchOption(option, filter))) {
+      if (!option.hide && (!filterRegex || matchOption(option, filterRegex))) {
         const paramLen = formatOption(this.groups, fmtConfig, this.context, nameWidths, option);
         paramWidth = max(paramWidth, paramLen);
       }
@@ -516,10 +515,11 @@ function formatParams(
   option: OpaqueOption,
 ): [TerminalString, number] {
   const result = new TerminalString();
-  if (config.param.hidden) {
+  const { param } = config;
+  if (param.hidden) {
     return [result, 0];
   }
-  const len = formatParam(option, styles, result, config.param.breaks);
+  const len = formatParam(option, styles, result, param.breaks);
   result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
   return [result, len];
 }
@@ -537,26 +537,25 @@ function formatDescription(
   context: HelpContext,
   option: OpaqueOption,
 ): TerminalString {
-  const result = new TerminalString();
-  if (config.descr.hidden || !config.items.length) {
-    return result.break(1);
+  const { descr, items, phrases } = config;
+  const result = new TerminalString(0, 0, descr.align === 'right');
+  if (descr.hidden || !items.length) {
+    return result.break();
   }
   const [styles] = context;
   const descrStyle = option.styles?.descr ?? styles.text;
-  result.rightAlign = config.descr.align === 'right';
-  result.break(config.descr.breaks).seq(descrStyle);
+  result.break(descr.breaks).seq(descrStyle);
   styles.current = descrStyle;
   const count = result.count;
   try {
-    for (const item of config.items) {
-      const phrase = config.phrases[item];
-      helpItemFunctions[item](option, phrase, context, result);
+    for (const item of items) {
+      helpItemFunctions[item](option, phrases[item], context, result);
     }
   } finally {
     delete styles.current;
   }
   if (result.count === count) {
-    result.pop(count).break(1); // this string does not contain any word
+    result.pop(count).break(); // this string does not contain any word
   } else {
     result.clear().break(); // add ending breaks after styles
   }
@@ -588,8 +587,9 @@ function getNameWidths(options: OpaqueOptions): Array<number> {
   const result: Array<number> = [];
   for (const key in options) {
     const option = options[key];
-    if (!option.hide && option.names) {
-      option.names.forEach((name, i) => {
+    const names = option.names;
+    if (!option.hide && names) {
+      names.forEach((name, i) => {
         result[i] = max(result[i] ?? 0, name?.length ?? 0);
       });
     }
@@ -606,13 +606,9 @@ function getMaxNamesWidth(options: OpaqueOptions): number {
   let result = 0;
   for (const key in options) {
     const option = options[key];
-    if (!option.hide && option.names) {
-      let len = 0;
-      for (const name of option.names) {
-        if (name) {
-          len += (len ? 2 : 0) + name.length;
-        }
-      }
+    const names = option.names;
+    if (!option.hide && names) {
+      const len = names.reduce((acc, name) => acc + 2 + (name?.length ?? -2), -2);
       result = max(result, len);
     }
   }
@@ -671,8 +667,8 @@ function formatNameSlots(
   const slotted = typeof nameWidths !== 'number';
   const result: Array<TerminalString> = [];
   let str: TerminalString | undefined;
-  let indent = max(0, config.names.indent);
-  let breaks = config.names.breaks;
+  let { indent, breaks, align } = config.names;
+  indent = max(0, indent);
   let len = 0;
   names.forEach((name, i) => {
     if (name) {
@@ -694,7 +690,7 @@ function formatNameSlots(
       indent += nameWidths[i] + 2;
     }
   });
-  if (str && !slotted && config.names.align === 'right') {
+  if (str && !slotted && align === 'right') {
     str.indent += nameWidths - len;
   }
   return result;
@@ -1154,6 +1150,7 @@ function formatConv(
 
 /**
  * Formats an option's enumerated values to be included in the description.
+ * This includes truth and falsity names of a boolean option.
  * @param option The option definition
  * @param phrase The description item phrase
  * @param context The help context
@@ -1166,9 +1163,12 @@ function formatEnums(
   result: TerminalString,
 ) {
   const enums = option.enums;
-  if (enums) {
-    const [spec, alt] = isOpt.str(option) ? ['s', 0] : ['n', 1];
-    result.format(context[0], phrase, { [spec]: enums }, { alt, sep: ',' });
+  const truth = option.truthNames;
+  const falsity = option.falsityNames;
+  if (enums || truth || falsity) {
+    const values = [...(enums ?? []), ...(truth ?? []), ...(falsity ?? [])];
+    const [spec, alt] = isOpt.num(option) ? ['n', 1] : ['s', 0];
+    result.format(context[0], phrase, { [spec]: values }, { alt, sep: ',' });
   }
 }
 
@@ -1278,10 +1278,7 @@ function formatDefault(
   context: HelpContext,
   result: TerminalString,
 ) {
-  const value = option.default;
-  if (value !== undefined) {
-    formatValue(context, option, phrase, result, value);
-  }
+  formatValue(context, option, phrase, result, option.default);
 }
 
 /**
@@ -1299,6 +1296,9 @@ function formatValue(
   result: TerminalString,
   value: unknown,
 ) {
+  if (value === undefined) {
+    return;
+  }
   const [spec, alt] =
     typeof value === 'function'
       ? ['v', 5]
@@ -1317,7 +1317,7 @@ function formatValue(
 }
 
 /**
- * Formats an option's deprecation reason to be included in the description.
+ * Formats an option's deprecation notice to be included in the description.
  * @param option The option definition
  * @param phrase The description item phrase
  * @param context The help context
@@ -1497,11 +1497,13 @@ function formatRequiredValue(
   negate: boolean,
 ) {
   const [styles, , connectives] = context;
-  if ((value === null && !negate) || (value === undefined && negate)) {
+  const requireAbsent = value === null;
+  const requirePresent = value === undefined;
+  if ((requireAbsent && !negate) || (requirePresent && negate)) {
     result.word(connectives[ConnectiveWords.no]);
   }
   format.o(option.preferredName ?? '', styles, result);
-  if (value !== null && value !== undefined) {
+  if (!requireAbsent && !requirePresent) {
     const connective = negate
       ? connectives[ConnectiveWords.notEquals]
       : connectives[ConnectiveWords.equals];
@@ -1562,8 +1564,5 @@ function formatFallback(
   context: HelpContext,
   result: TerminalString,
 ) {
-  const value = option.fallback;
-  if (value !== undefined) {
-    formatValue(context, option, phrase, result, value);
-  }
+  formatValue(context, option, phrase, result, option.fallback);
 }

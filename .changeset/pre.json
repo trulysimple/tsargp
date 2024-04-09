@@ -1,0 +1,29 @@
+{
+  "mode": "exit",
+  "tag": "dev",
+  "initialVersions": {
+    "@trulysimple/tsargp-docs": "0.3.1",
+    "tsargp": "0.4.1"
+  },
+  "changesets": [
+    "beige-drinks-battle",
+    "brown-weeks-mix",
+    "chatty-bikes-promise",
+    "cuddly-kings-play",
+    "early-pumpkins-play",
+    "eighty-rabbits-pump",
+    "fifty-dryers-collect",
+    "flat-cooks-mix",
+    "four-geese-cover",
+    "fuzzy-trainers-swim",
+    "kind-dryers-watch",
+    "rich-garlics-perform",
+    "shaggy-horses-hunt",
+    "shiny-jeans-arrive",
+    "shiny-meals-visit",
+    "slimy-frogs-dance",
+    "soft-clocks-count",
+    "swift-suns-cross",
+    "witty-ducks-tease"
+  ]
+}

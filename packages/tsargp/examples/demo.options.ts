@@ -1,5 +1,5 @@
 import type { Options, OptionValues } from 'tsargp';
-import { fg, style, req, tf, fg8, ArgumentParser } from 'tsargp';
+import { fg, style, req, tf, fg8 } from 'tsargp';
 
 /**
  * The hello option definitions.
@@ -40,35 +40,9 @@ const helloOpts = {
 } as const satisfies Options;
 
 /**
- * The helpCmd option definitions.
- */
-const helpOpts = {
-  name: {
-    type: 'string',
-    desc: 'The name of the nested command.',
-    enums: ['hello'],
-    preferredName: 'command name',
-    positional: true,
-    required: true, // error if called without a command name
-  },
-} as const satisfies Options;
-
-/**
  * The main option definitions.
  */
 export default {
-  /**
-   * A command option that throws the help message of a nested command.
-   */
-  helpCmd: {
-    type: 'command',
-    names: ['help'],
-    desc: 'Prints the help of a nested command.',
-    options: helpOpts,
-    async exec() {
-      await new ArgumentParser(helloOpts).parse(['-h'], { progName: 'hello' });
-    },
-  },
   /**
    * A help option that throws the help message of the main command.
    */
@@ -116,6 +90,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
       },
     ],
     useFilter: true,
+    useNested: true,
   },
   /**
    * A version option that throws the package version.
@@ -158,6 +133,8 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     
     `,
     default: false,
+    truthNames: ['yes'],
+    falsityNames: ['no'],
     requires: req.all(
       'stringEnum',
       { numberEnum: 2 },
@@ -175,6 +152,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     regex: /^\d+$/,
     default: '123456789',
     paramName: 'my str',
+    clusterLetters: 's',
   },
   /**
    * A number option that has a range constraint.
@@ -187,6 +165,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     range: [-Infinity, 0],
     default: -1.23,
     paramName: 'my num',
+    clusterLetters: 'n',
   },
   /**
    * A string option that has an enumeration constraint.
