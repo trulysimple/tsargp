@@ -20,7 +20,7 @@ import type {
   ValidationResult,
 } from './validator';
 
-import { ConnectiveWords, ErrorItem } from './enums';
+import { ConnectiveWord, ErrorItem } from './enums';
 import { HelpFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
@@ -531,7 +531,8 @@ async function resolveVersion(
 function handleUnknownName(validator: OptionValidator, name: string): never {
   const similar = findSimilar(name, validator.names.keys(), 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
-  throw validator.error(ErrorItem.unknownOption, args, { alt, sep: ',' });
+  const sep = validator.config.connectives[ConnectiveWord.optionSep];
+  throw validator.error(ErrorItem.unknownOption, args, { alt, sep });
 }
 
 /**
@@ -571,7 +572,7 @@ async function checkRequireItems<T>(
   and: boolean,
 ): Promise<boolean> {
   const connectives = validator.config.connectives;
-  const connective = invert ? connectives[ConnectiveWords.and] : connectives[ConnectiveWords.or];
+  const connective = invert ? connectives[ConnectiveWord.and] : connectives[ConnectiveWord.or];
   if (!and && items.length > 1) {
     error.open('(');
   }
@@ -620,7 +621,8 @@ async function parseParam(
     if (result === undefined) {
       const names = [...(option.truthNames ?? []), ...(option.falsityNames ?? [])];
       const args = { o: name, s1: str, s2: names };
-      throw validator.error(ErrorItem.enumsConstraintViolation, args, { alt: 0, sep: ',' });
+      const sep = validator.config.connectives[ConnectiveWord.stringSep];
+      throw validator.error(ErrorItem.enumsConstraintViolation, args, { alt: 0, sep });
     }
     return result;
   }
@@ -1010,7 +1012,7 @@ async function checkRequires(
   if ((await requires(values)) === negate) {
     const { styles, connectives } = validator.config;
     if (negate !== invert) {
-      error.word(connectives[ConnectiveWords.not]);
+      error.word(connectives[ConnectiveWord.not]);
     }
     format.v(requires, styles, error);
     return false;
@@ -1046,7 +1048,7 @@ function checkRequirement(
     }
     const { styles, connectives } = validator.config;
     if (specified !== invert) {
-      error.word(connectives[ConnectiveWords.no]);
+      error.word(connectives[ConnectiveWord.no]);
     }
     format.o(option.preferredName ?? '', styles, error);
     return false;
@@ -1099,9 +1101,7 @@ function checkRequiredValue(
   const styles = config.styles;
   const connectives = config.connectives;
   const connective =
-    negate !== invert
-      ? connectives[ConnectiveWords.notEquals]
-      : connectives[ConnectiveWords.equals];
+    negate !== invert ? connectives[ConnectiveWord.notEquals] : connectives[ConnectiveWord.equals];
   const phrase = array ? `[%${spec}]` : `%${spec}`;
   format.o(name, styles, error);
   error.word(connective).format(styles, phrase, { [spec]: expected });

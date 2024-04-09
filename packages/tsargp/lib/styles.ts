@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
-import { cs, tf, fg, bg } from './enums';
+import { cs, tf, fg, bg, ConnectiveWord } from './enums';
 import { env, max, overrides, regexps, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
@@ -59,9 +59,11 @@ const formatFunctions = {
    * @param value The string value
    * @param styles The format styles
    * @param result The resulting string
+   * @param flags The formatting flags
    */
-  s(value: string, styles, result) {
-    result.style(styles.string, `'${value}'`, styles.current ?? styles.text);
+  s(value: string, styles, result, flags) {
+    const quote = flags.connectives?.[ConnectiveWord.stringQuote] ?? `'`;
+    result.style(styles.string, `${quote}${value}${quote}`, styles.current ?? styles.text);
   },
   /**
    * The formatting function for number values.
@@ -278,7 +280,16 @@ export type FormattingFlags = {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly custom?: FormatCallback<any>;
+  /**
+   * The connective words.
+   */
+  readonly connectives?: ConnectiveWords;
 };
+
+/**
+ * The connective words.
+ */
+export type ConnectiveWords = Readonly<Record<ConnectiveWord, string>>;
 
 //--------------------------------------------------------------------------------------------------
 // Internal types
@@ -803,7 +814,7 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
 function formatArgs(
   styles: FormatStyles,
   args: FormatArgs,
-  flags: FormattingFlags = { sep: ',' },
+  flags: FormattingFlags = {},
 ): FormatCallback {
   return function (this: TerminalString, spec: string) {
     const arg = spec.slice(1);

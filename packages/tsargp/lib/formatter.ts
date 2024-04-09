@@ -2,11 +2,11 @@
 // Imports
 //--------------------------------------------------------------------------------------------------
 import type { OpaqueOption, OpaqueOptions, Requires, RequiresEntry, RequiresVal } from './options';
-import type { Style, FormatStyles } from './styles';
+import type { Style, FormatStyles, ConnectiveWords } from './styles';
 import type { Concrete } from './utils';
-import type { ConcreteConfig, OptionValidator } from './validator';
+import type { OptionValidator } from './validator';
 
-import { tf, HelpItem, ConnectiveWords } from './enums';
+import { tf, HelpItem, ConnectiveWord } from './enums';
 import {
   RequiresAll,
   RequiresNot,
@@ -223,11 +223,7 @@ type HelpEntry = [names: Array<TerminalString>, param: TerminalString, descr: Te
 /**
  * Information about the current help message.
  */
-type HelpContext = [
-  styles: FormatStyles,
-  options: OpaqueOptions,
-  connectives: ConcreteConfig['connectives'],
-];
+type HelpContext = [styles: FormatStyles, options: OpaqueOptions, connectives: ConnectiveWords];
 
 /**
  * A function to format a help item.
@@ -468,7 +464,7 @@ function formatOption(
   option: OpaqueOption,
 ): number {
   const [styles] = context;
-  const names = formatNames(config, styles, option, nameWidths);
+  const names = formatNames(config, context, option, nameWidths);
   const [param, paramLen] = formatParams(config, styles, option);
   const descr = formatDescription(config, context, option);
   const entry: HelpEntry = [names, param, descr];
@@ -484,22 +480,24 @@ function formatOption(
 /**
  * Formats an option's names to be printed on the terminal.
  * @param config The format configuration
- * @param styles The set of styles
+ * @param context The help context
  * @param option The option definition
  * @param nameWidths The name slot widths
  * @returns The list of formatted strings, one for each name
  */
 function formatNames(
   config: ConcreteFormat,
-  styles: FormatStyles,
+  context: HelpContext,
   option: OpaqueOption,
   nameWidths: Array<number> | number,
 ): Array<TerminalString> {
   if (config.names.hidden || !option.names) {
     return [];
   }
+  const [styles, , connectives] = context;
   const namesStyle = option.styles?.names ?? styles.option;
-  return formatNameSlots(config, option.names, nameWidths, namesStyle, styles.text);
+  const sep = connectives[ConnectiveWord.optionSep];
+  return formatNameSlots(config, option.names, nameWidths, namesStyle, styles.text, sep);
 }
 
 /**
@@ -655,6 +653,7 @@ function adjustEntries(
  * @param nameWidths The name slot widths
  * @param namesStyle The style to apply
  * @param defStyle The default style
+ * @param sep The option name separator
  * @returns The resulting strings
  */
 function formatNameSlots(
@@ -663,6 +662,7 @@ function formatNameSlots(
   nameWidths: Array<number> | number,
   namesStyle: Style,
   defStyle: Style,
+  sep: string,
 ): Array<TerminalString> {
   const slotted = typeof nameWidths !== 'number';
   const result: Array<TerminalString> = [];
@@ -673,7 +673,7 @@ function formatNameSlots(
   names.forEach((name, i) => {
     if (name) {
       if (str) {
-        str.close(',');
+        str.close(sep);
         len += 2;
       }
       if (!str || slotted) {
@@ -734,7 +734,7 @@ function formatSection(
       result.push(formatText(title, sty ?? style(tf.bold), 0, breaks, noWrap));
       breaks = 2;
     }
-    const [styles, options] = context;
+    const [styles] = context;
     if (section.type === 'usage') {
       let { indent } = section;
       if (progName) {
@@ -742,7 +742,7 @@ function formatSection(
         indent = max(0, indent ?? 0) + progName.length + 1;
         breaks = 0;
       }
-      result.push(formatUsage(options, styles, section, indent, breaks));
+      result.push(formatUsage(context, section, indent, breaks));
     } else {
       const { text, indent } = section;
       if (text) {
@@ -809,20 +809,19 @@ function formatText(
 /**
  * Formats a usage text to be included in a help section.
  * Options are rendered in the same order as was declared in the option definitions.
- * @param options The option definitions
- * @param styles The set of styles
+ * @param context The help context
  * @param section The help section
  * @param indent The indentation level (negative values are replaced by zero)
  * @param breaks The number of line breaks (non-positive values are ignored)
  * @returns The terminal string
  */
 function formatUsage(
-  options: OpaqueOptions,
-  styles: FormatStyles,
+  context: HelpContext,
   section: HelpUsage,
   indent?: number,
   breaks?: number,
 ): TerminalString {
+  const [styles, options] = context;
   const { filter, exclude, required, comment } = section;
   const filterKeys = filter && new Set(filter);
   const requiredKeys = required && new Set(required);
@@ -832,14 +831,14 @@ function formatUsage(
     // list options in the same order specified in the filter
     for (const key of filterKeys) {
       if (key in options) {
-        formatUsageOption(options[key], styles, result, requiredKeys?.has(key));
+        formatUsageOption(context, options[key], result, requiredKeys?.has(key));
       }
     }
   } else {
     for (const key in options) {
       const option = options[key];
       if (!option.hide && !(exclude && filterKeys?.has(key))) {
-        formatUsageOption(option, styles, result);
+        formatUsageOption(context, option, result);
       }
     }
   }
@@ -854,21 +853,22 @@ function formatUsage(
 
 /**
  * Formats an option to be included in the the usage text.
+ * @param context The help context
  * @param option The option definition
- * @param styles The set of styles
  * @param result The resulting string
  * @param required True if the option should be considered required
  */
 function formatUsageOption(
+  context: HelpContext,
   option: OpaqueOption,
-  styles: FormatStyles,
   result: TerminalString,
   required = option.required ?? false,
 ) {
+  const [styles] = context;
   if (!required) {
     result.open('[');
   }
-  formatUsageNames(option, styles, result);
+  formatUsageNames(context, option, result);
   formatParam(option, styles, result);
   if (!required) {
     result.close(']');
@@ -877,11 +877,12 @@ function formatUsageOption(
 
 /**
  * Formats an option's names to be included in the usage text.
+ * @param context The help context
  * @param option The option definition
- * @param styles The set of styles
  * @param result The resulting string
  */
-function formatUsageNames(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
+function formatUsageNames(context: HelpContext, option: OpaqueOption, result: TerminalString) {
+  const [styles, , connectives] = context;
   const names = getOptionNames(option);
   if (names.length) {
     const positional = option.positional;
@@ -889,7 +890,8 @@ function formatUsageNames(option: OpaqueOption, styles: FormatStyles, result: Te
       result.open('[');
     }
     if (names.length > 1) {
-      result.format(styles, '(%o)', { o: names }, { sep: '|', mergeNext: true });
+      const sep = connectives[ConnectiveWord.optionAlt];
+      result.format(styles, '(%o)', { o: names }, { sep, mergeNext: true });
     } else {
       format.o(names[0], styles, result);
     }
@@ -959,7 +961,7 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
     return result.length;
   }
   const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
-  result.format(styles, `%${spec}`, { [spec]: example }, {});
+  result.format(styles, `%${spec}`, { [spec]: example });
   const nonDelimited = spec !== 'v' && Array.isArray(example);
   return result.length + (nonDelimited ? example.length - 1 : 0);
 }
@@ -998,7 +1000,8 @@ function formatNegation(
 ) {
   const names = option.negationNames?.filter((name) => name);
   if (names?.length) {
-    result.format(context[0], phrase, { o: names });
+    const sep = context[2][ConnectiveWord.optionSep];
+    result.format(context[0], phrase, { o: names }, { sep });
   }
 }
 
@@ -1049,7 +1052,8 @@ function formatParamCount(
             : min > 1
               ? [3, min] // at least %n
               : [0, undefined]; // multiple
-    result.format(context[0], phrase, { n: val }, { alt, sep: 'and', mergePrev: false });
+    const sep = context[2][ConnectiveWord.and];
+    result.format(context[0], phrase, { n: val }, { alt, sep, mergePrev: false });
   }
 }
 
@@ -1166,9 +1170,12 @@ function formatEnums(
   const truth = option.truthNames;
   const falsity = option.falsityNames;
   if (enums || truth || falsity) {
+    const connectives = context[2];
     const values = [...(enums ?? []), ...(truth ?? []), ...(falsity ?? [])];
-    const [spec, alt] = isOpt.num(option) ? ['n', 1] : ['s', 0];
-    result.format(context[0], phrase, { [spec]: values }, { alt, sep: ',' });
+    const [spec, alt, sep] = isOpt.num(option)
+      ? ['n', 1, connectives[ConnectiveWord.numberSep]]
+      : ['s', 0, connectives[ConnectiveWord.stringSep]];
+    result.format(context[0], phrase, { [spec]: values }, { alt, sep });
   }
 }
 
@@ -1206,7 +1213,8 @@ function formatRange(
 ) {
   const range = option.range;
   if (range) {
-    result.format(context[0], phrase, { n: range });
+    const sep = context[2][ConnectiveWord.numberSep];
+    result.format(context[0], phrase, { n: range }, { sep });
   }
 }
 
@@ -1299,7 +1307,8 @@ function formatValue(
   if (value === undefined) {
     return;
   }
-  const [spec, alt] =
+  const connectives = context[2];
+  const [spec, alt, sep] =
     typeof value === 'function'
       ? ['v', 5]
       : typeof value === 'boolean'
@@ -1309,11 +1318,11 @@ function formatValue(
           : typeof value === 'number'
             ? ['n', 2]
             : option.type === 'strings'
-              ? ['s', 3]
+              ? ['s', 3, connectives[ConnectiveWord.stringSep]]
               : option.type === 'numbers'
-                ? ['n', 4]
+                ? ['n', 4, connectives[ConnectiveWord.numberSep]]
                 : ['v', 5];
-  result.format(context[0], phrase, { [spec]: value }, { alt, sep: ',' });
+  result.format(context[0], phrase, { [spec]: value }, { alt, sep });
 }
 
 /**
@@ -1409,7 +1418,7 @@ function formatRequirements(
   const [styles, options, connectives] = context;
   if (typeof requires === 'string') {
     if (negate) {
-      result.word(connectives[ConnectiveWords.no]);
+      result.word(connectives[ConnectiveWord.no]);
     }
     const name = options[requires].preferredName ?? '';
     format.o(name, styles, result);
@@ -1421,7 +1430,7 @@ function formatRequirements(
     formatRequiresVal(context, requires, result, negate);
   } else {
     if (negate) {
-      result.word(connectives[ConnectiveWords.not]);
+      result.word(connectives[ConnectiveWord.not]);
     }
     format.v(requires, styles, result);
   }
@@ -1445,13 +1454,13 @@ function formatRequiresExp(
   function custom(item: Requires) {
     formatRequirements(context, item, result, negate);
   }
-  const [, , connectives] = context;
+  const connectives = context[2];
   const items = requires.items;
   const phrase = items.length > 1 ? '(%c)' : '%c';
   const sep =
     requires instanceof RequiresAll === negate
-      ? connectives[ConnectiveWords.or]
-      : connectives[ConnectiveWords.and];
+      ? connectives[ConnectiveWord.or]
+      : connectives[ConnectiveWord.and];
   result.format(context[0], phrase, { c: items }, { sep, custom, mergePrev: false });
 }
 
@@ -1476,7 +1485,7 @@ function formatRequiresVal(
   const [, options, connectives] = context;
   const entries = Object.entries(requires);
   const phrase = entries.length > 1 ? '(%c)' : '%c';
-  const sep = connectives[ConnectiveWords.and];
+  const sep = connectives[ConnectiveWord.and];
   result.format(context[0], phrase, { c: entries }, { sep, custom, mergePrev: false });
 }
 
@@ -1500,13 +1509,13 @@ function formatRequiredValue(
   const requireAbsent = value === null;
   const requirePresent = value === undefined;
   if ((requireAbsent && !negate) || (requirePresent && negate)) {
-    result.word(connectives[ConnectiveWords.no]);
+    result.word(connectives[ConnectiveWord.no]);
   }
   format.o(option.preferredName ?? '', styles, result);
   if (!requireAbsent && !requirePresent) {
     const connective = negate
-      ? connectives[ConnectiveWords.notEquals]
-      : connectives[ConnectiveWords.equals];
+      ? connectives[ConnectiveWord.notEquals]
+      : connectives[ConnectiveWord.equals];
     const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
     const phrase = isOpt.arr(option) ? `[%${spec}]` : `%${spec}`;
     result.word(connective).format(styles, phrase, { [spec]: value });
