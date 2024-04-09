@@ -1,5 +1,32 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.0
+
+### Minor Changes
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Updated the Introduction page to document how word completion can be enabled for PowerShell.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - The Parser page was updated to document the new `clusterPrefix` configuration flag, which replaced the `shortStyle` flag. The Options page was updated to document the new behavior of cluster arguments.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - - Updated Xterm.js to 5.5.0.
+
+  - Added documentation for the `useNested` attribute of help options in the Options page.
+  - Updated the Help guide to discourage the use of help commands in favor of the new attribute.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - The Introduction page now has documentation on how to enable word completion for Nushell.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Removed documentation of the `isComp` property from the Parser page, to reflect changes made in the code.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - The Parser and Options pages were updated to document the new syntax for inline cluster parameters.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Updated the Introduction page to document how word completion can be enabled in Fish shell.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Updated the Introduction page to document how to enable word completion in Z shell.
+
+### Patch Changes
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Updated the documentation to mention the boolean's truth and falsity names wherever the `enums` attribute is documented.
+
 ## 0.4.0-dev.0
 
 ### Minor Changes
