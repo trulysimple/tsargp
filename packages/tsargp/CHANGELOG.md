@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.5.1
+
+### Patch Changes
+
+- [#130](https://github.com/trulysimple/tsargp/pull/130) [`dbeee87`](https://github.com/trulysimple/tsargp/commit/dbeee879d85f64a15efa200e46de52a09dcd2d20) Thanks [@disog](https://github.com/disog)! - The wording for the `tooSimilarOptionNames` and `mixedNamingConvention` warnings was changed.
+
 ## 0.5.0
 
 ### Minor Changes
