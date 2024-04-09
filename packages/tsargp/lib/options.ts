@@ -588,7 +588,7 @@ export type WithCommand = {
    */
   readonly options?: Options | (() => Options);
   /**
-   * The prefix of option clusters.
+   * The prefix of cluster arguments.
    * If set, then eligible arguments that have this prefix will be considered a cluster.
    */
   readonly clusterPrefix?: string;

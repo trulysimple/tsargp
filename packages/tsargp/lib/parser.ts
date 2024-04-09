@@ -54,7 +54,7 @@ export type ParsingFlags = {
    */
   readonly compIndex?: number;
   /**
-   * The prefix of option clusters.
+   * The prefix of cluster arguments.
    * If set, then eligible arguments that have this prefix will be considered a cluster.
    */
   readonly clusterPrefix?: string;
@@ -157,7 +157,7 @@ export class ArgumentParser<T extends Options = Options> {
     cmdLine = env('COMP_LINE') ?? env('BUFFER') ?? process?.argv.slice(2) ?? [],
     flags: ParsingFlags = {
       progName: process?.argv[1].split(/[\\/]/).at(-1),
-      compIndex: Number(env('COMP_POINT') ?? env('CURSOR') ?? env('BUFFER')?.length),
+      compIndex: Number(env('COMP_POINT') ?? env('CURSOR')) || env('BUFFER')?.length,
     },
   ): Promise<ParsingResult> {
     const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
