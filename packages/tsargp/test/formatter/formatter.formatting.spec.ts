@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Options, FormatterConfig } from '../../lib';
-import { HelpFormatter, OptionValidator, style, tf, fg8 } from '../../lib';
+import { HelpFormatter, OptionValidator, style, tf, fg8, ConnectiveWord } from '../../lib';
+import { defaultConfig } from '../../lib/validator';
 import '../utils.spec'; // initialize globals
 
 describe('HelpFormatter', () => {
@@ -221,7 +222,34 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -b, --boolean  <boolean>\n');
     });
 
-    it('should align option names to the left boundary', () => {
+    it('should align option names to the left boundary without separator', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['-f', null, '--flag'],
+          desc: 'A flag option',
+        },
+        flag2: {
+          type: 'flag',
+          names: [null, '--flag2', null],
+          desc: 'A flag option',
+        },
+      } as const satisfies Options;
+      const config: FormatterConfig = { names: { align: 'left' } };
+      const valCfg = {
+        ...defaultConfig,
+        connectives: {
+          ...defaultConfig.connectives,
+          [ConnectiveWord.optionSep]: '',
+        },
+      };
+      const message = new HelpFormatter(new OptionValidator(options, valCfg), config).formatHelp();
+      expect(message.wrap()).toEqual(
+        '  -f --flag    A flag option\n  --flag2      A flag option\n',
+      );
+    });
+
+    it('should align option names to the left boundary with a separator', () => {
       const options = {
         flag1: {
           type: 'flag',
@@ -253,7 +281,30 @@ describe('HelpFormatter', () => {
       expect(message.wrap()).toEqual('  -f, --flag\n     --flag2\n');
     });
 
-    it('should align option names within slots', () => {
+    it('should align option names within slots without separator', () => {
+      const options = {
+        flag1: {
+          type: 'flag',
+          names: ['-f', null, '--flag'],
+        },
+        flag2: {
+          type: 'flag',
+          names: [null, '--flag2', null],
+        },
+      } as const satisfies Options;
+      const config: FormatterConfig = { names: { align: 'slot' } };
+      const valCfg = {
+        ...defaultConfig,
+        connectives: {
+          ...defaultConfig.connectives,
+          [ConnectiveWord.optionSep]: '',
+        },
+      };
+      const message = new HelpFormatter(new OptionValidator(options, valCfg), config).formatHelp();
+      expect(message.wrap()).toEqual('  -f         --flag\n     --flag2\n');
+    });
+
+    it('should align option names within slots with a separator', () => {
       const options = {
         flag1: {
           type: 'flag',

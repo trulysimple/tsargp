@@ -364,11 +364,12 @@ export class HelpFormatter {
     const options = validator.options;
     const { names, filter } = fmtConfig;
     const filterRegex = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
+    const optionSep = valConfig.connectives[ConnectiveWord.optionSep];
     const nameWidths = names.hidden
       ? 0
       : names.align === 'slot'
         ? getNameWidths(options)
-        : getMaxNamesWidth(options);
+        : getMaxNamesWidth(options, optionSep);
     this.context = [valConfig.styles, options, valConfig.connectives];
     let paramWidth = 0;
     for (const key in options) {
@@ -598,15 +599,17 @@ function getNameWidths(options: OpaqueOptions): Array<number> {
 /**
  * Gets the maximum combined width of option names in a set of option definitions.
  * @param options The option definitions
+ * @param sep The option name separator
  * @returns The maximum width
  */
-function getMaxNamesWidth(options: OpaqueOptions): number {
+function getMaxNamesWidth(options: OpaqueOptions, sep: string): number {
+  const sepLen = sep.length + 1;
   let result = 0;
   for (const key in options) {
     const option = options[key];
     const names = option.names;
     if (!option.hide && names) {
-      const len = names.reduce((acc, name) => acc + 2 + (name?.length ?? -2), -2);
+      const len = names.reduce((acc, name) => acc + sepLen + (name?.length ?? -sepLen), -sepLen);
       result = max(result, len);
     }
   }
@@ -666,6 +669,7 @@ function formatNameSlots(
 ): Array<TerminalString> {
   const slotted = typeof nameWidths !== 'number';
   const result: Array<TerminalString> = [];
+  const sepLen = sep.length + 1;
   let str: TerminalString | undefined;
   let { indent, breaks, align } = config.names;
   indent = max(0, indent);
@@ -674,7 +678,7 @@ function formatNameSlots(
     if (name) {
       if (str) {
         str.close(sep);
-        len += 2;
+        len += sepLen;
       }
       if (!str || slotted) {
         str = new TerminalString(indent, breaks);
@@ -687,7 +691,7 @@ function formatNameSlots(
       str = undefined;
     }
     if (slotted) {
-      indent += nameWidths[i] + 2;
+      indent += nameWidths[i] + sepLen;
     }
   });
   if (str && !slotted && align === 'right') {
