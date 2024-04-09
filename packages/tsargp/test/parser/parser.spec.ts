@@ -132,7 +132,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw the help message of a nested command with filter', async () => {
+      it('should throw the help message of a nested command with filter and async options callback', async () => {
         const options = {
           help: {
             type: 'help',
@@ -154,7 +154,7 @@ describe('ArgumentParser', () => {
           command2: {
             type: 'command',
             names: ['cmd2'],
-            options: {
+            options: async () => ({
               flag: {
                 type: 'flag',
                 names: ['-f'],
@@ -165,7 +165,7 @@ describe('ArgumentParser', () => {
                 sections: [{ type: 'groups' }],
                 useFilter: true,
               },
-            },
+            }),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -544,6 +544,24 @@ describe('ArgumentParser', () => {
           name: '-c',
           param: { flag: true },
         });
+      });
+
+      it('should handle a command option with an async options callback', async () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: async () => ({
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+            }),
+            exec: () => 'abc',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: 'abc' });
       });
 
       it('should handle a command option with options with async callbacks', async () => {

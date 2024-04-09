@@ -10,7 +10,7 @@ describe('OptionValidator', () => {
   });
 
   describe('validate', () => {
-    it('should throw an error on boolean option with empty positional marker', () => {
+    it('should throw an error on boolean option with empty positional marker', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -19,10 +19,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has empty positional marker.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has empty positional marker.`,
+      );
     });
 
-    it('should throw an error on duplicate positional option', () => {
+    it('should throw an error on duplicate positional option', async () => {
       const options = {
         boolean1: {
           type: 'boolean',
@@ -34,12 +36,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
+      await expect(validator.validate()).rejects.toThrow(
         `Duplicate positional option boolean2: previous was boolean1.`,
       );
     });
 
-    it('should throw an error on version option with empty version', () => {
+    it('should throw an error on version option with empty version', async () => {
       const options = {
         version: {
           type: 'version',
@@ -48,10 +50,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option version has empty version.`);
+      await expect(validator.validate()).rejects.toThrow(`Option version has empty version.`);
     });
 
-    it('should validate nested command options recursively', () => {
+    it('should validate nested command options recursively', async () => {
       const options = {
         command: {
           type: 'command',
@@ -68,12 +70,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(
+      await expect(validator.validate()).rejects.toThrow(
         `Non-positional option command.command.flag has no name.`,
       );
     });
 
-    it('should avoid circular references while evaluating nested command options', () => {
+    it('should avoid circular references while evaluating nested command options', async () => {
       const options = {
         command: {
           type: 'command',
@@ -90,7 +92,7 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).not.toThrow();
+      await expect(validator.validate()).resolves.toMatchObject({});
     });
   });
 });

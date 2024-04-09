@@ -198,7 +198,6 @@ export class OptionValidator {
     readonly options: OpaqueOptions,
     readonly config: ConcreteConfig = defaultConfig,
   ) {
-    this.options = options as OpaqueOptions;
     for (const key in this.options) {
       const option = this.options[key];
       registerNames(this.names, this.letters, key, option);
@@ -215,11 +214,11 @@ export class OptionValidator {
    * @param flags The validation flags
    * @returns The validation result
    */
-  validate(flags: ValidationFlags = {}): ValidationResult {
+  async validate(flags: ValidationFlags = {}): Promise<ValidationResult> {
     const warning = new WarnMessage();
     const visited = new Set<OpaqueOptions>();
     const context: ValidateContext = [this.config, this.options, flags, warning, visited, ''];
-    validate(context);
+    await validate(context);
     return warning.length ? { warning } : {};
   }
 
@@ -276,7 +275,7 @@ export class OptionValidator {
  * @param context The validation context
  * @throws On duplicate positional option
  */
-function validate(context: ValidateContext) {
+async function validate(context: ValidateContext) {
   const [config, options, flags, , , prefix] = context;
   const names = new Map<string, string>();
   const letters = new Map<string, string>();
@@ -284,7 +283,7 @@ function validate(context: ValidateContext) {
   for (const key in options) {
     const option = options[key];
     validateNames(context, names, letters, key, option);
-    validateOption(context, key, option);
+    await validateOption(context, key, option);
     if (option.positional) {
       if (positional) {
         const args = { o1: prefix + key, o2: prefix + positional };
@@ -477,7 +476,7 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
  * @param option The option definition
  * @throws On invalid constraint definition, invalid default, example or fallback value
  */
-function validateOption(context: ValidateContext, key: string, option: OpaqueOption) {
+async function validateOption(context: ValidateContext, key: string, option: OpaqueOption) {
   const [config, , , warning, visited, prefix] = context;
   const prefixedKey = prefix + key;
   const [min, max] = getParamCount(option);
@@ -504,12 +503,12 @@ function validateOption(context: ValidateContext, key: string, option: OpaqueOpt
   if (option.type === 'command') {
     const options = option.options;
     if (options) {
-      const resolved = (typeof options === 'function' ? options() : options) as OpaqueOptions;
+      const resolved = (typeof options === 'function' ? await options() : options) as OpaqueOptions;
       if (!visited.has(resolved)) {
         visited.add(resolved);
         context[1] = resolved;
         context[5] = prefixedKey + '.';
-        validate(context);
+        await validate(context);
       }
     }
   }
