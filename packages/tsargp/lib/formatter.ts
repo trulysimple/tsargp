@@ -202,6 +202,11 @@ export type HelpSection = HelpText | HelpUsage | HelpGroups;
  */
 export type HelpSections = Array<HelpSection>;
 
+/**
+ * The help format.
+ */
+export type HelpFormat = 'ansi' | 'json' | 'md' | 'csv';
+
 //--------------------------------------------------------------------------------------------------
 // Internal types
 //--------------------------------------------------------------------------------------------------
@@ -347,9 +352,9 @@ const helpItemFunctions = [
 // Classes
 //--------------------------------------------------------------------------------------------------
 /**
- * Implements formatting of help messages for a set of option definitions.
+ * Implements formatting of ANSI help messages for a set of option definitions.
  */
-export class HelpFormatter {
+export class AnsiFormatter {
   private readonly context: HelpContext;
   private readonly groups = new Map<string, Array<HelpEntry>>();
 
@@ -359,27 +364,9 @@ export class HelpFormatter {
    * @param config The formatter configuration
    */
   constructor(validator: OptionValidator, config?: FormatterConfig) {
-    const fmtConfig = mergeConfig(config);
-    const valConfig = validator.config;
-    const options = validator.options;
-    const { names, filter } = fmtConfig;
-    const filterRegex = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
-    const optionSep = valConfig.connectives[ConnectiveWord.optionSep];
-    const nameWidths = names.hidden
-      ? 0
-      : names.align === 'slot'
-        ? getNameWidths(options)
-        : getMaxNamesWidth(options, optionSep);
-    this.context = [valConfig.styles, options, valConfig.connectives];
-    let paramWidth = 0;
-    for (const key in options) {
-      const option = options[key];
-      if (!option.hide && (!filterRegex || matchOption(option, filterRegex))) {
-        const paramLen = formatOption(this.groups, fmtConfig, this.context, nameWidths, option);
-        paramWidth = max(paramWidth, paramLen);
-      }
-    }
-    adjustEntries(this.groups, fmtConfig, nameWidths, paramWidth);
+    const { styles, connectives } = validator.config;
+    this.context = [styles, validator.options, connectives];
+    formatAnsi(this.groups, mergeConfig(config), this.context);
   }
 
   /**
@@ -431,9 +418,55 @@ export class HelpFormatter {
   }
 }
 
+/**
+ * Implements formatting of JSON help messages for a set of option definitions.
+ */
+// export class JsonFormatter {}
+
+/**
+ * Implements formatting of Markdown help messages for a set of option definitions.
+ */
+// export class MdFormatter {}
+
+/**
+ * Implements formatting of CSV help messages for a set of option definitions.
+ */
+// export class CsvFormatter {}
+
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Formats the help message using the ANSI format.
+ * @param groups The option groups
+ * @param config The format configuration
+ * @param context The help context
+ */
+function formatAnsi(
+  groups: Map<string, Array<HelpEntry>>,
+  config: ConcreteFormat,
+  context: HelpContext,
+) {
+  const { names, filter } = config;
+  const [, options, connectives] = context;
+  const filterRegex = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
+  const optionSep = connectives[ConnectiveWord.optionSep];
+  const nameWidths = names.hidden
+    ? 0
+    : names.align === 'slot'
+      ? getNameWidths(options)
+      : getMaxNamesWidth(options, optionSep);
+  let paramWidth = 0;
+  for (const key in options) {
+    const option = options[key];
+    if (!option.hide && (!filterRegex || matchOption(option, filterRegex))) {
+      const paramLen = formatOption(groups, config, context, nameWidths, option);
+      paramWidth = max(paramWidth, paramLen);
+    }
+  }
+  adjustEntries(groups, config, nameWidths, paramWidth);
+}
+
 /**
  * Matches an option with a regular expression.
  * @param option The option definition

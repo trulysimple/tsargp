@@ -54,14 +54,14 @@ export default {
 } as const satisfies Options;
 ```
 
-You may also want to customize the help message format, e.g.:
+You may also want to customize the formatter configuration, e.g.:
 
 ```ts
 import { type Options, HelpItem, style, tf } from 'tsargp';
 export default {
   help: {
     // ...
-    format: {
+    config: {
       names: { indent: 4 }, // indent option names by 4 spaces
       descr: { breaks: 1 }, // line feed before option descriptions
       param: { hidden: true }, // hide option parameter/examples

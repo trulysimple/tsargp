@@ -1,84 +1,84 @@
 import { describe, expect, it } from 'vitest';
 import type { Options, HelpSections } from '../../lib';
-import { HelpFormatter, OptionValidator } from '../../lib';
+import { AnsiFormatter, OptionValidator } from '../../lib';
 import '../utils.spec'; // initialize globals
 
-describe('HelpFormatter', () => {
+describe('AnsiFormatter', () => {
   describe('formatSections', () => {
     it('should handle no sections', () => {
-      const message = new HelpFormatter(new OptionValidator({})).formatSections([]);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections([]);
       expect(message.wrap()).toEqual('');
     });
 
     it('should skip a text section with no content', () => {
       const sections: HelpSections = [{ type: 'text' }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('');
     });
 
     it('should render a text section', () => {
       const sections: HelpSections = [{ type: 'text', text: 'text' }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('text');
     });
 
     it('should indent a text section', () => {
       const sections: HelpSections = [{ type: 'text', text: 'text', indent: 2 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('  text');
     });
 
     it('should break a text section', () => {
       const sections: HelpSections = [{ type: 'text', text: 'text', breaks: 1 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('\ntext');
     });
 
     it('should render a text section with a heading (but not indent the heading)', () => {
       const sections: HelpSections = [{ type: 'text', title: 'title', indent: 2 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('title');
     });
 
     it('should break a text section with a heading', () => {
       const sections: HelpSections = [{ type: 'text', title: 'title', breaks: 1 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('\ntitle');
     });
 
     it('should render an empty usage section', () => {
       const sections: HelpSections = [{ type: 'usage' }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('');
     });
 
     it('should render a usage section with a program name', () => {
       const sections: HelpSections = [{ type: 'usage' }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections, 'prog');
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections, 'prog');
       expect(message.wrap()).toEqual('prog');
     });
 
     it('should indent a usage section with a program name', () => {
       const sections: HelpSections = [{ type: 'usage', indent: 2 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections, 'prog');
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections, 'prog');
       expect(message.wrap()).toEqual('  prog');
     });
 
     it('should break a usage section with a program name', () => {
       const sections: HelpSections = [{ type: 'usage', breaks: 1 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections, 'prog');
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections, 'prog');
       expect(message.wrap()).toEqual('\nprog');
     });
 
     it('should render a usage section with a heading (but not indent the heading)', () => {
       const sections: HelpSections = [{ type: 'usage', title: 'title', indent: 2 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('title');
     });
 
     it('should break a usage section with a heading', () => {
       const sections: HelpSections = [{ type: 'usage', title: 'title', breaks: 1 }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('\ntitle');
     });
 
@@ -91,7 +91,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'usage' }];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual('-f');
     });
 
@@ -103,7 +103,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'usage' }];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual('[(-f|--flag)]');
     });
 
@@ -116,7 +116,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       const sections: HelpSections = [{ type: 'usage' }];
-      const message = new HelpFormatter(validator).formatSections(sections, 'prog');
+      const message = new AnsiFormatter(validator).formatSections(sections, 'prog');
       expect(message.wrap()).toEqual('prog [-b <boolean>]');
     });
 
@@ -130,13 +130,13 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       const sections: HelpSections = [{ type: 'usage', title: 'title', indent: 2 }];
-      const message = new HelpFormatter(validator).formatSections(sections, 'prog');
+      const message = new AnsiFormatter(validator).formatSections(sections, 'prog');
       expect(message.wrap()).toEqual('title\n\n  prog [-b true]');
     });
 
     it('should render an empty groups section', () => {
       const sections: HelpSections = [{ type: 'groups' }];
-      const message = new HelpFormatter(new OptionValidator({})).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator({})).formatSections(sections);
       expect(message.wrap()).toEqual('');
     });
 
@@ -149,7 +149,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'groups' }];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual('  -f, --flag    A flag option.');
     });
 
@@ -162,7 +162,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'groups', title: 'title' }];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual('title\n\n  -f, --flag    A flag option.');
     });
 
@@ -175,7 +175,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'groups', breaks: 1 }];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual('\n  -f, --flag    A flag option.');
     });
 
@@ -188,7 +188,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'groups', title: 'title', breaks: 1 }];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual('\ntitle\n\n  -f, --flag    A flag option.');
     });
 
@@ -205,7 +205,7 @@ describe('HelpFormatter', () => {
         { type: 'usage', title: 'section  title', noWrap: true },
         { type: 'groups', title: 'section  title', noWrap: true },
       ];
-      const message = new HelpFormatter(new OptionValidator(options)).formatSections(sections);
+      const message = new AnsiFormatter(new OptionValidator(options)).formatSections(sections);
       expect(message.wrap()).toEqual(
         'section  title\n\nsection  text\n\nsection  title\n\n[(-f|--flag)]\n\nsection  title\n\n  -f, --flag    A flag option.',
       );
@@ -226,7 +226,7 @@ describe('HelpFormatter', () => {
       const sections2: HelpSections = [{ type: 'usage', filter: ['flag1'], exclude: true }];
       const sections3: HelpSections = [{ type: 'usage', filter: ['flag1'], required: ['flag1'] }];
       const sections4: HelpSections = [{ type: 'usage', filter: ['flag2', 'flag1'] }];
-      const formatter = new HelpFormatter(new OptionValidator(options));
+      const formatter = new AnsiFormatter(new OptionValidator(options));
       expect(formatter.formatSections(sections1).wrap()).toEqual('[-f1]');
       expect(formatter.formatSections(sections2).wrap()).toEqual('[-f2]');
       expect(formatter.formatSections(sections3).wrap()).toEqual('-f1');
@@ -248,7 +248,7 @@ describe('HelpFormatter', () => {
       } as const satisfies Options;
       const sections1: HelpSections = [{ type: 'groups', filter: ['group1'] }];
       const sections2: HelpSections = [{ type: 'groups', filter: ['group1'], exclude: true }];
-      const formatter = new HelpFormatter(new OptionValidator(options));
+      const formatter = new AnsiFormatter(new OptionValidator(options));
       expect(formatter.formatSections(sections1).wrap()).toEqual('group1\n\n  -f1');
       expect(formatter.formatSections(sections2).wrap()).toEqual('group2\n\n  -f2');
     });

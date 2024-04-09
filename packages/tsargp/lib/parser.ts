@@ -21,7 +21,7 @@ import type {
 } from './validator';
 
 import { ConnectiveWord, ErrorItem } from './enums';
-import { HelpFormatter, HelpSections } from './formatter';
+import { AnsiFormatter, HelpSections } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
@@ -849,11 +849,11 @@ async function handleHelp(
       }
     }
   }
-  const format = option.format ?? {};
+  const config = option.config ?? {};
   if (option.useFilter) {
-    format.filter = rest;
+    config.filter = rest;
   }
-  const formatter = new HelpFormatter(validator, format);
+  const formatter = new AnsiFormatter(validator, config);
   const sections = option.sections ?? defaultSections;
   return formatter.formatSections(sections, progName);
 }

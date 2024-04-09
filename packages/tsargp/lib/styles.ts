@@ -342,7 +342,7 @@ export class TerminalString {
   /**
    * The terminal string context.
    */
-  private context: TerminalContext;
+  private readonly context: TerminalContext;
 
   /**
    * @returns The list of internal strings

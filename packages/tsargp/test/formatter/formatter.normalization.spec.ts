@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { type Options, HelpFormatter, OptionValidator } from '../../lib';
+import { type Options, AnsiFormatter, OptionValidator } from '../../lib';
 import '../utils.spec'; // initialize globals
 
-describe('HelpFormatter', () => {
+describe('AnsiFormatter', () => {
   describe('formatHelp', () => {
     it('should handle a string option whose values will be trimmed', () => {
       const options = {
@@ -13,7 +13,7 @@ describe('HelpFormatter', () => {
           trim: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -s, --string  <string>  A string option. Values will be trimmed.\n`,
       );
@@ -28,7 +28,7 @@ describe('HelpFormatter', () => {
           case: 'lower',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -s, --string  <string>  A string option. Values will be converted to lowercase.\n`,
       );
@@ -43,7 +43,7 @@ describe('HelpFormatter', () => {
           case: 'upper',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -s, --string  <string>  A string option. Values will be converted to uppercase.\n`,
       );
@@ -58,7 +58,7 @@ describe('HelpFormatter', () => {
           conv: 'trunc',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -n, --number  <number>  A number option. Values will be converted with Math.trunc.\n`,
       );
@@ -73,7 +73,7 @@ describe('HelpFormatter', () => {
           trim: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be trimmed.\n`,
       );
@@ -88,7 +88,7 @@ describe('HelpFormatter', () => {
           case: 'lower',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be converted to lowercase.\n`,
       );
@@ -103,7 +103,7 @@ describe('HelpFormatter', () => {
           case: 'upper',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values will be converted to uppercase.\n`,
       );
@@ -118,7 +118,7 @@ describe('HelpFormatter', () => {
           unique: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Duplicate values will be removed.\n`,
       );
@@ -133,7 +133,7 @@ describe('HelpFormatter', () => {
           unique: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Duplicate values will be removed.\n`,
       );
@@ -148,7 +148,7 @@ describe('HelpFormatter', () => {
           conv: 'trunc',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Values will be converted with Math.trunc.\n`,
       );

@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { FormatterConfig, HelpSections } from './formatter';
+import type { FormatterConfig, HelpFormat, HelpSections } from './formatter';
 import type { HelpMessage, Style } from './styles';
 import type { Resolve, URL, KeyHaving, Range } from './utils';
 
@@ -521,7 +521,11 @@ export type WithHelp = {
   /**
    * The formatter configuration.
    */
-  readonly format?: FormatterConfig;
+  readonly config?: FormatterConfig;
+  /**
+   * The help format. (Defaults to 'ansi')
+   */
+  readonly format?: HelpFormat;
   /**
    * The help sections to be rendered.
    */

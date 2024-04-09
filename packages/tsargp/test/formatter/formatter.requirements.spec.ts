@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { type Options, HelpFormatter, OptionValidator, req } from '../../lib';
+import { type Options, AnsiFormatter, OptionValidator, req } from '../../lib';
 import '../utils.spec'; // initialize globals
 
-describe('HelpFormatter', () => {
+describe('AnsiFormatter', () => {
   describe('formatHelp', () => {
     it('should handle an option that requires the presence of another (1)', () => {
       const options = {
@@ -18,7 +18,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req.\n`);
     });
 
@@ -36,7 +36,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req.\n`);
     });
 
@@ -54,7 +54,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires no -req.\n`);
     });
 
@@ -72,7 +72,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires no -req.\n`);
     });
 
@@ -90,7 +90,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires -req == 'abc'.\n`);
     });
 
@@ -118,7 +118,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -f, --flag    A flag option. Requires (-req1 and (-req2 == 1 or -req3 != '2')).\n`,
       );
@@ -134,7 +134,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       options.flag.requires.toString = () => 'fcn';
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires <fcn>.\n`);
     });
 
@@ -148,7 +148,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       options.flag.requires.item.toString = () => 'fcn';
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Requires not <fcn>.\n`);
     });
 
@@ -166,7 +166,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req.\n`);
     });
 
@@ -184,7 +184,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req.\n`);
     });
 
@@ -202,7 +202,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if no -req.\n`);
     });
 
@@ -220,7 +220,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if no -req.\n`);
     });
 
@@ -238,7 +238,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if -req == 'abc'.\n`);
     });
 
@@ -266,7 +266,7 @@ describe('HelpFormatter', () => {
           hide: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(
         `  -f, --flag    A flag option. Required if (-req1 and (-req2 == 1 or -req3 != '2')).\n`,
       );
@@ -282,7 +282,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       options.flag.requiredIf.toString = () => 'fcn';
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if <fcn>.\n`);
     });
 
@@ -296,7 +296,7 @@ describe('HelpFormatter', () => {
         },
       } as const satisfies Options;
       options.flag.requiredIf.item.toString = () => 'fcn';
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Required if not <fcn>.\n`);
     });
   });
