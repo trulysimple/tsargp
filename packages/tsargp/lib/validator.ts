@@ -71,8 +71,8 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.duplicateClusterLetter]: 'Option %o has duplicate cluster letter %s.',
     [ErrorItem.invalidClusterOption]: 'Option letter %o must be the last in a cluster.',
     [ErrorItem.invalidClusterLetter]: 'Option %o has invalid cluster letter %s.',
-    [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names [%s2].',
-    [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions [%s].',
+    [ErrorItem.tooSimilarOptionNames]: '%o: Option name %s1 has too similar names: %s2.',
+    [ErrorItem.mixedNamingConvention]: '%o: Name slot %n has mixed naming conventions: %s.',
     [ErrorItem.invalidNumericRange]: 'Option %o has invalid numeric range [%n].',
     [ErrorItem.invalidParamCount]: 'Option %o has invalid parameter count [%n].',
     [ErrorItem.variadicWithClusterLetter]:

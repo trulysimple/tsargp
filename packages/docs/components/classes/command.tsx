@@ -231,16 +231,10 @@ abstract class Command<P extends Props = Props, S extends State = State> extends
     const cmdLine = processEnvVars(line.trimStart());
     if (cmdLine) {
       const [command, line] = cmdLine;
-      if (this.commands.includes(command)) {
-        switch (command) {
-          case 'clear':
-            this.term.clear();
-            break;
-          default: {
-            await this.run(line);
-            break;
-          }
-        }
+      if (command === 'clear') {
+        this.term.clear();
+      } else if (this.commands.includes(command)) {
+        await this.run(line);
       } else {
         this.readline.println(`${command}: command not found`);
       }

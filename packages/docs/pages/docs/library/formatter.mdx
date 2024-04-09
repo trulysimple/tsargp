@@ -41,7 +41,7 @@ parameter.
 The `formatSections` method returns a help message that includes [help sections], as will be
 explained later in this page. It accepts two parameters:
 
-- `sections` - a list of `HelpSection` to include in the help message
+- `sections` - a list of `HelpSection`s to include in the help message
 - `progName` - an optional program name to display in usage sections
 
 ## Help entries
@@ -148,7 +148,7 @@ demo.js [([95m-f[0m|[95m--flag[0m|[95m--no-flag[0m)]
 In addition to the [common properties], a usage section has the following properties:
 
 - `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
-- `filter` - a list of option keys to include or exclude (defaults to none)
+- `filter` - a list of option keys to include or exclude (defaults to including all options)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
 - `required` - a list of options that should be considered required in the usage
 - `comment` - a commentary to append to the usage (defaults to none)
@@ -161,16 +161,16 @@ In addition to the [common properties], a usage section has the following proper
 ### Groups section
 
 A groups section is a collection of option groups and their help entries. In addition to the [common
-properties] properties, it has the following properties:
+properties], it has the following properties:
 
-- `filter` - a list of group names to include or exclude (defaults to none)
+- `filter` - a list of group names to include or exclude (defaults to including all groups)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
 
 ## Help format
 
 In addition to the validator instance, the formatter constructor accepts a `FormatterConfig` object
 that can be used to customize the format of help entries in option groups. This configuration will
-apply to all help entries. Its properties are optional and are described below.
+apply to all entries. Its properties are optional and are described below.
 
 ### Help columns
 
@@ -205,7 +205,7 @@ configuration:
   descr: {
     align: 'right', // align option descriptions to the right
     breaks: 1,      // break option descriptions
-    indent: 20,     // indent 20 terminal columns
+    indent: 20,     // indent 20 terminal columns...
     absolute: true, // from the beginning of the line
   }
 }
@@ -230,7 +230,7 @@ and in what order. It is an array whose values can be one of the enumerators fro
 
 - `synopsis` - the option [synopsis]
 - `negation` - the [negation names] of a flag option, if any
-- `separator` - the element [delimiter] of an array option, if enabled
+- `separator` - the parameter [delimiter] of an array option, if enabled
 - `paramCount` - reports the [parameter count] of a variadic or polyadic[^1] option
 - `positional` - reports if an option accepts [positional] arguments
 - `append` - reports if an array option can be specified [multiple times]
@@ -320,7 +320,7 @@ description of the corresponding value:
 
 ### Option filter
 
-The `filter` property specifies a list of patterns that can be used to select options to render in
+The `filter` property specifies a list of patterns to select the options that will be rendered in
 the help message. The filter matches options' names, synopsis and environment variable names. If
 multiple patterns are provided, any matched one will suffice to include an option in the message.
 
@@ -332,7 +332,7 @@ multiple patterns are provided, any matched one will suffice to include an optio
 
 ## Help styles
 
-Help messages are styled with the set of [error styles] from the validator configuration, except
+Help messages are styled using the set of [error styles] from the validator configuration, except
 that they may get overridden by (or combined with) an option's [display styles], if present.
 
 <Callout type="default">

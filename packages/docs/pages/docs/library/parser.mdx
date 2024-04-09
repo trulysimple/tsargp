@@ -23,11 +23,13 @@ method accepts two optional parameters:
 - `cmdLine` - the raw command line (`string{:ts}`) or the command-line arguments (`string[]{:ts}`)
 - `flags` - a `ParsingFlags` object with the [parsing flags]
 
-Normally you should _not_ need to pass these parameters, as they have sensible default values:
+Normally you should _not_ need to pass these parameters, as they have sensible default values. The
+command line defaults to the value of either the `COMP_LINE` or `BUFFER` environment variables
+(whichever is present) or the process arguments:
 
-- `cmdLine` - `process.env['COMP_LINE'] ?? process.env['BUFFER'] ?? process.argv.slice(2){:ts}`
-- `flags.progName` - `process.argv[1].split(/[\\/]/).at(-1){:ts}`
-- `flags.compIndex` - `Number(process.env['COMP_POINT'] ?? process.env['CURSOR']) || process.env['BUFFER']?.length{:ts}`
+```ts
+process.env['COMP_LINE'] ?? process.env['BUFFER'] ?? process.argv.slice(2);
+```
 
 If you feel the need to configure the parsing procedure, make sure to first understand how [word
 completion] works.
@@ -45,13 +47,17 @@ the previous one, except for an additional (first) parameter:
 
 - `values` - the option values to parse into
 
-Existing values are preserved until they get overridden by values parsed either from the
-command-line or from environment variables. When using TypeScript, this parameter will be
-type-checked against the expected type of the option values for a given set of option definitions.
+<Callout type="info">
+  Existing values are preserved until they get overridden by values parsed either from the command
+  line or from environment variables.
+</Callout>
+
+When using TypeScript, this parameter will be type-checked against the expected type of the option
+values for a given set of option definitions.
 
 <Callout type="default">
-  You may want to use IntelliSense to peak at the resulting type of the `parse` method (or declare a
-  temporary type alias for `OptionValues<typeof _your_options_>{:ts}`) to see how the object is
+  Using IntelliSense, you can peak at the resulting type of the `parse` method, or declare a
+  temporary type alias for `OptionValues<typeof _your_options_>{:ts}`, to see how the object is
   structured.
 </Callout>
 
@@ -67,17 +73,27 @@ properties, as described below.
 
 ### Program name
 
-The `progName` property is a custom name for the program, which is used to update the [process
+The `progName` property is a custom name for the main command, which is used to update the [process
 title] and is rendered in the help message's [usage section]. It defaults to the basename of the
-executing script. You can set it to the empty string in order to suppress its appearance.
+executing script:
+
+```ts
+process.argv[1].split(/[\\/]/).at(-1);
+```
+
+<Callout type="default">You can set it to an empty string to suppress its appearance.</Callout>
 
 <Callout type="info">This flag is ignored when word completion is in effect.</Callout>
 
 ### Completion index
 
 The `compIndex` property is the cursor position in a command line for which the user pressed `Tab`.
-It defaults to the value of the `COMP_POINT` or `CURSOR` environment variables, or to the length of
-the `BUFFER` variable, whichever is present.
+It defaults to the value of either the `COMP_POINT` or `CURSOR` environment variables, or to the
+length of the `BUFFER` variable (whichever is present, otherwise undefined):
+
+```ts
+Number(process.env['COMP_POINT'] ?? process.env['CURSOR']) || process.env['BUFFER']?.length;
+```
 
 When invoking the parsing methods with a raw command line, and this flag is set, the parser will
 know to perform word completion for the argument ending at this position.
@@ -96,8 +112,7 @@ arguments with this prefix may be considered a cluster. This must be used in con
 
 ## Parsing features
 
-The parser supports an assortment of features that should fulfill most use cases. They are listed
-below.
+The parser supports a set of features that should fulfill most use cases. They are listed below.
 
 ### Custom callbacks
 
@@ -110,18 +125,18 @@ Custom parsing operations are supported through the following kinds of callbacks
 - [function callback]
 - [command callback]
 
-All of these can be asynchronous, and the parser always awaits the resolution of returned promises,
-either because it needs their result or to avoid data races when reading and modifying the option
-values.
+All of these can be asynchronous, in which case the parser awaits their resolution, either because
+it needs their result or to avoid data races when reading and modifying the option values.
 
 Note that there is no synchronous version of the parsing procedure. This is a design choice: in
 order to support a fully synchronous `parse` method using the same code base, the parser would have
 to deal with returned promises in a way that would make it hard to maintain (remember the classic
 [callback hell]).
 
-Besides, the asynchronous version has the benefit of allowing us to perform some operations
-concurrently, such as the [requirements checking]. This should not be a drawback for most CLI
-applications, since argument parsing is usually done at the top-level of a module or script.
+Besides, the asynchronous version has the benefit of allowing us to perform some operations, such as
+[requirements checking], concurrently. This should not be a drawback for most applications, since
+argument parsing is usually done at the top-level of a module or script, where the `await` primitive
+is available.
 
 ### Argument sequence
 
@@ -131,7 +146,7 @@ option, or if the latter is variadic.
 
 For example, if the option initiating a sequence is a string option with a [fallback value], the
 parser starts looking for new options as soon as it advances to the next argument, since that may be
-either the option parameter or the start of a new sequence. Supposing that it is a parameter, once
+either the option's parameter or the start of a new sequence. Supposing that it is a parameter, once
 the parser advances past this argument, it knows that the next one must be the start of a sequence.
 
 The same algorithm works for function options with a variable [parameter count]. For example, if the
@@ -170,14 +185,14 @@ Quoting the [Bash docs]:
 > Completion Builtins), the programmable completion facilities are invoked.
 
 The parser does not use the completion facilities, because it relies on the raw command line and the
-cursor position in that line, which can be retrieved from the following environment variables:
+cursor position into that line, which can be retrieved from the following environment variables:
 
 - `COMP_LINE` or `BUFFER` - the current command line
 - `COMP_POINT` or `CURSOR` - the index of the cursor position relative to the beginning of the
   command line
 
-When these variables are available, the parser enters into completion mode: it truncates the command
-line at the cursor position and performs completion of the last argument.
+When these variables are available, the parser enters into _completion_ mode: it truncates the
+command line at the cursor position and performs completion of the last argument.
 
 The result of completion is a list of words separated by line breaks, which should be printed on the
 terminal so that the completion builtins can perform the final completion step.
@@ -213,25 +228,39 @@ an empty string):
      count of an option
 
 If all of the above results in an empty list, the default completion (usually file completion, if
-enabled in the completion specification) will be attempted. Note that the conditions of the third
+enabled in the builtin's configuration) will be attempted. Note that the conditions of the third
 step exclude the possibility of it being an [inline parameter], when considering option names.
 
-During completion, both the help and version options are skipped, and the [command callback] does
-not get executed. Other options are processed as usual, which means that a completion callback can
-inspect the values parsed before it, in order to make better suggestions based on those values.
+#### Altered parsing behavior
+
+Since the completion builtins always expect a list of words as a result, the library must suppress
+all errors that occur during parsing, and it does not make sense to perform some operations that
+might throw. Therefore, when word completion is in effect, parsing behavior will change in the
+following important ways:
+
+- parsing errors, such as unknown option names, are suppressed
+- unknown-valued options (help and version) are skipped
+- the [command callback] does not get executed
+- option requirements are not verified
+- cluster arguments are completed with the default completion (an empty list)
+
+<Callout type="default">
+  Other arguments are processed as usual, which means that a completion callback can inspect the
+  values parsed before it, in order to make better suggestions based on those values.
+</Callout>
 
 ### Requirements checking
 
-Generally, option requirements are evaluated after all arguments have been parsed. During this
-analysis, an option's value is compared against any value required by other options. This check may
-also be performed in two more situations:
+When the parser evaluates option requirements, it compares an option's value against any value
+required by other options. Generally, this analysis is performed after all arguments have been
+parsed, but it may also be performed in two more situations:
 
 - before calling a [function callback], if the function option's [`break`] attribute was set
 - before calling a [command callback]
 
-However, requirements are not checked when performing word completion. This is due to the fact that
-the completion builtin always expects a list of words as a result. Hence, the library must suppress
-any errors that occur during parsing and it does not make sense to verify requirements in that case.
+<Callout type="info">
+  As has been mentioned, requirements are _not_ checked when word completion is in effect.
+</Callout>
 
 ### Name suggestions
 
@@ -241,14 +270,14 @@ positional option), it may select option names that are similar to the current a
 
 ### Error messages
 
-Error messages generated by the parsing procedure can be customized via the [validator
-configuration], which can be provided as an additional parameter to the parser constructor.
+Error messages generated by the parser can be customized via the [validator configuration], which
+can be provided as an additional parameter to the parser constructor.
 
 ### Inline parameters
 
-Option parameters may be passed on the command-line using the syntax `<name>=<value>`. This syntax
+Option parameters may be passed on the command-line using the syntax `<name>=<param>`. This syntax
 is only valid for non-niladic options and cannot be used with the positional marker. As is the case
-with normal parameters, the value may contain any number of equal signs, and even start with one
+with standalone parameters, the value may contain any number of equal signs, and even start with one
 (e.g., `-opt==val` would be parsed as `'=val'{:ts}`).
 
 Cluster arguments may also have inline parameters, but their syntax is different. A cluster argument
@@ -262,15 +291,15 @@ The process title will be updated to reflect the current command being executed.
 main script and any nested commands. For example, if the command-line is:
 
 ```sh
-./path/to/myscript.js -flag0 cmd1 -flag1 cmd2 args...
+path/to/main/script.js -flag0 cmd1 -flag1 cmd2 args...
 ```
 
 The process title would be updated in the following way:
 
 1. `node` - this the starting title, before any updates
-2. `node myscript.js` - the title at the beginning of the parsing loop
-3. `node myscript.js cmd1` - the title at the start of the `cmd1` command
-4. `node myscript.js cmd1 cmd2` - the title at the start of the `cmd2` command
+2. `node script.js` - the title at the beginning of the parsing loop
+3. `node script.js cmd1` - the title at the start of the `cmd1` command
+4. `node script.js cmd1 cmd2` - the title at the start of the `cmd2` command
 
 The title will remain unchanged after the parser returns. Other option names are not used, because
 they would pollute the output of process management utilities such as `ps`.
