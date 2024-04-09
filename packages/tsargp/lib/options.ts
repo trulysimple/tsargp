@@ -523,10 +523,6 @@ export type WithHelp = {
    */
   readonly config?: FormatterConfig;
   /**
-   * The help format. (Defaults to 'ansi')
-   */
-  readonly format?: HelpFormat;
-  /**
    * The help sections to be rendered.
    */
   readonly sections?: HelpSections;
@@ -535,9 +531,17 @@ export type WithHelp = {
    */
   readonly useFilter?: true;
   /**
-   * Whether to throw the help of a nested command whose names include the next argument.
+   * Whether to use the next argument as the name of a command for which the help should be created.
    */
   readonly useNested?: true;
+  /**
+   * Whether to use the next argument as the name of a help format.
+   */
+  readonly useFormat?: true;
+  /**
+   * The help format. (Defaults to 'ansi')
+   */
+  format?: HelpFormat;
 };
 
 /**

@@ -242,12 +242,29 @@ A terminal string has an optional flag that indicates whether the text should be
 terminal's right boundary when being wrapped. This feature is used by the formatter in the help
 message's [description column].
 
-## Terminal messages
+## Messages
 
-The `TerminalMessage` is a base class that wraps a list of terminal strings. It provides a `wrap`
-method to get a normal string compiled from the list. This method accepts two optional parameters:
+There are different kinds of text content that an application might print in a terminal. We call
+them "messages" and provide a specific class for each kind of message that the library may produce.
+For convenience, all message classes have a `toString` method and a `message` property, both of
+which can be used to obtain a normal `string{:ts}`.
 
-- `width` - the terminal width (defaults to `0{:ts}`, i.e., no wrapping)
+<Callout type="default">
+  All messages produced by the library are instances of one of the classes described below. So you
+  can check the kind of a captured message through `instanceof{:ts}`.
+</Callout>
+
+### User-facing messages
+
+These messages are meant to be consumed by humans. Each kind of message uses a default terminal
+width to render the resulting string. They are described below.
+
+#### ANSI message
+
+The `AnsiMessage` is a base class that wraps a list of terminal strings. It provides a `wrap` method
+to get a normal string compiled from the list. This method accepts two optional parameters:
+
+- `width` - the terminal width
 - `emitStyles` - whether styles should be emitted
 
 The default value of `emitStyles` depends on a few environment variables:
@@ -266,55 +283,46 @@ preserve the disposition of wrapped text.
   manipulate them before converting the message to string.
 </Callout>
 
-### Default width
-
-In addition to providing a `wrap` method, the terminal message overrides the `toString` method and
-has a convenient `message` property, both of which can be used to obtain a string wrapped with a
-default terminal width.
-
-The default width depends on the kind of message: in the case of `TerminalMessage`, it is the width
-of the standard _output_ stream (`process.stdout.columns{:ts}`). Therefore, this kind of message
-should be printed with `console.log` or equivalent, unless you are calling `wrap` directly.
+The default terminal width used by this class is that of the standard _output_ stream
+(`process.stdout.columns{:ts}`). Therefore, this kind of message should be printed with
+`console.log` or equivalent, unless you are calling `wrap` directly.
 
 <Callout type="info">
   When redirecting the output of a command (e.g., writing to a file or piping to another command),
-  the associated stream will not have a `columns` property. Hence, if `stdout` is being redirected,
-  the default value used by the above procedure will be `undefined{:ts}` (thus disabling wrapping
-  and, possibly, omitting styles).
+  the associated stream will not have a `columns` property, thus disabling wrapping and, possibly,
+  omitting styles.
 </Callout>
 
-### Help message
+#### Warning message
 
-The `HelpMessage` class is analog to the above one, but used specifically for help messages. It
-should be printed with `console.log` or equivalent.
+The `WarnMessage` class is a specialization of the ANSI message that uses the width of the standard
+_error_ stream (`process.stderr.columns{:ts}`) by default. It should be printed with `console.error`
+or equivalent.
 
-### Warning message
-
-The `WarnMessage` class is a specialization of a terminal message that uses the width of the
-standard _error_ stream (`process.stderr.columns{:ts}`) by default. It should be printed with
-`console.error` or equivalent.
-
-### Error message
+#### Error message
 
 The `ErrorMessage` class is a specialization of a warning message that actually derives from the
 standard `Error` class. It should be printed with `console.error` or equivalent.
 
-### Completion message
-
-The `CompletionMessage` class represents a list of completion words. It has no wrapping: instead,
-it produces a string with words separated by line feeds. It should be printed with `console.log` or
-equivalent.
-
-### Version message
+#### Version message
 
 A version message is a plain `string{:ts}`, so it has no wrapping. However, it may be remodeled in
 future versions of the library to accommodate new features. It should be printed with `console.log`
 or equivalent.
 
-<Callout type="default">
-  Messages produced by the library are instances of one of the classes described above. So you
-  can check the kind of a captured message through `instanceof{:ts}`.
-</Callout>
+### Machine-readable messages
+
+#### JSON message
+
+The `JsonMessage` class represents a message in the JSON format. It is intended for consumption by
+introspection tools and other text-processing applications. It should be printed with
+`console.log` or equivalent.
+
+#### Completion message
+
+The `CompMessage` class represents a list of completion words. It is meant to be consumed by the
+completion builtins. It produces a string with words separated by line feeds and should be printed
+with `console.log` or equivalent.
 
 [parser]: parser
 [validator]: validator

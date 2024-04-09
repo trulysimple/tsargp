@@ -1,6 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
+import type { HelpSections } from './formatter';
 import type {
   Options,
   OptionValues,
@@ -21,9 +22,9 @@ import type {
 } from './validator';
 
 import { ConnectiveWord, ErrorItem } from './enums';
-import { AnsiFormatter, HelpSections } from './formatter';
+import { HelpFormatter, isHelpFormat } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
+import { format, WarnMessage, CompMessage, TerminalString } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
@@ -340,7 +341,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       const hasValue = value !== undefined;
       if (niladic || marker) {
         if (comp) {
-          throw new CompletionMessage();
+          throw new CompMessage();
         }
         if (hasValue) {
           if (completing) {
@@ -396,7 +397,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
     if (!marker && ((j === k && positional) || j - k >= paramCount[0])) {
       words.push(...completeName(validator, value));
     }
-    throw new CompletionMessage(...words);
+    throw new CompMessage(...words);
   }
   return !completing;
 }
@@ -422,7 +423,7 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       const key = validator.names.get(name);
       if (key) {
         if (comp && value === undefined) {
-          throw new CompletionMessage(name);
+          throw new CompMessage(name);
         }
         const marker = name === positional?.[3];
         const info = marker ? positional : ([key, name, validator.options[key]] as OptionInfo);
@@ -430,14 +431,14 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       }
       if (parseCluster(context, i)) {
         if (comp) {
-          throw new CompletionMessage();
+          throw new CompMessage();
         }
         continue;
       }
       if (!info || i - index + inc > max) {
         if (!positional) {
           if (comp) {
-            throw new CompletionMessage(...completeName(validator, arg));
+            throw new CompMessage(...completeName(validator, arg));
           }
           if (completing) {
             continue; // ignore unknown options during completion
@@ -752,7 +753,7 @@ async function handleFunction(
       values[key] = await option.exec({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate common errors during completion
-      if (!comp || err instanceof CompletionMessage) {
+      if (!comp || err instanceof CompMessage) {
         throw err;
       }
     }
@@ -827,7 +828,7 @@ async function handleHelp(
   context: ParseContext,
   rest: Array<string>,
   option: OpaqueOption,
-): Promise<HelpMessage> {
+): Promise<unknown> {
   let [validator, , , , , , progName] = context;
   if (option.useNested && rest.length) {
     const command = findInObject(
@@ -849,11 +850,17 @@ async function handleHelp(
       }
     }
   }
+  if (option.useFormat && rest.length) {
+    if (isHelpFormat(rest[0])) {
+      option.format = rest[0];
+      rest.splice(0, 1); // only if the format is recognized; otherwise, it may be an option filter
+    }
+  }
   const config = option.config ?? {};
   if (option.useFilter) {
     config.filter = rest;
   }
-  const formatter = new AnsiFormatter(validator, config);
+  const formatter = HelpFormatter.create(validator, config, option.format);
   const sections = option.sections ?? defaultSections;
   return formatter.formatSections(sections, progName);
 }

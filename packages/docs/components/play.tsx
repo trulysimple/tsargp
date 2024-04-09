@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { ArgumentParser, AnsiFormatter, ErrorMessage, HelpMessage } from 'tsargp';
+import { ArgumentParser, AnsiFormatter, ErrorMessage, AnsiMessage } from 'tsargp';
 import { style, req, fg8, bg8, ul8, ul } from 'tsargp';
 import { HelpItem, ErrorItem, ConnectiveWord, tf, fg, bg } from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
@@ -83,7 +83,7 @@ class PlayCommand extends Command<PlayProps> {
     } catch (err) {
       if (err instanceof ErrorMessage) {
         throw err.msg.wrap(this.state.width);
-      } else if (err instanceof HelpMessage) {
+      } else if (err instanceof AnsiMessage) {
         throw err.wrap(this.state.width);
       }
       throw err;

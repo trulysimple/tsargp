@@ -95,7 +95,6 @@ export const defaultConfig: ConcreteConfig = {
 
 /**
  * The naming convention rules.
- * @internal
  */
 const namingConventions: NamingRules = {
   cases: {
