@@ -1,5 +1,33 @@
 # tsargp
 
+## 0.5.0
+
+### Minor Changes
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Cluster arguments now support inline parameters (this is not to be confused with inline parameters of normal arguments).
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Updated the code to consider the boolean's truth and falsity names wherever the `enums` attribute is used.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - The `shortStyle` configuration flag was replaced by the more generic `clusterPrefix`, which allows cluster arguments anywhere in the command line.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - In addition to the `COMP_LINE` and `COMP_POINT` environment variables, the parsing methods now read default values of the command line and completion index from the `BUFFER` and `CURSOR` variables, respectively.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Replaced the ANSI escape code `\x9b` by the more traditional `\x1b[`, in order to support terminals that do not recognize the former. Fixed the `getArgs` procedure to support word completion in PowerShell.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Refactored the parser to ignore command-line arguments coming after the completion index. As a consequence, the `isComp` utility function and the `WithIsComp` type were removed, as they are no longer needed.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - Added the `useNested` attribute to the help option, which allows the argument following the option to be used as the name of a nested command for which the help message should be assembled.
+
+  For example, the invocation `cli --help cmd` would throw the help of the `cmd` command, if it exists. If not, or if it does not have a help option, the argument may still be used as an option filter, if the `useFilter` attribute is set.
+
+  The nested command may also enable filtering in its help option definition. For example, the invocation `cli --help cmd -f` would throw the help of the `cmd` command, filtered by the pattern `-f`.
+
+### Patch Changes
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - The parsing methods now support characters escaped with `\` in raw command lines.
+
+- [#126](https://github.com/trulysimple/tsargp/pull/126) [`544e01e`](https://github.com/trulysimple/tsargp/commit/544e01e34ac25d68fd3f06a70856ece6d1f01cf5) Thanks [@disog](https://github.com/disog)! - The parsing procedures now accept the `BUFFER` environment variable without its sibling `CURSOR` variable.
+
 ## 0.5.0-dev.0
 
 ### Minor Changes
