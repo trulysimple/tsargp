@@ -25,6 +25,22 @@ describe('JsonFormatter', () => {
     });
   });
 
+  describe('formatGroup', () => {
+    it('should handle a flag option with a group', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f'],
+          group: 'Flags',
+        },
+      } as const satisfies Options;
+      const message = new JsonFormatter(new OptionValidator(options)).formatGroup('Flags');
+      expect(message?.message).toEqual(
+        `[{"type":"flag","names":["-f"],"group":"Flags","preferredName":"-f"}]`,
+      );
+    });
+  });
+
   describe('formatSections', () => {
     it('should handle help sections', () => {
       const options = {

@@ -22,7 +22,7 @@ import type {
 } from './validator';
 
 import { ConnectiveWord, ErrorItem } from './enums';
-import { HelpFormatter, isHelpFormat } from './formatter';
+import { createFormatter, isHelpFormat } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
 import { format, WarnMessage, CompMessage, TerminalString } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
@@ -860,7 +860,7 @@ async function handleHelp(
   if (option.useFilter) {
     config.filter = rest;
   }
-  const formatter = HelpFormatter.create(validator, config, option.format);
+  const formatter = createFormatter(validator, config, option.format);
   const sections = option.sections ?? defaultSections;
   return formatter.formatSections(sections, progName);
 }

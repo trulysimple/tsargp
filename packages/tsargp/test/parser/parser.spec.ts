@@ -105,7 +105,7 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw a help message with a help format', async () => {
+      it('should throw a help message with a JSON format', async () => {
         const options = {
           flag: {
             type: 'flag',
@@ -114,12 +114,14 @@ describe('ArgumentParser', () => {
           help: {
             type: 'help',
             names: ['-h'],
-            sections: [{ type: 'groups' }],
             useFormat: true,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-h', 'ansi'])).rejects.toThrow(`  -f, --flag`);
+        await expect(parser.parse(['-h', 'json'])).rejects.toThrow(
+          `[{"type":"flag","names":["-f","--flag"],"preferredName":"-f"},` +
+            `{"type":"help","names":["-h"],"useFormat":true,"preferredName":"-h","format":"json"}]`,
+        );
       });
 
       it('should throw a help message with filtered options', async () => {

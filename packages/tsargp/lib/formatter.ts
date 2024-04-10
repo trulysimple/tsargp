@@ -207,6 +207,13 @@ export type HelpSections = Array<HelpSection>;
  */
 export type HelpFormat = (typeof helpFormats)[number];
 
+/**
+ * A help formatter.
+ */
+export interface HelpFormatter {
+  formatSections(sections: HelpSections, progName?: string): unknown;
+}
+
 //--------------------------------------------------------------------------------------------------
 // Internal types
 //--------------------------------------------------------------------------------------------------
@@ -351,7 +358,7 @@ const helpFunctions = [
 /**
  * The available help formats.
  */
-const helpFormats = ['ansi', 'json', 'md', 'csv'] as const;
+const helpFormats = ['ansi', 'json'] as const;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -359,31 +366,9 @@ const helpFormats = ['ansi', 'json', 'md', 'csv'] as const;
 /**
  * Implements formatting of help messages for a set of option definitions.
  * @template T The type of the help message
+ * @template E The type of the help entries
  */
-export abstract class HelpFormatter<T = unknown> {
-  abstract formatHelp(): T;
-  abstract formatGroup(name: string): T | undefined;
-  abstract formatGroups(): Map<string, T>;
-  abstract formatSections(sections: HelpSections, progName?: string): T;
-
-  /**
-   * Creates a help message formatter.
-   * @param validator The validator instance
-   * @param config The formatter configuration
-   * @param format The help format (defaults to `ansi`)
-   * @returns The formatter instance
-   */
-  static create(
-    validator: OptionValidator,
-    config?: FormatterConfig,
-    format: HelpFormat = 'ansi',
-  ): HelpFormatter {
-    const classes = [AnsiFormatter /*, JsonFormatter, MdFormatter, CsvFormatter*/];
-    return new classes[helpFormats.indexOf(format)](validator, config);
-  }
-}
-
-abstract class BaseFormatter<T, E> extends HelpFormatter<T> {
+abstract class BaseFormatter<T, E> implements HelpFormatter {
   protected readonly context: HelpContext;
   protected readonly groups = new Map<string, Array<E>>();
 
@@ -393,7 +378,6 @@ abstract class BaseFormatter<T, E> extends HelpFormatter<T> {
    * @param config The formatter configuration
    */
   constructor(validator: OptionValidator, config?: FormatterConfig) {
-    super();
     const { styles, connectives } = validator.config;
     this.context = [styles, validator.options, connectives];
     this.build(mergeConfig(config));
@@ -434,6 +418,7 @@ abstract class BaseFormatter<T, E> extends HelpFormatter<T> {
 
   protected abstract build(config: ConcreteFormat): void;
   protected abstract format(entries: Array<E>): T;
+  abstract formatSections(sections: HelpSections, progName?: string): T;
 }
 
 /**
@@ -441,7 +426,7 @@ abstract class BaseFormatter<T, E> extends HelpFormatter<T> {
  */
 export class AnsiFormatter extends BaseFormatter<AnsiMessage, HelpEntry> {
   protected override build(config: ConcreteFormat) {
-    buildAnsiGroups(this.groups, config, this.context);
+    buildAnsiEntries(this.groups, config, this.context);
   }
   protected override format(entries: Array<HelpEntry>): AnsiMessage {
     return formatAnsiEntries(entries);
@@ -483,57 +468,33 @@ export class JsonFormatter extends BaseFormatter<JsonMessage, object> {
   formatSections(sections: HelpSections): JsonMessage {
     const help = new JsonMessage();
     for (const section of sections) {
-      formatJsonSection(this.groups, this.context, section, help);
+      if (section.type === 'groups') {
+        formatGroups(this.groups, section, (_, entries) => help.push(...entries));
+      }
     }
     return help;
   }
 }
 
-/**
- * Implements formatting of Markdown help messages for a set of option definitions.
- */
-// export class MdFormatter extends HelpFormatter {
-//   constructor(_validator: OptionValidator, _config?: FormatterConfig) {
-//     super();
-//   }
-//   formatHelp(): unknown {
-//     return 0;
-//   }
-//   formatGroup(_name: string): unknown {
-//     return 0;
-//   }
-//   formatGroups(): Map<string, unknown> {
-//     return new Map();
-//   }
-//   formatSections(_sections: HelpSections, _progName?: string): unknown {
-//     return 0;
-//   }
-// }
-
-/**
- * Implements formatting of CSV help messages for a set of option definitions.
- */
-// export class CsvFormatter extends HelpFormatter {
-//   constructor(_validator: OptionValidator, _config?: FormatterConfig) {
-//     super();
-//   }
-//   formatHelp(): unknown {
-//     return 0;
-//   }
-//   formatGroup(_name: string): unknown {
-//     return 0;
-//   }
-//   formatGroups(): Map<string, unknown> {
-//     return new Map();
-//   }
-//   formatSections(_sections: HelpSections, _progName?: string): unknown {
-//     return 0;
-//   }
-// }
-
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Creates a help message formatter.
+ * @param validator The validator instance
+ * @param config The formatter configuration
+ * @param format The help format (defaults to `ansi`)
+ * @returns The formatter instance
+ */
+export function createFormatter(
+  validator: OptionValidator,
+  config?: FormatterConfig,
+  format: HelpFormat = 'ansi',
+): HelpFormatter {
+  const classes = [AnsiFormatter, JsonFormatter];
+  return new classes[helpFormats.indexOf(format)](validator, config);
+}
+
 /**
  * Checks if a name is a help format.
  * @param name The candidate name
@@ -544,27 +505,7 @@ export function isHelpFormat(name: string): name is HelpFormat {
 }
 
 /**
- * Formats a help section to be included in the full help message.
- * Options are rendered in the same order as was declared in the option definitions.
- * @param groups The option groups
- * @param _context The help context
- * @param section The help section
- * @param result The resulting message
- */
-function formatJsonSection(
-  groups: Map<string, Array<object>>,
-  _context: HelpContext,
-  section: HelpSection,
-  result: JsonMessage,
-) {
-  if (section.type === 'groups') {
-    formatGroups(groups, section, (_0, entries) => result.push(...entries));
-  }
-}
-
-/**
- * Formats a help section to be included in the full help message.
- * Options are rendered in the same order as was declared in the option definitions.
+ * Formats a help groups section to be included in the help message.
  * @param groups The option groups
  * @param section The help section
  * @param formatFn The formatting function
@@ -596,12 +537,21 @@ function buildEntries<T>(
   context: HelpContext,
   formatFn: (option: OpaqueOption) => T,
 ) {
+  /** @ignore */
+  function include(option: OpaqueOption): boolean {
+    return !(
+      regexp &&
+      !option.names?.find((name) => name?.match(regexp)) &&
+      !option.desc?.match(regexp) &&
+      !option.envVar?.match(regexp)
+    );
+  }
   const { filter } = config;
   const [, options] = context;
-  const filterRegex = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
+  const regexp = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
   for (const key in options) {
     const option = options[key];
-    if (!option.hide && (!filterRegex || matchOption(option, filterRegex))) {
+    if (!option.hide && include(option)) {
       const entry = formatFn(option);
       const name = option.group ?? '';
       const group = groups.get(name);
@@ -620,7 +570,7 @@ function buildEntries<T>(
  * @param config The format configuration
  * @param context The help context
  */
-function buildAnsiGroups(
+function buildAnsiEntries(
   groups: Map<string, Array<HelpEntry>>,
   config: ConcreteFormat,
   context: HelpContext,
@@ -642,20 +592,6 @@ function buildAnsiGroups(
   let paramWidth = 0;
   buildEntries(groups, config, context, formatFn);
   adjustEntries(groups, config, nameWidths, paramWidth);
-}
-
-/**
- * Matches an option with a regular expression.
- * @param option The option definition
- * @param regexp The regular expression
- * @returns True if the option matches
- */
-function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
-  return !!(
-    option.names?.find((name) => name?.match(regexp)) ||
-    option.desc?.match(regexp) ||
-    option.envVar?.match(regexp)
-  );
 }
 
 /**
