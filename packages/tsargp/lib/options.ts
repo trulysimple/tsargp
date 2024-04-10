@@ -95,6 +95,38 @@ export const isOpt = {
   },
 } as const satisfies CheckFunctions;
 
+/**
+ * Keep this in-sync with {@link OpaqueOption}.
+ * @internal
+ */
+export const fieldNames = [
+  'type',
+  'names',
+  'desc',
+  'negationNames',
+  'separator',
+  'paramCount',
+  'positional',
+  'append',
+  'trim',
+  'case',
+  'conv',
+  'enums',
+  'regex',
+  'range',
+  'unique',
+  'limit',
+  'requires',
+  'required',
+  'default',
+  'deprecated',
+  'link',
+  'envVar',
+  'requiredIf',
+  'clusterLetters',
+  'fallback',
+] as const satisfies ReadonlyArray<keyof OpaqueOption>;
+
 //--------------------------------------------------------------------------------------------------
 // Public types
 //--------------------------------------------------------------------------------------------------

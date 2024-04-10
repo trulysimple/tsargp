@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { tf, style, TerminalString } from '../../lib';
-import { AnsiMessage, JsonMessage, WarnMessage, ErrorMessage, CompMessage } from '../../lib';
+import { AnsiMessage, JsonMessage, WarnMessage, ErrorMessage, TextMessage } from '../../lib';
 import { resetEnv } from '../utils.spec'; // initialize globals
 
 describe('AnsiMessage', () => {
@@ -54,7 +54,7 @@ describe('ErrorMessage', () => {
 describe('CompMessage', () => {
   it('can be thrown and caught', () => {
     expect(() => {
-      throw new CompMessage('type', 'script');
+      throw new TextMessage('type', 'script');
     }).toThrow('type\nscript');
   });
 });

@@ -314,15 +314,20 @@ or equivalent.
 
 #### JSON message
 
-The `JsonMessage` class represents a message in the JSON format. It is intended for consumption by
+The `JsonMessage` class represents a message in JSON format. It is intended for consumption by
 introspection tools and other text-processing applications. It should be printed with
 `console.log` or equivalent.
 
-#### Completion message
+#### Text message
 
-The `CompMessage` class represents a list of completion words. It is meant to be consumed by the
-completion builtins. It produces a string with words separated by line feeds and should be printed
-with `console.log` or equivalent.
+The `TextMessage` class represents a list of text lines. It is used by the library in two places:
+
+- by the [parser] to throw [completion words], in which case it is meant to be consumed by
+  completion builtins
+- by the [formatter] to create help messages in CSV [format]
+
+This message produces a string with lines separated by line feeds, and should be printed with
+`console.log` or equivalent.
 
 [parser]: parser
 [validator]: validator
@@ -333,5 +338,7 @@ with `console.log` or equivalent.
 [description column]: formatter#description-column
 [synopsis and deprecation]: options#synopsis--deprecated
 [parameter column]: formatter#parameter-column
+[completion words]: parser#word-completion
+[format]: formatter#help-format
 [bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

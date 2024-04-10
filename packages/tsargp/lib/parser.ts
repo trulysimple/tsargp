@@ -24,7 +24,7 @@ import type {
 import { ConnectiveWord, ErrorItem } from './enums';
 import { createFormatter, isHelpFormat } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { format, HelpMessage, WarnMessage, CompMessage, TerminalString } from './styles';
+import { format, HelpMessage, WarnMessage, TextMessage, TerminalString } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
@@ -340,7 +340,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       const hasValue = value !== undefined;
       if (niladic || marker) {
         if (comp) {
-          throw new CompMessage();
+          throw new TextMessage();
         }
         if (hasValue) {
           if (completing) {
@@ -396,7 +396,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
     if (!marker && ((j === k && positional) || j - k >= paramCount[0])) {
       words.push(...completeName(validator, value));
     }
-    throw new CompMessage(...words);
+    throw new TextMessage(...words);
   }
   return !completing;
 }
@@ -422,7 +422,7 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       const key = validator.names.get(name);
       if (key) {
         if (comp && value === undefined) {
-          throw new CompMessage(name);
+          throw new TextMessage(name);
         }
         const marker = name === positional?.[3];
         const info = marker ? positional : ([key, name, validator.options[key]] as OptionInfo);
@@ -430,14 +430,14 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       }
       if (parseCluster(context, i)) {
         if (comp) {
-          throw new CompMessage();
+          throw new TextMessage();
         }
         continue;
       }
       if (!info || i - index + inc > max) {
         if (!positional) {
           if (comp) {
-            throw new CompMessage(...completeName(validator, arg));
+            throw new TextMessage(...completeName(validator, arg));
           }
           if (completing) {
             continue; // ignore unknown options during completion
@@ -752,7 +752,7 @@ async function handleFunction(
       values[key] = await option.exec({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate common errors during completion
-      if (!comp || err instanceof CompMessage) {
+      if (!comp || err instanceof TextMessage) {
         throw err;
       }
     }

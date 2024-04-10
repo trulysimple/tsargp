@@ -206,12 +206,12 @@ export type FormatArgs = Record<string, unknown>;
 /**
  * A help message.
  */
-export type HelpMessage = AnsiMessage | JsonMessage;
+export type HelpMessage = AnsiMessage | JsonMessage | TextMessage;
 
 /**
  * A message that can be printed on a terminal.
  */
-export type Message = ErrorMessage | HelpMessage | WarnMessage | CompMessage;
+export type Message = ErrorMessage | WarnMessage | HelpMessage;
 
 /**
  * A set of styles for terminal messages.
@@ -752,9 +752,9 @@ export class ErrorMessage extends Error {
 }
 
 /**
- * A completion message.
+ * A text message.
  */
-export class CompMessage extends Array<string> {
+export class TextMessage extends Array<string> {
   /**
    * @returns The wrapped message
    */
