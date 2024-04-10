@@ -912,10 +912,11 @@ function formatGroupsSection(
   result: AnsiMessage,
 ) {
   const { title, noWrap, style: sty } = section;
+  const headingStyle = sty ?? style(tf.bold);
   formatGroups(groups, section, (group, entries) => {
     const title2 = group || title;
     const heading = title2
-      ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap).break(2)
+      ? formatText(title2, headingStyle, 0, breaks, noWrap).break(2)
       : new TerminalString(0, breaks);
     result.push(heading);
     formatAnsiEntries(entries, result);

@@ -24,7 +24,7 @@ import type {
 import { ConnectiveWord, ErrorItem } from './enums';
 import { createFormatter, isHelpFormat } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { format, WarnMessage, CompMessage, TerminalString, HelpMessage } from './styles';
+import { format, HelpMessage, WarnMessage, CompMessage, TerminalString } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 

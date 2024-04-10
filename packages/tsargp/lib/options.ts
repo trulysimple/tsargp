@@ -535,7 +535,7 @@ export type WithHelp = {
    */
   readonly useNested?: true;
   /**
-   * Whether to use the next argument as the name of a help format. (The default format is ansi)
+   * Whether to use the next argument as the name of a help format. (The default format is `ansi`)
    */
   readonly useFormat?: true;
 };
