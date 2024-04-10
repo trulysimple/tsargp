@@ -248,6 +248,18 @@ export const enum HelpItem {
    * The option's fallback value, if any.
    */
   fallback,
+  /**
+   * Whether a help option uses the next argument as the name of a nested command.
+   */
+  useNested,
+  /**
+   * Whether a help option uses the next argument as the name of a help format.
+   */
+  useFormat,
+  /**
+   * Whether a help option uses the remaining arguments as option filter.
+   */
+  useFilter,
 }
 
 /**

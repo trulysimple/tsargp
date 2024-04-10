@@ -314,6 +314,9 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.requiredIf,
     HelpItem.clusterLetters,
     HelpItem.fallback,
+    HelpItem.useNested,
+    HelpItem.useFormat,
+    HelpItem.useFilter,
   ],
   phrases: {
     [HelpItem.synopsis]: '%t',
@@ -339,6 +342,9 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.requiredIf]: 'Required if %p.',
     [HelpItem.clusterLetters]: 'Can be clustered with %s.',
     [HelpItem.fallback]: 'Falls back to (%b|%s|%n|[%s]|[%n]|%v) if specified without parameter.',
+    [HelpItem.useNested]: 'Uses the next argument as the name of a nested command.',
+    [HelpItem.useFormat]: 'Uses the next argument as the name of a help format.',
+    [HelpItem.useFilter]: 'Uses the remaining arguments as option filter.',
   },
   filter: [],
 };
@@ -370,6 +376,9 @@ const helpFunctions = [
   formatRequiredIf,
   formatClusterLetters,
   formatFallback,
+  formatUseNested,
+  formatUseFormat,
+  formatUseFilter,
 ] as const satisfies HelpFunctions;
 
 /**
@@ -1737,4 +1746,58 @@ function formatFallback(
   result: TerminalString,
 ) {
   formatValue(context, option, phrase, result, option.fallback);
+}
+
+/**
+ * Formats a help option's useNested to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param _context The help context
+ * @param result The resulting string
+ */
+function formatUseNested(
+  option: OpaqueOption,
+  phrase: string,
+  _context: HelpContext,
+  result: TerminalString,
+) {
+  if (option.useNested) {
+    result.split(phrase);
+  }
+}
+
+/**
+ * Formats a help option's useFormat to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param _context The help context
+ * @param result The resulting string
+ */
+function formatUseFormat(
+  option: OpaqueOption,
+  phrase: string,
+  _context: HelpContext,
+  result: TerminalString,
+) {
+  if (option.useFormat) {
+    result.split(phrase);
+  }
+}
+
+/**
+ * Formats a help option's useFilter to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param _context The help context
+ * @param result The resulting string
+ */
+function formatUseFilter(
+  option: OpaqueOption,
+  phrase: string,
+  _context: HelpContext,
+  result: TerminalString,
+) {
+  if (option.useFilter) {
+    result.split(phrase);
+  }
 }

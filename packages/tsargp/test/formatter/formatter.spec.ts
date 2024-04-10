@@ -66,6 +66,26 @@ describe('AnsiFormatter', () => {
       expect(message.wrap()).toEqual(`  -f, --flag\n  -b          <boolean>\n`);
     });
 
+    it('should handle a help option', () => {
+      const options = {
+        help: {
+          type: 'help',
+          names: ['-h', '--help'],
+          desc: 'A help option.',
+          useNested: true,
+          useFormat: true,
+          useFilter: true,
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      expect(message.wrap()).toEqual(
+        `  -h, --help    A help option. ` +
+          `Uses the next argument as the name of a nested command. ` +
+          `Uses the next argument as the name of a help format. ` +
+          `Uses the remaining arguments as option filter.\n`,
+      );
+    });
+
     it('should handle a function option', () => {
       const options = {
         function: {

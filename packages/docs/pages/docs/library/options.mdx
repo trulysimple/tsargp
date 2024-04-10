@@ -496,11 +496,6 @@ In addition to the set of [basic attributes], this option has the attributes des
 
 The `config` attribute specifies a custom [formatter configuration].
 
-#### Help format
-
-The `format` attribute specifies the [help format]. Can be one of `'ansi'{:ts}` (the default),
-`'json'{:ts}` or `'csv'{:ts}`.
-
 #### Help sections
 
 The `sections` attribute specifies [help sections] to be rendered in the help message. By default,
@@ -508,13 +503,6 @@ two sections are included:
 
 - [usage section] - with `'Usage:'{:ts}` as heading, indented by 2 spaces
 - [groups section] - with `'Options:'{:ts}` as the default group heading
-
-#### Enable filter
-
-The `useFilter` attribute is an opt-in feature that allows the remaining arguments to be used as
-[option filter]. For example, the invocation `cli --help flag` would only include in the help
-message those options whose names, synopsis or environment variable name match the regex
-`/flag/i{:ts}`.
 
 #### Enable nested
 
@@ -527,6 +515,20 @@ have a help option, the argument may still be used as an option filter, if [enab
   The nested command may also [enable filter] in its help option definition. For example, the
   invocation `cli --help cmd -f` would throw the help of the `cmd` command, filtered by `-f`.
 </Callout>
+
+#### Enable format
+
+The `useFormat` attribute is an opt-in feature that allows the next argument to be used as the name
+of a [help format] with which the help message should be assembled. For example, the invocation
+`cli --help json` would produce the help message in JSON format. The available formats are
+`'ansi'{:ts}` (the default), `'json'{:ts}` and `'csv'{:ts}`.
+
+#### Enable filter
+
+The `useFilter` attribute is an opt-in feature that allows the remaining arguments to be used as
+[option filter]. For example, the invocation `cli --help flag` would only include in the help
+message those options whose names, synopsis or environment variable name match the regex
+`/flag/i{:ts}`.
 
 #### Save message
 
