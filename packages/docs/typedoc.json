@@ -9,6 +9,7 @@
   "treatWarningsAsErrors": true,
   "intentionallyNotExported": [
     "helpFormats",
+    "EntriesByGroup",
     "AnsiHelpEntry",
     "CsvHelpEntry",
     "HelpContext",

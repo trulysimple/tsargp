@@ -6,13 +6,13 @@ import { Callout } from 'nextra/components';
 
 # Formatter
 
-The `HelpFormatter` is an interface for components that handle formatting of help messages. Concrete
-classes implementing it can be instantiated with a [validator] instance and provide methods to
-format help messages.
+The `HelpFormatter` is a base class for components that handle formatting of help messages. Concrete
+classes extending it can be instantiated with a [validator] instance and provide methods to format
+help messages.
 
 ## Help format
 
-There are three concrete classes of formatter, each one handling a different help message format:
+There are four concrete classes of formatter, each one handling a different help message format:
 
 - `AnsiFormatter` -
   formats help messages in ANSI format, i.e., they may contain escape sequences and are meant to be
@@ -243,8 +243,8 @@ The following is an extract of a help message produced with these settings:
 The `items` property specifies the kinds of items that should be displayed in option descriptions,
 and in what order. It is an array whose values can be one of the enumerators from `HelpItem`:
 
-- `synopsis` - the option [synopsis]
-- `negation` - the [negation names] of a flag option, if any
+- `desc` - the option's [synopsis]
+- `negationNames` - the [negation names] of a flag option, if any
 - `separator` - the parameter [delimiter] of an array option, if enabled
 - `paramCount` - reports the [parameter count] of a variadic or polyadic[^1] option
 - `positional` - reports if an option accepts [positional] arguments
@@ -278,8 +278,8 @@ The default is to print all items in the order listed above.
 The `phrases` property specifies the phrases to be used for each kind of help item. It has the
 following optional properties, whose keys are enumerators from `HelpItem`:
 
-- `synopsis` - `'%t'{:ts}`
-- `negation` - `'Can be negated with %o.'{:ts}`
+- `desc` - `'%t'{:ts}`
+- `negationNames` - `'Can be negated with %o.'{:ts}`
 - `separator` - `'Values are delimited by (%s|%r).'{:ts}`
 - `paramCount` - `'Accepts (multiple|%n|at most %n|at least %n|between %n) parameters.'{:ts}`
 - `positional` - `'Accepts positional parameters(| that may be preceded by %o).'{:ts}`
@@ -315,8 +315,8 @@ description of the corresponding value:
 
 | Error          | Specifiers                               |
 | -------------- | ---------------------------------------- |
-| synopsis       | `%t` = the option's synopsis             |
-| negation       | `%o` = the negation names                |
+| desc           | `%t` = the option's synopsis             |
+| negationNames  | `%o` = the negation names                |
 | separator      | `%s`/`%r` = the parameter separator      |
 | paramCount     | `%n` = the parameter count               |
 | positional     | `%o` = the positional marker             |

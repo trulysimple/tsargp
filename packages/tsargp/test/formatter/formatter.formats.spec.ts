@@ -40,7 +40,7 @@ describe('JsonFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const config: FormatterConfig = { items: [HelpItem.desc, HelpItem.default] };
       const formatter = new JsonFormatter(new OptionValidator(options), config);
       const sections: HelpSections = [{ type: 'groups' }];
       const expected =
@@ -69,7 +69,7 @@ describe('CsvFormatter', () => {
           default: () => 1,
         },
       } as const satisfies Options;
-      const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const config: FormatterConfig = { items: [HelpItem.desc, HelpItem.default] };
       const formatter = new CsvFormatter(new OptionValidator(options), config);
       const expected =
         `type\tgroup\tnames\tdesc\tdefault\n` +
@@ -92,7 +92,7 @@ describe('CsvFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const config: FormatterConfig = { items: [HelpItem.synopsis] };
+      const config: FormatterConfig = { items: [HelpItem.desc] };
       const formatter = new CsvFormatter(new OptionValidator(options), config);
       const sections: HelpSections = [{ type: 'groups' }];
       const expected = `type\tgroup\tnames\tdesc\n` + `string\t\t-s\t\n` + `flag\tgroup\t-f\t`;
@@ -119,12 +119,12 @@ describe('MdFormatter', () => {
           default: () => 1,
         },
       } as const satisfies Options;
-      const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const config: FormatterConfig = { items: [HelpItem.desc, HelpItem.default] };
       const formatter = new MdFormatter(new OptionValidator(options), config);
       const expected =
-        `| type | group | names | desc | default |\n` +
-        `| ---- | ----- | ----- | ---- | ------- |\n` +
-        `| number | group | -n,--number | A number option | () => 1 |`;
+        `| type | names | desc | default |\n` +
+        `| ---- | ----- | ---- | ------- |\n` +
+        `| number | -n,--number | A number option | () => 1 |`;
       expect(formatter.formatHelp('group').message).toEqual(expected);
       expect(formatter.formatHelp('group').message).toEqual(expected); // <<-- keep this
     });
@@ -143,17 +143,17 @@ describe('MdFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const config: FormatterConfig = { items: [HelpItem.synopsis] };
+      const config: FormatterConfig = { items: [HelpItem.desc] };
       const formatter = new MdFormatter(new OptionValidator(options), config);
       const sections: HelpSections = [{ type: 'groups' }];
       const expected =
-        `| type | group | names | desc |\n` +
-        `| ---- | ----- | ----- | ---- |\n` +
-        `| string |  | -s |  |\n\n` +
+        `| type | names | desc |\n` +
+        `| ---- | ----- | ---- |\n` +
+        `| string | -s |  |\n\n` +
         `## group\n\n` +
-        `| type | group | names | desc |\n` +
-        `| ---- | ----- | ----- | ---- |\n` +
-        `| flag | group | -f |  |`;
+        `| type | names | desc |\n` +
+        `| ---- | ----- | ---- |\n` +
+        `| flag | -f |  |`;
       expect(formatter.formatSections(sections).message).toEqual(expected);
       expect(formatter.formatSections(sections).message).toEqual(expected); // <<-- keep this
     });

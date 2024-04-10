@@ -14,7 +14,6 @@ import {
   isOpt,
   getParamCount,
   getOptionNames,
-  fieldNames,
 } from './options';
 import { AnsiMessage, JsonMessage, TextMessage, TerminalString, style, format } from './styles';
 import { max, combineRegExp, regexps } from './utils';
@@ -202,27 +201,6 @@ export type HelpSections = Array<HelpSection>;
  */
 export type HelpFormat = (typeof helpFormats)[number];
 
-/**
- * A help formatter.
- */
-export interface HelpFormatter {
-  /**
-   * Formats the help message of an option group.
-   * Options are rendered in the same order as was declared in the option definitions.
-   * @param name The group name (defaults to the default group)
-   * @returns The help message, if the group exists; otherwise an empty message
-   */
-  formatHelp(name?: string): HelpMessage;
-  /**
-   * Formats a help message with sections.
-   * Options are rendered in the same order as was declared in the option definitions.
-   * @param sections The help sections
-   * @param progName The program name, if any
-   * @returns The formatted help message
-   */
-  formatSections(sections: HelpSections, progName?: string): HelpMessage;
-}
-
 //--------------------------------------------------------------------------------------------------
 // Internal types
 //--------------------------------------------------------------------------------------------------
@@ -304,8 +282,8 @@ const defaultConfig: ConcreteFormat = {
   param: { ...defaultColumn, absolute: false },
   descr: { ...defaultColumn, absolute: false },
   items: [
-    HelpItem.synopsis,
-    HelpItem.negation,
+    HelpItem.desc,
+    HelpItem.negationNames,
     HelpItem.separator,
     HelpItem.paramCount,
     HelpItem.positional,
@@ -332,8 +310,8 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.useFilter,
   ],
   phrases: {
-    [HelpItem.synopsis]: '%t',
-    [HelpItem.negation]: 'Can be negated with %o.',
+    [HelpItem.desc]: '%t',
+    [HelpItem.negationNames]: 'Can be negated with %o.',
     [HelpItem.separator]: 'Values are delimited by (%s|%r).',
     [HelpItem.paramCount]: 'Accepts (multiple|%n|at most %n|at least %n|between %n) parameters.',
     [HelpItem.positional]: 'Accepts positional parameters(| that may be preceded by %o).',
@@ -366,8 +344,8 @@ const defaultConfig: ConcreteFormat = {
  * Keep this in-sync with {@link HelpItem}.
  */
 const helpFunctions = [
-  formatSynopsis,
-  formatNegation,
+  formatDesc,
+  formatNegationNames,
   formatSeparator,
   formatParamCount,
   formatPositional,
@@ -395,6 +373,38 @@ const helpFunctions = [
 ] as const satisfies HelpFunctions;
 
 /**
+ * Keep this in-sync with {@link HelpItem}.
+ */
+const fieldNames = [
+  'desc',
+  'negationNames',
+  'separator',
+  'paramCount',
+  'positional',
+  'append',
+  'trim',
+  'case',
+  'conv',
+  'enums',
+  'regex',
+  'range',
+  'unique',
+  'limit',
+  'requires',
+  'required',
+  'default',
+  'deprecated',
+  'link',
+  'envVar',
+  'requiredIf',
+  'clusterLetters',
+  'fallback',
+  'useNested',
+  'useFormat',
+  'useFilter',
+] as const satisfies ReadonlyArray<keyof OpaqueOption>;
+
+/**
  * The available help formats.
  */
 const helpFormats = ['ansi', 'json', 'csv', 'md'] as const;
@@ -410,7 +420,7 @@ const markdownSep = ' | ';
 /**
  * Implements formatting of help messages for a set of option definitions.
  */
-abstract class BaseFormatter {
+export abstract class HelpFormatter {
   protected readonly context: HelpContext;
   protected readonly config: ConcreteFormat;
 
@@ -424,21 +434,38 @@ abstract class BaseFormatter {
     this.context = [styles, validator.options, connectives];
     this.config = mergeConfig(config);
   }
+
+  /**
+   * Formats the help message of an option group.
+   * Options are rendered in the same order as was declared in the option definitions.
+   * @param name The group name (defaults to the default group)
+   * @returns The help message, if the group exists; otherwise an empty message
+   */
+  abstract formatHelp(name?: string): HelpMessage;
+
+  /**
+   * Formats a help message with sections.
+   * Options are rendered in the same order as was declared in the option definitions.
+   * @param sections The help sections
+   * @param progName The program name, if any
+   * @returns The formatted help message
+   */
+  abstract formatSections(sections: HelpSections, progName?: string): HelpMessage;
 }
 
 /**
  * Implements formatting of ANSI help messages for a set of option definitions.
  */
-export class AnsiFormatter extends BaseFormatter implements HelpFormatter {
+export class AnsiFormatter extends HelpFormatter {
   protected readonly groups: EntriesByGroup<AnsiHelpEntry>;
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     super(validator, config);
     this.groups = buildAnsiEntries(this.config, this.context);
   }
-  formatHelp(name = ''): AnsiMessage {
+  override formatHelp(name = ''): AnsiMessage {
     return formatAnsiEntries(this.groups.get(name) ?? []);
   }
-  formatSections(sections: HelpSections, progName = ''): AnsiMessage {
+  override formatSections(sections: HelpSections, progName = ''): AnsiMessage {
     const help = new AnsiMessage();
     for (const section of sections) {
       formatAnsiSection(this.groups, this.context, section, progName, help);
@@ -450,16 +477,16 @@ export class AnsiFormatter extends BaseFormatter implements HelpFormatter {
 /**
  * Implements formatting of JSON help messages for a set of option definitions.
  */
-export class JsonFormatter extends BaseFormatter implements HelpFormatter {
+export class JsonFormatter extends HelpFormatter {
   protected readonly groups: EntriesByGroup<object>;
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     super(validator, config);
     this.groups = buildEntries(this.config, this.context, (opt) => opt);
   }
-  formatHelp(name = ''): JsonMessage {
+  override formatHelp(name = ''): JsonMessage {
     return new JsonMessage(...(this.groups.get(name) ?? []));
   }
-  formatSections(sections: HelpSections): JsonMessage {
+  override formatSections(sections: HelpSections): JsonMessage {
     const result = new JsonMessage();
     formatGroupsSections(this.groups, sections, (_, entries) => result.push(...entries));
     return result;
@@ -469,21 +496,25 @@ export class JsonFormatter extends BaseFormatter implements HelpFormatter {
 /**
  * Implements formatting of CSV help messages for a set of option definitions.
  */
-export class CsvFormatter extends BaseFormatter implements HelpFormatter {
+export class CsvFormatter extends HelpFormatter {
   protected readonly groups: EntriesByGroup<CsvHelpEntry>;
   protected readonly fields: ReadonlyArray<keyof OpaqueOption>;
-  constructor(validator: OptionValidator, config?: FormatterConfig) {
+  constructor(
+    validator: OptionValidator,
+    config?: FormatterConfig,
+    additionalFields: ReadonlyArray<keyof OpaqueOption> = ['type', 'group', 'names'],
+  ) {
     super(validator, config);
-    this.fields = getCsvFields(this.config.items);
+    this.fields = [...additionalFields, ...this.config.items.map((item) => fieldNames[item])];
     this.groups = buildEntries(this.config, this.context, (opt) =>
       this.fields.map((field) => `${opt[field] ?? ''}`),
     );
   }
-  formatHelp(name = ''): TextMessage {
+  override formatHelp(name = ''): TextMessage {
     const entries = this.groups.get(name);
     return formatCsvEntries(entries ? [this.fields, ...entries] : []);
   }
-  formatSections(sections: HelpSections): TextMessage {
+  override formatSections(sections: HelpSections): TextMessage {
     const result = new TextMessage(this.fields.join('\t')); // single heading row for all groups
     formatGroupsSections(this.groups, sections, (_, entries) => formatCsvEntries(entries, result));
     return result;
@@ -496,15 +527,15 @@ export class CsvFormatter extends BaseFormatter implements HelpFormatter {
 export class MdFormatter extends CsvFormatter {
   private readonly splitter: CsvHelpEntry;
   constructor(validator: OptionValidator, config?: FormatterConfig) {
-    super(validator, config);
+    super(validator, config, ['type', 'names']);
     this.splitter = this.fields.map((field) => '-'.repeat(field.length));
   }
-  formatHelp(name = ''): TextMessage {
+  override formatHelp(name = ''): TextMessage {
     const entries = this.groups.get(name);
     const entriesWithHeader = entries ? [this.fields, this.splitter, ...entries] : [];
     return formatCsvEntries(entriesWithHeader, undefined, markdownSep, markdownSep);
   }
-  formatSections(sections: HelpSections): TextMessage {
+  override formatSections(sections: HelpSections): TextMessage {
     const result = new TextMessage();
     formatGroupsSections(this.groups, sections, (group, entries, section) => {
       if (result.length) {
@@ -523,16 +554,6 @@ export class MdFormatter extends CsvFormatter {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
-/**
- * Gets a list of field names from a list of help items.
- * The result always includes the `type`, `names` and `group` fields.
- * @param items The help items
- * @returns The list of field names
- */
-function getCsvFields(items: ReadonlyArray<HelpItem>) {
-  return fieldNames.slice(0, 3).concat(items.map((item) => fieldNames[item + 3]));
-}
-
 /**
  * Creates a help message formatter.
  * @param validator The validator instance
@@ -1225,7 +1246,7 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
  * @param context The help context
  * @param result The resulting string
  */
-function formatSynopsis(
+function formatDesc(
   option: OpaqueOption,
   phrase: string,
   context: HelpContext,
@@ -1244,7 +1265,7 @@ function formatSynopsis(
  * @param context The help context
  * @param result The resulting string
  */
-function formatNegation(
+function formatNegationNames(
   option: OpaqueOption,
   phrase: string,
   context: HelpContext,

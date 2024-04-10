@@ -95,43 +95,6 @@ export const isOpt = {
   },
 } as const satisfies CheckFunctions;
 
-/**
- * Keep this in-sync with {@link HelpItem} and {@link OpaqueOption}.
- * @internal
- */
-export const fieldNames = [
-  'type',
-  'group',
-  'names',
-  // from HelpItem
-  'desc',
-  'negationNames',
-  'separator',
-  'paramCount',
-  'positional',
-  'append',
-  'trim',
-  'case',
-  'conv',
-  'enums',
-  'regex',
-  'range',
-  'unique',
-  'limit',
-  'requires',
-  'required',
-  'default',
-  'deprecated',
-  'link',
-  'envVar',
-  'requiredIf',
-  'clusterLetters',
-  'fallback',
-  'useNested',
-  'useFormat',
-  'useFilter',
-] as const satisfies ReadonlyArray<keyof OpaqueOption>;
-
 //--------------------------------------------------------------------------------------------------
 // Public types
 //--------------------------------------------------------------------------------------------------

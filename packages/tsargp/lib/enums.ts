@@ -157,13 +157,13 @@ export const enum ErrorItem {
  */
 export const enum HelpItem {
   /**
-   * The option synopsis.
+   * The option's synopsis.
    */
-  synopsis,
+  desc,
   /**
    * The negation names of a flag option, if any.
    */
-  negation,
+  negationNames,
   /**
    * The element delimiter of an array option, if enabled.
    */
