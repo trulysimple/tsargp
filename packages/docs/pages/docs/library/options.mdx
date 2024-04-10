@@ -486,15 +486,20 @@ Niladic options do not expect any parameter on the command-line. With the notabl
 ### Help option
 
 The **help** option is a convenient specialization of the [function option] that handles the
-formatting of help messages. Internally, it instantiates a [help formatter] class with the provided
+formatting of help messages. Internally, it instantiates a [formatter] class with the provided
 configuration, obtains a formatted message and throws it. The application is responsible for
 catching this message and printing it in a terminal.
 
 In addition to the set of [basic attributes], this option has the attributes described below.
 
+#### Formatter config
+
+The `config` attribute specifies a custom [formatter configuration].
+
 #### Help format
 
-The `format` attribute specifies a custom [formatter configuration].
+The `format` attribute specifies the [help format]. Can be one of `'ansi'{:ts}` (the default) or
+`'json'{:ts}`.
 
 #### Help sections
 
@@ -900,7 +905,7 @@ attributes:
 [parameter count]: #parameter-count
 [enable filter]: #enable-filter
 [skip count]: #skip-count
-[help formatter]: formatter
+[formatter]: formatter
 [commands guide]: ../guides/commands
 [recursive commands]: ../guides/commands#advanced-features
 [styling]: styles#styling-attributes
@@ -909,7 +914,8 @@ attributes:
 [warning message]: styles#warning-message
 [word completion]: parser#word-completion
 [completion algorithm]: parser#completion-algorithm
-[formatter configuration]: formatter#help-format
+[formatter configuration]: formatter#formatter-configuration
+[help format]: formatter#help-format
 [help sections]: formatter#help-sections
 [usage section]: formatter#usage-section
 [groups section]: formatter#groups-section

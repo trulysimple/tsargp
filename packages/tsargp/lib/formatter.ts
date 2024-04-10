@@ -2,7 +2,7 @@
 // Imports
 //--------------------------------------------------------------------------------------------------
 import type { OpaqueOption, OpaqueOptions, Requires, RequiresEntry, RequiresVal } from './options';
-import type { Style, FormatStyles, ConnectiveWords } from './styles';
+import type { Style, FormatStyles, ConnectiveWords, HelpMessage } from './styles';
 import type { Concrete } from './utils';
 import type { OptionValidator } from './validator';
 
@@ -15,7 +15,7 @@ import {
   getParamCount,
   getOptionNames,
 } from './options';
-import { HelpMessage, TerminalString, style, format } from './styles';
+import { AnsiMessage, JsonMessage, TerminalString, style, format } from './styles';
 import { max, combineRegExp } from './utils';
 
 //--------------------------------------------------------------------------------------------------
@@ -202,6 +202,18 @@ export type HelpSection = HelpText | HelpUsage | HelpGroups;
  */
 export type HelpSections = Array<HelpSection>;
 
+/**
+ * A help format.
+ */
+export type HelpFormat = (typeof helpFormats)[number];
+
+/**
+ * A help formatter.
+ */
+export interface HelpFormatter {
+  formatSections(sections: HelpSections, progName?: string): HelpMessage;
+}
+
 //--------------------------------------------------------------------------------------------------
 // Internal types
 //--------------------------------------------------------------------------------------------------
@@ -228,7 +240,7 @@ type HelpContext = [styles: FormatStyles, options: OpaqueOptions, connectives: C
 /**
  * A function to format a help item.
  */
-type HelpItemFunction = (
+type HelpFunction = (
   option: OpaqueOption,
   phrase: string,
   context: HelpContext,
@@ -239,7 +251,7 @@ type HelpItemFunction = (
 /**
  * A set of functions to format help items.
  */
-type HelpItemFunctions = ReadonlyArray<HelpItemFunction>;
+type HelpFunctions = ReadonlyArray<HelpFunction>;
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -317,7 +329,7 @@ const defaultConfig: ConcreteFormat = {
 /**
  * Keep this in-sync with {@link HelpItem}.
  */
-const helpItemFunctions = [
+const helpFunctions = [
   formatSynopsis,
   formatNegation,
   formatSeparator,
@@ -341,17 +353,24 @@ const helpItemFunctions = [
   formatRequiredIf,
   formatClusterLetters,
   formatFallback,
-] as const satisfies HelpItemFunctions;
+] as const satisfies HelpFunctions;
+
+/**
+ * The available help formats.
+ */
+const helpFormats = ['ansi', 'json'] as const;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
 /**
  * Implements formatting of help messages for a set of option definitions.
+ * @template T The type of the help message
+ * @template E The type of the help entries
  */
-export class HelpFormatter {
-  private readonly context: HelpContext;
-  private readonly groups = new Map<string, Array<HelpEntry>>();
+abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter {
+  protected readonly context: HelpContext;
+  protected readonly groups = new Map<string, Array<E>>();
 
   /**
    * Creates a help message formatter.
@@ -359,27 +378,9 @@ export class HelpFormatter {
    * @param config The formatter configuration
    */
   constructor(validator: OptionValidator, config?: FormatterConfig) {
-    const fmtConfig = mergeConfig(config);
-    const valConfig = validator.config;
-    const options = validator.options;
-    const { names, filter } = fmtConfig;
-    const filterRegex = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
-    const optionSep = valConfig.connectives[ConnectiveWord.optionSep];
-    const nameWidths = names.hidden
-      ? 0
-      : names.align === 'slot'
-        ? getNameWidths(options)
-        : getMaxNamesWidth(options, optionSep);
-    this.context = [valConfig.styles, options, valConfig.connectives];
-    let paramWidth = 0;
-    for (const key in options) {
-      const option = options[key];
-      if (!option.hide && (!filterRegex || matchOption(option, filterRegex))) {
-        const paramLen = formatOption(this.groups, fmtConfig, this.context, nameWidths, option);
-        paramWidth = max(paramWidth, paramLen);
-      }
-    }
-    adjustEntries(this.groups, fmtConfig, nameWidths, paramWidth);
+    const { styles, connectives } = validator.config;
+    this.context = [styles, validator.options, connectives];
+    this.build(mergeConfig(config));
   }
 
   /**
@@ -387,8 +388,8 @@ export class HelpFormatter {
    * Options are rendered in the same order as was declared in the option definitions.
    * @returns The formatted help message
    */
-  formatHelp(): HelpMessage {
-    return this.formatGroup() ?? new HelpMessage();
+  formatHelp(): T {
+    return this.formatGroup() ?? this.format([]);
   }
 
   /**
@@ -397,9 +398,9 @@ export class HelpFormatter {
    * @param name The group name (defaults to the default group)
    * @returns The formatted help message, if the group exists
    */
-  formatGroup(name = ''): HelpMessage | undefined {
+  formatGroup(name = ''): T | undefined {
     const entries = this.groups.get(name);
-    return entries && formatEntries(entries);
+    return entries && this.format(entries);
   }
 
   /**
@@ -407,12 +408,28 @@ export class HelpFormatter {
    * Options are rendered in the same order as was declared in the option definitions.
    * @returns The formatted help messages
    */
-  formatGroups(): Map<string, HelpMessage> {
-    const groups = new Map<string, HelpMessage>();
+  formatGroups(): Map<string, T> {
+    const groups = new Map<string, T>();
     for (const [group, entries] of this.groups.entries()) {
-      groups.set(group, formatEntries(entries));
+      groups.set(group, this.format(entries));
     }
     return groups;
+  }
+
+  protected abstract build(config: ConcreteFormat): void;
+  protected abstract format(entries: Array<E>): T;
+  abstract formatSections(sections: HelpSections, progName?: string): T;
+}
+
+/**
+ * Implements formatting of ANSI help messages for a set of option definitions.
+ */
+export class AnsiFormatter extends BaseFormatter<AnsiMessage, HelpEntry> {
+  protected override build(config: ConcreteFormat) {
+    buildAnsiEntries(this.groups, config, this.context);
+  }
+  protected override format(entries: Array<HelpEntry>): AnsiMessage {
+    return formatAnsiEntries(entries);
   }
 
   /**
@@ -422,10 +439,38 @@ export class HelpFormatter {
    * @param progName The program name, if any
    * @returns The formatted help message
    */
-  formatSections(sections: HelpSections, progName = ''): HelpMessage {
-    const help = new HelpMessage();
+  formatSections(sections: HelpSections, progName = ''): AnsiMessage {
+    const help = new AnsiMessage();
     for (const section of sections) {
-      formatSection(this.groups, this.context, section, progName, help);
+      formatAnsiSection(this.groups, this.context, section, progName, help);
+    }
+    return help;
+  }
+}
+
+/**
+ * Implements formatting of JSON help messages for a set of option definitions.
+ */
+export class JsonFormatter extends BaseFormatter<JsonMessage, object> {
+  protected override build(config: ConcreteFormat) {
+    buildEntries(this.groups, config, this.context, (opt) => opt);
+  }
+  protected override format(entries: Array<object>): JsonMessage {
+    return new JsonMessage(...entries);
+  }
+
+  /**
+   * Formats a complete help message with sections.
+   * Options are rendered in the same order as was declared in the option definitions.
+   * @param sections The help sections
+   * @returns The formatted help message
+   */
+  formatSections(sections: HelpSections): JsonMessage {
+    const help = new JsonMessage();
+    for (const section of sections) {
+      if (section.type === 'groups') {
+        formatGroups(this.groups, section, (_, entries) => help.push(...entries));
+      }
     }
     return help;
   }
@@ -434,6 +479,51 @@ export class HelpFormatter {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Creates a help message formatter.
+ * @param validator The validator instance
+ * @param config The formatter configuration
+ * @param format The help format (defaults to `ansi`)
+ * @returns The formatter instance
+ */
+export function createFormatter(
+  validator: OptionValidator,
+  config?: FormatterConfig,
+  format: HelpFormat = 'ansi',
+): HelpFormatter {
+  const classes = [AnsiFormatter, JsonFormatter];
+  return new classes[helpFormats.indexOf(format)](validator, config);
+}
+
+/**
+ * Checks if a name is a help format.
+ * @param name The candidate name
+ * @returns True if the name is a help format
+ */
+export function isHelpFormat(name: string): name is HelpFormat {
+  return helpFormats.includes(name as HelpFormat);
+}
+
+/**
+ * Formats a help groups section to be included in the help message.
+ * @param groups The option groups
+ * @param section The help section
+ * @param formatFn The formatting function
+ */
+function formatGroups<T>(
+  groups: Map<string, Array<T>>,
+  section: HelpGroups,
+  formatFn: (group: string, entries: Array<T>) => void,
+) {
+  const { filter, exclude } = section;
+  const filterGroups = filter && new Set(filter);
+  for (const [group, entries] of groups.entries()) {
+    if ((filterGroups?.has(group) ?? !exclude) !== !!exclude) {
+      formatFn(group, entries);
+    }
+  }
+}
+
 /**
  * Matches an option with a regular expression.
  * @param option The option definition
@@ -449,33 +539,84 @@ function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
 }
 
 /**
- * Formats an option to be printed on the terminal.
+ * Build the help entries for a help message.
+ * @param groups The map of option groups
+ * @param config The formatter configuration
+ * @param context The help context
+ * @param formatFn The formatting function
+ */
+function buildEntries<T>(
+  groups: Map<string, Array<T>>,
+  config: ConcreteFormat,
+  context: HelpContext,
+  formatFn: (option: OpaqueOption) => T,
+) {
+  const { filter } = config;
+  const [, options] = context;
+  const regexp = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
+  for (const key in options) {
+    const option = options[key];
+    if (!option.hide && (!regexp || matchOption(option, regexp))) {
+      const entry = formatFn(option);
+      const name = option.group ?? '';
+      const group = groups.get(name);
+      if (!group) {
+        groups.set(name, [entry]);
+      } else {
+        group.push(entry);
+      }
+    }
+  }
+}
+
+/**
+ * Build the help entries for a help message using the ANSI format.
  * @param groups The option groups
+ * @param config The format configuration
+ * @param context The help context
+ */
+function buildAnsiEntries(
+  groups: Map<string, Array<HelpEntry>>,
+  config: ConcreteFormat,
+  context: HelpContext,
+) {
+  /** @ignore */
+  function formatFn(option: OpaqueOption): HelpEntry {
+    const [entry, paramLen] = formatOption(config, context, nameWidths, option);
+    paramWidth = max(paramWidth, paramLen);
+    return entry;
+  }
+  const { names } = config;
+  const [, options, connectives] = context;
+  const optionSep = connectives[ConnectiveWord.optionSep];
+  const nameWidths = names.hidden
+    ? 0
+    : names.align === 'slot'
+      ? getNameWidths(options)
+      : getMaxNamesWidth(options, optionSep);
+  let paramWidth = 0;
+  buildEntries(groups, config, context, formatFn);
+  adjustEntries(groups, config, nameWidths, paramWidth);
+}
+
+/**
+ * Formats an option to be printed on the terminal.
  * @param config The format configuration
  * @param context The help context
  * @param nameWidths The name slot widths
  * @param option The option definition
- * @returns The length of the option parameter
+ * @returns [the help entry, the length of the option parameter]
  */
 function formatOption(
-  groups: Map<string, Array<HelpEntry>>,
   config: ConcreteFormat,
   context: HelpContext,
   nameWidths: Array<number> | number,
   option: OpaqueOption,
-): number {
-  const [styles] = context;
+): [HelpEntry, number] {
   const names = formatNames(config, context, option, nameWidths);
-  const [param, paramLen] = formatParams(config, styles, option);
+  const [param, paramLen] = formatParams(config, context[0], option);
   const descr = formatDescription(config, context, option);
-  const entry: HelpEntry = [names, param, descr];
-  const group = groups.get(option.group ?? '');
-  if (!group) {
-    groups.set(option.group ?? '', [entry]);
-  } else {
-    group.push(entry);
-  }
-  return paramLen;
+  return [[names, param, descr], paramLen];
 }
 
 /**
@@ -548,7 +689,7 @@ function formatDescription(
   const count = result.count;
   try {
     for (const item of items) {
-      helpItemFunctions[item](option, phrases[item], context, result);
+      helpFunctions[item](option, phrases[item], context, result);
     }
   } finally {
     delete styles.current;
@@ -703,10 +844,10 @@ function formatNameSlots(
 /**
  * Formats a help message from a list of help entries.
  * @param entries The help entries
- * @returns The formatted help message
+ * @param result The resulting message
+ * @returns The resulting message
  */
-function formatEntries(entries: Array<HelpEntry>): HelpMessage {
-  const result = new HelpMessage();
+function formatAnsiEntries(entries: Array<HelpEntry>, result = new AnsiMessage()): AnsiMessage {
   for (const [names, param, descr] of entries) {
     result.push(...names, param, descr);
   }
@@ -722,12 +863,12 @@ function formatEntries(entries: Array<HelpEntry>): HelpMessage {
  * @param progName The program name
  * @param result The resulting message
  */
-function formatSection(
+function formatAnsiSection(
   groups: Map<string, Array<HelpEntry>>,
   context: HelpContext,
   section: HelpSection,
   progName: string,
-  result: HelpMessage,
+  result: AnsiMessage,
 ) {
   let breaks = section.breaks ?? (result.length ? 2 : 0);
   if (section.type === 'groups') {
@@ -768,21 +909,20 @@ function formatGroupsSection(
   groups: Map<string, Array<HelpEntry>>,
   breaks: number,
   section: HelpGroups,
-  result: HelpMessage,
+  result: AnsiMessage,
 ) {
-  const { title, noWrap, filter, exclude, style: sty } = section;
-  const filterGroups = filter && new Set(filter);
-  for (const [group, entries] of groups.entries()) {
-    if ((filterGroups?.has(group) ?? !exclude) !== !!exclude) {
-      const title2 = group || title;
-      const heading = title2
-        ? formatText(title2, sty ?? style(tf.bold), 0, breaks, noWrap).break(2)
-        : new TerminalString(0, breaks);
-      result.push(heading, ...formatEntries(entries));
-      result[result.length - 1].pop(); // remove trailing break
-      breaks = 2;
-    }
-  }
+  const { title, noWrap, style: sty } = section;
+  const headingStyle = sty ?? style(tf.bold);
+  formatGroups(groups, section, (group, entries) => {
+    const title2 = group || title;
+    const heading = title2
+      ? formatText(title2, headingStyle, 0, breaks, noWrap).break(2)
+      : new TerminalString(0, breaks);
+    result.push(heading);
+    formatAnsiEntries(entries, result);
+    result[result.length - 1].pop(); // remove trailing break
+    breaks = 2;
+  });
 }
 
 /**

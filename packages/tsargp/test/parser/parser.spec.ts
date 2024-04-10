@@ -95,13 +95,32 @@ describe('ArgumentParser', () => {
               { type: 'usage', title: 'usage  heading' },
               { type: 'groups', noWrap: true },
             ],
-            format: { names: { indent: 0 } },
+            config: { names: { indent: 0 } },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse([])).resolves.not.toHaveProperty('help');
         await expect(parser.parse(['-h'], { progName: 'prog' })).rejects.toThrow(
           `usage heading\n\nprog [-h]\n\ngroup  heading\n\n-h`,
+        );
+      });
+
+      it('should throw a help message with a JSON format', async () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+          },
+          help: {
+            type: 'help',
+            names: ['-h'],
+            useFormat: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-h', 'json'])).rejects.toThrow(
+          `[{"type":"flag","names":["-f","--flag"],"preferredName":"-f"},` +
+            `{"type":"help","names":["-h"],"useFormat":true,"preferredName":"-h"}]`,
         );
       });
 

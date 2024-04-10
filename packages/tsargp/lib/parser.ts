@@ -1,6 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
+import type { HelpSections } from './formatter';
 import type {
   Options,
   OptionValues,
@@ -21,9 +22,9 @@ import type {
 } from './validator';
 
 import { ConnectiveWord, ErrorItem } from './enums';
-import { HelpFormatter, HelpSections } from './formatter';
+import { createFormatter, isHelpFormat } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
+import { format, HelpMessage, WarnMessage, CompMessage, TerminalString } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
@@ -156,7 +157,6 @@ export class ArgumentParser<T extends Options = Options> {
     values: OptionValues<T>,
     cmdLine = env('COMP_LINE') ?? env('BUFFER') ?? process?.argv.slice(2) ?? [],
     flags: ParsingFlags = {
-      progName: process?.argv[1].split(/[\\/]/).at(-1),
       compIndex: Number(env('COMP_POINT') ?? env('CURSOR')) || env('BUFFER')?.length,
     },
   ): Promise<ParsingResult> {
@@ -203,7 +203,7 @@ async function doParse(
   values: OpaqueOptionValues,
   args: Array<string>,
   completing: boolean,
-  progName?: string,
+  progName = process?.argv[1].split(/[\\/]/).at(-1),
   clusterPrefix?: string,
 ): Promise<ParsingResult> {
   if (!completing && progName && process?.title) {
@@ -340,7 +340,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       const hasValue = value !== undefined;
       if (niladic || marker) {
         if (comp) {
-          throw new CompletionMessage();
+          throw new CompMessage();
         }
         if (hasValue) {
           if (completing) {
@@ -396,7 +396,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
     if (!marker && ((j === k && positional) || j - k >= paramCount[0])) {
       words.push(...completeName(validator, value));
     }
-    throw new CompletionMessage(...words);
+    throw new CompMessage(...words);
   }
   return !completing;
 }
@@ -422,7 +422,7 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       const key = validator.names.get(name);
       if (key) {
         if (comp && value === undefined) {
-          throw new CompletionMessage(name);
+          throw new CompMessage(name);
         }
         const marker = name === positional?.[3];
         const info = marker ? positional : ([key, name, validator.options[key]] as OptionInfo);
@@ -430,14 +430,14 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       }
       if (parseCluster(context, i)) {
         if (comp) {
-          throw new CompletionMessage();
+          throw new CompMessage();
         }
         continue;
       }
       if (!info || i - index + inc > max) {
         if (!positional) {
           if (comp) {
-            throw new CompletionMessage(...completeName(validator, arg));
+            throw new CompMessage(...completeName(validator, arg));
           }
           if (completing) {
             continue; // ignore unknown options during completion
@@ -752,7 +752,7 @@ async function handleFunction(
       values[key] = await option.exec({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate common errors during completion
-      if (!comp || err instanceof CompletionMessage) {
+      if (!comp || err instanceof CompMessage) {
         throw err;
       }
     }
@@ -849,11 +849,16 @@ async function handleHelp(
       }
     }
   }
-  const format = option.format ?? {};
-  if (option.useFilter) {
-    format.filter = rest;
+  let format;
+  if (option.useFormat && rest.length && isHelpFormat(rest[0])) {
+    format = rest[0];
+    rest.splice(0, 1); // only if the format is recognized; otherwise, it may be an option filter
   }
-  const formatter = new HelpFormatter(validator, format);
+  const config = option.config ?? {};
+  if (option.useFilter) {
+    config.filter = rest;
+  }
+  const formatter = createFormatter(validator, config, format);
   const sections = option.sections ?? defaultSections;
   return formatter.formatSections(sections, progName);
 }

@@ -6,8 +6,24 @@ import { Callout } from 'nextra/components';
 
 # Formatter
 
-The `HelpFormatter` class is the component that handles the formatting of help messages. It can be
-instantiated with a [validator] instance and provides methods to format help messages.
+The `HelpFormatter` is an interface for components that handle formatting of help messages. Concrete
+classes implementing it can be instantiated with a [validator] instance and provide methods to
+format help messages.
+
+## Help format
+
+There are two concrete classes of formatter, each one handling a different help message format:
+
+- `AnsiFormatter` -
+  formats help messages in ANSI format, i.e., they may contain escape sequences and are meant to be
+  printed in a terminal
+- `JsonFormatter` -
+  formats help messages in JSON format, i.e., they are meant to be processed by introspection tools
+  and other applications
+
+<Callout type="warning">
+  Everything contained in this page relates to the `AnsiFormatter` class.
+</Callout>
 
 ## Help message
 
@@ -166,7 +182,7 @@ properties], it has the following properties:
 - `filter` - a list of group names to include or exclude (defaults to including all groups)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
 
-## Help format
+## Formatter configuration
 
 In addition to the validator instance, the formatter constructor accepts a `FormatterConfig` object
 that can be used to customize the format of help entries in option groups. This configuration will

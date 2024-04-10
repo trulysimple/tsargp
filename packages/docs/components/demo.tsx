@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
+import { ArgumentParser, ErrorMessage, AnsiMessage } from 'tsargp';
 import { type Props, Command } from './classes/command';
 
 // @ts-expect-error since tsargp examples do not export types
@@ -34,7 +34,7 @@ class DemoCommand extends Command {
     } catch (err) {
       if (err instanceof ErrorMessage) {
         throw err.msg.wrap(this.state.width);
-      } else if (err instanceof HelpMessage) {
+      } else if (err instanceof AnsiMessage) {
         throw err.wrap(this.state.width);
       }
       throw err;

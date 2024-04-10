@@ -43,6 +43,7 @@ const underlineStyle = {
 
 /**
  * The formatting functions.
+ * @internal
  */
 const formatFunctions = {
   /**
@@ -203,9 +204,14 @@ export type FormatCallback<T = string> = (this: TerminalString, arg: T) => void;
 export type FormatArgs = Record<string, unknown>;
 
 /**
+ * A help message.
+ */
+export type HelpMessage = AnsiMessage | JsonMessage;
+
+/**
  * A message that can be printed on a terminal.
  */
-export type Message = ErrorMessage | HelpMessage | WarnMessage | CompletionMessage;
+export type Message = ErrorMessage | HelpMessage | WarnMessage | CompMessage;
 
 /**
  * A set of styles for terminal messages.
@@ -342,7 +348,7 @@ export class TerminalString {
   /**
    * The terminal string context.
    */
-  private context: TerminalContext;
+  private readonly context: TerminalContext;
 
   /**
    * @returns The list of internal strings
@@ -644,9 +650,9 @@ export class TerminalString {
 }
 
 /**
- * A terminal message. Used as base for other message classes.
+ * An ANSI message. Used as base for other message classes.
  */
-export class TerminalMessage extends Array<TerminalString> {
+export class AnsiMessage extends Array<TerminalString> {
   /**
    * Wraps the help message to a specified width.
    * @param width The terminal width (or zero to avoid wrapping)
@@ -681,14 +687,28 @@ export class TerminalMessage extends Array<TerminalString> {
 }
 
 /**
- * A help message.
+ * A JSON message.
  */
-export class HelpMessage extends TerminalMessage {}
+export class JsonMessage extends Array<object> {
+  /**
+   * @returns The wrapped message
+   */
+  toString(): string {
+    return JSON.stringify(this);
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
 
 /**
  * A warning message.
  */
-export class WarnMessage extends TerminalMessage {
+export class WarnMessage extends AnsiMessage {
   /**
    * @returns The wrapped message
    */
@@ -704,7 +724,7 @@ export class ErrorMessage extends Error {
   /**
    * The terminal message.
    */
-  readonly msg: TerminalMessage;
+  readonly msg: AnsiMessage;
 
   /**
    * Creates an error message
@@ -734,7 +754,7 @@ export class ErrorMessage extends Error {
 /**
  * A completion message.
  */
-export class CompletionMessage extends Array<string> {
+export class CompMessage extends Array<string> {
   /**
    * @returns The wrapped message
    */
