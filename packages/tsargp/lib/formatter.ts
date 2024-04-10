@@ -401,10 +401,10 @@ abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter 
   }
 
   /**
-   * Formats the help message of an option group. (Defaults to the default group.)
+   * Formats the help message of an option group.
    * Options are rendered in the same order as was declared in the option definitions.
-   * @param name The group name
-   * @returns The formatted help message
+   * @param name The group name (defaults to the default group)
+   * @returns The help message, if the group exists; otherwise an empty message
    */
   formatHelp(name = ''): T {
     return this.format(this.groups.get(name) ?? []);

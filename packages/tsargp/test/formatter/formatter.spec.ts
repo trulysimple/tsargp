@@ -5,7 +5,7 @@ import '../utils.spec'; // initialize globals
 
 describe('AnsiFormatter', () => {
   describe('formatHelp', () => {
-    it('should handle no options', () => {
+    it('should handle a non-existent group', () => {
       const message = new AnsiFormatter(new OptionValidator({})).formatHelp();
       expect(message.wrap()).toEqual('');
     });

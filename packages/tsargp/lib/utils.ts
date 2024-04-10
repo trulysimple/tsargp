@@ -58,7 +58,7 @@ export const regexps = {
   /**
    * A regular expression to match whitespace characters.
    */
-  space: /\s+/gu,
+  space: /\s+/g,
 } as const satisfies Record<string, RegExp>;
 
 /**

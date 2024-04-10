@@ -6,7 +6,7 @@ import '../utils.spec'; // initialize globals
 
 describe('JsonFormatter', () => {
   describe('formatHelp', () => {
-    it('should handle no options', () => {
+    it('should handle a non-existent group', () => {
       const message = new JsonFormatter(new OptionValidator({})).formatHelp();
       expect(message.message).toEqual('[]');
     });
@@ -43,7 +43,7 @@ describe('JsonFormatter', () => {
 
 describe('CsvFormatter', () => {
   describe('formatHelp', () => {
-    it('should handle no options', () => {
+    it('should handle a non-existent group', () => {
       const message = new CsvFormatter(new OptionValidator({})).formatHelp();
       expect(message.message).toEqual(fieldNames.join('\t'));
     });
