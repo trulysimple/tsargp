@@ -125,6 +125,9 @@ export const fieldNames = [
   'requiredIf',
   'clusterLetters',
   'fallback',
+  'useNested',
+  'useFormat',
+  'useFilter',
 ] as const satisfies ReadonlyArray<keyof OpaqueOption>;
 
 //--------------------------------------------------------------------------------------------------

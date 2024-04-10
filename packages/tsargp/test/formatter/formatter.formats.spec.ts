@@ -63,7 +63,7 @@ describe('CsvFormatter', () => {
           `\nnumber\t-n,--number\tA number option` +
           '\t'.repeat(16) +
           '() => 1' +
-          '\t'.repeat(6),
+          '\t'.repeat(9),
       );
     });
   });
@@ -78,7 +78,7 @@ describe('CsvFormatter', () => {
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'groups' }];
       const message = new CsvFormatter(new OptionValidator(options)).formatSections(sections);
-      expect(message.message).toEqual(fieldNames.join('\t') + `\nflag\t-f` + '\t'.repeat(23));
+      expect(message.message).toEqual(fieldNames.join('\t') + `\nflag\t-f` + '\t'.repeat(26));
     });
   });
 });
