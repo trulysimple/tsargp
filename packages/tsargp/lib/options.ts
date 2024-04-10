@@ -101,6 +101,7 @@ export const isOpt = {
  */
 export const fieldNames = [
   'type',
+  'group',
   'names',
   'desc',
   'negationNames',

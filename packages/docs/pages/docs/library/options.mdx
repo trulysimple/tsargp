@@ -508,12 +508,16 @@ two sections are included:
 
 The `useNested` attribute is an opt-in feature that allows the next argument to be used as the name
 of a [nested command] for which the help message should be assembled. For example, the invocation
-`cli --help cmd` would throw the help of the `cmd` command, if it exists. If not, or if it does not
-have a help option, the argument may still be used as an option filter, if [enable filter] is set.
+`cli --help cmd` would throw the help of the `cmd` command, if it exists.
+
+If a nested command with the specified name does not exist or does not have a help option, the
+argument may still be used as either a help format (if [enable format] is set) or an option filter
+(if [enable filter] is set).
 
 <Callout type="default">
-  The nested command may also [enable filter] in its help option definition. For example, the
-  invocation `cli --help cmd -f` would throw the help of the `cmd` command, filtered by `-f`.
+  The nested command may also set [enable format] and [enable filter] in its help option definition.
+  For example, the invocation `cli --help cmd json -f` would throw the help of the `cmd` command in
+  JSON format, filtered by `-f`.
 </Callout>
 
 #### Enable format
@@ -521,7 +525,7 @@ have a help option, the argument may still be used as an option filter, if [enab
 The `useFormat` attribute is an opt-in feature that allows the next argument to be used as the name
 of a [help format] with which the help message should be assembled. For example, the invocation
 `cli --help json` would produce the help message in JSON format. The available formats are
-`'ansi'{:ts}` (the default), `'json'{:ts}` and `'csv'{:ts}`.
+`'ansi'{:ts}` (the default), `'json'{:ts}`, `'csv'{:ts}` and `'md'{:ts}`.
 
 #### Enable filter
 
@@ -905,6 +909,7 @@ attributes:
 [cluster letters]: #cluster-letters
 [fallback value]: #fallback-value
 [parameter count]: #parameter-count
+[enable format]: #enable-format
 [enable filter]: #enable-filter
 [skip count]: #skip-count
 [formatter]: formatter

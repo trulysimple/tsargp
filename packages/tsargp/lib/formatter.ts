@@ -270,6 +270,11 @@ type HelpFunction = (
  */
 type HelpFunctions = ReadonlyArray<HelpFunction>;
 
+/**
+ * A function to format a help groups section.
+ */
+type GroupsFunction<T> = (group: string, entries: Array<T>, section: HelpGroups) => void;
+
 //--------------------------------------------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------------------------------------------
@@ -384,7 +389,23 @@ const helpFunctions = [
 /**
  * The available help formats.
  */
-const helpFormats = ['ansi', 'json', 'csv'] as const;
+const helpFormats = ['ansi', 'json', 'csv', 'md'] as const;
+
+/**
+ * The Markdown table cell delimiter.
+ */
+const markdownSep = ' | ';
+
+/**
+ * The Markdown table heading row.
+ */
+const markdownHead = markdownSep + fieldNames.join(markdownSep) + markdownSep;
+
+/**
+ * The Markdown table heading row splitter.
+ */
+const markdownHeadSplit =
+  markdownSep + fieldNames.map((field) => '-'.repeat(field.length)).join(markdownSep) + markdownSep;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -397,6 +418,13 @@ const helpFormats = ['ansi', 'json', 'csv'] as const;
 abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter {
   protected readonly context: HelpContext;
   protected readonly groups = new Map<string, Array<E>>();
+
+  /**
+   * @returns The list of group names
+   */
+  get groupNames(): Iterable<string> {
+    return this.groups.keys();
+  }
 
   /**
    * Creates a help message formatter.
@@ -454,13 +482,9 @@ export class JsonFormatter extends BaseFormatter<JsonMessage, object> {
     return new JsonMessage(...entries);
   }
   formatSections(sections: HelpSections): JsonMessage {
-    const help = new JsonMessage();
-    for (const section of sections) {
-      if (section.type === 'groups') {
-        formatGroups(this.groups, section, (_, entries) => help.push(...entries));
-      }
-    }
-    return help;
+    const result = new JsonMessage();
+    formatGroupsSections(this.groups, sections, (_, entries) => result.push(...entries));
+    return result;
   }
 }
 
@@ -474,17 +498,48 @@ export class CsvFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
     );
   }
   protected override format(entries: Array<CsvHelpEntry>): TextMessage {
-    entries.unshift(fieldNames);
+    if (entries.length) {
+      entries.unshift(fieldNames);
+    }
     return formatCsvEntries(entries);
   }
   formatSections(sections: HelpSections): TextMessage {
-    const help = new TextMessage(fieldNames.join('\t'));
-    for (const section of sections) {
-      if (section.type === 'groups') {
-        formatGroups(this.groups, section, (_, entries) => formatCsvEntries(entries, help));
-      }
+    const result = new TextMessage(fieldNames.join('\t')); // single heading row for all groups
+    formatGroupsSections(this.groups, sections, (_, entries) => formatCsvEntries(entries, result));
+    return result;
+  }
+}
+
+/**
+ * Implements formatting of Markdown help messages for a set of option definitions.
+ */
+export class MdFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
+  protected override build(config: ConcreteFormat) {
+    buildEntries(this.groups, config, this.context, (opt) =>
+      fieldNames.map((field) => `${opt[field] ?? ''}`),
+    );
+  }
+  protected override format(entries: Array<CsvHelpEntry>): TextMessage {
+    const help = new TextMessage();
+    if (entries.length) {
+      help.push(markdownHead, markdownHeadSplit);
     }
-    return help;
+    return formatCsvEntries(entries, help, markdownSep, markdownSep);
+  }
+  formatSections(sections: HelpSections): TextMessage {
+    const result = new TextMessage();
+    formatGroupsSections(this.groups, sections, (group, entries, section) => {
+      if (result.length) {
+        result.push(''); // line feed between tables
+      }
+      const title = group || section.title;
+      if (title) {
+        result.push('## ' + title, ''); // section before table
+      }
+      result.push(markdownHead, markdownHeadSplit); // one table for each group
+      formatCsvEntries(entries, result, markdownSep, markdownSep);
+    });
+    return result;
   }
 }
 
@@ -503,7 +558,7 @@ export function createFormatter(
   config?: FormatterConfig,
   format: HelpFormat = 'ansi',
 ): HelpFormatter {
-  const classes = [AnsiFormatter, JsonFormatter, CsvFormatter];
+  const classes = [AnsiFormatter, JsonFormatter, CsvFormatter, MdFormatter];
   return new classes[helpFormats.indexOf(format)](validator, config);
 }
 
@@ -517,7 +572,27 @@ export function isHelpFormat(name: string): name is HelpFormat {
 }
 
 /**
+ * Formats a list of help groups sections to be included in the help message.
+ * @template T The type of the help entries
+ * @param groups The option groups
+ * @param sections The help sections
+ * @param formatFn The formatting function
+ */
+function formatGroupsSections<T>(
+  groups: Map<string, Array<T>>,
+  sections: HelpSections,
+  formatFn: GroupsFunction<T>,
+) {
+  for (const section of sections) {
+    if (section.type === 'groups') {
+      formatGroups(groups, section, formatFn);
+    }
+  }
+}
+
+/**
  * Formats a help groups section to be included in the help message.
+ * @template T The type of the help entries
  * @param groups The option groups
  * @param section The help section
  * @param formatFn The formatting function
@@ -525,13 +600,13 @@ export function isHelpFormat(name: string): name is HelpFormat {
 function formatGroups<T>(
   groups: Map<string, Array<T>>,
   section: HelpGroups,
-  formatFn: (group: string, entries: Array<T>) => void,
+  formatFn: GroupsFunction<T>,
 ) {
   const { filter, exclude } = section;
   const filterGroups = filter && new Set(filter);
   for (const [group, entries] of groups.entries()) {
     if ((filterGroups?.has(group) ?? !exclude) !== !!exclude) {
-      formatFn(group, entries);
+      formatFn(group, entries, section);
     }
   }
 }
@@ -552,6 +627,7 @@ function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
 
 /**
  * Build the help entries for a help message.
+ * @template T The type of the help entries
  * @param groups The map of option groups
  * @param config The formatter configuration
  * @param context The help context
@@ -871,12 +947,24 @@ function formatAnsiEntries(entries: Array<AnsiHelpEntry>, result = new AnsiMessa
  * Sequences of whitespace are collapsed to a single space.
  * @param entries The help entries
  * @param result The resulting message
+ * @param itemSep The help item delimiter
+ * @param entryQuote The quote character for a whole help entry
  * @returns The resulting message
  */
-function formatCsvEntries(entries: Array<CsvHelpEntry>, result = new TextMessage()): TextMessage {
+function formatCsvEntries(
+  entries: Array<CsvHelpEntry>,
+  result = new TextMessage(),
+  itemSep = '\t',
+  entryQuote = '',
+): TextMessage {
   result.push(
-    ...entries.map((entry) =>
-      entry.map((item) => item.replace(regexps.space, ' ').replace(regexps.style, '')).join('\t'),
+    ...entries.map(
+      (entry) =>
+        entryQuote +
+        entry
+          .map((item) => item.replace(regexps.space, ' ').replace(regexps.style, ''))
+          .join(itemSep) +
+        entryQuote,
     ),
   );
   return result;

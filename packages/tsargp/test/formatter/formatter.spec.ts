@@ -5,9 +5,10 @@ import '../utils.spec'; // initialize globals
 
 describe('AnsiFormatter', () => {
   describe('formatHelp', () => {
-    it('should handle a non-existent group', () => {
-      const message = new AnsiFormatter(new OptionValidator({})).formatHelp();
-      expect(message.wrap()).toEqual('');
+    it('should handle zero options', () => {
+      const formatter = new AnsiFormatter(new OptionValidator({}));
+      expect([...formatter.groupNames]).toEqual([]);
+      expect(formatter.formatHelp().wrap()).toEqual('');
     });
 
     it('should handle a flag option with a group', () => {
@@ -20,7 +21,7 @@ describe('AnsiFormatter', () => {
         },
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).formatHelp('group');
-      expect(message?.wrap()).toEqual(`  -f, --flag    A flag option\n`);
+      expect(message.wrap()).toEqual(`  -f, --flag    A flag option\n`);
     });
 
     it('should filter options using a single regular expression', () => {
