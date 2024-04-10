@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Options, FormatterConfig } from '../../lib';
+import type { Options, FormatterConfig, HelpSections } from '../../lib';
 import { OptionValidator, style, tf, HelpItem } from '../../lib';
 import { JsonFormatter, CsvFormatter, MdFormatter } from '../../lib';
 import '../utils.spec'; // initialize globals
@@ -8,7 +8,6 @@ describe('JsonFormatter', () => {
   describe('formatHelp', () => {
     it('should handle zero options', () => {
       const formatter = new JsonFormatter(new OptionValidator({}));
-      expect([...formatter.groupNames]).toEqual([]);
       expect(formatter.formatHelp().message).toEqual('[]');
     });
 
@@ -21,10 +20,10 @@ describe('JsonFormatter', () => {
           default: () => true,
         },
       } as const satisfies Options;
-      const message = new JsonFormatter(new OptionValidator(options)).formatHelp('group');
-      expect(message.message).toEqual(
-        `[{"type":"flag","names":["-f","--flag"],"group":"group","preferredName":"-f"}]`,
-      );
+      const formatter = new JsonFormatter(new OptionValidator(options));
+      const expected = `[{"type":"flag","names":["-f","--flag"],"group":"group","preferredName":"-f"}]`;
+      expect(formatter.formatHelp('group').message).toEqual(expected);
+      expect(formatter.formatHelp('group').message).toEqual(expected); // <<-- keep this
     });
   });
 
@@ -43,11 +42,12 @@ describe('JsonFormatter', () => {
       } as const satisfies Options;
       const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
       const formatter = new JsonFormatter(new OptionValidator(options), config);
-      const message = formatter.formatSections([{ type: 'groups' }]);
-      expect(message.message).toEqual(
+      const sections: HelpSections = [{ type: 'groups' }];
+      const expected =
         `[{"type":"string","names":["-s"],"preferredName":"-s"},` +
-          `{"type":"flag","names":["-f"],"group":"group","preferredName":"-f"}]`,
-      );
+        `{"type":"flag","names":["-f"],"group":"group","preferredName":"-f"}]`;
+      expect(formatter.formatSections(sections).message).toEqual(expected);
+      expect(formatter.formatSections(sections).message).toEqual(expected); // <<-- keep this
     });
   });
 });
@@ -56,7 +56,6 @@ describe('CsvFormatter', () => {
   describe('formatHelp', () => {
     it('should handle zero options', () => {
       const formatter = new CsvFormatter(new OptionValidator({}));
-      expect([...formatter.groupNames]).toEqual([]);
       expect(formatter.formatHelp().message).toEqual('');
     });
 
@@ -71,11 +70,12 @@ describe('CsvFormatter', () => {
         },
       } as const satisfies Options;
       const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
-      const message = new CsvFormatter(new OptionValidator(options), config).formatHelp('group');
-      expect(message.message).toEqual(
+      const formatter = new CsvFormatter(new OptionValidator(options), config);
+      const expected =
         `type\tgroup\tnames\tdesc\tdefault\n` +
-          `number\tgroup\t-n,--number\tA number option\t() => 1`,
-      );
+        `number\tgroup\t-n,--number\tA number option\t() => 1`;
+      expect(formatter.formatHelp('group').message).toEqual(expected);
+      expect(formatter.formatHelp('group').message).toEqual(expected); // <<-- keep this
     });
   });
 
@@ -94,10 +94,10 @@ describe('CsvFormatter', () => {
       } as const satisfies Options;
       const config: FormatterConfig = { items: [HelpItem.synopsis] };
       const formatter = new CsvFormatter(new OptionValidator(options), config);
-      const message = formatter.formatSections([{ type: 'groups' }]);
-      expect(message.message).toEqual(
-        `type\tgroup\tnames\tdesc\n` + `string\t\t-s\t\n` + `flag\tgroup\t-f\t`,
-      );
+      const sections: HelpSections = [{ type: 'groups' }];
+      const expected = `type\tgroup\tnames\tdesc\n` + `string\t\t-s\t\n` + `flag\tgroup\t-f\t`;
+      expect(formatter.formatSections(sections).message).toEqual(expected);
+      expect(formatter.formatSections(sections).message).toEqual(expected); // <<-- keep this
     });
   });
 });
@@ -106,7 +106,6 @@ describe('MdFormatter', () => {
   describe('formatHelp', () => {
     it('should handle zero options', () => {
       const formatter = new MdFormatter(new OptionValidator({}));
-      expect([...formatter.groupNames]).toEqual([]);
       expect(formatter.formatHelp().message).toEqual('');
     });
 
@@ -121,12 +120,13 @@ describe('MdFormatter', () => {
         },
       } as const satisfies Options;
       const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
-      const message = new MdFormatter(new OptionValidator(options), config).formatHelp('group');
-      expect(message.message).toEqual(
-        ` | type | group | names | desc | default | \n` +
-          ` | ---- | ----- | ----- | ---- | ------- | \n` +
-          ` | number | group | -n,--number | A number option | () => 1 | `,
-      );
+      const formatter = new MdFormatter(new OptionValidator(options), config);
+      const expected =
+        `| type | group | names | desc | default |\n` +
+        `| ---- | ----- | ----- | ---- | ------- |\n` +
+        `| number | group | -n,--number | A number option | () => 1 |`;
+      expect(formatter.formatHelp('group').message).toEqual(expected);
+      expect(formatter.formatHelp('group').message).toEqual(expected); // <<-- keep this
     });
   });
 
@@ -145,16 +145,17 @@ describe('MdFormatter', () => {
       } as const satisfies Options;
       const config: FormatterConfig = { items: [HelpItem.synopsis] };
       const formatter = new MdFormatter(new OptionValidator(options), config);
-      const message = formatter.formatSections([{ type: 'groups' }]);
-      expect(message.message).toEqual(
-        ` | type | group | names | desc | \n` +
-          ` | ---- | ----- | ----- | ---- | \n` +
-          ` | string |  | -s |  | \n\n` +
-          `## group\n\n` +
-          ` | type | group | names | desc | \n` +
-          ` | ---- | ----- | ----- | ---- | \n` +
-          ` | flag | group | -f |  | `,
-      );
+      const sections: HelpSections = [{ type: 'groups' }];
+      const expected =
+        `| type | group | names | desc |\n` +
+        `| ---- | ----- | ----- | ---- |\n` +
+        `| string |  | -s |  |\n\n` +
+        `## group\n\n` +
+        `| type | group | names | desc |\n` +
+        `| ---- | ----- | ----- | ---- |\n` +
+        `| flag | group | -f |  |`;
+      expect(formatter.formatSections(sections).message).toEqual(expected);
+      expect(formatter.formatSections(sections).message).toEqual(expected); // <<-- keep this
     });
   });
 });

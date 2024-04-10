@@ -7,7 +7,6 @@ describe('AnsiFormatter', () => {
   describe('formatHelp', () => {
     it('should handle zero options', () => {
       const formatter = new AnsiFormatter(new OptionValidator({}));
-      expect([...formatter.groupNames]).toEqual([]);
       expect(formatter.formatHelp().wrap()).toEqual('');
     });
 
