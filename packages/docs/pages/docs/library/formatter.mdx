@@ -264,6 +264,9 @@ and in what order. It is an array whose values can be one of the enumerators fro
 - `requiredIf` - the option's [conditional requirements], if any
 - `clusterLetters` - the option's [cluster letters], if any
 - `fallback` - the option's [fallback value], if any
+- `useNested` - whether a help option uses the next argument as the name of a [nested command]
+- `useFormat` - whether a help option uses the next argument as the name of a [help format]
+- `useFilter` - whether a help option uses the remaining arguments as [option filter]
 
 The default is to print all items in the order listed above.
 
@@ -295,6 +298,9 @@ following optional properties, whose keys are enumerators from `HelpItem`:
 - `requiredIf` - `'Required if %p.'{:ts}`
 - `clusterLetters` - `'Can be clustered with %s.'{:ts}`
 - `fallback` - `'Falls back to (%b|%s|%n|[%s]|[%n]|%v) if specified without parameter.'{:ts}`
+- `useNested` - `'Uses the next argument as the name of a nested command.'{:ts}`
+- `useFormat` - `'Uses the next argument as the name of a help format.'{:ts}`
+- `useFilter` - `'Uses the remaining arguments as option filter.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
@@ -311,17 +317,12 @@ description of the corresponding value:
 | separator      | `%s`/`%r` = the parameter separator      |
 | paramCount     | `%n` = the parameter count               |
 | positional     | `%o` = the positional marker             |
-| append         |                                          |
-| trim           |                                          |
-| case           |                                          |
 | conv           | `%t` = the math function                 |
 | enums          | `%s`/`%n` = the enumerated values        |
 | regex          | `%r` = the regular expression            |
 | range          | `%n` = the numeric range                 |
-| unique         |                                          |
 | limit          | `%n` = the count limit                   |
 | requires       | `%p` = the requirements                  |
-| required       |                                          |
 | default        | `%b`/`%s`/`%n`/`%v` = the default value  |
 | deprecated     | `%t` = the deprecation notice            |
 | link           | `%u` = the hyperlink                     |
@@ -359,6 +360,8 @@ that they may get overridden by (or combined with) an option's [display styles],
 [name slots]: #name-slots
 [common properties]: #common-properties
 [validator]: validator
+[help format]: #help-format
+[option filter]: #option-filter
 [terminal strings]: styles#terminal-strings
 [group]: options#group--hide
 [names]: options#names--preferred-name
@@ -394,6 +397,7 @@ that they may get overridden by (or combined with) an option's [display styles],
 [cluster letters]: options#cluster-letters
 [fallback value]: options#fallback-value
 [truth and falsity]: options#truth--falsity-names
+[nested command]: options#command-option
 
 [^1]:
     _polyadic_ means that the option accepts more than one parameter, but the parameter count is
