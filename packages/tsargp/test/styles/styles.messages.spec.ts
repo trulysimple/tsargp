@@ -63,6 +63,6 @@ describe('JsonMessage', () => {
   it('can be thrown and caught', () => {
     expect(() => {
       throw new JsonMessage({ type: 'script' });
-    }).toThrow('{"type":"script"}');
+    }).toThrow('[{"type":"script"}]');
   });
 });

@@ -689,18 +689,12 @@ export class AnsiMessage extends Array<TerminalString> {
 /**
  * A JSON message.
  */
-export class JsonMessage {
-  /**
-   * Creates a JSON message.
-   * @param value The JSON value
-   */
-  constructor(private readonly value: object = {}) {}
-
+export class JsonMessage extends Array<object> {
   /**
    * @returns The wrapped message
    */
   toString(): string {
-    return JSON.stringify(this.value);
+    return JSON.stringify(this);
   }
 
   /**
