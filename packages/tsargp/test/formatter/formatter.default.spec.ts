@@ -10,7 +10,6 @@ describe('AnsiFormatter', () => {
           type: 'function',
           names: ['-f', '--function'],
           desc: 'A function option.',
-          exec() {},
           default: 'abc',
         },
       } as const satisfies Options;
@@ -24,7 +23,6 @@ describe('AnsiFormatter', () => {
           type: 'function',
           names: ['-f', '--function'],
           desc: 'A function option.',
-          exec() {},
           default: () => 0,
         },
       } as const satisfies Options;
@@ -40,8 +38,6 @@ describe('AnsiFormatter', () => {
           type: 'command',
           names: ['-f', '--command'],
           desc: 'A command option.',
-          options: {},
-          exec() {},
           default: true,
         },
       } as const satisfies Options;
@@ -55,8 +51,6 @@ describe('AnsiFormatter', () => {
           type: 'command',
           names: ['-f', '--command'],
           desc: 'A command option.',
-          options: {},
-          exec() {},
           default: () => 0,
         },
       } as const satisfies Options;

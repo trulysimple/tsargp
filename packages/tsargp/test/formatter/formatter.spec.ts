@@ -92,7 +92,6 @@ describe('AnsiFormatter', () => {
           type: 'function',
           names: ['-f', '--function'],
           desc: 'A function option',
-          exec() {},
         },
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
@@ -105,8 +104,6 @@ describe('AnsiFormatter', () => {
           type: 'command',
           names: ['-f', '--command'],
           desc: 'A command option',
-          options: {},
-          exec() {},
         },
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();

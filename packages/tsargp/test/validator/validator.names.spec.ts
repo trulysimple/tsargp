@@ -156,7 +156,6 @@ describe('OptionValidator', () => {
               names: ['Capital', '--ghi', 'col:on'],
             },
           },
-          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -189,7 +188,6 @@ describe('OptionValidator', () => {
               names: ['flag3'],
             },
           },
-          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);

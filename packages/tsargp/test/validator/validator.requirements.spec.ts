@@ -79,7 +79,6 @@ describe('OptionValidator', () => {
         required: {
           type: 'function',
           names: ['-f2'],
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -96,8 +95,6 @@ describe('OptionValidator', () => {
         required: {
           type: 'command',
           names: ['-c'],
-          options: {},
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -190,12 +187,10 @@ describe('OptionValidator', () => {
         required1: {
           type: 'function',
           names: ['-f2'],
-          exec: async () => {},
         },
         required2: {
           type: 'function',
           names: ['-f3'],
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -212,14 +207,10 @@ describe('OptionValidator', () => {
         required1: {
           type: 'command',
           names: ['-c1'],
-          options: {},
-          exec: async () => {},
         },
         required2: {
           type: 'command',
           names: ['-c2'],
-          options: {},
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -481,7 +472,6 @@ describe('OptionValidator', () => {
         other: {
           type: 'function',
           names: ['-f2'],
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -498,8 +488,6 @@ describe('OptionValidator', () => {
         other: {
           type: 'command',
           names: ['-c'],
-          options: {},
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -592,12 +580,10 @@ describe('OptionValidator', () => {
         other1: {
           type: 'function',
           names: ['-f2'],
-          exec: async () => {},
         },
         other2: {
           type: 'function',
           names: ['-f3'],
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -614,14 +600,10 @@ describe('OptionValidator', () => {
         other1: {
           type: 'command',
           names: ['-c1'],
-          options: {},
-          exec: async () => {},
         },
         other2: {
           type: 'command',
           names: ['-c2'],
-          options: {},
-          exec: async () => {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);

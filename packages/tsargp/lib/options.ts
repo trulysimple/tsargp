@@ -232,7 +232,7 @@ export type FunctionCallback = CustomCallback<
 export type CommandCallback = CustomCallback<ParseInfo<OpaqueOptionValues>, unknown>;
 
 /**
- * A callback for a command's option definitions.
+ * A callback for the option definitions of a nested command.
  */
 export type OptionsCallback = () => Options | Promise<Options>;
 

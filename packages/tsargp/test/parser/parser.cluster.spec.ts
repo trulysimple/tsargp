@@ -275,8 +275,6 @@ describe('ArgumentParser', () => {
         command: {
           type: 'command',
           names: ['--cmd'],
-          options: {},
-          exec() {},
           clusterLetters: 'c',
         },
       } as const satisfies Options;

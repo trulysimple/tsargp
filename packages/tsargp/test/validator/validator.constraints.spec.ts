@@ -236,7 +236,6 @@ describe('OptionValidator', () => {
           type: 'function',
           names: ['-f'],
           paramCount: [-1, 1],
-          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);

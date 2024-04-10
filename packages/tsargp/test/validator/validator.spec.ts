@@ -63,10 +63,8 @@ describe('OptionValidator', () => {
               type: 'command',
               names: ['-c'],
               options: { flag: { type: 'flag' } },
-              exec() {},
             },
           },
-          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -85,10 +83,8 @@ describe('OptionValidator', () => {
               type: 'command',
               names: ['-c'],
               options: (): Options => options,
-              exec() {},
             },
           },
-          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);

@@ -256,8 +256,8 @@ which can be used to obtain a normal `string{:ts}`.
 
 ### User-facing messages
 
-These messages are meant to be consumed by humans. Each kind of message uses a default terminal
-width to render the resulting string. They are described below.
+User-facing messages are meant to be consumed by humans. Each kind of message uses a default
+terminal width to render the resulting string. They are described below.
 
 #### ANSI message
 
@@ -312,6 +312,8 @@ or equivalent.
 
 ### Machine-readable messages
 
+Machine-readable messages are meant to be consumed by computers. They are described below.
+
 #### JSON message
 
 The `JsonMessage` class represents a message in JSON format. It is intended for consumption by
@@ -322,7 +324,7 @@ introspection tools and other text-processing applications. It should be printed
 
 The `TextMessage` class represents a list of text lines. It is used by the library in two places:
 
-- by the [parser] to throw [completion words], in which case it is meant to be consumed by
+- by the [parser] to throw [completion words], in which case it is meant to be consumed by the
   completion builtins
 - by the [formatter] to create help messages in either CSV or Markdown [format]
 

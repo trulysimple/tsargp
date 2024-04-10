@@ -432,7 +432,6 @@ describe('ArgumentParser', () => {
             type: 'command',
             names: ['-c'],
             exec: async () => 'abc',
-            options: {},
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -447,7 +446,6 @@ describe('ArgumentParser', () => {
             async exec() {
               throw 'abc';
             },
-            options: {},
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -459,7 +457,6 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: {},
             exec: vi.fn(),
           },
         } as const satisfies Options;
@@ -478,7 +475,6 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: {},
             exec: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
@@ -494,7 +490,6 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: {},
             exec: vi.fn().mockImplementation(() => {
               throw 'abc';
             }),
@@ -576,11 +571,11 @@ describe('ArgumentParser', () => {
                 names: ['-f'],
               },
             }),
-            exec: () => 'abc',
+            exec: ({ param }) => param,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: 'abc' });
+        await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: { flag: true } });
       });
 
       it('should handle a command option with options with async callbacks', async () => {

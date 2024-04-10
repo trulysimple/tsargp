@@ -652,12 +652,12 @@ function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
  * Build the help entries for a help message.
  * @template T The type of the help entries
  * @param context The help context
- * @param formatFn The formatting function
+ * @param buildFn The building function
  * @returns The option groups
  */
 function buildEntries<T>(
   context: HelpContext,
-  formatFn: (option: OpaqueOption) => T,
+  buildFn: (option: OpaqueOption) => T,
 ): EntriesByGroup<T> {
   const [, options, , config] = context;
   const regexp = config.filter.length ? RegExp(combineRegExp(config.filter), 'i') : undefined;
@@ -665,7 +665,7 @@ function buildEntries<T>(
   for (const key in options) {
     const option = options[key];
     if (!option.hide && (!regexp || matchOption(option, regexp))) {
-      const entry = formatFn(option);
+      const entry = buildFn(option);
       const name = option.group ?? '';
       const group = groups.get(name);
       if (!group) {
@@ -950,7 +950,7 @@ function formatAnsiEntries(
 
 /**
  * Formats a help message from a list of CSV help entries.
- * Sequences of whitespace are collapsed to a single space.
+ * Sequences of whitespace are collapsed to a single space, and styles are removed.
  * @param entries The help entries
  * @param result The resulting message
  * @param itemSep The help item delimiter

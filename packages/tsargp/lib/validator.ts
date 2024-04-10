@@ -297,8 +297,7 @@ async function validate(context: ValidateContext) {
     }
   }
   if (flags.detectNamingIssues) {
-    detectTooSimilarOptionNames(context, names.keys());
-    detectMixedNamingConventions(context);
+    detectNamingIssues(context, names.keys());
   }
 }
 
@@ -381,13 +380,13 @@ function validateNames(
 }
 
 /**
- * Detects option names that are too similar to each other.
+ * Detects option naming issues.
  * @param context The validation context
  * @param names The list of option names
  */
-function detectTooSimilarOptionNames(context: ValidateContext, names: Iterable<string>) {
-  const [config, , , warning, , prefix] = context;
-  const sep = config.connectives[ConnectiveWord.optionSep];
+function detectNamingIssues(context: ValidateContext, names: Iterable<string>) {
+  const [config, options, , warning, , prefix] = context;
+  const optionSep = config.connectives[ConnectiveWord.optionSep];
   const prefix2 = prefix.slice(0, -1); // remove trailing dot
   const visited = new Set<string>();
   for (const name of names) {
@@ -397,22 +396,13 @@ function detectTooSimilarOptionNames(context: ValidateContext, names: Iterable<s
     const similar = findSimilar(name, names, 0.8);
     if (similar.length) {
       const args = { o: prefix2, s1: name, s2: similar };
-      warning.push(format(config, ErrorItem.tooSimilarOptionNames, args, { sep }));
+      warning.push(format(config, ErrorItem.tooSimilarOptionNames, args, { sep: optionSep }));
       for (const similarName of similar) {
         visited.add(similarName);
       }
     }
   }
-}
-
-/**
- * Detects option names with mixed naming conventions.
- * @param context The validation context
- */
-function detectMixedNamingConventions(context: ValidateContext) {
-  const [config, options, , warning, , prefix] = context;
-  const sep = config.connectives[ConnectiveWord.stringSep];
-  const prefix2 = prefix.slice(0, -1); // remove trailing dot
+  const stringSep = config.connectives[ConnectiveWord.stringSep];
   getNamesInEachSlot(options).forEach((slot, i) => {
     const match = matchNamingRules(slot, namingConventions);
     // produce a warning for each naming rule category with more than one match,
@@ -422,7 +412,7 @@ function detectMixedNamingConventions(context: ValidateContext) {
       if (entries.length > 1) {
         const list = entries.map(([rule, name]) => rule + ': ' + name);
         const args = { o: prefix2, n: i, s: list };
-        warning.push(format(config, ErrorItem.mixedNamingConvention, args, { sep }));
+        warning.push(format(config, ErrorItem.mixedNamingConvention, args, { sep: stringSep }));
       }
     }
   });
