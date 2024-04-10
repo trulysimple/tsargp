@@ -2,4 +2,4 @@
 'tsargp': minor
 ---
 
-A new formatter class was added, `MdFormatter`, to format help messages in markdown format.
+A new formatter class was added, `MdFormatter`, to format help messages in Markdown format.

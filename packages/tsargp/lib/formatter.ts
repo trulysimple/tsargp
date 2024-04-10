@@ -498,7 +498,9 @@ export class CsvFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
     );
   }
   protected override format(entries: Array<CsvHelpEntry>): TextMessage {
-    entries.unshift(fieldNames);
+    if (entries.length) {
+      entries.unshift(fieldNames);
+    }
     return formatCsvEntries(entries);
   }
   formatSections(sections: HelpSections): TextMessage {
@@ -518,7 +520,10 @@ export class MdFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
     );
   }
   protected override format(entries: Array<CsvHelpEntry>): TextMessage {
-    const help = new TextMessage(markdownHead, markdownHeadSplit);
+    const help = new TextMessage();
+    if (entries.length) {
+      help.push(markdownHead, markdownHeadSplit);
+    }
     return formatCsvEntries(entries, help, markdownSep, markdownSep);
   }
   formatSections(sections: HelpSections): TextMessage {
@@ -925,7 +930,7 @@ function formatNameSlots(
 }
 
 /**
- * Formats an ANSI help message from a list of ANSI help entries.
+ * Formats a help message from a list of ANSI help entries.
  * @param entries The help entries
  * @param result The resulting message
  * @returns The resulting message
@@ -938,26 +943,28 @@ function formatAnsiEntries(entries: Array<AnsiHelpEntry>, result = new AnsiMessa
 }
 
 /**
- * Formats a CSV help message from a list of CSV help entries.
+ * Formats a help message from a list of CSV help entries.
  * Sequences of whitespace are collapsed to a single space.
  * @param entries The help entries
  * @param result The resulting message
- * @param sep The value delimiter
- * @param quote The quote character
+ * @param itemSep The help item delimiter
+ * @param entryQuote The quote character for a whole help entry
  * @returns The resulting message
  */
 function formatCsvEntries(
   entries: Array<CsvHelpEntry>,
   result = new TextMessage(),
-  sep = '\t',
-  quote = '',
+  itemSep = '\t',
+  entryQuote = '',
 ): TextMessage {
   result.push(
     ...entries.map(
       (entry) =>
-        quote +
-        entry.map((item) => item.replace(regexps.space, ' ').replace(regexps.style, '')).join(sep) +
-        quote,
+        entryQuote +
+        entry
+          .map((item) => item.replace(regexps.space, ' ').replace(regexps.style, ''))
+          .join(itemSep) +
+        entryQuote,
     ),
   );
   return result;

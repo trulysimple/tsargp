@@ -56,7 +56,7 @@ describe('CsvFormatter', () => {
     it('should handle zero options', () => {
       const formatter = new CsvFormatter(new OptionValidator({}));
       expect([...formatter.groupNames]).toEqual([]);
-      expect(formatter.formatHelp().message).toEqual(fieldNames.join('\t'));
+      expect(formatter.formatHelp().message).toEqual('');
     });
 
     it('should handle a number option with a group and a default callback', () => {
@@ -111,13 +111,7 @@ describe('MdFormatter', () => {
     it('should handle zero options', () => {
       const formatter = new MdFormatter(new OptionValidator({}));
       expect([...formatter.groupNames]).toEqual([]);
-      expect(formatter.formatHelp().message).toEqual(
-        ' | ' +
-          fieldNames.join(' | ') +
-          ` | \n | ` +
-          fieldNames.map((field) => '-'.repeat(field.length)).join(' | ') +
-          ' | ',
-      );
+      expect(formatter.formatHelp().message).toEqual('');
     });
 
     it('should handle a number option with a group and a default callback', () => {
