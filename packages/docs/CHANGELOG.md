@@ -1,5 +1,21 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.2
+
+### Patch Changes
+
+- [#146](https://github.com/trulysimple/tsargp/pull/146) [`a8d7d30`](https://github.com/trulysimple/tsargp/commit/a8d7d3011f5bf81b88d22570c59b61be18b95256) Thanks [@disog](https://github.com/disog)! - The Formatter page was updated to document the new `CsvFormatter` class.
+
+- [#146](https://github.com/trulysimple/tsargp/pull/146) [`a8d7d30`](https://github.com/trulysimple/tsargp/commit/a8d7d3011f5bf81b88d22570c59b61be18b95256) Thanks [@disog](https://github.com/disog)! - The Formatter page was updated to document the new `MdFormatter` class.
+
+- [#146](https://github.com/trulysimple/tsargp/pull/146) [`a8d7d30`](https://github.com/trulysimple/tsargp/commit/a8d7d3011f5bf81b88d22570c59b61be18b95256) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the `config` and `format` attributes of help options. The Formatter page was updated to document the new organization of formatter classes.
+
+- [#146](https://github.com/trulysimple/tsargp/pull/146) [`a8d7d30`](https://github.com/trulysimple/tsargp/commit/a8d7d3011f5bf81b88d22570c59b61be18b95256) Thanks [@disog](https://github.com/disog)! - The Validator page was updated to document the new connective words for array elements and string quoting.
+
+- [#146](https://github.com/trulysimple/tsargp/pull/146) [`a8d7d30`](https://github.com/trulysimple/tsargp/commit/a8d7d3011f5bf81b88d22570c59b61be18b95256) Thanks [@disog](https://github.com/disog)! - Updated the Formatter page to document the new help items, namely: `useNested`, `useFormat` and `useFilter`.
+
+- [#146](https://github.com/trulysimple/tsargp/pull/146) [`a8d7d30`](https://github.com/trulysimple/tsargp/commit/a8d7d3011f5bf81b88d22570c59b61be18b95256) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the support for asynchronous options callback in the command option. The Validator page was updated to document the new asynchronous behavior of the `validate` procedure.
+
 ## 0.4.2-dev.0
 
 ### Patch Changes
