@@ -268,7 +268,7 @@ function parseCluster(context: ParseContext, index: number): boolean {
     return false; // do not consider it a cluster
   }
   if (unknownIndex > 0) {
-    const [, , name] = getOpt(rest[0]);
+    const name = getOpt(rest[0])[2];
     args.splice(index, 0, ...(name ? [name] : []), rest.slice(1));
     return true; // treat it as an inline parameter
   }
@@ -294,13 +294,12 @@ function parseCluster(context: ParseContext, index: number): boolean {
  * @returns True if the environment variable was found
  */
 async function readEnvVar(context: ParseContext, info: OptionInfo): Promise<boolean> {
-  const [, values] = context;
   const [key, name, option] = info;
   const value = env(name);
   if (value !== undefined) {
     if (option.type === 'flag') {
       // don't parse the flag value, for consistency with the semantics of the command-line
-      values[key] = true;
+      context[1][key] = true;
     } else {
       await parseParam(context, NaN, info, [value]);
     }
@@ -473,8 +472,7 @@ async function handleNonNiladic(
   // max is not needed here because either:
   // - the parser would have failed to find an option that starts a new sequence at max + 1; or
   // - it would have reached the end of the arguments before max + 1
-  const [min] = getParamCount(option);
-  if (params.length < min) {
+  if (params.length < getParamCount(option)[0]) {
     throw validator.error(ErrorItem.missingParameter, { o: name });
   }
   if (option.type === 'function') {
@@ -802,15 +800,14 @@ async function handleMessage(
   option: OpaqueOption,
   key: string,
 ) {
-  const [validator, values] = context;
   const message =
     option.type === 'help'
       ? await handleHelp(context, rest, option)
       : option.resolve
-        ? await resolveVersion(validator, option.resolve)
+        ? await resolveVersion(context[0], option.resolve)
         : option.version ?? '';
   if (option.saveMessage) {
-    values[key] = message;
+    context[1][key] = message;
   } else {
     throw message;
   }
@@ -860,7 +857,7 @@ async function handleHelp(
   }
   const formatter = createFormatter(validator, config, format);
   const sections = option.sections ?? defaultSections;
-  return formatter.formatSections(sections, progName);
+  return formatter.sections(sections, progName);
 }
 
 /**
@@ -905,18 +902,10 @@ async function handleCompletion(
  * @param context The parsing context
  */
 async function checkRequired(context: ParseContext) {
-  /** @ignore */
-  function checkEnv(key: string) {
-    return checkEnvVarAndDefaultValue(context, key);
-  }
-  /** @ignore */
-  function checkReq(key: string) {
-    return checkRequiredOption(context, key);
-  }
-  const [validator] = context;
-  const keys = Object.keys(validator.options);
-  await Promise.all(keys.map(checkEnv)); // <<-- we may need to serialize this
-  await Promise.all(keys.map(checkReq)); // <<-- this does not need to be serialized
+  const keys = Object.keys(context[0].options);
+  // we may need to serialize the following call
+  await Promise.all(keys.map((key) => checkEnvVarAndDefaultValue(context, key)));
+  await Promise.all(keys.map((key) => checkRequiredOption(context, key)));
 }
 
 /**

@@ -553,40 +553,12 @@ export class TerminalString {
    */
   wrap(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
     /** @ignore */
-    function shorten() {
-      let length = result.length;
-      for (; length && column > start; --length) {
-        const last = result[length - 1];
-        if (last.length > column - start) {
-          result[length - 1] = last.slice(0, start - column); // cut the last string
-          break;
-        }
-        column -= last.length;
-      }
-      result.length = length;
-    }
-    /** @ignore */
     function align() {
       if (needToAlign && j < result.length && column < width) {
         const rem = width - column; // remaining columns until right boundary
         const pad = emitStyles ? sequence(cs.cuf, rem) : ' '.repeat(rem);
         result.splice(j, 0, pad); // insert padding at the indentation boundary
         column = width;
-      }
-    }
-    /** @ignore */
-    function adjust() {
-      const pad = !largestFits
-        ? '\n'
-        : emitStyles
-          ? sequence(cs.cha, start + 1)
-          : column < start
-            ? ' '.repeat(start - column)
-            : '';
-      if (pad) {
-        result.push(pad);
-      } else {
-        shorten(); // adjust backwards: shorten the current line
       }
     }
     const count = this.count;
@@ -603,12 +575,33 @@ export class TerminalString {
     if (!largestFits) {
       start = 0; // wrap to the first column instead
     }
-    const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
     if (column !== start && !strings[0].startsWith('\n')) {
-      adjust();
+      const pad = !largestFits
+        ? '\n'
+        : emitStyles
+          ? sequence(cs.cha, start + 1)
+          : column < start
+            ? ' '.repeat(start - column)
+            : '';
+      if (pad) {
+        result.push(pad);
+      } else {
+        // adjust backwards: shorten the current line
+        let length = result.length;
+        for (; length && column > start; --length) {
+          const last = result[length - 1];
+          if (last.length > column - start) {
+            result[length - 1] = last.slice(0, start - column); // cut the last string
+            break;
+          }
+          column -= last.length;
+        }
+        result.length = length;
+      }
       column = start;
     }
 
+    const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
     let j = result.length; // save index for right-alignment
     for (let i = 0; i < count; ++i) {
       let str = strings[i];

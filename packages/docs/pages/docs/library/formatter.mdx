@@ -47,14 +47,14 @@ There are two main ways of obtaining help messages, as described below.
 
 ### Grouped help
 
-The `formatHelp` method returns the help message of an option group. It accepts a single optional
+The `format` method returns the help message of an option group. It accepts a single optional
 parameter: the name of the group. If not provided, the _default_ group is used, which corresponds to
 the set of options that did not explicitly declare a [group] in their definition.
 
 ### Sectioned help
 
-The `formatSections` method returns a help message that includes [help sections], as will be
-explained later in this page. It accepts two parameters:
+The `sections` method returns a help message that includes [help sections], as will be explained
+later in this page. It accepts two parameters:
 
 - `sections` - a list of `HelpSection`s to include in the help message
 - `progName` - an optional program name to display in usage sections

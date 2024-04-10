@@ -3,7 +3,7 @@ import { type Options, AnsiFormatter, OptionValidator } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('AnsiFormatter', () => {
-  describe('formatHelp', () => {
+  describe('format', () => {
     it('should handle a boolean option with truth names', () => {
       const options = {
         boolean: {
@@ -13,7 +13,7 @@ describe('AnsiFormatter', () => {
           truthNames: ['true', 'yes'],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -b, --boolean  <boolean>  A boolean option. Values must be one of {'true', 'yes'}.\n`,
       );
@@ -28,7 +28,7 @@ describe('AnsiFormatter', () => {
           falsityNames: ['false', 'no'],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -b, --boolean  <boolean>  A boolean option. Values must be one of {'false', 'no'}.\n`,
       );
@@ -44,7 +44,7 @@ describe('AnsiFormatter', () => {
           falsityNames: ['false'],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -b, --boolean  <boolean>  A boolean option. Values must be one of {'true', 'false'}.\n`,
       );
@@ -59,7 +59,7 @@ describe('AnsiFormatter', () => {
           enums: ['one', 'two'],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -s, --string  <string>  A string option. Values must be one of {'one', 'two'}.\n`,
       );
@@ -74,7 +74,7 @@ describe('AnsiFormatter', () => {
           regex: /\d+/s,
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -s, --string  <string>  A string option. Values must match the regex /\\d+/s.\n`,
       );
@@ -89,7 +89,7 @@ describe('AnsiFormatter', () => {
           enums: [1, 2],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -n, --number  <number>  A number option. Values must be one of {1, 2}.\n`,
       );
@@ -104,7 +104,7 @@ describe('AnsiFormatter', () => {
           range: [0, Infinity],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -n, --number  <number>  A number option. Values must be in the range [0, Infinity].\n`,
       );
@@ -119,7 +119,7 @@ describe('AnsiFormatter', () => {
           regex: /\d+/s,
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values must match the regex /\\d+/s.\n`,
       );
@@ -134,7 +134,7 @@ describe('AnsiFormatter', () => {
           range: [0, Infinity],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Values must be in the range [0, Infinity].\n`,
       );
@@ -149,7 +149,7 @@ describe('AnsiFormatter', () => {
           limit: 2,
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Value count is limited to 2.\n`,
       );
@@ -164,7 +164,7 @@ describe('AnsiFormatter', () => {
           limit: 2,
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Value count is limited to 2.\n`,
       );
@@ -179,7 +179,7 @@ describe('AnsiFormatter', () => {
           enums: ['one', 'two'],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Values must be one of {'one', 'two'}.\n`,
       );
@@ -194,7 +194,7 @@ describe('AnsiFormatter', () => {
           enums: [1, 2],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Values must be one of {1, 2}.\n`,
       );

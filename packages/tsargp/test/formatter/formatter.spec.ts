@@ -4,10 +4,10 @@ import { AnsiFormatter, OptionValidator } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('AnsiFormatter', () => {
-  describe('formatHelp', () => {
+  describe('format', () => {
     it('should handle zero options', () => {
       const formatter = new AnsiFormatter(new OptionValidator({}));
-      expect(formatter.formatHelp().wrap()).toEqual('');
+      expect(formatter.format().wrap()).toEqual('');
     });
 
     it('should handle a flag option with a group', () => {
@@ -19,7 +19,7 @@ describe('AnsiFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp('group');
+      const message = new AnsiFormatter(new OptionValidator(options)).format('group');
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option\n`);
     });
 
@@ -40,7 +40,7 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       const config: FormatterConfig = { descr: { absolute: true }, filter: ['flag'] };
-      const message = new AnsiFormatter(validator, config).formatHelp();
+      const message = new AnsiFormatter(validator, config).format();
       expect(message.wrap()).toEqual(`  -f, --flag\n  A flag option\n`);
     });
 
@@ -62,7 +62,7 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       const config: FormatterConfig = { items: [], filter: ['-f', 'bool'] };
-      const message = new AnsiFormatter(validator, config).formatHelp();
+      const message = new AnsiFormatter(validator, config).format();
       expect(message.wrap()).toEqual(`  -f, --flag\n  -b          <boolean>\n`);
     });
 
@@ -77,7 +77,7 @@ describe('AnsiFormatter', () => {
           useFilter: true,
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -h, --help    A help option. ` +
           `Uses the next argument as the name of a nested command. ` +
@@ -95,7 +95,7 @@ describe('AnsiFormatter', () => {
           exec() {},
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -f, --function    A function option\n`);
     });
 
@@ -109,7 +109,7 @@ describe('AnsiFormatter', () => {
           exec() {},
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -f, --command  ...  A command option\n`);
     });
 
@@ -122,7 +122,7 @@ describe('AnsiFormatter', () => {
           negationNames: ['-no-f', '', '--no-flag'],
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --flag    A flag option. Can be negated with -no-f, --no-flag.\n`,
       );
@@ -137,7 +137,7 @@ describe('AnsiFormatter', () => {
           required: true,
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Always required.\n`);
     });
 
@@ -150,7 +150,7 @@ describe('AnsiFormatter', () => {
           link: new URL('https://trulysimple.dev/tsargp/docs'),
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --flag    A flag option. Refer to https://trulysimple.dev/tsargp/docs for details.\n`,
       );
@@ -165,7 +165,7 @@ describe('AnsiFormatter', () => {
           deprecated: 'reason',
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -f, --flag    A flag option. Deprecated for reason.\n`);
     });
 
@@ -178,7 +178,7 @@ describe('AnsiFormatter', () => {
           clusterLetters: 'fF',
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --flag    A flag option. Can be clustered with 'fF'.\n`,
       );
@@ -193,7 +193,7 @@ describe('AnsiFormatter', () => {
           envVar: 'VAR',
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -b, --boolean  <boolean>  A boolean option. Can be specified through the VAR environment variable.\n`,
       );
@@ -208,7 +208,7 @@ describe('AnsiFormatter', () => {
           positional: true,
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -s, --string  <string>  A string option. Accepts positional parameters.\n`,
       );
@@ -223,7 +223,7 @@ describe('AnsiFormatter', () => {
           positional: '--',
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -n, --number  <number>  A number option. Accepts positional parameters that may be preceded by --.\n`,
       );
@@ -239,7 +239,7 @@ describe('AnsiFormatter', () => {
           separator: ',',
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  <strings>  A strings option. Values are delimited by ','. May be specified multiple times.\n`,
       );
@@ -255,7 +255,7 @@ describe('AnsiFormatter', () => {
           separator: ',',
         },
       } as const satisfies Options;
-      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. May be specified multiple times.\n`,
       );

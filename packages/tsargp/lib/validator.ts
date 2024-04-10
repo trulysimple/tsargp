@@ -347,9 +347,9 @@ function validateNames(
   key: string,
   option: OpaqueOption,
 ) {
-  const [config, , , , , prefix] = context;
+  const [config] = context;
   const positional = option.positional;
-  const prefixedKey = prefix + key;
+  const prefixedKey = context[5] + key;
   if (positional === '') {
     throw error(config, ErrorItem.emptyPositionalMarker, { o: prefixedKey });
   }

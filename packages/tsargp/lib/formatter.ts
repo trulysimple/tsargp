@@ -231,7 +231,12 @@ type CsvHelpEntry = ReadonlyArray<string>;
 /**
  * Information about the current help message.
  */
-type HelpContext = [styles: FormatStyles, options: OpaqueOptions, connectives: ConnectiveWords];
+type HelpContext = [
+  styles: FormatStyles,
+  options: OpaqueOptions,
+  connectives: ConnectiveWords,
+  config: ConcreteFormat,
+];
 
 /**
  * A function to format a help item.
@@ -422,7 +427,6 @@ const markdownSep = ' | ';
  */
 export abstract class HelpFormatter {
   protected readonly context: HelpContext;
-  protected readonly config: ConcreteFormat;
 
   /**
    * Creates a help message formatter.
@@ -431,8 +435,7 @@ export abstract class HelpFormatter {
    */
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     const { styles, connectives } = validator.config;
-    this.context = [styles, validator.options, connectives];
-    this.config = mergeConfig(config);
+    this.context = [styles, validator.options, connectives, mergeConfig(config)];
   }
 
   /**
@@ -441,7 +444,7 @@ export abstract class HelpFormatter {
    * @param name The group name (defaults to the default group)
    * @returns The help message, if the group exists; otherwise an empty message
    */
-  abstract formatHelp(name?: string): HelpMessage;
+  abstract format(name?: string): HelpMessage;
 
   /**
    * Formats a help message with sections.
@@ -450,7 +453,7 @@ export abstract class HelpFormatter {
    * @param progName The program name, if any
    * @returns The formatted help message
    */
-  abstract formatSections(sections: HelpSections, progName?: string): HelpMessage;
+  abstract sections(sections: HelpSections, progName?: string): HelpMessage;
 }
 
 /**
@@ -458,14 +461,17 @@ export abstract class HelpFormatter {
  */
 export class AnsiFormatter extends HelpFormatter {
   protected readonly groups: EntriesByGroup<AnsiHelpEntry>;
+
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     super(validator, config);
-    this.groups = buildAnsiEntries(this.config, this.context);
+    this.groups = buildAnsiEntries(this.context);
   }
-  override formatHelp(name = ''): AnsiMessage {
+
+  override format(name = ''): AnsiMessage {
     return formatAnsiEntries(this.groups.get(name) ?? []);
   }
-  override formatSections(sections: HelpSections, progName = ''): AnsiMessage {
+
+  override sections(sections: HelpSections, progName = ''): AnsiMessage {
     const help = new AnsiMessage();
     for (const section of sections) {
       formatAnsiSection(this.groups, this.context, section, progName, help);
@@ -479,14 +485,17 @@ export class AnsiFormatter extends HelpFormatter {
  */
 export class JsonFormatter extends HelpFormatter {
   protected readonly groups: EntriesByGroup<object>;
+
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     super(validator, config);
-    this.groups = buildEntries(this.config, this.context, (opt) => opt);
+    this.groups = buildEntries(this.context, (opt) => opt);
   }
-  override formatHelp(name = ''): JsonMessage {
+
+  override format(name = ''): JsonMessage {
     return new JsonMessage(...(this.groups.get(name) ?? []));
   }
-  override formatSections(sections: HelpSections): JsonMessage {
+
+  override sections(sections: HelpSections): JsonMessage {
     const result = new JsonMessage();
     formatGroupsSections(this.groups, sections, (_, entries) => result.push(...entries));
     return result;
@@ -499,22 +508,25 @@ export class JsonFormatter extends HelpFormatter {
 export class CsvFormatter extends HelpFormatter {
   protected readonly groups: EntriesByGroup<CsvHelpEntry>;
   protected readonly fields: ReadonlyArray<keyof OpaqueOption>;
+
   constructor(
     validator: OptionValidator,
     config?: FormatterConfig,
     additionalFields: ReadonlyArray<keyof OpaqueOption> = ['type', 'group', 'names'],
   ) {
     super(validator, config);
-    this.fields = [...additionalFields, ...this.config.items.map((item) => fieldNames[item])];
-    this.groups = buildEntries(this.config, this.context, (opt) =>
+    this.fields = [...additionalFields, ...this.context[3].items.map((item) => fieldNames[item])];
+    this.groups = buildEntries(this.context, (opt) =>
       this.fields.map((field) => `${opt[field] ?? ''}`),
     );
   }
-  override formatHelp(name = ''): TextMessage {
+
+  override format(name = ''): TextMessage {
     const entries = this.groups.get(name);
     return formatCsvEntries(entries ? [this.fields, ...entries] : []);
   }
-  override formatSections(sections: HelpSections): TextMessage {
+
+  override sections(sections: HelpSections): TextMessage {
     const result = new TextMessage(this.fields.join('\t')); // single heading row for all groups
     formatGroupsSections(this.groups, sections, (_, entries) => formatCsvEntries(entries, result));
     return result;
@@ -526,16 +538,19 @@ export class CsvFormatter extends HelpFormatter {
  */
 export class MdFormatter extends CsvFormatter {
   private readonly splitter: CsvHelpEntry;
+
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     super(validator, config, ['type', 'names']);
     this.splitter = this.fields.map((field) => '-'.repeat(field.length));
   }
-  override formatHelp(name = ''): TextMessage {
+
+  override format(name = ''): TextMessage {
     const entries = this.groups.get(name);
     const entriesWithHeader = entries ? [this.fields, this.splitter, ...entries] : [];
     return formatCsvEntries(entriesWithHeader, undefined, markdownSep, markdownSep);
   }
-  override formatSections(sections: HelpSections): TextMessage {
+
+  override sections(sections: HelpSections): TextMessage {
     const result = new TextMessage();
     formatGroupsSections(this.groups, sections, (group, entries, section) => {
       if (result.length) {
@@ -636,19 +651,16 @@ function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
 /**
  * Build the help entries for a help message.
  * @template T The type of the help entries
- * @param config The formatter configuration
  * @param context The help context
  * @param formatFn The formatting function
  * @returns The option groups
  */
 function buildEntries<T>(
-  config: ConcreteFormat,
   context: HelpContext,
   formatFn: (option: OpaqueOption) => T,
 ): EntriesByGroup<T> {
-  const { filter } = config;
-  const [, options] = context;
-  const regexp = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
+  const [, options, , config] = context;
+  const regexp = config.filter.length ? RegExp(combineRegExp(config.filter), 'i') : undefined;
   const groups = new Map<string, Array<T>>();
   for (const key in options) {
     const option = options[key];
@@ -668,68 +680,59 @@ function buildEntries<T>(
 
 /**
  * Build the help entries for a help message using the ANSI format.
- * @param config The format configuration
  * @param context The help context
  * @returns The option groups
  */
-function buildAnsiEntries(
-  config: ConcreteFormat,
-  context: HelpContext,
-): EntriesByGroup<AnsiHelpEntry> {
-  /** @ignore */
-  function formatFn(option: OpaqueOption): AnsiHelpEntry {
-    const [entry, paramLen] = formatOption(config, context, nameWidths, option);
-    paramWidth = max(paramWidth, paramLen);
-    return entry;
-  }
-  const { names } = config;
-  const [, options, connectives] = context;
+function buildAnsiEntries(context: HelpContext): EntriesByGroup<AnsiHelpEntry> {
+  const [, options, connectives, config] = context;
+  const { hidden, align } = config.names;
   const optionSep = connectives[ConnectiveWord.optionSep];
-  const nameWidths = names.hidden
+  const nameWidths = hidden
     ? 0
-    : names.align === 'slot'
+    : align === 'slot'
       ? getNameWidths(options)
       : getMaxNamesWidth(options, optionSep);
   let paramWidth = 0;
-  const groups = buildEntries(config, context, formatFn);
+  const groups = buildEntries(context, (option) => {
+    const [entry, paramLen] = formatOption(context, nameWidths, option);
+    paramWidth = max(paramWidth, paramLen);
+    return entry;
+  });
   adjustEntries(groups, config, nameWidths, paramWidth);
   return groups;
 }
 
 /**
  * Formats an option to be printed on the terminal.
- * @param config The format configuration
  * @param context The help context
  * @param nameWidths The name slot widths
  * @param option The option definition
  * @returns [the help entry, the length of the option parameter]
  */
 function formatOption(
-  config: ConcreteFormat,
   context: HelpContext,
   nameWidths: Array<number> | number,
   option: OpaqueOption,
 ): [AnsiHelpEntry, number] {
-  const names = formatNames(config, context, option, nameWidths);
-  const [param, paramLen] = formatParams(config, context[0], option);
-  const descr = formatDescription(config, context, option);
+  const names = formatNames(context, option, nameWidths);
+  const [param, paramLen] = formatParams(context, option);
+  const descr = formatDescription(context, option);
   return [[names, param, descr], paramLen];
 }
 
 /**
  * Formats an option's names to be printed on the terminal.
- * @param config The format configuration
  * @param context The help context
  * @param option The option definition
  * @param nameWidths The name slot widths
  * @returns The list of formatted strings, one for each name
  */
 function formatNames(
-  config: ConcreteFormat,
   context: HelpContext,
   option: OpaqueOption,
   nameWidths: Array<number> | number,
 ): Array<TerminalString> {
+  const config = context[3];
   if (config.names.hidden || !option.names) {
     return [];
   }
@@ -741,22 +744,17 @@ function formatNames(
 
 /**
  * Formats an option's parameter to be printed on the terminal.
- * @param config The format configuration
- * @param styles The set of styles
+ * @param context The help context
  * @param option The option definition
  * @returns [the formatted string, the string length]
  */
-function formatParams(
-  config: ConcreteFormat,
-  styles: FormatStyles,
-  option: OpaqueOption,
-): [TerminalString, number] {
+function formatParams(context: HelpContext, option: OpaqueOption): [TerminalString, number] {
   const result = new TerminalString();
-  const { param } = config;
-  if (param.hidden) {
+  const { hidden, breaks } = context[3].param;
+  if (hidden) {
     return [result, 0];
   }
-  const len = formatParam(option, styles, result, param.breaks);
+  const len = formatParam(option, context[0], result, breaks);
   result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
   return [result, len];
 }
@@ -764,24 +762,20 @@ function formatParams(
 /**
  * Formats an option's description to be printed on the terminal.
  * The description always ends with a single line break.
- * @param config The format configuration
  * @param context The help context
  * @param option The option definition
  * @returns The formatted string
  */
-function formatDescription(
-  config: ConcreteFormat,
-  context: HelpContext,
-  option: OpaqueOption,
-): TerminalString {
+function formatDescription(context: HelpContext, option: OpaqueOption): TerminalString {
+  const [styles, , , config] = context;
   const { descr, items, phrases } = config;
-  const result = new TerminalString(0, 0, descr.align === 'right');
-  if (descr.hidden || !items.length) {
+  const { hidden, breaks, align } = descr;
+  const result = new TerminalString(0, 0, align === 'right');
+  if (hidden || !items.length) {
     return result.break();
   }
-  const [styles] = context;
   const descrStyle = option.styles?.descr ?? styles.text;
-  result.break(descr.breaks).seq(descrStyle);
+  result.break(breaks).seq(descrStyle);
   styles.current = descrStyle;
   const count = result.count;
   try {
@@ -969,17 +963,16 @@ function formatCsvEntries(
   itemSep = '\t',
   entryQuote = '',
 ): TextMessage {
-  /** @ignore */
-  function format(entry: CsvHelpEntry): string {
-    return (
-      entryQuote.trimStart() +
-      entry
-        .map((item) => item.replace(regexps.space, ' ').replace(regexps.style, ''))
-        .join(itemSep) +
-      entryQuote.trimEnd()
-    );
-  }
-  result.push(...entries.map(format));
+  result.push(
+    ...entries.map(
+      (entry) =>
+        entryQuote.trimStart() +
+        entry
+          .map((item) => item.replace(regexps.space, ' ').replace(regexps.style, ''))
+          .join(itemSep) +
+        entryQuote.trimEnd(),
+    ),
+  );
   return result;
 }
 
@@ -1008,11 +1001,11 @@ function formatAnsiSection(
       result.push(formatText(title, sty ?? style(tf.bold), 0, breaks, noWrap));
       breaks = 2;
     }
-    const [styles] = context;
+    const textStyle = context[0].text;
     if (section.type === 'usage') {
       let { indent } = section;
       if (progName) {
-        result.push(formatText(progName, styles.text, indent, breaks, true));
+        result.push(formatText(progName, textStyle, indent, breaks, true));
         indent = max(0, indent ?? 0) + progName.length + 1;
         breaks = 0;
       }
@@ -1020,7 +1013,7 @@ function formatAnsiSection(
     } else {
       const { text, indent } = section;
       if (text) {
-        result.push(formatText(text, styles.text, indent, breaks, noWrap));
+        result.push(formatText(text, textStyle, indent, breaks, noWrap));
       }
     }
   }
@@ -1137,12 +1130,11 @@ function formatUsageOption(
   result: TerminalString,
   required = option.required ?? false,
 ) {
-  const [styles] = context;
   if (!required) {
     result.open('[');
   }
   formatUsageNames(context, option, result);
-  formatParam(option, styles, result);
+  formatParam(option, context[0], result);
   if (!required) {
     result.close(']');
   }
