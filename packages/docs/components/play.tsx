@@ -2,27 +2,12 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { ArgumentParser, AnsiFormatter, ErrorMessage, AnsiMessage } from 'tsargp';
+import { ArgumentParser, ErrorMessage, AnsiMessage } from 'tsargp';
 import { style, req, fg8, bg8, ul8, ul } from 'tsargp';
-import { HelpItem, ErrorItem, ConnectiveWord, tf, fg, bg } from 'tsargp/enums';
+import * as enums from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
 
-const tsargp = {
-  ArgumentParser,
-  AnsiFormatter,
-  req,
-  tf,
-  fg,
-  bg,
-  ul,
-  HelpItem,
-  ErrorItem,
-  ConnectiveWord,
-  style,
-  fg8,
-  bg8,
-  ul8,
-};
+const tsargp = { ArgumentParser, req, ul, ...enums, style, fg8, bg8, ul8 };
 
 //--------------------------------------------------------------------------------------------------
 // Types
