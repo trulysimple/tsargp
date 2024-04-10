@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { FormatterConfig, HelpFormat, HelpSections } from './formatter';
+import type { FormatterConfig, HelpSections } from './formatter';
 import type { HelpMessage, Style } from './styles';
 import type { Resolve, URL, KeyHaving, Range } from './utils';
 
@@ -535,13 +535,9 @@ export type WithHelp = {
    */
   readonly useNested?: true;
   /**
-   * Whether to use the next argument as the name of a help format.
+   * Whether to use the next argument as the name of a help format. (The default format is ansi)
    */
   readonly useFormat?: true;
-  /**
-   * The help format. (Defaults to 'ansi')
-   */
-  format?: HelpFormat;
 };
 
 /**

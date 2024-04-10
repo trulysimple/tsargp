@@ -47,14 +47,11 @@ describe('JsonFormatter', () => {
         flag: {
           type: 'flag',
           names: ['-f'],
-          required: true,
         },
       } as const satisfies Options;
       const sections: HelpSections = [{ type: 'groups' }];
       const message = new JsonFormatter(new OptionValidator(options)).formatSections(sections);
-      expect(message.message).toEqual(
-        `[{"type":"flag","names":["-f"],"required":true,"preferredName":"-f"}]`,
-      );
+      expect(message.message).toEqual(`[{"type":"flag","names":["-f"],"preferredName":"-f"}]`);
     });
   });
 });

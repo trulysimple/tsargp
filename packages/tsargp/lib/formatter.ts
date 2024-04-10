@@ -2,7 +2,7 @@
 // Imports
 //--------------------------------------------------------------------------------------------------
 import type { OpaqueOption, OpaqueOptions, Requires, RequiresEntry, RequiresVal } from './options';
-import type { Style, FormatStyles, ConnectiveWords } from './styles';
+import type { Style, FormatStyles, ConnectiveWords, HelpMessage } from './styles';
 import type { Concrete } from './utils';
 import type { OptionValidator } from './validator';
 
@@ -211,7 +211,7 @@ export type HelpFormat = (typeof helpFormats)[number];
  * A help formatter.
  */
 export interface HelpFormatter {
-  formatSections(sections: HelpSections, progName?: string): unknown;
+  formatSections(sections: HelpSections, progName?: string): HelpMessage;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -368,7 +368,7 @@ const helpFormats = ['ansi', 'json'] as const;
  * @template T The type of the help message
  * @template E The type of the help entries
  */
-abstract class BaseFormatter<T, E> implements HelpFormatter {
+abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter {
   protected readonly context: HelpContext;
   protected readonly groups = new Map<string, Array<E>>();
 
@@ -525,6 +525,20 @@ function formatGroups<T>(
 }
 
 /**
+ * Matches an option with a regular expression.
+ * @param option The option definition
+ * @param regexp The regular expression
+ * @returns True if the option matches
+ */
+function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
+  return !!(
+    option.names?.find((name) => name?.match(regexp)) ||
+    option.desc?.match(regexp) ||
+    option.envVar?.match(regexp)
+  );
+}
+
+/**
  * Build the help entries for a help message.
  * @param groups The map of option groups
  * @param config The formatter configuration
@@ -537,21 +551,12 @@ function buildEntries<T>(
   context: HelpContext,
   formatFn: (option: OpaqueOption) => T,
 ) {
-  /** @ignore */
-  function include(option: OpaqueOption): boolean {
-    return !(
-      regexp &&
-      !option.names?.find((name) => name?.match(regexp)) &&
-      !option.desc?.match(regexp) &&
-      !option.envVar?.match(regexp)
-    );
-  }
   const { filter } = config;
   const [, options] = context;
   const regexp = filter.length ? RegExp(combineRegExp(filter), 'i') : undefined;
   for (const key in options) {
     const option = options[key];
-    if (!option.hide && include(option)) {
+    if (!option.hide && (!regexp || matchOption(option, regexp))) {
       const entry = formatFn(option);
       const name = option.group ?? '';
       const group = groups.get(name);

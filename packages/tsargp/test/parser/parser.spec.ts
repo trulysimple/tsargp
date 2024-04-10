@@ -120,7 +120,7 @@ describe('ArgumentParser', () => {
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-h', 'json'])).rejects.toThrow(
           `[{"type":"flag","names":["-f","--flag"],"preferredName":"-f"},` +
-            `{"type":"help","names":["-h"],"useFormat":true,"preferredName":"-h","format":"json"}]`,
+            `{"type":"help","names":["-h"],"useFormat":true,"preferredName":"-h"}]`,
         );
       });
 

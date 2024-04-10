@@ -51,7 +51,7 @@ describe('ErrorMessage', () => {
   });
 });
 
-describe('CompletionMessage', () => {
+describe('CompMessage', () => {
   it('can be thrown and caught', () => {
     expect(() => {
       throw new CompMessage('type', 'script');

@@ -24,7 +24,7 @@ import type {
 import { ConnectiveWord, ErrorItem } from './enums';
 import { createFormatter, isHelpFormat } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { format, WarnMessage, CompMessage, TerminalString } from './styles';
+import { format, WarnMessage, CompMessage, TerminalString, HelpMessage } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
@@ -827,7 +827,7 @@ async function handleHelp(
   context: ParseContext,
   rest: Array<string>,
   option: OpaqueOption,
-): Promise<unknown> {
+): Promise<HelpMessage> {
   let [validator, , , , , , progName] = context;
   if (option.useNested && rest.length) {
     const command = findInObject(
@@ -849,17 +849,16 @@ async function handleHelp(
       }
     }
   }
-  if (option.useFormat && rest.length) {
-    if (isHelpFormat(rest[0])) {
-      option.format = rest[0];
-      rest.splice(0, 1); // only if the format is recognized; otherwise, it may be an option filter
-    }
+  let format;
+  if (option.useFormat && rest.length && isHelpFormat(rest[0])) {
+    format = rest[0];
+    rest.splice(0, 1); // only if the format is recognized; otherwise, it may be an option filter
   }
   const config = option.config ?? {};
   if (option.useFilter) {
     config.filter = rest;
   }
-  const formatter = createFormatter(validator, config, option.format);
+  const formatter = createFormatter(validator, config, format);
   const sections = option.sections ?? defaultSections;
   return formatter.formatSections(sections, progName);
 }
