@@ -96,13 +96,14 @@ export const isOpt = {
 } as const satisfies CheckFunctions;
 
 /**
- * Keep this in-sync with {@link OpaqueOption}.
+ * Keep this in-sync with {@link HelpItem} and {@link OpaqueOption}.
  * @internal
  */
 export const fieldNames = [
   'type',
   'group',
   'names',
+  // from HelpItem
   'desc',
   'negationNames',
   'separator',

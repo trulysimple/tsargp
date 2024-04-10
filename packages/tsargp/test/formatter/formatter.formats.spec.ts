@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Options, HelpSections } from '../../lib';
-import { JsonFormatter, CsvFormatter, MdFormatter, OptionValidator, style, tf } from '../../lib';
-import { fieldNames } from '../../lib/options';
+import type { Options, FormatterConfig } from '../../lib';
+import { OptionValidator, style, tf, HelpItem } from '../../lib';
+import { JsonFormatter, CsvFormatter, MdFormatter } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('JsonFormatter', () => {
@@ -41,8 +41,9 @@ describe('JsonFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const sections: HelpSections = [{ type: 'groups' }];
-      const message = new JsonFormatter(new OptionValidator(options)).formatSections(sections);
+      const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const formatter = new JsonFormatter(new OptionValidator(options), config);
+      const message = formatter.formatSections([{ type: 'groups' }]);
       expect(message.message).toEqual(
         `[{"type":"string","names":["-s"],"preferredName":"-s"},` +
           `{"type":"flag","names":["-f"],"group":"group","preferredName":"-f"}]`,
@@ -69,13 +70,11 @@ describe('CsvFormatter', () => {
           default: () => 1,
         },
       } as const satisfies Options;
-      const message = new CsvFormatter(new OptionValidator(options)).formatHelp('group');
+      const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const message = new CsvFormatter(new OptionValidator(options), config).formatHelp('group');
       expect(message.message).toEqual(
-        fieldNames.join('\t') +
-          `\nnumber\tgroup\t-n,--number\tA number option` +
-          '\t'.repeat(16) +
-          '() => 1' +
-          '\t'.repeat(9),
+        `type\tgroup\tnames\tdesc\tdefault\n` +
+          `number\tgroup\t-n,--number\tA number option\t() => 1`,
       );
     });
   });
@@ -93,14 +92,11 @@ describe('CsvFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const sections: HelpSections = [{ type: 'groups' }];
-      const message = new CsvFormatter(new OptionValidator(options)).formatSections(sections);
+      const config: FormatterConfig = { items: [HelpItem.synopsis] };
+      const formatter = new CsvFormatter(new OptionValidator(options), config);
+      const message = formatter.formatSections([{ type: 'groups' }]);
       expect(message.message).toEqual(
-        fieldNames.join('\t') +
-          `\nstring\t\t-s` +
-          '\t'.repeat(26) +
-          `\nflag\tgroup\t-f` +
-          '\t'.repeat(26),
+        `type\tgroup\tnames\tdesc\n` + `string\t\t-s\t\n` + `flag\tgroup\t-f\t`,
       );
     });
   });
@@ -124,16 +120,12 @@ describe('MdFormatter', () => {
           default: () => 1,
         },
       } as const satisfies Options;
-      const message = new MdFormatter(new OptionValidator(options)).formatHelp('group');
+      const config: FormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const message = new MdFormatter(new OptionValidator(options), config).formatHelp('group');
       expect(message.message).toEqual(
-        ' | ' +
-          fieldNames.join(' | ') +
-          ` | \n | ` +
-          fieldNames.map((field) => '-'.repeat(field.length)).join(' | ') +
-          ` | \n | number | group | -n,--number | A number option` +
-          ' | '.repeat(16) +
-          '() => 1' +
-          ' | '.repeat(10),
+        ` | type | group | names | desc | default | \n` +
+          ` | ---- | ----- | ----- | ---- | ------- | \n` +
+          ` | number | group | -n,--number | A number option | () => 1 | `,
       );
     });
   });
@@ -151,21 +143,17 @@ describe('MdFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const sections: HelpSections = [{ type: 'groups' }];
-      const message = new MdFormatter(new OptionValidator(options)).formatSections(sections);
+      const config: FormatterConfig = { items: [HelpItem.synopsis] };
+      const formatter = new MdFormatter(new OptionValidator(options), config);
+      const message = formatter.formatSections([{ type: 'groups' }]);
       expect(message.message).toEqual(
-        ' | ' +
-          fieldNames.join(' | ') +
-          ` | \n | ` +
-          fieldNames.map((field) => '-'.repeat(field.length)).join(' | ') +
-          ` | \n | string |  | -s` +
-          ' | '.repeat(27) +
-          '\n\n## group\n\n | ' +
-          fieldNames.join(' | ') +
-          ` | \n | ` +
-          fieldNames.map((field) => '-'.repeat(field.length)).join(' | ') +
-          ` | \n | flag | group | -f` +
-          ' | '.repeat(27),
+        ` | type | group | names | desc | \n` +
+          ` | ---- | ----- | ----- | ---- | \n` +
+          ` | string |  | -s |  | \n\n` +
+          `## group\n\n` +
+          ` | type | group | names | desc | \n` +
+          ` | ---- | ----- | ----- | ---- | \n` +
+          ` | flag | group | -f |  | `,
       );
     });
   });

@@ -396,17 +396,6 @@ const helpFormats = ['ansi', 'json', 'csv', 'md'] as const;
  */
 const markdownSep = ' | ';
 
-/**
- * The Markdown table heading row.
- */
-const markdownHead = markdownSep + fieldNames.join(markdownSep) + markdownSep;
-
-/**
- * The Markdown table heading row splitter.
- */
-const markdownHeadSplit =
-  markdownSep + fieldNames.map((field) => '-'.repeat(field.length)).join(markdownSep) + markdownSep;
-
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
@@ -417,6 +406,7 @@ const markdownHeadSplit =
  */
 abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter {
   protected readonly context: HelpContext;
+  protected readonly config: ConcreteFormat;
   protected readonly groups = new Map<string, Array<E>>();
 
   /**
@@ -434,7 +424,7 @@ abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter 
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     const { styles, connectives } = validator.config;
     this.context = [styles, validator.options, connectives];
-    this.build(mergeConfig(config));
+    this.config = mergeConfig(config);
   }
 
   /**
@@ -447,7 +437,6 @@ abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter 
     return this.format(this.groups.get(name) ?? []);
   }
 
-  protected abstract build(config: ConcreteFormat): void;
   protected abstract format(entries: Array<E>): T;
   abstract formatSections(sections: HelpSections, progName?: string): T;
 }
@@ -456,8 +445,9 @@ abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter 
  * Implements formatting of ANSI help messages for a set of option definitions.
  */
 export class AnsiFormatter extends BaseFormatter<AnsiMessage, AnsiHelpEntry> {
-  protected override build(config: ConcreteFormat) {
-    buildAnsiEntries(this.groups, config, this.context);
+  constructor(validator: OptionValidator, config?: FormatterConfig) {
+    super(validator, config);
+    buildAnsiEntries(this.groups, this.config, this.context);
   }
   protected override format(entries: Array<AnsiHelpEntry>): AnsiMessage {
     return formatAnsiEntries(entries);
@@ -475,8 +465,9 @@ export class AnsiFormatter extends BaseFormatter<AnsiMessage, AnsiHelpEntry> {
  * Implements formatting of JSON help messages for a set of option definitions.
  */
 export class JsonFormatter extends BaseFormatter<JsonMessage, object> {
-  protected override build(config: ConcreteFormat) {
-    buildEntries(this.groups, config, this.context, (opt) => opt);
+  constructor(validator: OptionValidator, config?: FormatterConfig) {
+    super(validator, config);
+    buildEntries(this.groups, this.config, this.context, (opt) => opt);
   }
   protected override format(entries: Array<object>): JsonMessage {
     return new JsonMessage(...entries);
@@ -492,19 +483,22 @@ export class JsonFormatter extends BaseFormatter<JsonMessage, object> {
  * Implements formatting of CSV help messages for a set of option definitions.
  */
 export class CsvFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
-  protected override build(config: ConcreteFormat) {
-    buildEntries(this.groups, config, this.context, (opt) =>
-      fieldNames.map((field) => `${opt[field] ?? ''}`),
+  protected readonly fields: ReadonlyArray<keyof OpaqueOption>;
+  constructor(validator: OptionValidator, config?: FormatterConfig) {
+    super(validator, config);
+    this.fields = getCsvFields(this.config.items);
+    buildEntries(this.groups, this.config, this.context, (opt) =>
+      this.fields.map((field) => `${opt[field] ?? ''}`),
     );
   }
   protected override format(entries: Array<CsvHelpEntry>): TextMessage {
     if (entries.length) {
-      entries.unshift(fieldNames);
+      entries.unshift(this.fields);
     }
     return formatCsvEntries(entries);
   }
   formatSections(sections: HelpSections): TextMessage {
-    const result = new TextMessage(fieldNames.join('\t')); // single heading row for all groups
+    const result = new TextMessage(this.fields.join('\t')); // single heading row for all groups
     formatGroupsSections(this.groups, sections, (_, entries) => formatCsvEntries(entries, result));
     return result;
   }
@@ -513,16 +507,21 @@ export class CsvFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
 /**
  * Implements formatting of Markdown help messages for a set of option definitions.
  */
-export class MdFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
-  protected override build(config: ConcreteFormat) {
-    buildEntries(this.groups, config, this.context, (opt) =>
-      fieldNames.map((field) => `${opt[field] ?? ''}`),
-    );
+export class MdFormatter extends CsvFormatter {
+  private readonly head1: string;
+  private readonly head2: string;
+  constructor(validator: OptionValidator, config?: FormatterConfig) {
+    super(validator, config);
+    this.head1 = markdownSep + this.fields.join(markdownSep) + markdownSep;
+    this.head2 =
+      markdownSep +
+      this.fields.map((field) => '-'.repeat(field.length)).join(markdownSep) +
+      markdownSep;
   }
   protected override format(entries: Array<CsvHelpEntry>): TextMessage {
     const help = new TextMessage();
     if (entries.length) {
-      help.push(markdownHead, markdownHeadSplit);
+      help.push(this.head1, this.head2);
     }
     return formatCsvEntries(entries, help, markdownSep, markdownSep);
   }
@@ -536,7 +535,7 @@ export class MdFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
       if (title) {
         result.push('## ' + title, ''); // section before table
       }
-      result.push(markdownHead, markdownHeadSplit); // one table for each group
+      result.push(this.head1, this.head2); // one table for each group
       formatCsvEntries(entries, result, markdownSep, markdownSep);
     });
     return result;
@@ -546,6 +545,16 @@ export class MdFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
 //--------------------------------------------------------------------------------------------------
 // Functions
 //--------------------------------------------------------------------------------------------------
+/**
+ * Gets a list of field names from a list of help items.
+ * The result always includes the `type`, `names` and `group` fields.
+ * @param items The help items
+ * @returns The list of field names
+ */
+function getCsvFields(items: ReadonlyArray<HelpItem>) {
+  return fieldNames.slice(0, 3).concat(items.map((item) => fieldNames[item + 3]));
+}
+
 /**
  * Creates a help message formatter.
  * @param validator The validator instance
