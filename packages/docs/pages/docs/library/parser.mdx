@@ -135,8 +135,8 @@ to deal with returned promises in a way that would make it hard to maintain (rem
 
 Besides, the asynchronous version has the benefit of allowing us to perform some operations, such as
 [requirements checking], concurrently. This should not be a drawback for most applications, since
-argument parsing is usually done at the top-level of a module or script, where the `await` primitive
-is available.
+argument parsing is usually done at the top-level of a module or script, where the `await{:ts}`
+directive is available.
 
 ### Argument sequence
 

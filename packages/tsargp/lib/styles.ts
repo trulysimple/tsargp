@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
-import { cs, tf, fg, bg } from './enums';
+import { cs, tf, fg, bg, ConnectiveWord } from './enums';
 import { env, max, overrides, regexps, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
@@ -43,6 +43,7 @@ const underlineStyle = {
 
 /**
  * The formatting functions.
+ * @internal
  */
 const formatFunctions = {
   /**
@@ -59,9 +60,11 @@ const formatFunctions = {
    * @param value The string value
    * @param styles The format styles
    * @param result The resulting string
+   * @param flags The formatting flags
    */
-  s(value: string, styles, result) {
-    result.style(styles.string, `'${value}'`, styles.current ?? styles.text);
+  s(value: string, styles, result, flags) {
+    const quote = flags.connectives?.[ConnectiveWord.stringQuote] ?? `'`;
+    result.style(styles.string, `${quote}${value}${quote}`, styles.current ?? styles.text);
   },
   /**
    * The formatting function for number values.
@@ -201,9 +204,14 @@ export type FormatCallback<T = string> = (this: TerminalString, arg: T) => void;
 export type FormatArgs = Record<string, unknown>;
 
 /**
+ * A help message.
+ */
+export type HelpMessage = AnsiMessage | JsonMessage | TextMessage;
+
+/**
  * A message that can be printed on a terminal.
  */
-export type Message = ErrorMessage | HelpMessage | WarnMessage | CompletionMessage;
+export type Message = ErrorMessage | WarnMessage | HelpMessage;
 
 /**
  * A set of styles for terminal messages.
@@ -278,7 +286,16 @@ export type FormattingFlags = {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly custom?: FormatCallback<any>;
+  /**
+   * The connective words.
+   */
+  readonly connectives?: ConnectiveWords;
 };
+
+/**
+ * The connective words.
+ */
+export type ConnectiveWords = Readonly<Record<ConnectiveWord, string>>;
 
 //--------------------------------------------------------------------------------------------------
 // Internal types
@@ -331,7 +348,7 @@ export class TerminalString {
   /**
    * The terminal string context.
    */
-  public context: TerminalContext;
+  private readonly context: TerminalContext;
 
   /**
    * @returns The list of internal strings
@@ -536,40 +553,12 @@ export class TerminalString {
    */
   wrap(result: Array<string>, column: number, width: number, emitStyles: boolean): number {
     /** @ignore */
-    function shorten() {
-      let length = result.length;
-      for (; length && column > start; --length) {
-        const last = result[length - 1];
-        if (last.length > column - start) {
-          result[length - 1] = last.slice(0, start - column); // cut the last string
-          break;
-        }
-        column -= last.length;
-      }
-      result.length = length;
-    }
-    /** @ignore */
     function align() {
       if (needToAlign && j < result.length && column < width) {
         const rem = width - column; // remaining columns until right boundary
         const pad = emitStyles ? sequence(cs.cuf, rem) : ' '.repeat(rem);
         result.splice(j, 0, pad); // insert padding at the indentation boundary
         column = width;
-      }
-    }
-    /** @ignore */
-    function adjust() {
-      const pad = !largestFits
-        ? '\n'
-        : emitStyles
-          ? sequence(cs.cha, start + 1)
-          : column < start
-            ? ' '.repeat(start - column)
-            : '';
-      if (pad) {
-        result.push(pad);
-      } else {
-        shorten(); // adjust backwards: shorten the current line
       }
     }
     const count = this.count;
@@ -586,12 +575,33 @@ export class TerminalString {
     if (!largestFits) {
       start = 0; // wrap to the first column instead
     }
-    const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
     if (column !== start && !strings[0].startsWith('\n')) {
-      adjust();
+      const pad = !largestFits
+        ? '\n'
+        : emitStyles
+          ? sequence(cs.cha, start + 1)
+          : column < start
+            ? ' '.repeat(start - column)
+            : '';
+      if (pad) {
+        result.push(pad);
+      } else {
+        // adjust backwards: shorten the current line
+        let length = result.length;
+        for (; length && column > start; --length) {
+          const last = result[length - 1];
+          if (last.length > column - start) {
+            result[length - 1] = last.slice(0, start - column); // cut the last string
+            break;
+          }
+          column -= last.length;
+        }
+        result.length = length;
+      }
       column = start;
     }
 
+    const indent = start ? (emitStyles ? sequence(cs.cha, start + 1) : ' '.repeat(start)) : '';
     let j = result.length; // save index for right-alignment
     for (let i = 0; i < count; ++i) {
       let str = strings[i];
@@ -633,9 +643,9 @@ export class TerminalString {
 }
 
 /**
- * A terminal message. Used as base for other message classes.
+ * An ANSI message. Used as base for other message classes.
  */
-export class TerminalMessage extends Array<TerminalString> {
+export class AnsiMessage extends Array<TerminalString> {
   /**
    * Wraps the help message to a specified width.
    * @param width The terminal width (or zero to avoid wrapping)
@@ -670,14 +680,28 @@ export class TerminalMessage extends Array<TerminalString> {
 }
 
 /**
- * A help message.
+ * A JSON message.
  */
-export class HelpMessage extends TerminalMessage {}
+export class JsonMessage extends Array<object> {
+  /**
+   * @returns The wrapped message
+   */
+  toString(): string {
+    return JSON.stringify(this);
+  }
+
+  /**
+   * @returns The wrapped message
+   */
+  get message(): string {
+    return this.toString();
+  }
+}
 
 /**
  * A warning message.
  */
-export class WarnMessage extends TerminalMessage {
+export class WarnMessage extends AnsiMessage {
   /**
    * @returns The wrapped message
    */
@@ -693,7 +717,7 @@ export class ErrorMessage extends Error {
   /**
    * The terminal message.
    */
-  readonly msg: TerminalMessage;
+  readonly msg: AnsiMessage;
 
   /**
    * Creates an error message
@@ -721,9 +745,9 @@ export class ErrorMessage extends Error {
 }
 
 /**
- * A completion message.
+ * A text message.
  */
-export class CompletionMessage extends Array<string> {
+export class TextMessage extends Array<string> {
   /**
    * @returns The wrapped message
    */
@@ -803,7 +827,7 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
 function formatArgs(
   styles: FormatStyles,
   args: FormatArgs,
-  flags: FormattingFlags = { sep: ',' },
+  flags: FormattingFlags = {},
 ): FormatCallback {
   return function (this: TerminalString, spec: string) {
     const arg = spec.slice(1);

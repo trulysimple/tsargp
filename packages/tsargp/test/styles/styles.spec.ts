@@ -163,17 +163,22 @@ describe('TerminalString', () => {
 
     it('should format array-valued arguments with separator', () => {
       const str1 = new TerminalString().split('type script');
-      const str2 = new TerminalString().format(styles, '%b %s %n %r %o %v %u %t %p', {
-        b: [true, false],
-        s: ['abc', 'def'],
-        n: [123, 456],
-        r: [/def/g, /123/i],
-        o: ['some name', 'other name'],
-        v: [() => 1, {}],
-        u: [new URL('https://abc'), new URL('ftp://def')],
-        t: ['some text', 'other text'],
-        p: [str1, str1],
-      });
+      const str2 = new TerminalString().format(
+        styles,
+        '%b %s %n %r %o %v %u %t %p',
+        {
+          b: [true, false],
+          s: ['abc', 'def'],
+          n: [123, 456],
+          r: [/def/g, /123/i],
+          o: ['some name', 'other name'],
+          v: [() => 1, {}],
+          u: [new URL('https://abc'), new URL('ftp://def')],
+          t: ['some text', 'other text'],
+          p: [str1, str1],
+        },
+        { sep: ',' },
+      );
       expect(str2.count).toEqual(22);
       expect(str2.strings).toEqual([
         'true,',

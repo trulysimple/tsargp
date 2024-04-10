@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { type Options, HelpFormatter, OptionValidator } from '../../lib';
+import { type Options, AnsiFormatter, OptionValidator } from '../../lib';
 import '../utils.spec'; // initialize globals
 
-describe('HelpFormatter', () => {
-  describe('formatHelp', () => {
+describe('AnsiFormatter', () => {
+  describe('format', () => {
     it('should handle a function option with a single required parameter', () => {
       const options = {
         function: {
@@ -13,7 +13,7 @@ describe('HelpFormatter', () => {
           paramCount: 1,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -f, --function  <param>  A function option\n`);
     });
 
@@ -26,7 +26,7 @@ describe('HelpFormatter', () => {
           paramCount: [0, 1],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -f, --function  [<param>]  A function option\n`);
     });
 
@@ -39,7 +39,7 @@ describe('HelpFormatter', () => {
           paramCount: 2,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --function  <param>...  A function option. Accepts 2 parameters.\n`,
       );
@@ -54,7 +54,7 @@ describe('HelpFormatter', () => {
           paramCount: [1, 2],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --function  <param>...  A function option. Accepts between 1 and 2 parameters.\n`,
       );
@@ -69,7 +69,7 @@ describe('HelpFormatter', () => {
           paramCount: [1, Infinity],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --function  <param>...  A function option. Accepts multiple parameters.\n`,
       );
@@ -84,7 +84,7 @@ describe('HelpFormatter', () => {
           paramCount: [2, Infinity],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --function  <param>...  A function option. Accepts at least 2 parameters.\n`,
       );
@@ -99,7 +99,7 @@ describe('HelpFormatter', () => {
           paramCount: [0, 2],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --function  [<param>...]  A function option. Accepts at most 2 parameters.\n`,
       );
@@ -114,7 +114,7 @@ describe('HelpFormatter', () => {
           paramCount: -1,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --function  [<param>...]  A function option. Accepts multiple parameters.\n`,
       );
@@ -129,7 +129,7 @@ describe('HelpFormatter', () => {
           paramCount: [0, Infinity],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -f, --function  [<param>...]  A function option. Accepts multiple parameters.\n`,
       );
@@ -145,7 +145,7 @@ describe('HelpFormatter', () => {
           paramCount: 1,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -f, --function  <myParam>  A function option\n`);
     });
 
@@ -158,7 +158,7 @@ describe('HelpFormatter', () => {
           paramName: 'param',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -b, --boolean  <param>  A boolean option\n`);
     });
 
@@ -171,7 +171,7 @@ describe('HelpFormatter', () => {
           paramName: '<token>=<value>',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -b, --boolean  <token>=<value>  A boolean option\n`);
     });
 
@@ -184,7 +184,7 @@ describe('HelpFormatter', () => {
           fallback: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -b, --boolean  [<boolean>]  A boolean option. Falls back to true if specified without parameter.\n`,
       );
@@ -199,7 +199,7 @@ describe('HelpFormatter', () => {
           example: true,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -b, --boolean  true  A boolean option\n`);
     });
 
@@ -212,7 +212,7 @@ describe('HelpFormatter', () => {
           fallback: '123',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -s, --string  [<string>]  A string option. Falls back to '123' if specified without parameter.\n`,
       );
@@ -227,7 +227,7 @@ describe('HelpFormatter', () => {
           example: '123',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -s, --string  '123'  A string option\n`);
     });
 
@@ -240,7 +240,7 @@ describe('HelpFormatter', () => {
           fallback: 123,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -n, --number  [<number>]  A number option. Falls back to 123 if specified without parameter.\n`,
       );
@@ -255,7 +255,7 @@ describe('HelpFormatter', () => {
           example: 123,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -n, --number  123  A number option\n`);
     });
 
@@ -268,7 +268,7 @@ describe('HelpFormatter', () => {
           fallback: ['1', '2'],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  [<strings>...]  A strings option. Accepts multiple parameters. Falls back to ['1', '2'] if specified without parameter.\n`,
       );
@@ -283,7 +283,7 @@ describe('HelpFormatter', () => {
           example: ['one', 'two'],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  'one' 'two'  A strings option. Accepts multiple parameters.\n`,
       );
@@ -298,7 +298,7 @@ describe('HelpFormatter', () => {
           fallback: [1, 2],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  [<numbers>...]  A numbers option. Accepts multiple parameters. Falls back to [1, 2] if specified without parameter.\n`,
       );
@@ -313,7 +313,7 @@ describe('HelpFormatter', () => {
           example: [1, 2],
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  1 2  A numbers option. Accepts multiple parameters.\n`,
       );
@@ -329,7 +329,7 @@ describe('HelpFormatter', () => {
           separator: ',',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  'one,two'  A strings option. Values are delimited by ','.\n`,
       );
@@ -345,7 +345,7 @@ describe('HelpFormatter', () => {
           separator: /[,;]/s,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ss, --strings  'one[,;]two'  A strings option. Values are delimited by /[,;]/s.\n`,
       );
@@ -361,7 +361,7 @@ describe('HelpFormatter', () => {
           separator: ',',
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  '1,2'  A numbers option. Values are delimited by ','.\n`,
       );
@@ -377,7 +377,7 @@ describe('HelpFormatter', () => {
           separator: /[,;]/s,
         },
       } as const satisfies Options;
-      const message = new HelpFormatter(new OptionValidator(options)).formatHelp();
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  '1[,;]2'  A numbers option. Values are delimited by /[,;]/s.\n`,
       );

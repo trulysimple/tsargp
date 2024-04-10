@@ -8,7 +8,10 @@
   "excludeExternals": true,
   "treatWarningsAsErrors": true,
   "intentionallyNotExported": [
-    "HelpEntry",
+    "helpFormats",
+    "EntriesByGroup",
+    "AnsiHelpEntry",
+    "CsvHelpEntry",
     "HelpContext",
     "TerminalContext",
     "OptionInfo",

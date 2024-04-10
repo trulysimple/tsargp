@@ -1,6 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
+import type { HelpSections } from './formatter';
 import type {
   Options,
   OptionValues,
@@ -20,10 +21,10 @@ import type {
   ValidationResult,
 } from './validator';
 
-import { ConnectiveWords, ErrorItem } from './enums';
-import { HelpFormatter, HelpSections } from './formatter';
+import { ConnectiveWord, ErrorItem } from './enums';
+import { createFormatter, isHelpFormat } from './formatter';
 import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { format, HelpMessage, WarnMessage, CompletionMessage, TerminalString } from './styles';
+import { format, HelpMessage, WarnMessage, TextMessage, TerminalString } from './styles';
 import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
 import { OptionValidator, defaultConfig } from './validator';
 
@@ -129,7 +130,7 @@ export class ArgumentParser<T extends Options = Options> {
    * @param flags The validation flags
    * @returns The validation result
    */
-  validate(flags?: ValidationFlags): ValidationResult {
+  validate(flags?: ValidationFlags): Promise<ValidationResult> {
     return this.validator.validate(flags);
   }
 
@@ -156,7 +157,6 @@ export class ArgumentParser<T extends Options = Options> {
     values: OptionValues<T>,
     cmdLine = env('COMP_LINE') ?? env('BUFFER') ?? process?.argv.slice(2) ?? [],
     flags: ParsingFlags = {
-      progName: process?.argv[1].split(/[\\/]/).at(-1),
       compIndex: Number(env('COMP_POINT') ?? env('CURSOR')) || env('BUFFER')?.length,
     },
   ): Promise<ParsingResult> {
@@ -203,7 +203,7 @@ async function doParse(
   values: OpaqueOptionValues,
   args: Array<string>,
   completing: boolean,
-  progName?: string,
+  progName = process?.argv[1].split(/[\\/]/).at(-1),
   clusterPrefix?: string,
 ): Promise<ParsingResult> {
   if (!completing && progName && process?.title) {
@@ -268,7 +268,7 @@ function parseCluster(context: ParseContext, index: number): boolean {
     return false; // do not consider it a cluster
   }
   if (unknownIndex > 0) {
-    const [, , name] = getOpt(rest[0]);
+    const name = getOpt(rest[0])[2];
     args.splice(index, 0, ...(name ? [name] : []), rest.slice(1));
     return true; // treat it as an inline parameter
   }
@@ -294,13 +294,12 @@ function parseCluster(context: ParseContext, index: number): boolean {
  * @returns True if the environment variable was found
  */
 async function readEnvVar(context: ParseContext, info: OptionInfo): Promise<boolean> {
-  const [, values] = context;
   const [key, name, option] = info;
   const value = env(name);
   if (value !== undefined) {
     if (option.type === 'flag') {
       // don't parse the flag value, for consistency with the semantics of the command-line
-      values[key] = true;
+      context[1][key] = true;
     } else {
       await parseParam(context, NaN, info, [value]);
     }
@@ -340,7 +339,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       const hasValue = value !== undefined;
       if (niladic || marker) {
         if (comp) {
-          throw new CompletionMessage();
+          throw new TextMessage();
         }
         if (hasValue) {
           if (completing) {
@@ -396,7 +395,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
     if (!marker && ((j === k && positional) || j - k >= paramCount[0])) {
       words.push(...completeName(validator, value));
     }
-    throw new CompletionMessage(...words);
+    throw new TextMessage(...words);
   }
   return !completing;
 }
@@ -422,7 +421,7 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       const key = validator.names.get(name);
       if (key) {
         if (comp && value === undefined) {
-          throw new CompletionMessage(name);
+          throw new TextMessage(name);
         }
         const marker = name === positional?.[3];
         const info = marker ? positional : ([key, name, validator.options[key]] as OptionInfo);
@@ -430,14 +429,14 @@ function findNext(context: ParseContext, prev: ParseEntry): ParseEntry {
       }
       if (parseCluster(context, i)) {
         if (comp) {
-          throw new CompletionMessage();
+          throw new TextMessage();
         }
         continue;
       }
       if (!info || i - index + inc > max) {
         if (!positional) {
           if (comp) {
-            throw new CompletionMessage(...completeName(validator, arg));
+            throw new TextMessage(...completeName(validator, arg));
           }
           if (completing) {
             continue; // ignore unknown options during completion
@@ -473,8 +472,7 @@ async function handleNonNiladic(
   // max is not needed here because either:
   // - the parser would have failed to find an option that starts a new sequence at max + 1; or
   // - it would have reached the end of the arguments before max + 1
-  const [min] = getParamCount(option);
-  if (params.length < min) {
+  if (params.length < getParamCount(option)[0]) {
     throw validator.error(ErrorItem.missingParameter, { o: name });
   }
   if (option.type === 'function') {
@@ -531,7 +529,8 @@ async function resolveVersion(
 function handleUnknownName(validator: OptionValidator, name: string): never {
   const similar = findSimilar(name, validator.names.keys(), 0.6);
   const [args, alt] = similar.length ? [{ o1: name, o2: similar }, 1] : [{ o: name }, 0];
-  throw validator.error(ErrorItem.unknownOption, args, { alt, sep: ',' });
+  const sep = validator.config.connectives[ConnectiveWord.optionSep];
+  throw validator.error(ErrorItem.unknownOption, args, { alt, sep });
 }
 
 /**
@@ -571,7 +570,7 @@ async function checkRequireItems<T>(
   and: boolean,
 ): Promise<boolean> {
   const connectives = validator.config.connectives;
-  const connective = invert ? connectives[ConnectiveWords.and] : connectives[ConnectiveWords.or];
+  const connective = invert ? connectives[ConnectiveWord.and] : connectives[ConnectiveWord.or];
   if (!and && items.length > 1) {
     error.open('(');
   }
@@ -620,7 +619,8 @@ async function parseParam(
     if (result === undefined) {
       const names = [...(option.truthNames ?? []), ...(option.falsityNames ?? [])];
       const args = { o: name, s1: str, s2: names };
-      throw validator.error(ErrorItem.enumsConstraintViolation, args, { alt: 0, sep: ',' });
+      const sep = validator.config.connectives[ConnectiveWord.stringSep];
+      throw validator.error(ErrorItem.enumsConstraintViolation, args, { alt: 0, sep });
     }
     return result;
   }
@@ -750,7 +750,7 @@ async function handleFunction(
       values[key] = await option.exec({ values, index, name, param, comp });
     } catch (err) {
       // do not propagate common errors during completion
-      if (!comp || err instanceof CompletionMessage) {
+      if (!comp || err instanceof TextMessage) {
         throw err;
       }
     }
@@ -775,7 +775,7 @@ async function handleCommand(
   const [validator, values, , , comp] = context;
   const [key, name, option] = info;
   const { options, clusterPrefix } = option;
-  const cmdOptions = typeof options === 'function' ? options() : options ?? {};
+  const cmdOptions = typeof options === 'function' ? await options() : options ?? {};
   const cmdValidator = new OptionValidator(cmdOptions as OpaqueOptions, validator.config);
   const param: OpaqueOptionValues = {};
   const result = await doParse(cmdValidator, param, rest, comp, name, clusterPrefix);
@@ -800,15 +800,14 @@ async function handleMessage(
   option: OpaqueOption,
   key: string,
 ) {
-  const [validator, values] = context;
   const message =
     option.type === 'help'
-      ? handleHelp(context, rest, option)
+      ? await handleHelp(context, rest, option)
       : option.resolve
-        ? await resolveVersion(validator, option.resolve)
+        ? await resolveVersion(context[0], option.resolve)
         : option.version ?? '';
   if (option.saveMessage) {
-    values[key] = message;
+    context[1][key] = message;
   } else {
     throw message;
   }
@@ -821,7 +820,11 @@ async function handleMessage(
  * @param option The option definition
  * @returns The help message
  */
-function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOption): HelpMessage {
+async function handleHelp(
+  context: ParseContext,
+  rest: Array<string>,
+  option: OpaqueOption,
+): Promise<HelpMessage> {
   let [validator, , , , , , progName] = context;
   if (option.useNested && rest.length) {
     const command = findInObject(
@@ -831,7 +834,9 @@ function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOp
     if (command) {
       const options = command.options;
       if (options) {
-        const resolved = (typeof options === 'function' ? options() : options) as OpaqueOptions;
+        const resolved = (
+          typeof options === 'function' ? await options() : options
+        ) as OpaqueOptions;
         const help = findInObject(resolved, (opt) => opt.type === 'help');
         if (help) {
           validator = new OptionValidator(resolved, validator.config);
@@ -841,13 +846,18 @@ function handleHelp(context: ParseContext, rest: Array<string>, option: OpaqueOp
       }
     }
   }
-  const format = option.format ?? {};
-  if (option.useFilter) {
-    format.filter = rest;
+  let format;
+  if (option.useFormat && rest.length && isHelpFormat(rest[0])) {
+    format = rest[0];
+    rest.splice(0, 1); // only if the format is recognized; otherwise, it may be an option filter
   }
-  const formatter = new HelpFormatter(validator, format);
+  const config = option.config ?? {};
+  if (option.useFilter) {
+    config.filter = rest;
+  }
+  const formatter = createFormatter(validator, config, format);
   const sections = option.sections ?? defaultSections;
-  return formatter.formatSections(sections, progName);
+  return formatter.sections(sections, progName);
 }
 
 /**
@@ -892,18 +902,10 @@ async function handleCompletion(
  * @param context The parsing context
  */
 async function checkRequired(context: ParseContext) {
-  /** @ignore */
-  function checkEnv(key: string) {
-    return checkEnvVarAndDefaultValue(context, key);
-  }
-  /** @ignore */
-  function checkReq(key: string) {
-    return checkRequiredOption(context, key);
-  }
-  const [validator] = context;
-  const keys = Object.keys(validator.options);
-  await Promise.all(keys.map(checkEnv)); // <<-- we may need to serialize this
-  await Promise.all(keys.map(checkReq)); // <<-- this does not need to be serialized
+  const keys = Object.keys(context[0].options);
+  // we may need to serialize the following call
+  await Promise.all(keys.map((key) => checkEnvVarAndDefaultValue(context, key)));
+  await Promise.all(keys.map((key) => checkRequiredOption(context, key)));
 }
 
 /**
@@ -1004,7 +1006,7 @@ async function checkRequires(
   if ((await requires(values)) === negate) {
     const { styles, connectives } = validator.config;
     if (negate !== invert) {
-      error.word(connectives[ConnectiveWords.not]);
+      error.word(connectives[ConnectiveWord.not]);
     }
     format.v(requires, styles, error);
     return false;
@@ -1040,7 +1042,7 @@ function checkRequirement(
     }
     const { styles, connectives } = validator.config;
     if (specified !== invert) {
-      error.word(connectives[ConnectiveWords.no]);
+      error.word(connectives[ConnectiveWord.no]);
     }
     format.o(option.preferredName ?? '', styles, error);
     return false;
@@ -1093,9 +1095,7 @@ function checkRequiredValue(
   const styles = config.styles;
   const connectives = config.connectives;
   const connective =
-    negate !== invert
-      ? connectives[ConnectiveWords.notEquals]
-      : connectives[ConnectiveWords.equals];
+    negate !== invert ? connectives[ConnectiveWord.notEquals] : connectives[ConnectiveWord.equals];
   const phrase = array ? `[%${spec}]` : `%${spec}`;
   format.o(name, styles, error);
   error.word(connective).format(styles, phrase, { [spec]: expected });

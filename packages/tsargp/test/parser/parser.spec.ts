@@ -95,13 +95,32 @@ describe('ArgumentParser', () => {
               { type: 'usage', title: 'usage  heading' },
               { type: 'groups', noWrap: true },
             ],
-            format: { names: { indent: 0 } },
+            config: { names: { indent: 0 } },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse([])).resolves.not.toHaveProperty('help');
         await expect(parser.parse(['-h'], { progName: 'prog' })).rejects.toThrow(
           `usage heading\n\nprog [-h]\n\ngroup  heading\n\n-h`,
+        );
+      });
+
+      it('should throw a help message with a JSON format', async () => {
+        const options = {
+          flag: {
+            type: 'flag',
+            names: ['-f', '--flag'],
+          },
+          help: {
+            type: 'help',
+            names: ['-h'],
+            useFormat: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-h', 'json'])).rejects.toThrow(
+          `[{"type":"flag","names":["-f","--flag"],"preferredName":"-f"},` +
+            `{"type":"help","names":["-h"],"useFormat":true,"preferredName":"-h"}]`,
         );
       });
 
@@ -132,14 +151,14 @@ describe('ArgumentParser', () => {
         );
       });
 
-      it('should throw the help message of a nested command with filter', async () => {
+      it('should throw the help message of a nested command with filter and async options callback', async () => {
         const options = {
           help: {
             type: 'help',
             names: ['-h'],
             sections: [{ type: 'groups' }],
-            useFilter: true,
             useNested: true,
+            useFilter: true,
           },
           command1: {
             type: 'command',
@@ -154,7 +173,7 @@ describe('ArgumentParser', () => {
           command2: {
             type: 'command',
             names: ['cmd2'],
-            options: {
+            options: async () => ({
               flag: {
                 type: 'flag',
                 names: ['-f'],
@@ -165,7 +184,7 @@ describe('ArgumentParser', () => {
                 sections: [{ type: 'groups' }],
                 useFilter: true,
               },
-            },
+            }),
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -413,7 +432,6 @@ describe('ArgumentParser', () => {
             type: 'command',
             names: ['-c'],
             exec: async () => 'abc',
-            options: {},
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -428,7 +446,6 @@ describe('ArgumentParser', () => {
             async exec() {
               throw 'abc';
             },
-            options: {},
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -440,7 +457,6 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: {},
             exec: vi.fn(),
           },
         } as const satisfies Options;
@@ -459,7 +475,6 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: {},
             exec: vi.fn().mockImplementation(() => 'abc'),
           },
         } as const satisfies Options;
@@ -475,7 +490,6 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: {},
             exec: vi.fn().mockImplementation(() => {
               throw 'abc';
             }),
@@ -544,6 +558,24 @@ describe('ArgumentParser', () => {
           name: '-c',
           param: { flag: true },
         });
+      });
+
+      it('should handle a command option with an async options callback', async () => {
+        const options = {
+          command: {
+            type: 'command',
+            names: ['-c'],
+            options: async () => ({
+              flag: {
+                type: 'flag',
+                names: ['-f'],
+              },
+            }),
+            exec: ({ param }) => param,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: { flag: true } });
       });
 
       it('should handle a command option with options with async callbacks', async () => {

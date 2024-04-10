@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Options, ParsingFlags } from '../../lib';
-import { ArgumentParser, CompletionMessage } from '../../lib';
+import { ArgumentParser, TextMessage } from '../../lib';
 import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
@@ -76,7 +76,7 @@ describe('ArgumentParser', () => {
           type: 'function',
           names: ['-f'],
           exec() {
-            throw new CompletionMessage('abc');
+            throw new TextMessage('abc');
           },
         },
       } as const satisfies Options;

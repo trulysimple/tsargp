@@ -5,7 +5,7 @@ import '../utils.spec';
 
 describe('OptionValidator', () => {
   describe('validate', () => {
-    it('should ignore empty option names', () => {
+    it('should ignore empty option names', async () => {
       const options = {
         string: {
           type: 'string',
@@ -13,10 +13,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).not.toThrow();
+      await expect(validator.validate()).resolves.toMatchObject({});
     });
 
-    it('should accept a positional option with no name', () => {
+    it('should accept a positional option with no name', async () => {
       const options = {
         string: {
           type: 'string',
@@ -24,10 +24,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).not.toThrow();
+      await expect(validator.validate()).resolves.toMatchObject({});
     });
 
-    it('should accept a flag option with only a negation name', () => {
+    it('should accept a flag option with only a negation name', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -35,10 +35,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).not.toThrow();
+      await expect(validator.validate()).resolves.toMatchObject({});
     });
 
-    it('should throw an error on non-positional option with no name', () => {
+    it('should throw an error on non-positional option with no name', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -46,10 +46,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Non-positional option flag has no name.`);
+      await expect(validator.validate()).rejects.toThrow(`Non-positional option flag has no name.`);
     });
 
-    it('should throw an error on option with invalid name', () => {
+    it('should throw an error on option with invalid name', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -57,10 +57,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option flag has invalid name 'a = b'.`);
+      await expect(validator.validate()).rejects.toThrow(`Option flag has invalid name 'a = b'.`);
     });
 
-    it('should throw an error on flag option with invalid negation name', () => {
+    it('should throw an error on flag option with invalid negation name', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -69,10 +69,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option flag has invalid name 'a = b'.`);
+      await expect(validator.validate()).rejects.toThrow(`Option flag has invalid name 'a = b'.`);
     });
 
-    it('should throw an error on option with invalid positional marker', () => {
+    it('should throw an error on option with invalid positional marker', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -80,10 +80,12 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has invalid name 'a = b'.`);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has invalid name 'a = b'.`,
+      );
     });
 
-    it('should throw an error on duplicate option name in the same option', () => {
+    it('should throw an error on duplicate option name in the same option', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -91,10 +93,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(`Option flag has duplicate name 'dup'.`);
     });
 
-    it('should throw an error on duplicate option name across options', () => {
+    it('should throw an error on duplicate option name across options', async () => {
       const options = {
         flag1: {
           type: 'flag',
@@ -106,10 +108,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option flag2 has duplicate name 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(`Option flag2 has duplicate name 'dup'.`);
     });
 
-    it('should throw an error on flag option with duplicate negation name', () => {
+    it('should throw an error on flag option with duplicate negation name', async () => {
       const options = {
         flag: {
           type: 'flag',
@@ -118,10 +120,10 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option flag has duplicate name 'dup'.`);
+      await expect(validator.validate()).rejects.toThrow(`Option flag has duplicate name 'dup'.`);
     });
 
-    it('should throw an error on option with duplicate positional marker', () => {
+    it('should throw an error on option with duplicate positional marker', async () => {
       const options = {
         boolean: {
           type: 'boolean',
@@ -130,60 +132,44 @@ describe('OptionValidator', () => {
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
-      expect(() => validator.validate()).toThrow(`Option boolean has duplicate name 'dup'.`);
-    });
-
-    it('should return a warning on option name too similar to other names', () => {
-      const options = {
-        flag1: {
-          type: 'flag',
-          names: ['flag1'],
-        },
-        flag2: {
-          type: 'flag',
-          names: ['flag2'],
-        },
-        flag3: {
-          type: 'flag',
-          names: ['flag3'],
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const flags: ValidationFlags = { detectNamingIssues: true };
-      const { warning } = validator.validate(flags);
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `: Option name 'flag1' has too similar names: 'flag2', 'flag3'.\n`,
+      await expect(validator.validate()).rejects.toThrow(
+        `Option boolean has duplicate name 'dup'.`,
       );
     });
 
-    it('should return a warning on mixed naming conventions', () => {
+    it('should return a warning on mixed naming conventions in a nested command', async () => {
       const options = {
-        flag1: {
-          type: 'flag',
-          names: ['lower', 'abc', 'keb-ab'],
-        },
-        flag2: {
-          type: 'flag',
-          names: ['UPPER', '-def', 'sna_ke'],
-        },
-        flag3: {
-          type: 'flag',
-          names: ['Capital', '--ghi', 'col:on'],
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            flag1: {
+              type: 'flag',
+              names: ['lower', 'abc', 'keb-ab'],
+            },
+            flag2: {
+              type: 'flag',
+              names: ['UPPER', '-def', 'sna_ke'],
+            },
+            flag3: {
+              type: 'flag',
+              names: ['Capital', '--ghi', 'col:on'],
+            },
+          },
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       const flags: ValidationFlags = { detectNamingIssues: true };
-      const { warning } = validator.validate(flags);
+      const { warning } = await validator.validate(flags);
       expect(warning).toHaveLength(3);
       expect(warning?.message).toEqual(
-        `: Name slot 0 has mixed naming conventions: 'lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'.\n` +
-          `: Name slot 1 has mixed naming conventions: 'noDash: abc', '-singleDash: -def', '--doubleDash: --ghi'.\n` +
-          `: Name slot 2 has mixed naming conventions: 'kebab-case: keb-ab', 'snake_case: sna_ke', 'colon:case: col:on'.\n`,
+        `command: Name slot 0 has mixed naming conventions: 'lowercase: lower', 'UPPERCASE: UPPER', 'Capitalized: Capital'.\n` +
+          `command: Name slot 1 has mixed naming conventions: 'noDash: abc', '-singleDash: -def', '--doubleDash: --ghi'.\n` +
+          `command: Name slot 2 has mixed naming conventions: 'kebab-case: keb-ab', 'snake_case: sna_ke', 'colon:case: col:on'.\n`,
       );
     });
 
-    it('should return a warning on nested command option name too similar to other names', () => {
+    it('should return a warning on option name too similar to other names in a nested command', async () => {
       const options = {
         command: {
           type: 'command',
@@ -202,12 +188,11 @@ describe('OptionValidator', () => {
               names: ['flag3'],
             },
           },
-          exec() {},
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       const flags: ValidationFlags = { detectNamingIssues: true };
-      const { warning } = validator.validate(flags);
+      const { warning } = await validator.validate(flags);
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
         `command: Option name 'flag1' has too similar names: 'flag2', 'flag3'.\n`,

@@ -90,7 +90,6 @@ describe('ArgumentParser', () => {
         command: {
           type: 'command',
           names: ['-c'],
-          options: {},
           exec({ values }) {
             expect((values as OptionValues<typeof options>).flag).toBeTruthy();
           },
@@ -111,7 +110,6 @@ describe('ArgumentParser', () => {
           type: 'command',
           names: ['-c'],
           default: false,
-          options: {},
           exec: vi.fn(),
         },
       } as const satisfies Options;
@@ -126,7 +124,6 @@ describe('ArgumentParser', () => {
           type: 'command',
           names: ['-c'],
           default: () => false,
-          options: {},
           exec: vi.fn(),
         },
       } as const satisfies Options;
@@ -141,7 +138,6 @@ describe('ArgumentParser', () => {
           type: 'command',
           names: ['-c'],
           default: async () => false,
-          options: {},
           exec: vi.fn(),
         },
       } as const satisfies Options;

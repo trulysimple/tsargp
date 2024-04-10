@@ -1,21 +1,14 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { tf, style } from '../../lib';
-import {
-  TerminalString,
-  TerminalMessage,
-  WarnMessage,
-  ErrorMessage,
-  HelpMessage,
-  CompletionMessage,
-} from '../../lib';
+import { tf, style, TerminalString } from '../../lib';
+import { AnsiMessage, JsonMessage, WarnMessage, ErrorMessage, TextMessage } from '../../lib';
 import { resetEnv } from '../utils.spec'; // initialize globals
 
-describe('TerminalMessage', () => {
+describe('AnsiMessage', () => {
   afterAll(resetEnv);
 
   it('should wrap the error message', () => {
     const str = new TerminalString().split('type script');
-    const msg = new TerminalMessage(str);
+    const msg = new AnsiMessage(str);
     expect(msg.wrap(0)).toEqual('type script');
     expect(msg.wrap(11)).toEqual('type script' + style(tf.clear));
     process.env['NO_COLOR'] = '1';
@@ -29,7 +22,7 @@ describe('TerminalMessage', () => {
   it('can be thrown and caught', () => {
     const str = new TerminalString().split('type script');
     expect(() => {
-      throw new TerminalMessage(str);
+      throw new AnsiMessage(str);
     }).toThrow('type script');
   });
 });
@@ -58,19 +51,18 @@ describe('ErrorMessage', () => {
   });
 });
 
-describe('HelpMessage', () => {
+describe('TextMessage', () => {
   it('can be thrown and caught', () => {
-    const str = new TerminalString().split('type script');
     expect(() => {
-      throw new HelpMessage(str);
-    }).toThrow('type script');
+      throw new TextMessage('type', 'script');
+    }).toThrow('type\nscript');
   });
 });
 
-describe('CompletionMessage', () => {
+describe('JsonMessage', () => {
   it('can be thrown and caught', () => {
     expect(() => {
-      throw new CompletionMessage('type', 'script');
-    }).toThrow('type\nscript');
+      throw new JsonMessage({ type: 'script' });
+    }).toThrow('[{"type":"script"}]');
   });
 });

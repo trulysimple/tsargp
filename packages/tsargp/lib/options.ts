@@ -232,6 +232,11 @@ export type FunctionCallback = CustomCallback<
 export type CommandCallback = CustomCallback<ParseInfo<OpaqueOptionValues>, unknown>;
 
 /**
+ * A callback for the option definitions of a nested command.
+ */
+export type OptionsCallback = () => Options | Promise<Options>;
+
+/**
  * Information about the current argument sequence in the parsing loop.
  * @template P The parameter data type
  */
@@ -516,19 +521,25 @@ export type WithHelp = {
   /**
    * The formatter configuration.
    */
-  readonly format?: FormatterConfig;
+  readonly config?: FormatterConfig;
   /**
    * The help sections to be rendered.
    */
   readonly sections?: HelpSections;
   /**
+   * Whether to use the next argument as the name of a nested command.
+   * Has precedence over {@link WithHelp.useFormat}.
+   */
+  readonly useNested?: true;
+  /**
+   * Whether to use the next argument as the name of a help format.
+   * Has precedence over {@link WithHelp.useFilter}.
+   */
+  readonly useFormat?: true;
+  /**
    * Whether to use the remaining arguments as option filter.
    */
   readonly useFilter?: true;
-  /**
-   * Whether to throw the help of a nested command whose names include the next argument.
-   */
-  readonly useNested?: true;
 };
 
 /**
@@ -586,7 +597,7 @@ export type WithCommand = {
    * The command's options.
    * It can be a callback that returns the options (for use with recursive commands).
    */
-  readonly options?: Options | (() => Options);
+  readonly options?: Options | OptionsCallback;
   /**
    * The prefix of cluster arguments.
    * If set, then eligible arguments that have this prefix will be considered a cluster.

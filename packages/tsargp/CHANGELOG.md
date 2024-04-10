@@ -1,5 +1,21 @@
 # tsargp
 
+## 0.6.0-dev.0
+
+### Minor Changes
+
+- [#144](https://github.com/trulysimple/tsargp/pull/144) [`41fde68`](https://github.com/trulysimple/tsargp/commit/41fde6861b27375d27231555e7d11c11e22482ad) Thanks [@disog](https://github.com/disog)! - The `useNested`, `useFormat` and `useFilter` attributes of help options can now be used as help items.
+
+- [#143](https://github.com/trulysimple/tsargp/pull/143) [`4eae787`](https://github.com/trulysimple/tsargp/commit/4eae7873698ff6c93bd738049fce42a845237f9e) Thanks [@disog](https://github.com/disog)! - A new formatter class, `CsvFormatter`, was added to handle formatting of help messages in CSV format.
+
+- [#137](https://github.com/trulysimple/tsargp/pull/137) [`d6e2a8d`](https://github.com/trulysimple/tsargp/commit/d6e2a8dbc0c8435d30d6fa9784f75d7f8b832a9c) Thanks [@disog](https://github.com/disog)! - The connective words were extended to include array element separators and string quoting.
+
+- [#145](https://github.com/trulysimple/tsargp/pull/145) [`a5c29e8`](https://github.com/trulysimple/tsargp/commit/a5c29e860d4da62617f2795686b7938f950692a7) Thanks [@disog](https://github.com/disog)! - A new formatter class was added, `MdFormatter`, to format help messages in Markdown format.
+
+- [#133](https://github.com/trulysimple/tsargp/pull/133) [`a3bb85a`](https://github.com/trulysimple/tsargp/commit/a3bb85a58dedcd25121e99a1163f2e6543a206e4) Thanks [@disog](https://github.com/disog)! - Added support for asynchronous `OptionsCallback` in the command option. This allows the option to load definitions from a different module dynamically.
+
+- [#140](https://github.com/trulysimple/tsargp/pull/140) [`377f45b`](https://github.com/trulysimple/tsargp/commit/377f45b4825564eee9606346d59dae9c6a5a2a24) Thanks [@disog](https://github.com/disog)! - The `HelpFormat` type was introduced, as well as a `JsonFormatter` class that handles formatting of help messages in JSON format.
+
 ## 0.5.1
 
 ### Patch Changes

@@ -21,6 +21,8 @@ const helloOpts = {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'The help option for the hello command. Prints this help message.',
+    useFormat: true,
+    useFilter: true,
   },
   /**
    * A recursive command option that logs the arguments passed after it.
@@ -89,8 +91,9 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
         noWrap: true,
       },
     ],
-    useFilter: true,
     useNested: true,
+    useFormat: true,
+    useFilter: true,
   },
   /**
    * A version option that throws the package version.

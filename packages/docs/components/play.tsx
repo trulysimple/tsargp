@@ -2,12 +2,12 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { ArgumentParser, ErrorMessage, HelpMessage } from 'tsargp';
+import { ArgumentParser, ErrorMessage, AnsiMessage } from 'tsargp';
 import { style, req, fg8, bg8, ul8, ul } from 'tsargp';
-import { HelpItem, ErrorItem, tf, fg, bg } from 'tsargp/enums';
+import * as enums from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
 
-const tsargp = { ArgumentParser, req, tf, fg, bg, ul, HelpItem, ErrorItem, style, fg8, bg8, ul8 };
+const tsargp = { ArgumentParser, req, ul, ...enums, style, fg8, bg8, ul8 };
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -37,11 +37,11 @@ class PlayCommand extends Command<PlayProps> {
     super(props, 'init', 'play');
   }
 
-  private init() {
+  private async init() {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
     const parser = new ArgumentParser(options);
-    const { warning } = parser.validate();
+    const { warning } = await parser.validate();
     if (warning) {
       this.println(warning.wrap(this.state.width));
     }
@@ -52,11 +52,12 @@ class PlayCommand extends Command<PlayProps> {
     try {
       if (line.startsWith('init')) {
         if (!compIndex) {
-          this.init();
+          await this.init();
         }
       } else if (this.parser) {
         const values = {};
-        const { warning } = await this.parser.parseInto(values, line, { compIndex });
+        const flags = { progName: 'play', compIndex };
+        const { warning } = await this.parser.parseInto(values, line, flags);
         if (warning) {
           this.println(warning.wrap(this.state.width));
         }
@@ -67,7 +68,7 @@ class PlayCommand extends Command<PlayProps> {
     } catch (err) {
       if (err instanceof ErrorMessage) {
         throw err.msg.wrap(this.state.width);
-      } else if (err instanceof HelpMessage) {
+      } else if (err instanceof AnsiMessage) {
         throw err.wrap(this.state.width);
       }
       throw err;
