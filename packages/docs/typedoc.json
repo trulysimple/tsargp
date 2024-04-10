@@ -9,7 +9,8 @@
   "treatWarningsAsErrors": true,
   "intentionallyNotExported": [
     "helpFormats",
-    "HelpEntry",
+    "AnsiHelpEntry",
+    "CsvHelpEntry",
     "HelpContext",
     "TerminalContext",
     "OptionInfo",

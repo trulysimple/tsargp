@@ -12,14 +12,17 @@ format help messages.
 
 ## Help format
 
-There are two concrete classes of formatter, each one handling a different help message format:
+There are three concrete classes of formatter, each one handling a different help message format:
 
 - `AnsiFormatter` -
   formats help messages in ANSI format, i.e., they may contain escape sequences and are meant to be
   printed in a terminal
 - `JsonFormatter` -
-  formats help messages in JSON format, i.e., they are meant to be processed by introspection tools
+  formats help messages in JSON format, i.e., they are meant to be consumed by introspection tools
   and other applications
+- `CsvFormatter` -
+  formats help messages in CSV format, i.e., they are meant to be transformed and exchanged with
+  other applications
 
 <Callout type="warning">
   Everything contained in this page relates to the `AnsiFormatter` class.
@@ -37,20 +40,13 @@ content:
 - group - a set of entries corresponding to an option [group]
 - column - a horizontal division (as formed by a vertical ruler) across all entries of all groups
 
-There are different ways of obtaining help messages, as described below.
-
-### Default help
-
-The `formatHelp` method returns a message corresponding to the _default_ option group, which is the
-set of options that did not explicitly declare a [group] in their definition. It accepts no
-parameter.
+There are two main ways of obtaining help messages, as described below.
 
 ### Grouped help
 
-The `formatGroup` method, a sibling of the above one, returns the help of a specific option group.
-The `formatGroups` method, on the other hand, returns a `Map{:ts}` that maps group names to help
-messages, including the default group with an empty name. Neither of these methods accept any
-parameter.
+The `formatHelp` method returns the help message of an option group. It accepts a single optional
+parameter: the name of the group. If not provided, the _default_ group is used, which corresponds to
+the set of options that did not explicitly declare a [group] in their definition.
 
 ### Sectioned help
 

@@ -14,9 +14,10 @@ import {
   isOpt,
   getParamCount,
   getOptionNames,
+  fieldNames,
 } from './options';
-import { AnsiMessage, JsonMessage, TerminalString, style, format } from './styles';
-import { max, combineRegExp } from './utils';
+import { AnsiMessage, JsonMessage, TextMessage, TerminalString, style, format } from './styles';
+import { max, combineRegExp, regexps } from './utils';
 
 //--------------------------------------------------------------------------------------------------
 // Public types
@@ -211,6 +212,13 @@ export type HelpFormat = (typeof helpFormats)[number];
  * A help formatter.
  */
 export interface HelpFormatter {
+  /**
+   * Formats a help message with sections.
+   * Options are rendered in the same order as was declared in the option definitions.
+   * @param sections The help sections
+   * @param progName The program name, if any
+   * @returns The formatted help message
+   */
   formatSections(sections: HelpSections, progName?: string): HelpMessage;
 }
 
@@ -228,9 +236,18 @@ type ConcreteColumn = Concrete<WithColumn>;
 type ConcreteFormat = Concrete<FormatterConfig>;
 
 /**
- * Precomputed texts used by the formatter.
+ * Precomputed texts used by the ANSI formatter.
  */
-type HelpEntry = [names: Array<TerminalString>, param: TerminalString, descr: TerminalString];
+type AnsiHelpEntry = [
+  names: ReadonlyArray<TerminalString>,
+  param: TerminalString,
+  descr: TerminalString,
+];
+
+/**
+ * Precomputed texts used by the CSV formatter.
+ */
+type CsvHelpEntry = ReadonlyArray<string>;
 
 /**
  * Information about the current help message.
@@ -358,7 +375,7 @@ const helpFunctions = [
 /**
  * The available help formats.
  */
-const helpFormats = ['ansi', 'json'] as const;
+const helpFormats = ['ansi', 'json', 'csv'] as const;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -384,36 +401,13 @@ abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter 
   }
 
   /**
-   * Formats a help message for the default option group.
-   * Options are rendered in the same order as was declared in the option definitions.
-   * @returns The formatted help message
-   */
-  formatHelp(): T {
-    return this.formatGroup() ?? this.format([]);
-  }
-
-  /**
-   * Formats a help message for an option group.
+   * Formats the help message of an option group.
    * Options are rendered in the same order as was declared in the option definitions.
    * @param name The group name (defaults to the default group)
-   * @returns The formatted help message, if the group exists
+   * @returns The help message, if the group exists; otherwise an empty message
    */
-  formatGroup(name = ''): T | undefined {
-    const entries = this.groups.get(name);
-    return entries && this.format(entries);
-  }
-
-  /**
-   * Formats help messages for all option groups.
-   * Options are rendered in the same order as was declared in the option definitions.
-   * @returns The formatted help messages
-   */
-  formatGroups(): Map<string, T> {
-    const groups = new Map<string, T>();
-    for (const [group, entries] of this.groups.entries()) {
-      groups.set(group, this.format(entries));
-    }
-    return groups;
+  formatHelp(name = ''): T {
+    return this.format(this.groups.get(name) ?? []);
   }
 
   protected abstract build(config: ConcreteFormat): void;
@@ -424,21 +418,13 @@ abstract class BaseFormatter<T extends HelpMessage, E> implements HelpFormatter 
 /**
  * Implements formatting of ANSI help messages for a set of option definitions.
  */
-export class AnsiFormatter extends BaseFormatter<AnsiMessage, HelpEntry> {
+export class AnsiFormatter extends BaseFormatter<AnsiMessage, AnsiHelpEntry> {
   protected override build(config: ConcreteFormat) {
     buildAnsiEntries(this.groups, config, this.context);
   }
-  protected override format(entries: Array<HelpEntry>): AnsiMessage {
+  protected override format(entries: Array<AnsiHelpEntry>): AnsiMessage {
     return formatAnsiEntries(entries);
   }
-
-  /**
-   * Formats a complete help message with sections.
-   * Options are rendered in the same order as was declared in the option definitions.
-   * @param sections The help sections
-   * @param progName The program name, if any
-   * @returns The formatted help message
-   */
   formatSections(sections: HelpSections, progName = ''): AnsiMessage {
     const help = new AnsiMessage();
     for (const section of sections) {
@@ -458,18 +444,35 @@ export class JsonFormatter extends BaseFormatter<JsonMessage, object> {
   protected override format(entries: Array<object>): JsonMessage {
     return new JsonMessage(...entries);
   }
-
-  /**
-   * Formats a complete help message with sections.
-   * Options are rendered in the same order as was declared in the option definitions.
-   * @param sections The help sections
-   * @returns The formatted help message
-   */
   formatSections(sections: HelpSections): JsonMessage {
     const help = new JsonMessage();
     for (const section of sections) {
       if (section.type === 'groups') {
         formatGroups(this.groups, section, (_, entries) => help.push(...entries));
+      }
+    }
+    return help;
+  }
+}
+
+/**
+ * Implements formatting of CSV help messages for a set of option definitions.
+ */
+export class CsvFormatter extends BaseFormatter<TextMessage, CsvHelpEntry> {
+  protected override build(config: ConcreteFormat) {
+    buildEntries(this.groups, config, this.context, (opt) =>
+      fieldNames.map((field) => `${opt[field] ?? ''}`),
+    );
+  }
+  protected override format(entries: Array<CsvHelpEntry>): TextMessage {
+    entries.unshift(fieldNames);
+    return formatCsvEntries(entries);
+  }
+  formatSections(sections: HelpSections): TextMessage {
+    const help = new TextMessage(fieldNames.join('\t'));
+    for (const section of sections) {
+      if (section.type === 'groups') {
+        formatGroups(this.groups, section, (_, entries) => formatCsvEntries(entries, help));
       }
     }
     return help;
@@ -491,7 +494,7 @@ export function createFormatter(
   config?: FormatterConfig,
   format: HelpFormat = 'ansi',
 ): HelpFormatter {
-  const classes = [AnsiFormatter, JsonFormatter];
+  const classes = [AnsiFormatter, JsonFormatter, CsvFormatter];
   return new classes[helpFormats.indexOf(format)](validator, config);
 }
 
@@ -576,12 +579,12 @@ function buildEntries<T>(
  * @param context The help context
  */
 function buildAnsiEntries(
-  groups: Map<string, Array<HelpEntry>>,
+  groups: Map<string, Array<AnsiHelpEntry>>,
   config: ConcreteFormat,
   context: HelpContext,
 ) {
   /** @ignore */
-  function formatFn(option: OpaqueOption): HelpEntry {
+  function formatFn(option: OpaqueOption): AnsiHelpEntry {
     const [entry, paramLen] = formatOption(config, context, nameWidths, option);
     paramWidth = max(paramWidth, paramLen);
     return entry;
@@ -612,7 +615,7 @@ function formatOption(
   context: HelpContext,
   nameWidths: Array<number> | number,
   option: OpaqueOption,
-): [HelpEntry, number] {
+): [AnsiHelpEntry, number] {
   const names = formatNames(config, context, option, nameWidths);
   const [param, paramLen] = formatParams(config, context[0], option);
   const descr = formatDescription(config, context, option);
@@ -765,7 +768,7 @@ function getMaxNamesWidth(options: OpaqueOptions, sep: string): number {
  * @param paramWidth The width of the param column
  */
 function adjustEntries(
-  groups: Map<string, Array<HelpEntry>>,
+  groups: Map<string, Array<AnsiHelpEntry>>,
   config: ConcreteFormat,
   namesWidth: Array<number> | number,
   paramWidth: number,
@@ -842,15 +845,31 @@ function formatNameSlots(
 }
 
 /**
- * Formats a help message from a list of help entries.
+ * Formats a help message from a list of ANSI help entries.
  * @param entries The help entries
  * @param result The resulting message
  * @returns The resulting message
  */
-function formatAnsiEntries(entries: Array<HelpEntry>, result = new AnsiMessage()): AnsiMessage {
+function formatAnsiEntries(entries: Array<AnsiHelpEntry>, result = new AnsiMessage()): AnsiMessage {
   for (const [names, param, descr] of entries) {
     result.push(...names, param, descr);
   }
+  return result;
+}
+
+/**
+ * Formats a help message from a list of CSV help entries.
+ * Sequences of whitespace are collapsed to a single space.
+ * @param entries The help entries
+ * @param result The resulting message
+ * @returns The resulting message
+ */
+function formatCsvEntries(entries: Array<CsvHelpEntry>, result = new TextMessage()): TextMessage {
+  result.push(
+    ...entries.map((entry) =>
+      entry.map((item) => item.replace(regexps.space, ' ').replace(regexps.style, '')).join('\t'),
+    ),
+  );
   return result;
 }
 
@@ -864,7 +883,7 @@ function formatAnsiEntries(entries: Array<HelpEntry>, result = new AnsiMessage()
  * @param result The resulting message
  */
 function formatAnsiSection(
-  groups: Map<string, Array<HelpEntry>>,
+  groups: Map<string, Array<AnsiHelpEntry>>,
   context: HelpContext,
   section: HelpSection,
   progName: string,
@@ -906,7 +925,7 @@ function formatAnsiSection(
  * @param result The resulting message
  */
 function formatGroupsSection(
-  groups: Map<string, Array<HelpEntry>>,
+  groups: Map<string, Array<AnsiHelpEntry>>,
   breaks: number,
   section: HelpGroups,
   result: AnsiMessage,

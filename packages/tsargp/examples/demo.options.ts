@@ -21,6 +21,8 @@ const helloOpts = {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'The help option for the hello command. Prints this help message.',
+    useFilter: true,
+    useFormat: true,
   },
   /**
    * A recursive command option that logs the arguments passed after it.

@@ -55,6 +55,10 @@ export const regexps = {
    * A regular expression to match punctuation characters.
    */
   punct: /\p{P}/gu,
+  /**
+   * A regular expression to match whitespace characters.
+   */
+  space: /\s+/g,
 } as const satisfies Record<string, RegExp>;
 
 /**

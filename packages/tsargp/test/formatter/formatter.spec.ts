@@ -5,9 +5,22 @@ import '../utils.spec'; // initialize globals
 
 describe('AnsiFormatter', () => {
   describe('formatHelp', () => {
-    it('should handle no options', () => {
+    it('should handle a non-existent group', () => {
       const message = new AnsiFormatter(new OptionValidator({})).formatHelp();
       expect(message.wrap()).toEqual('');
+    });
+
+    it('should handle a flag option with a group', () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option',
+          group: 'group',
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).formatHelp('group');
+      expect(message?.wrap()).toEqual(`  -f, --flag    A flag option\n`);
     });
 
     it('should filter options using a single regular expression', () => {
@@ -226,25 +239,6 @@ describe('AnsiFormatter', () => {
       expect(message.wrap()).toEqual(
         `  -ns, --numbers  <numbers>  A numbers option. Values are delimited by ','. May be specified multiple times.\n`,
       );
-    });
-  });
-
-  describe('formatGroups', () => {
-    it('should handle an option with a group', () => {
-      /** @ignore */
-      function assert(_condition: unknown): asserts _condition {}
-      const options = {
-        flag: {
-          type: 'flag',
-          names: ['-f', '--flag'],
-          desc: 'A flag option',
-          group: 'group',
-        },
-      } as const satisfies Options;
-      const groups = new AnsiFormatter(new OptionValidator(options)).formatGroups();
-      const message = groups.get('group');
-      assert(message);
-      expect(message.wrap()).toEqual(`  -f, --flag    A flag option\n`);
     });
   });
 });
