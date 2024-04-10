@@ -157,7 +157,6 @@ export class ArgumentParser<T extends Options = Options> {
     values: OptionValues<T>,
     cmdLine = env('COMP_LINE') ?? env('BUFFER') ?? process?.argv.slice(2) ?? [],
     flags: ParsingFlags = {
-      progName: process?.argv[1].split(/[\\/]/).at(-1),
       compIndex: Number(env('COMP_POINT') ?? env('CURSOR')) || env('BUFFER')?.length,
     },
   ): Promise<ParsingResult> {
@@ -204,7 +203,7 @@ async function doParse(
   values: OpaqueOptionValues,
   args: Array<string>,
   completing: boolean,
-  progName?: string,
+  progName = process?.argv[1].split(/[\\/]/).at(-1),
   clusterPrefix?: string,
 ): Promise<ParsingResult> {
   if (!completing && progName && process?.title) {

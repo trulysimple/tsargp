@@ -6,13 +6,13 @@ import { Callout } from 'nextra/components';
 
 # Formatter
 
-The `HelpFormatter` class is the base class for components that handle formatting of help messages.
-The concrete classes can be instantiated with a [validator] instance and provide methods to format
-help messages.
+The `HelpFormatter` is an interface for components that handle formatting of help messages. Concrete
+classes implementing this interface can be instantiated with a [validator] instance and provide
+methods to format help messages.
 
 ## Help format
 
-There are four concrete classes of formatter, each one handling a different help message format:
+There are two concrete classes of formatter, each one handling a different help message format:
 
 - `AnsiFormatter` -
   formats help messages in ANSI format, i.e., they may contain escape sequences and are meant to be
@@ -20,11 +20,6 @@ There are four concrete classes of formatter, each one handling a different help
 - `JsonFormatter` -
   formats help messages in JSON format, i.e., they are meant to be processed by introspection tools
   and other applications
-- `MdFormatter` -
-  formats help messages in Markdown format, i.e., they are meant to be processed by documentation
-  tools, or to be versioned with the code
-- `CsvFormatter` -
-  formats help messages in CSV format, i.e., they are meant to be processed by other applications
 
 <Callout type="warning">
   Everything contained in this page relates to the `AnsiFormatter` class.
