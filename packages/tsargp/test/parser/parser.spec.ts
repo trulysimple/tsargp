@@ -157,8 +157,8 @@ describe('ArgumentParser', () => {
             type: 'help',
             names: ['-h'],
             sections: [{ type: 'groups' }],
-            useFilter: true,
             useNested: true,
+            useFilter: true,
           },
           command1: {
             type: 'command',

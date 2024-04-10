@@ -125,6 +125,9 @@ export const fieldNames = [
   'requiredIf',
   'clusterLetters',
   'fallback',
+  'useNested',
+  'useFormat',
+  'useFilter',
 ] as const satisfies ReadonlyArray<keyof OpaqueOption>;
 
 //--------------------------------------------------------------------------------------------------
@@ -559,17 +562,19 @@ export type WithHelp = {
    */
   readonly sections?: HelpSections;
   /**
-   * Whether to use the remaining arguments as option filter.
-   */
-  readonly useFilter?: true;
-  /**
-   * Whether to use the next argument as the name of a command for which the help should be created.
+   * Whether to use the next argument as the name of a nested command.
+   * Has precedence over {@link WithHelp.useFormat}.
    */
   readonly useNested?: true;
   /**
-   * Whether to use the next argument as the name of a help format. (The default format is `ansi`)
+   * Whether to use the next argument as the name of a help format.
+   * Has precedence over {@link WithHelp.useFilter}.
    */
   readonly useFormat?: true;
+  /**
+   * Whether to use the remaining arguments as option filter.
+   */
+  readonly useFilter?: true;
 };
 
 /**
