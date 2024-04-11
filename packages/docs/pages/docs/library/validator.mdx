@@ -150,8 +150,8 @@ the restrictions listed below:
   An option must not declare a requirement that references either a non-valued option (help and
   version) or an unknown-valued option (function and command) in a requirement.
 - **Invalid required value** -
-  An option must not declare a requirement that references another option that is either always
-  [required] or has a [default value], if the required value is nullish (`null{:ts}` or
+  An option must not declare a requirement that references another option that is either [always
+  required] or has a [default value], if the required value is nullish (`null{:ts}` or
   `undefined{:ts}`).
 - **Incompatible required value** -
   Since a requirement can be an object with values of any kind, the data type of these values must
@@ -220,7 +220,7 @@ They are listed in the next sub-sections.
 - `unsatisfiedRequirement` -
   when an option requirement is not satisfied
 - `missingRequiredOption` -
-  when an option that is always [required] was not specified
+  when an option that is [always required] was not specified
 - `missingParameter` -
   when an option parameter is expected but was not specified
 - `missingPackageJson` -
@@ -233,7 +233,7 @@ They are listed in the next sub-sections.
   when either a variadic option or a command option is specified in the middle of a [cluster
   argument]
 - `missingInlineParameter` -
-  when an option is specified without an inline parameter, despite it being required
+  when an option is specified without an inline parameter, despite it being [required]
 
 #### Validation errors
 
@@ -252,8 +252,8 @@ They are listed in the next sub-sections.
 - `invalidRequiredOption` -
   when an option references either a non-valued or an unknown-valued option in a requirement
 - `invalidRequiredValue` -
-  when an option uses a nullish value in a requirement referencing an option that is either always
-  [required] or has a [default value]
+  when an option uses a nullish value in a requirement referencing an option that is either [always
+  required] or has a [default value]
 - `incompatibleRequiredValue` -
   when an option is required with a value of incompatible data type
 - `emptyEnumsDefinition` -
@@ -418,7 +418,8 @@ It has the following optional properties, whose keys are enumerators from `Conne
 [name slot]: formatter#name-slots
 [nested command]: options#command-option
 [format specifiers]: styles#format-specifiers
-[required]: options#always-required
+[always required]: options#always-required
+[required]: options#disable--require-inline
 [default value]: options#default-value
 [parameter count]: options#parameter-count
 [Cluster letters]: options#cluster-letters
