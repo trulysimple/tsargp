@@ -386,6 +386,10 @@ export type WithParam = {
    * If it throws an error, it is ignored, and the default completion message is thrown instead.
    */
   readonly complete?: CompleteCallback;
+  /**
+   * Whether inline parameters should be disallowed for this option.
+   */
+  readonly noInline?: true;
 };
 
 /**

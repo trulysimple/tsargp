@@ -314,7 +314,7 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-f2', 'arg', '-f1'])).rejects.toThrow('Unknown option arg.');
       });
 
-      it('should throw an error on function option specified with value', async () => {
+      it('should throw an error on niladic function option specified with inline parameter', async () => {
         const options = {
           function: {
             type: 'function',
@@ -330,6 +330,24 @@ describe('ArgumentParser', () => {
           `Option -f does not accept inline parameters.`,
         );
         expect(options.function.exec).not.toHaveBeenCalled();
+      });
+
+      it('should throw an error on non-niladic function option specified with inline parameter, despite it being disallowed', async () => {
+        const options = {
+          function: {
+            type: 'function',
+            names: ['-f'],
+            paramCount: 1,
+            noInline: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-f='])).rejects.toThrow(
+          `Option -f does not accept inline parameters.`,
+        );
+        await expect(parser.parse(['-f=a'])).rejects.toThrow(
+          `Option -f does not accept inline parameters.`,
+        );
       });
 
       it('should handle a function option', async () => {
@@ -452,7 +470,7 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-c'])).rejects.toThrow('abc');
       });
 
-      it('should throw an error on command option specified with value', async () => {
+      it('should throw an error on command option specified with inline parameter', async () => {
         const options = {
           command: {
             type: 'command',
@@ -609,7 +627,7 @@ describe('ArgumentParser', () => {
     });
 
     describe('flag', () => {
-      it('should throw an error on flag option specified with value', async () => {
+      it('should throw an error on flag option specified with inline parameter', async () => {
         const options = {
           flag: {
             type: 'flag',
@@ -641,6 +659,23 @@ describe('ArgumentParser', () => {
     });
 
     describe('boolean', () => {
+      it('should throw an error on boolean option specified with inline parameter, despite it being disallowed', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            noInline: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b='])).rejects.toThrow(
+          `Option -b does not accept inline parameters.`,
+        );
+        await expect(parser.parse(['-b=a'])).rejects.toThrow(
+          `Option -b does not accept inline parameters.`,
+        );
+      });
+
       it('should throw an error on boolean option with missing parameter', async () => {
         const options = {
           boolean: {

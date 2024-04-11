@@ -269,7 +269,7 @@ function parseCluster(context: ParseContext, index: number): boolean {
   }
   if (unknownIndex > 0) {
     const name = getOpt(rest[0])[2];
-    args.splice(index, 0, ...(name ? [name] : []), rest.slice(1));
+    args.splice(index, 0, (name ? name + '=' : '') + rest.slice(1));
     return true; // treat it as an inline parameter
   }
   for (let j = 0; j < rest.length && (!completing || index < args.length); ++j) {
@@ -337,13 +337,13 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       paramCount = getParamCount(option);
       const niladic = !paramCount[1];
       const hasValue = value !== undefined;
-      if (niladic || marker) {
+      if (niladic || marker || option.noInline) {
         if (comp) {
           throw new TextMessage();
         }
         if (hasValue) {
           if (completing) {
-            // ignore inline parameters of niladic options or positional marker while completing
+            // ignore disallowed inline parameters while completing
             prev[1] = undefined;
             prev[4] = false;
             continue;

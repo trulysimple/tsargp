@@ -25,6 +25,21 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-b=1'], flags)).resolves.toEqual({ boolean: true });
     });
 
+    it('should throw an error on boolean option with inline cluster parameter, despite it being disallowed', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['--bool'],
+          clusterLetters: 'b',
+          noInline: true,
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-b1'], flags)).rejects.toThrow(
+        `Option --bool does not accept inline parameters.`,
+      );
+    });
+
     it('should parse a boolean option with inline cluster parameter', async () => {
       const options = {
         boolean: {
