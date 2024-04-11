@@ -313,6 +313,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.useNested,
     HelpItem.useFormat,
     HelpItem.useFilter,
+    HelpItem.inline,
   ],
   phrases: {
     [HelpItem.desc]: '%t',
@@ -341,6 +342,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.useNested]: 'Uses the next argument as the name of a nested command.',
     [HelpItem.useFormat]: 'Uses the next argument as the name of a help format.',
     [HelpItem.useFilter]: 'Uses the remaining arguments as option filter.',
+    [HelpItem.inline]: '(Disallows|Requires) inline parameters.',
   },
   filter: [],
 };
@@ -375,6 +377,7 @@ const helpFunctions = [
   formatUseNested,
   formatUseFormat,
   formatUseFilter,
+  formatInline,
 ] as const satisfies HelpFunctions;
 
 /**
@@ -407,6 +410,7 @@ const fieldNames = [
   'useNested',
   'useFormat',
   'useFilter',
+  'inline',
 ] as const satisfies ReadonlyArray<keyof OpaqueOption>;
 
 /**
@@ -1905,5 +1909,25 @@ function formatUseFilter(
 ) {
   if (option.useFilter) {
     result.split(phrase);
+  }
+}
+
+/**
+ * Formats a help option's inline treatment to be included in the description.
+ * @param option The option definition
+ * @param phrase The description item phrase
+ * @param context The help context
+ * @param result The resulting string
+ */
+function formatInline(
+  option: OpaqueOption,
+  phrase: string,
+  context: HelpContext,
+  result: TerminalString,
+) {
+  const inline = option.inline;
+  if (inline !== undefined) {
+    const alt = inline === false ? 0 : 1;
+    result.format(context[0], phrase, undefined, { alt });
   }
 }

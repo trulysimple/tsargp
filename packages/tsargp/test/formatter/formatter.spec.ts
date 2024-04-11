@@ -226,6 +226,36 @@ describe('AnsiFormatter', () => {
       );
     });
 
+    it('should handle a boolean option that disallows inline parameters', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          inline: false,
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  <boolean>  A boolean option. Disallows inline parameters.\n`,
+      );
+    });
+
+    it('should handle a boolean option that requires inline parameters', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          inline: 'always',
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  <boolean>  A boolean option. Requires inline parameters.\n`,
+      );
+    });
+
     it('should handle a delimited strings option that can be specified multiple times', () => {
       const options = {
         strings: {

@@ -270,6 +270,7 @@ and in what order. It is an array whose values can be one of the enumerators fro
 - `useNested` - whether a help option uses the next argument as the name of a [nested command]
 - `useFormat` - whether a help option uses the next argument as the name of a [help format]
 - `useFilter` - whether a help option uses the remaining arguments as [option filter]
+- `inline` - the option's treatment of [inline parameters], if enabled
 
 The default is to print all items in the order listed above.
 
@@ -304,6 +305,7 @@ following optional properties, whose keys are enumerators from `HelpItem`:
 - `useNested` - `'Uses the next argument as the name of a nested command.'{:ts}`
 - `useFormat` - `'Uses the next argument as the name of a help format.'{:ts}`
 - `useFilter` - `'Uses the remaining arguments as option filter.'{:ts}`
+- `inline` - `'(Disallows|Requires) inline parameters.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
@@ -401,6 +403,7 @@ that they may get overridden by (or combined with) an option's [display styles],
 [fallback value]: options#fallback-value
 [truth and falsity]: options#truth--falsity-names
 [nested command]: options#command-option
+[inline parameters]: parser#inline-parameters
 
 [^1]:
     _polyadic_ means that the option accepts more than one parameter, but the parameter count is

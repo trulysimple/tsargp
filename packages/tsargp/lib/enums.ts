@@ -265,6 +265,10 @@ export const enum HelpItem {
    * Whether a help option uses the remaining arguments as option filter.
    */
   useFilter,
+  /**
+   * The option's treatment of inline parameters, if enabled.
+   */
+  inline,
 }
 
 /**
