@@ -71,11 +71,11 @@ export type FormatterConfig = {
   /**
    * The settings for the parameter column.
    */
-  readonly param?: WithColumn & WithAbsolute;
+  readonly param?: WithColumn<Alignment | 'merge'> & WithAbsolute;
   /**
    * The settings for the description column.
    */
-  readonly descr?: WithColumn & WithAbsolute;
+  readonly descr?: WithColumn<Alignment | 'merge'> & WithAbsolute;
   /**
    * The order of items to be shown in the option description.
    */
@@ -1143,7 +1143,9 @@ function adjustEntries(
     namesWidth = namesWidth.length ? namesWidth.reduce((acc, len) => acc + len + 2, -2) : 0;
   }
   const { names, param, descr } = config;
-  const alignLeft = param.align === 'left';
+  const paramLeft = param.align === 'left';
+  const paramMerge = param.align === 'merge';
+  const descrMerge = descr.align === 'merge';
   const namesIndent = max(0, names.indent);
   const paramIndent = param.absolute
     ? max(0, param.indent)
@@ -1152,9 +1154,23 @@ function adjustEntries(
     ? max(0, descr.indent)
     : paramIndent + paramWidth + descr.indent;
   for (const entries of groups.values()) {
-    for (const [, param, descr] of entries) {
-      param.indent = paramIndent + (alignLeft ? 0 : paramWidth - param.indent);
-      descr.indent = descrIndent;
+    for (const [names, param, descr] of entries) {
+      if (descrMerge) {
+        param.other(descr);
+        descr.pop(descr.count);
+      } else {
+        descr.indent = descrIndent;
+      }
+      if (paramMerge) {
+        if (names.length) {
+          names[names.length - 1].other(param);
+          param.pop(param.count);
+        } else {
+          param.indent = namesIndent;
+        }
+      } else {
+        param.indent = paramIndent + (paramLeft ? 0 : paramWidth - param.indent);
+      }
     }
   }
 }
@@ -1458,7 +1474,9 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
   const ellipsis = max > 1 ? '...' : '';
   const equals = option.inline === 'always' ? '=' : '';
   const example = option.example;
-  result.setMerge(!!equals);
+  if (equals) {
+    result.setMerge();
+  }
   if (example !== undefined) {
     let spec, value;
     const separator = option.separator;

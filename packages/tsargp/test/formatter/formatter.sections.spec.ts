@@ -134,6 +134,18 @@ describe('AnsiFormatter', () => {
       expect(message.wrap()).toEqual('title\n\n  prog [-b true]');
     });
 
+    it('should render a usage section with a nameless positional option', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          positional: true,
+        },
+      } as const satisfies Options;
+      const sections: HelpSections = [{ type: 'usage' }];
+      const message = new AnsiFormatter(new OptionValidator(options)).sections(sections);
+      expect(message.wrap()).toEqual('[<boolean>]');
+    });
+
     it('should render an empty groups section', () => {
       const sections: HelpSections = [{ type: 'groups' }];
       const message = new AnsiFormatter(new OptionValidator({})).sections(sections);
