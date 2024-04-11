@@ -21,6 +21,10 @@ const helloOpts = {
     type: 'help',
     names: ['-h', '--help'],
     desc: 'The help option for the hello command. Prints this help message.',
+    config: {
+      param: { align: 'merge' },
+      descr: { indent: -10 },
+    },
     useFormat: true,
     useFilter: true,
   },
