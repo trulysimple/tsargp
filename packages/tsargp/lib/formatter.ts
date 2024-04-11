@@ -240,13 +240,16 @@ type HelpContext = [
 
 /**
  * A function to format a help item.
+ * @param option The option definition
+ * @param phrase The help item phrase
+ * @param context The help context
+ * @param result The resulting string
  */
 type HelpFunction = (
   option: OpaqueOption,
   phrase: string,
   context: HelpContext,
   result: TerminalString,
-  negate: boolean,
 ) => void;
 
 /**
@@ -351,33 +354,289 @@ const defaultConfig: ConcreteFormat = {
  * Keep this in-sync with {@link HelpItem}.
  */
 const helpFunctions = [
-  formatDesc,
-  formatNegationNames,
-  formatSeparator,
-  formatParamCount,
-  formatPositional,
-  formatAppend,
-  formatTrim,
-  formatCase,
-  formatConv,
-  formatEnums,
-  formatRegex,
-  formatRange,
-  formatUnique,
-  formatLimit,
-  formatRequires,
-  formatRequired,
-  formatDefault,
-  formatDeprecated,
-  formatLink,
-  formatEnvVar,
-  formatRequiredIf,
-  formatClusterLetters,
-  formatFallback,
-  formatUseNested,
-  formatUseFormat,
-  formatUseFilter,
-  formatInline,
+  /**
+   * Formats an option's synopsis to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const desc = option.desc;
+    if (desc) {
+      result.format(context[0], phrase, { t: desc });
+    }
+  },
+  /**
+   * Formats an option's negation names to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const names = option.negationNames?.filter((name) => name);
+    if (names?.length) {
+      const sep = context[2][ConnectiveWord.optionSep];
+      result.format(context[0], phrase, { o: names }, { sep });
+    }
+  },
+  /**
+   * Formats an option's separator string to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const separator = option.separator;
+    if (separator) {
+      const [spec, alt] = typeof separator === 'string' ? ['s', 0] : ['r', 1];
+      result.format(context[0], phrase, { [spec]: separator }, { alt });
+    }
+  },
+  /**
+   * Formats an option's parameter count to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const [min, max] = getParamCount(option);
+    if (max > 1) {
+      const [alt, val] =
+        min === max
+          ? [1, min] // exactly %n
+          : min <= 0
+            ? isFinite(max)
+              ? [2, max] // at most %n
+              : [0, undefined] // multiple
+            : isFinite(max)
+              ? [4, [min, max]] // between %n
+              : min > 1
+                ? [3, min] // at least %n
+                : [0, undefined]; // multiple
+      const sep = context[2][ConnectiveWord.and];
+      result.format(context[0], phrase, { n: val }, { alt, sep, mergePrev: false });
+    }
+  },
+  /**
+   * Formats an option's positional attribute to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const positional = option.positional;
+    if (positional) {
+      const [spec, alt] = positional === true ? ['', 0] : ['o', 1];
+      result.format(context[0], phrase, { [spec]: positional }, { alt });
+    }
+  },
+  /**
+   * Formats an option's append attribute to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.append) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's trim normalization to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.trim) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's case conversion to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const conv = option.case;
+    if (conv) {
+      const alt = conv === 'lower' ? 0 : 1;
+      result.format(context[0], phrase, undefined, { alt });
+    }
+  },
+  /**
+   * Formats an option's math conversion to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const conv = option.conv;
+    if (conv) {
+      result.format(context[0], phrase, { t: conv });
+    }
+  },
+  /**
+   * Formats an option's enumerated values to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const enums = option.enums;
+    const truth = option.truthNames;
+    const falsity = option.falsityNames;
+    if (enums || truth || falsity) {
+      const connectives = context[2];
+      const values = [...(enums ?? []), ...(truth ?? []), ...(falsity ?? [])];
+      const [spec, alt, sep] = isOpt.num(option)
+        ? ['n', 1, connectives[ConnectiveWord.numberSep]]
+        : ['s', 0, connectives[ConnectiveWord.stringSep]];
+      result.format(context[0], phrase, { [spec]: values }, { alt, sep });
+    }
+  },
+  /**
+   * Formats an option's regex constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const regex = option.regex;
+    if (regex) {
+      result.format(context[0], phrase, { r: regex });
+    }
+  },
+  /**
+   * Formats an option's range constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const range = option.range;
+    if (range) {
+      const sep = context[2][ConnectiveWord.numberSep];
+      result.format(context[0], phrase, { n: range }, { sep });
+    }
+  },
+  /**
+   * Formats an option's unique constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.unique) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's limit constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const limit = option.limit;
+    if (limit !== undefined) {
+      result.format(context[0], phrase, { n: limit });
+    }
+  },
+  /**
+   * Formats an option's requirements to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const requires = option.requires;
+    if (requires) {
+      result.split(phrase, () => formatRequirements(context, requires, result));
+    }
+  },
+  /**
+   * Formats an option's required attribute to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.required) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's default value to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    formatValue(context, option, phrase, result, option.default);
+  },
+  /**
+   * Formats an option's deprecation notice to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const deprecated = option.deprecated;
+    if (deprecated) {
+      result.format(context[0], phrase, { t: deprecated });
+    }
+  },
+  /**
+   * Formats an option's external resource reference to be included in the description
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const link = option.link;
+    if (link) {
+      result.format(context[0], phrase, { u: link });
+    }
+  },
+  /**
+   * Formats an option's environment variable to be included in the description.
+   * @ignore
+   */
+  (option: OpaqueOption, phrase: string, context: HelpContext, result: TerminalString) => {
+    const envVar = option.envVar;
+    if (envVar) {
+      result.format(context[0], phrase, { o: envVar });
+    }
+  },
+  /**
+   * Formats an option's conditional requirements to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const requiredIf = option.requiredIf;
+    if (requiredIf) {
+      result.split(phrase, () => formatRequirements(context, requiredIf, result));
+    }
+  },
+  /**
+   * Formats an option's cluster letters to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const letters = option.clusterLetters;
+    if (letters) {
+      result.format(context[0], phrase, { s: letters });
+    }
+  },
+  /**
+   * Formats an option's fallback value to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    formatValue(context, option, phrase, result, option.fallback);
+  },
+  /**
+   * Formats a help option's useNested to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.useNested) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats a help option's useFormat to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.useFormat) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats a help option's useFilter to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.useFilter) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's inline treatment to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const inline = option.inline;
+    if (inline !== undefined) {
+      const alt = inline === false ? 0 : 1;
+      result.format(context[0], phrase, undefined, { alt });
+    }
+  },
 ] as const satisfies HelpFunctions;
 
 /**
@@ -1249,329 +1508,6 @@ function formatExample(option: OpaqueOption, styles: FormatStyles, result: Termi
 }
 
 /**
- * Formats an option's synopsis to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatDesc(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const desc = option.desc;
-  if (desc) {
-    result.format(context[0], phrase, { t: desc });
-  }
-}
-
-/**
- * Formats an option's negation names to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatNegationNames(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const names = option.negationNames?.filter((name) => name);
-  if (names?.length) {
-    const sep = context[2][ConnectiveWord.optionSep];
-    result.format(context[0], phrase, { o: names }, { sep });
-  }
-}
-
-/**
- * Formats an option's separator string to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatSeparator(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const separator = option.separator;
-  if (separator) {
-    const [spec, alt] = typeof separator === 'string' ? ['s', 0] : ['r', 1];
-    result.format(context[0], phrase, { [spec]: separator }, { alt });
-  }
-}
-
-/**
- * Formats an option's parameter count to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatParamCount(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const [min, max] = getParamCount(option);
-  if (max > 1) {
-    const [alt, val] =
-      min === max
-        ? [1, min] // exactly %n
-        : min <= 0
-          ? isFinite(max)
-            ? [2, max] // at most %n
-            : [0, undefined] // multiple
-          : isFinite(max)
-            ? [4, [min, max]] // between %n
-            : min > 1
-              ? [3, min] // at least %n
-              : [0, undefined]; // multiple
-    const sep = context[2][ConnectiveWord.and];
-    result.format(context[0], phrase, { n: val }, { alt, sep, mergePrev: false });
-  }
-}
-
-/**
- * Formats an option's positional attribute to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatPositional(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const positional = option.positional;
-  if (positional) {
-    const [spec, alt] = positional === true ? ['', 0] : ['o', 1];
-    result.format(context[0], phrase, { [spec]: positional }, { alt });
-  }
-}
-
-/**
- * Formats an option's append attribute to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatAppend(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.append) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's trim normalization to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatTrim(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.trim) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's case conversion to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatCase(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const conv = option.case;
-  if (conv) {
-    const alt = conv === 'lower' ? 0 : 1;
-    result.format(context[0], phrase, undefined, { alt });
-  }
-}
-
-/**
- * Formats an option's math conversion to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatConv(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const conv = option.conv;
-  if (conv) {
-    result.format(context[0], phrase, { t: conv });
-  }
-}
-
-/**
- * Formats an option's enumerated values to be included in the description.
- * This includes truth and falsity names of a boolean option.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatEnums(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const enums = option.enums;
-  const truth = option.truthNames;
-  const falsity = option.falsityNames;
-  if (enums || truth || falsity) {
-    const connectives = context[2];
-    const values = [...(enums ?? []), ...(truth ?? []), ...(falsity ?? [])];
-    const [spec, alt, sep] = isOpt.num(option)
-      ? ['n', 1, connectives[ConnectiveWord.numberSep]]
-      : ['s', 0, connectives[ConnectiveWord.stringSep]];
-    result.format(context[0], phrase, { [spec]: values }, { alt, sep });
-  }
-}
-
-/**
- * Formats an option's regex constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatRegex(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const regex = option.regex;
-  if (regex) {
-    result.format(context[0], phrase, { r: regex });
-  }
-}
-
-/**
- * Formats an option's range constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatRange(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const range = option.range;
-  if (range) {
-    const sep = context[2][ConnectiveWord.numberSep];
-    result.format(context[0], phrase, { n: range }, { sep });
-  }
-}
-
-/**
- * Formats an option's unique constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUnique(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.unique) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's limit constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatLimit(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const limit = option.limit;
-  if (limit !== undefined) {
-    result.format(context[0], phrase, { n: limit });
-  }
-}
-
-/**
- * Formats an option's required attribute to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatRequired(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.required) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's default value to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatDefault(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  formatValue(context, option, phrase, result, option.default);
-}
-
-/**
  * Formats an option's default or fallback value to be included in the description.
  * @param context The help context
  * @param option The option definition
@@ -1605,82 +1541,6 @@ function formatValue(
                 ? ['n', 4, connectives[ConnectiveWord.numberSep]]
                 : ['v', 5];
   result.format(context[0], phrase, { [spec]: value }, { alt, sep });
-}
-
-/**
- * Formats an option's deprecation notice to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatDeprecated(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const deprecated = option.deprecated;
-  if (deprecated) {
-    result.format(context[0], phrase, { t: deprecated });
-  }
-}
-
-/**
- * Formats an option's external resource reference to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatLink(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const link = option.link;
-  if (link) {
-    result.format(context[0], phrase, { u: link });
-  }
-}
-
-/**
- * Formats an option's environment variable to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatEnvVar(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const envVar = option.envVar;
-  if (envVar) {
-    result.format(context[0], phrase, { o: envVar });
-  }
-}
-
-/**
- * Formats an option's cluster letters to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatClusterLetters(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const letters = option.clusterLetters;
-  if (letters) {
-    result.format(context[0], phrase, { s: letters });
-  }
 }
 
 /**
@@ -1801,133 +1661,5 @@ function formatRequiredValue(
     const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
     const phrase = isOpt.arr(option) ? `[%${spec}]` : `%${spec}`;
     result.word(connective).format(styles, phrase, { [spec]: value });
-  }
-}
-
-/**
- * Formats an option's requirements to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatRequires(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const requires = option.requires;
-  if (requires) {
-    result.split(phrase, () => formatRequirements(context, requires, result));
-  }
-}
-
-/**
- * Formats an option's conditional requirements to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatRequiredIf(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const requiredIf = option.requiredIf;
-  if (requiredIf) {
-    result.split(phrase, () => formatRequirements(context, requiredIf, result));
-  }
-}
-
-/**
- * Formats an option's fallback value to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatFallback(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  formatValue(context, option, phrase, result, option.fallback);
-}
-
-/**
- * Formats a help option's useNested to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUseNested(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.useNested) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats a help option's useFormat to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUseFormat(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.useFormat) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats a help option's useFilter to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUseFilter(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.useFilter) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats a help option's inline treatment to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatInline(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const inline = option.inline;
-  if (inline !== undefined) {
-    const alt = inline === false ? 0 : 1;
-    result.format(context[0], phrase, undefined, { alt });
   }
 }
