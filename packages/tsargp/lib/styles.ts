@@ -358,10 +358,10 @@ export class TerminalString {
   }
 
   /**
-   * @returns The combined length of all internal strings, ignoring control sequences
+   * @returns The lengths of internal strings
    */
-  get length(): number {
-    return this.context[1].reduce((acc, len) => acc + len, 0);
+  get lengths(): Array<number> {
+    return this.context[1];
   }
 
   /**

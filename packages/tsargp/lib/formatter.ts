@@ -1028,7 +1028,11 @@ function formatParams(context: HelpContext, option: OpaqueOption): [TerminalStri
   if (hidden) {
     return [result, 0];
   }
-  const len = formatParam(option, context[0], result, breaks);
+  formatParam(option, context[0], result.break(breaks));
+  const len = result.lengths.reduce((acc, len) => acc + (len ? len + 1 : 0), -1);
+  if (len < 0) {
+    return [result.pop(result.count), 0]; // this string does not contain any word
+  }
   result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
   return [result, len];
 }
@@ -1444,67 +1448,47 @@ function formatUsageNames(context: HelpContext, option: OpaqueOption, result: Te
 
 /**
  * Formats an option's parameter to be included in the description or the usage text.
- * Assumes that the option is not niladic.
  * @param option The option definition
  * @param styles The set of styles
  * @param result The resulting string
- * @param breaks The number of line breaks (non-positive values are ignored)
- * @returns The string length
  */
-function formatParam(
-  option: OpaqueOption,
-  styles: FormatStyles,
-  result: TerminalString,
-  breaks = 0,
-): number {
-  if (option.example !== undefined) {
-    return formatExample(option, styles, result.break(breaks));
-  }
+function formatParam(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
   const paramStyle = option.styles?.param ?? styles.value;
-  const ellipsis = '...';
-  if (option.type === 'command') {
-    result.break(breaks).style(paramStyle, ellipsis, styles.text);
-    return ellipsis.length;
-  }
   const [min, max] = getParamCount(option);
-  if (!max) {
-    return 0;
-  }
-  const paramName = option.paramName;
-  const param0 = paramName
-    ? paramName.includes('<')
-      ? paramName
-      : `<${paramName}>`
-    : option.type === 'function'
-      ? '<param>'
-      : `<${option.type}>`;
-  const param1 = param0 + (max > 1 ? ellipsis : '');
-  const param2 = min <= 0 ? `[${param1}]` : param1;
-  result.break(breaks).style(paramStyle, param2, styles.text);
-  return param2.length;
-}
-
-/**
- * Formats an option's example value to be included in the description or the usage text.
- * Assumes that the option was validated.
- * @param option The option definition
- * @param styles The set of styles
- * @param result The resulting string
- * @returns The string length, counting spaces in non-delimited array values
- */
-function formatExample(option: OpaqueOption, styles: FormatStyles, result: TerminalString): number {
+  const ellipsis = max > 1 ? '...' : '';
+  const equals = option.inline === 'always' ? '=' : '';
   const example = option.example;
-  const separator = option.separator;
-  if (separator) {
-    const sep = typeof separator === 'string' ? separator : separator.source;
-    const value = (example as Array<unknown>).join(sep);
-    result.format(styles, '%s', { s: value });
-    return result.length;
+  result.setMerge(!!equals);
+  if (example !== undefined) {
+    let spec, value;
+    const separator = option.separator;
+    if (separator) {
+      const sep = typeof separator === 'string' ? separator : separator.source;
+      spec = 's';
+      value = (example as Array<unknown>).join(sep);
+    } else {
+      spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
+      value = example;
+    }
+    result.format(styles, `${equals}%${spec}`, { [spec]: value });
+    if (ellipsis) {
+      result.setMerge().style(paramStyle, ellipsis, styles.text);
+    }
+  } else {
+    const type = option.type;
+    let param;
+    if (type === 'command') {
+      param = '...';
+    } else if (max) {
+      const param0 = option.paramName ?? (type === 'function' ? 'param' : type);
+      const param1 = param0.includes('<') ? param0 : `<${param0}>`;
+      const param2 = equals + param1 + ellipsis;
+      param = min <= 0 ? `[${param2}]` : param2;
+    }
+    if (param) {
+      result.style(paramStyle, param, styles.text);
+    }
   }
-  const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
-  result.format(styles, `%${spec}`, { [spec]: example });
-  const nonDelimited = spec !== 'v' && Array.isArray(example);
-  return result.length + (nonDelimited ? example.length - 1 : 0);
 }
 
 /**

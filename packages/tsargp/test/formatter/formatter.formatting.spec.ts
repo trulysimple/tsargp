@@ -322,20 +322,20 @@ describe('AnsiFormatter', () => {
 
     it('should align option parameters to the right boundary', () => {
       const options = {
-        numbers1: {
-          type: 'numbers',
-          names: ['-ns1'],
-          example: [1, 2],
+        string1: {
+          type: 'string',
+          names: ['-s1'],
+          example: 'abcde',
         },
-        numbers2: {
-          type: 'numbers',
-          names: ['-ns2'],
-          example: [1],
+        string2: {
+          type: 'string',
+          names: ['-s2'],
+          example: 'ab',
         },
       } as const satisfies Options;
       const config: FormatterConfig = { param: { align: 'right' }, items: [] };
       const message = new AnsiFormatter(new OptionValidator(options), config).format();
-      expect(message.wrap()).toEqual('  -ns1  1 2\n  -ns2    1\n');
+      expect(message.wrap()).toEqual(`  -s1  'abcde'\n  -s2     'ab'\n`);
     });
 
     it('should align option descriptions to the right boundary', () => {

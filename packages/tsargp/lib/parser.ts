@@ -333,12 +333,12 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
         break; // finished
       }
       prev = next;
+      positional = info === validator.positional; // don't use option.positional for this check
       const [key, name, option] = info;
       paramCount = getParamCount(option);
       const [min, max] = paramCount;
-      const niladic = !max;
       const hasValue = value !== undefined;
-      if (niladic || marker || option.inline === false) {
+      if (marker || (!positional && (max !== 1 || option.inline === false))) {
         if (comp) {
           throw new TextMessage();
         }
@@ -350,7 +350,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
             continue;
           }
           const [alt, name2] = marker ? [1, info[3]] : [0, name];
-          throw validator.error(ErrorItem.disallowedInlineValue, { o: name2 }, { alt });
+          throw validator.error(ErrorItem.disallowedInlineParameter, { o: name2 }, { alt });
         }
       } else if (min && !hasValue && option.inline === 'always') {
         if (completing) {
@@ -366,7 +366,7 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
         }
         specifiedKeys.add(key);
       }
-      if (niladic) {
+      if (!max) {
         // comp === false
         const [breakLoop, skipCount] = await handleNiladic(context, info, j, args.slice(j + 1));
         if (breakLoop) {
@@ -376,8 +376,6 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
         prev[1] = undefined;
         continue; // fetch more
       }
-      // don't use option.positional for this check
-      positional = info === validator.positional;
       if (!comp) {
         if (positional || !hasValue) {
           // positional marker, first positional parameter or option name

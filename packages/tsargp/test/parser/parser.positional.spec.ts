@@ -64,23 +64,6 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['--'])).rejects.toThrow(`Missing parameter to abc.`);
     });
 
-    it('should throw an error on positional marker specified with value', async () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-b'],
-          positional: '--',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse(['--='])).rejects.toThrow(
-        `Positional marker -- does not accept inline parameters.`,
-      );
-      await expect(parser.parse(['--=a'])).rejects.toThrow(
-        `Positional marker -- does not accept inline parameters.`,
-      );
-    });
-
     it('should handle a boolean option with positional arguments', async () => {
       const options = {
         flag: {

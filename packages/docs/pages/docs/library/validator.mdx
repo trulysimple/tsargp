@@ -93,9 +93,9 @@ In addition to the above, the validator may generate the following warning:
 
 - **Variadic option with cluster letter** -
   A variadic option that declares cluster letters must always be the last option in a cluster
-  argument. This includes options with a fallback value, non-delimited array options and function
-  options with a variable [parameter count]. This might not be the intended behavior and if so, you
-  should consider alternatives.
+  argument. This includes options with a [fallback] value, non-delimited array-valued options and
+  function options with a variable [parameter count]. This might not be the intended behavior and if
+  so, you should consider alternatives.
 
 ### Constraints validation
 
@@ -116,9 +116,9 @@ Constraint definitions are subject to the restrictions listed below:
 
 ### Value validation
 
-Valued options may define a default value, and non-niladic options may define example and fallback
-values. If present, these attributes are subject to the same set of constraints as that of the
-command-line arguments, which is listed below:
+Valued options may define a [default value], and non-niladic options may define [example] and
+[fallback] values. If present, these attributes are subject to the same set of constraints as that
+of the command-line arguments, which is listed below:
 
 - **Enums constraint violation** -
   If the [enumeration] attribute is present, then the default, example and fallback values must,
@@ -225,7 +225,7 @@ They are listed in the next sub-sections.
   when an option parameter is expected but was not specified
 - `missingPackageJson` -
   when it fails to find a "package.json" file when resolving the version
-- `disallowedInlineValue` -
+- `disallowedInlineParameter` -
   when either a niladic option or a [positional marker] is specified with an [inline parameter]
 - `unsatisfiedCondRequirement` -
   when an option's conditional requirement is not satisfied
@@ -272,6 +272,8 @@ They are listed in the next sub-sections.
   when a number-valued option has an invalid numeric [range]
 - `invalidParamCount` -
   when a function option has an invalid [parameter count]
+- `invalidInlineConstraint` -
+  when a variadic option declares an [inline constraint]
 
 #### Errors raised by both the parser and validator
 
@@ -308,7 +310,7 @@ It has the following optional properties, whose keys are enumerators from `Error
 - `missingRequiredOption` - `'Option %o is required.'{:ts}`
 - `missingParameter` - `'Missing parameter to %o.'{:ts}`
 - `missingPackageJson` - `'Could not find a "package.json" file.'{:ts}`
-- `disallowedInlineValue` - `'(Option|Positional marker) %o does not accept inline parameters.'{:ts}`
+- `disallowedInlineParameter` - `'(Option|Positional marker) %o does not accept inline parameters.'{:ts}`
 - `emptyPositionalMarker` - `'Option %o has empty positional marker.'{:ts}`
 - `unnamedOption` - `'Non-positional option %o has no name.'{:ts}`
 - `invalidOptionName` - `'Option %o has invalid name %s.'{:ts}`
@@ -337,6 +339,7 @@ It has the following optional properties, whose keys are enumerators from `Error
 - `invalidParamCount` - `'Option %o has invalid parameter count [%n].'{:ts}`
 - `variadicWithClusterLetter` - `'Variadic option %o may only appear as the last option in a cluster.'{:ts}`
 - `missingInlineParameter` - `'Option %o requires an inline parameter.'{:ts}`
+- `invalidInlineConstraint` - `'Inline constraint for option %o has no effect.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
@@ -352,7 +355,7 @@ message, along with a description of the corresponding value:
 | unsatisfiedRequirement     | `%o` = the specified option name; `%p` = the option's requirements                                                                         |
 | missingRequiredOption      | `%o` = the option's preferred name                                                                                                         |
 | missingParameter           | `%o` = the specified option name                                                                                                           |
-| disallowedInlineValue      | `%o` = the specified option name or positional marker                                                                                      |
+| disallowedInlineParameter  | `%o` = the specified option name or positional marker                                                                                      |
 | emptyPositionalMarker      | `%o` = the option's key                                                                                                                    |
 | unnamedOption              | `%o` = the option's key                                                                                                                    |
 | invalidOptionName          | `%o` = the option's key; `%s` = the invalid name                                                                                           |
@@ -381,6 +384,7 @@ message, along with a description of the corresponding value:
 | invalidParamCount          | `%o` = the option's key; `%n` = the parameter count                                                                                        |
 | variadicWithClusterLetter  | `%o` = the option's key                                                                                                                    |
 | missingInlineParameter     | `%o` = the specified option name                                                                                                           |
+| invalidInlineConstraint    | `%o` = the option's key                                                                                                                    |
 
 ### Connective words
 
@@ -403,6 +407,8 @@ It has the following optional properties, whose keys are enumerators from `Conne
 - `stringQuote` - the quote character used to enclose a string value (defaults to `"'"{:ts}`)
 
 [value validation]: #value-validation
+[example]: options#example-value
+[fallback]: options#fallback-value
 [negation names]: options#negation-names
 [positional marker]: options#positional--marker
 [enumeration]: options#enumeration
@@ -427,6 +433,7 @@ It has the following optional properties, whose keys are enumerators from `Conne
 [cluster letter]: options#cluster-letters
 [cluster argument]: options#cluster-letters
 [truth and falsity]: options#truth--falsity-names
+[inline constraint]: options#disable--require-inline
 
 [^1]:
     The command prefix is a series of option keys interspersed with periods, denoting the current
