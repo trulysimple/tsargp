@@ -5,5 +5,14 @@
     "@trulysimple/tsargp-docs": "0.4.2",
     "tsargp": "0.6.0"
   },
-  "changesets": []
+  "changesets": [
+    "chilly-pianos-act",
+    "fair-ravens-know",
+    "itchy-bikes-eat",
+    "khaki-dots-unite",
+    "mighty-timers-argue",
+    "nice-laws-guess",
+    "nice-teachers-protect",
+    "two-geese-live"
+  ]
 }
