@@ -4,7 +4,7 @@ import tsParser from '@typescript-eslint/parser';
 import mdx from 'eslint-plugin-mdx';
 import react from 'eslint-plugin-react';
 import hooks from 'eslint-plugin-react-hooks';
-import next from '@next/eslint-plugin-next';
+// import next from '@next/eslint-plugin-next';
 import jsdoc from 'eslint-plugin-jsdoc';
 import cspell from '@cspell/eslint-plugin';
 import globals from 'globals';
@@ -44,19 +44,19 @@ export default [
     plugins: {
       '@typescript-eslint': ts,
       react,
-      '@next/next': next,
+      // '@next/next': next,
       'react-hooks': hooks,
     },
     settings: {
       react: { version: 'detect' },
-      next: { rootDir: 'packages/docs' },
+      // next: { rootDir: 'packages/docs' },
     },
     rules: {
       ...ts.configs.strict.rules,
       ...react.configs['jsx-runtime'].rules,
       ...hooks.configs.recommended.rules,
-      ...next.configs.recommended.rules,
-      ...next.configs['core-web-vitals'].rules,
+      // ...next.configs.recommended.rules,
+      // ...next.configs['core-web-vitals'].rules,
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
