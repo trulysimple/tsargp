@@ -419,6 +419,16 @@ const helpFormats = ['ansi', 'json', 'csv', 'md'] as const;
  */
 const markdownSep = ' | ';
 
+/**
+ * The Markdown table row opener.
+ */
+const markdownOpen = '| ';
+
+/**
+ * The Markdown table row closer.
+ */
+const markdownClose = ' |';
+
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
@@ -547,7 +557,7 @@ export class MdFormatter extends CsvFormatter {
   override format(name = ''): TextMessage {
     const entries = this.groups.get(name);
     const entriesWithHeader = entries ? [this.fields, this.splitter, ...entries] : [];
-    return formatCsvEntries(entriesWithHeader, undefined, markdownSep, markdownSep);
+    return formatCsvEntries(entriesWithHeader, undefined, markdownSep, markdownOpen, markdownClose);
   }
 
   override sections(sections: HelpSections): TextMessage {
@@ -560,7 +570,8 @@ export class MdFormatter extends CsvFormatter {
       if (title) {
         result.push('## ' + title, ''); // section before table
       }
-      formatCsvEntries([this.fields, this.splitter, ...entries], result, markdownSep, markdownSep);
+      const entriesWithHeader = [this.fields, this.splitter, ...entries];
+      formatCsvEntries(entriesWithHeader, result, markdownSep, markdownOpen, markdownClose);
     });
     return result;
   }
@@ -954,23 +965,25 @@ function formatAnsiEntries(
  * @param entries The help entries
  * @param result The resulting message
  * @param itemSep The help item delimiter
- * @param entryQuote The quote character for a whole help entry
+ * @param openChar The character to begin a help entry
+ * @param closeChar The character to end a help entry
  * @returns The resulting message
  */
 function formatCsvEntries(
   entries: ReadonlyArray<CsvHelpEntry>,
   result = new TextMessage(),
   itemSep = '\t',
-  entryQuote = '',
+  openChar = '',
+  closeChar = '',
 ): TextMessage {
   result.push(
     ...entries.map(
       (entry) =>
-        entryQuote.trimStart() +
+        openChar +
         entry
           .map((item) => item.replace(regexps.space, ' ').replace(regexps.style, ''))
           .join(itemSep) +
-        entryQuote.trimEnd(),
+        closeChar,
     ),
   );
   return result;
