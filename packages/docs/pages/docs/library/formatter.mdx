@@ -252,10 +252,10 @@ and in what order. It is an array whose values can be one of the enumerators fro
 
 - `desc` - the option's [synopsis]
 - `negationNames` - the [negation names] of a flag option, if any
-- `separator` - the parameter [delimiter] of an array option, if enabled
+- `separator` - the parameter [delimiter] of an array-valued option, if enabled
 - `paramCount` - reports the [parameter count] of a variadic or polyadic[^1] option
 - `positional` - reports if an option accepts [positional] arguments
-- `append` - reports if an array option can be specified [multiple times]
+- `append` - reports if an array-valued option can be specified [multiple times]
 - `trim` - reports if string values will be [trimmed] (have leading and trailing whitespace removed)
 - `case` - the kind of [case-conversion] applied to string values, if enabled
 - `conv` - the kind of [math-conversion] applied to number values, if enabled
@@ -263,8 +263,8 @@ and in what order. It is an array whose values can be one of the enumerators fro
   if any
 - `regex` - the [regular expression] that string values should match, if enabled
 - `range` - the [numeric range] that number values should be within, if enabled
-- `unique` - reports if [duplicate elements] will be removed from an array option value
-- `limit` - the element [count limit] of an array option, if enabled
+- `unique` - reports if [duplicate elements] will be removed from an array-valued option value
+- `limit` - the element [count limit] of an array-valued option, if enabled
 - `requires` - the option [requirements], if any
 - `required` - reports if the option is [always required]
 - `default` - the option's [default value], if any

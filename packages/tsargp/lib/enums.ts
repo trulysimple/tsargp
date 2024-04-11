@@ -174,7 +174,7 @@ export const enum HelpItem {
    */
   negationNames,
   /**
-   * The element delimiter of an array option, if enabled.
+   * The element delimiter of an array-valued option, if enabled.
    */
   separator,
   /**
@@ -186,7 +186,7 @@ export const enum HelpItem {
    */
   positional,
   /**
-   * Reports if an array option can be specified multiple times.
+   * Reports if an array-valued option can be specified multiple times.
    */
   append,
   /**
@@ -214,11 +214,11 @@ export const enum HelpItem {
    */
   range,
   /**
-   * Reports if duplicate elements will be removed from an array option value.
+   * Reports if duplicate elements will be removed from an array-valued option value.
    */
   unique,
   /**
-   * The element count limit of an array option, if enabled.
+   * The element count limit of an array-valued option, if enabled.
    */
   limit,
   /**

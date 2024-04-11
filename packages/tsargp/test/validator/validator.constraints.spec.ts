@@ -286,5 +286,46 @@ describe('OptionValidator', () => {
         `Inline constraint for option function has no effect.`,
       );
     });
+
+    it('should throw an error on function option with invalid inline constraint (3)', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          inline: false,
+          paramCount: [0, 2],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).rejects.toThrow(
+        `Inline constraint for option function has no effect.`,
+      );
+    });
+
+    it('should allow a monadic function option with inline constraint (1)', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          inline: 'always',
+          paramCount: 1,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).resolves.toMatchObject({});
+    });
+
+    it('should allow a monadic function option with inline constraint (2)', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f'],
+          inline: 'always',
+          paramCount: [0, 1],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).resolves.toMatchObject({});
+    });
   });
 });

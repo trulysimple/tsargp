@@ -93,9 +93,9 @@ In addition to the above, the validator may generate the following warning:
 
 - **Variadic option with cluster letter** -
   A variadic option that declares cluster letters must always be the last option in a cluster
-  argument. This includes options with a fallback value, non-delimited array options and function
-  options with a variable [parameter count]. This might not be the intended behavior and if so, you
-  should consider alternatives.
+  argument. This includes options with a [fallback] value, non-delimited array-valued options and
+  function options with a variable [parameter count]. This might not be the intended behavior and if
+  so, you should consider alternatives.
 
 ### Constraints validation
 
@@ -116,9 +116,9 @@ Constraint definitions are subject to the restrictions listed below:
 
 ### Value validation
 
-Valued options may define a default value, and non-niladic options may define example and fallback
-values. If present, these attributes are subject to the same set of constraints as that of the
-command-line arguments, which is listed below:
+Valued options may define a [default value], and non-niladic options may define [example] and
+[fallback] values. If present, these attributes are subject to the same set of constraints as that
+of the command-line arguments, which is listed below:
 
 - **Enums constraint violation** -
   If the [enumeration] attribute is present, then the default, example and fallback values must,
@@ -407,6 +407,8 @@ It has the following optional properties, whose keys are enumerators from `Conne
 - `stringQuote` - the quote character used to enclose a string value (defaults to `"'"{:ts}`)
 
 [value validation]: #value-validation
+[example]: options#example-value
+[fallback]: options#fallback-value
 [negation names]: options#negation-names
 [positional marker]: options#positional--marker
 [enumeration]: options#enumeration

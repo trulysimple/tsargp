@@ -749,7 +749,7 @@ function normalizeNumber(
 }
 
 /**
- * Normalizes the value of an array option and checks its validity against any constraint.
+ * Normalizes the value of an array-valued option and checks its validity against any constraint.
  * @param config The validator configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)

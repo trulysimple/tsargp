@@ -64,7 +64,7 @@ for the help and version options, which do not have values, the initial value of
 ### Normalization & constraints
 
 Non-niladic options can be configured with normalization and constraint attributes. There are three
-kinds of attributes:
+kinds of attributes for this purpose:
 
 - **parameter constraint** - restriction applied to option parameters (i.e., before they get parsed)
 - **value normalization** - indicate how the option value should be transformed after being parsed
@@ -349,7 +349,7 @@ The `inline` attribute, if present, indicates the option's treatment of [inline 
 either `false{:ts}` to disallow or `'always'{:ts}` to always require. By default, parameters are
 allowed (but not required) to be inlined with option names.
 
-<Callout type="info">Can only be used on monadic or delimited array options.</Callout>
+<Callout type="info">Can only be used on monadic or delimited options.</Callout>
 
 ### Known value attributes
 
@@ -654,10 +654,10 @@ have either of the following values:
 
 <Callout type="info">Mutually exclusive with [skip count].</Callout>
 
-<Callout type="info">
-  Notice that a function option cannot have a parameter [separator]. The latter is only intended for
-  array-valued options, as they lack the flexibility of specifying a parameter count.
-</Callout>
+Notice that a function option cannot have a parameter [separator]. The latter is only intended for
+array-valued options, as they lack the flexibility of specifying a parameter count. On the other
+hand, setting this attribute to `1{:ts}` or `[0, 1]{:ts}` makes the option _monadic_, which enables
+both [inline parameters] and the [inline] attribute.
 
 #### Skip count
 

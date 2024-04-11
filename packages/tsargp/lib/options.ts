@@ -46,15 +46,15 @@ export const req = {
  */
 export const isOpt = {
   /**
-   * Tests if an option is an array option (i.e., has an array value).
+   * Tests if an option has an array value.
    * @param option The option definition
-   * @returns True if the option is an array-valued option
+   * @returns True if the option is array-valued
    */
   arr(option) {
     return option.type === 'strings' || option.type === 'numbers';
   },
   /**
-   * Tests if an option has or throws a message to be printed in the terminal.
+   * Tests if an option has or throws a message.
    * @param option The option definition
    * @returns True if the option is message-valued
    */
@@ -62,7 +62,7 @@ export const isOpt = {
     return option.type === 'help' || option.type === 'version';
   },
   /**
-   * Tests if an option has unknown values.
+   * Tests if an option has an unknown value.
    * @param option The option definition
    * @returns True if the option is unknown-valued
    */
@@ -78,7 +78,7 @@ export const isOpt = {
     return option.type === 'flag' || option.type === 'boolean';
   },
   /**
-   * Tests if an option has string values.
+   * Tests if an option has string value(s).
    * @param option The option definition
    * @returns True if the option is string-valued
    */
@@ -86,7 +86,7 @@ export const isOpt = {
     return option.type === 'string' || option.type === 'strings';
   },
   /**
-   * Tests if an option has number values.
+   * Tests if an option has number value(s).
    * @param option The option definition
    * @returns True if the option is number-valued
    */
