@@ -34,7 +34,7 @@ export const enum ErrorItem {
    * Raised by the parser when either a niladic option or a positional marker is specified with an
    * inline parameter.
    */
-  disallowedInlineValue,
+  disallowedInlineParameter,
   /**
    * Raised by the validator when a positional option has an empty positional marker.
    */
@@ -155,6 +155,10 @@ export const enum ErrorItem {
    * required.
    */
   missingInlineParameter,
+  /**
+   * Raised by the validator when a variadic option declares an inline constraint.
+   */
+  invalidInlineConstraint,
 }
 
 /**

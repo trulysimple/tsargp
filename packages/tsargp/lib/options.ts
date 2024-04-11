@@ -388,6 +388,7 @@ export type WithParam = {
   readonly complete?: CompleteCallback;
   /**
    * Whether inline parameters should be disallowed or required for this option.
+   * It can only be specified for monadic or delimited options.
    */
   readonly inline?: false | 'always';
 };

@@ -41,7 +41,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
     [ErrorItem.missingPackageJson]: 'Could not find a "package.json" file.',
-    [ErrorItem.disallowedInlineValue]:
+    [ErrorItem.disallowedInlineParameter]:
       '(Option|Positional marker) %o does not accept inline parameters.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o has empty positional marker.',
     [ErrorItem.unnamedOption]: 'Non-positional option %o has no name.',
@@ -78,6 +78,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.variadicWithClusterLetter]:
       'Variadic option %o may only appear as the last option in a cluster.',
     [ErrorItem.missingInlineParameter]: 'Option %o requires an inline parameter.',
+    [ErrorItem.invalidInlineConstraint]: 'Inline constraint for option %o has no effect.',
   },
   connectives: {
     [ConnectiveWord.and]: 'and',
@@ -486,14 +487,13 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
 async function validateOption(context: ValidateContext, key: string, option: OpaqueOption) {
   const [config, , flags, warning, visited, prefix] = context;
   const prefixedKey = prefix + key;
+  validateConstraints(config, prefixedKey, option);
+  validateValue(config, prefixedKey, option, option.default);
+  validateValue(config, prefixedKey, option, option.example);
+  validateValue(config, prefixedKey, option, option.fallback);
   const [min, max] = getParamCount(option);
-  // no need to verify a flag option's default value
-  if (max) {
-    validateConstraints(config, prefixedKey, option);
-    // non-niladic function options are ignored in value validation
-    validateValue(config, prefixedKey, option, option.default);
-    validateValue(config, prefixedKey, option, option.example);
-    validateValue(config, prefixedKey, option, option.fallback);
+  if (option.inline !== undefined && max !== 1) {
+    throw error(config, ErrorItem.invalidInlineConstraint, { o: key });
   }
   if (min < max && option.clusterLetters) {
     warning.push(format(config, ErrorItem.variadicWithClusterLetter, { o: prefixedKey }));

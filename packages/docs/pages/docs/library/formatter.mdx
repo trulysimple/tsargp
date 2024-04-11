@@ -88,15 +88,22 @@ Note how the empty string produced whitespace between its neighbors, and the com
 
 ### Parameter column
 
-This column contains either the option's type (formatted as `<type>`), the [example value] or the
-[parameter name]. It is only rendered if the option is non-niladic.
+This column contains either the option's `type`, the [example value] or the [parameter name]. It is
+rendered in the following way:
 
-When a parameter name is specified and contains an opening angle bracket `'<'{:ts}`, it is printed
-as-is; otherwise, it is enclosed in angle brackets `'<>'{:ts}`.
+- if the option:
+  - is [niladic], it is omitted
+  - contains an example value, this value is used
+  - is a command option, it is rendered with a standalone ellipsis `'...'{:ts}`
+  - is a function option, `type` is replaced by the word `param`
+  - does not have a parameter name containing an opening angle bracket `'<'{:ts}`, it is enclosed in
+    angle brackets `'<>'{:ts}`
+  - requires [inline parameters], it is prefixed with an equals sign `'='{:ts}`
+  - accepts more than one parameter, it is suffixed with an ellipsis `'...'{:ts}`
+  - can be specified without parameters (i.e., has a [fallback value]), it is enclosed in square
+    brackets `'[]'{:ts}`
 
-Except for example values, the parameter is suffixed with an ellipsis `'...'{:ts}` if the option
-accepts more than one parameter, and enclosed in square brackets `'[]'{:ts}` if it can be specified
-without parameters (e.g., if it has a [fallback value]). The result might be `[<param>...]`.
+The result might be something like `=<param>` or `[<param>...]`.
 
 ### Description column
 
@@ -396,6 +403,7 @@ that they may get overridden by (or combined with) an option's [display styles],
 [always required]: options#always-required
 [default value]: options#default-value
 [deprecation]: options#synopsis--deprecated
+[niladic]: options#niladic-options
 [external resource]: options#external-reference
 [environment variable]: options#environment-variable
 [conditional requirements]: options#conditional-requirements

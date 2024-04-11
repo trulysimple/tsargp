@@ -15,18 +15,18 @@ available types and describe them in detail.
 
 There is a total of ten option types, as summarized in the table below:
 
-| Type       | Parameters                                   | Value              | Normalization            | Constraints               |
-| ---------- | -------------------------------------------- | ------------------ | ------------------------ | ------------------------- |
-| [help]     | niladic                                      | `never{:ts}`[^1]   |                          |                           |
-| [version]  | niladic                                      | `never{:ts}`[^1]   |                          |                           |
-| [function] | configurable                                 | `unknown{:ts}`[^2] |                          | [param count]             |
-| [command]  | not applicable[^3]                           | `unknown{:ts}`[^2] |                          |                           |
-| [flag]     | niladic                                      | `boolean{:ts}`     |                          |                           |
-| [boolean]  | positional, monadic                          | `boolean{:ts}`     |                          | [truth and falsity]       |
-| [string]   | positional, monadic                          | `string{:ts}`      | [trim], [case]           | [enums], [regex]          |
-| [number]   | positional, monadic                          | `number{:ts}`      | [conv]                   | [enums], [range]          |
-| [strings]  | positional, delimited, variadic, append-able | `string[]{:ts}`    | [unique], [trim], [case] | [enums], [regex], [limit] |
-| [numbers]  | positional, delimited, variadic, append-able | `number[]{:ts}`    | [unique], [conv]         | [enums], [range], [limit] |
+| Type       | Parameters                                   | Value              | Normalization            | Constraints                         |
+| ---------- | -------------------------------------------- | ------------------ | ------------------------ | ----------------------------------- |
+| [help]     | niladic                                      | `never{:ts}`[^1]   |                          |                                     |
+| [version]  | niladic                                      | `never{:ts}`[^1]   |                          |                                     |
+| [function] | configurable                                 | `unknown{:ts}`[^2] |                          | [inline], [param count]             |
+| [command]  | niladic[^3]                                  | `unknown{:ts}`[^2] |                          |                                     |
+| [flag]     | niladic                                      | `boolean{:ts}`     |                          |                                     |
+| [boolean]  | positional, monadic                          | `boolean{:ts}`     |                          | [inline], [truth and falsity]       |
+| [string]   | positional, monadic                          | `string{:ts}`      | [trim], [case]           | [inline], [enums], [regex]          |
+| [number]   | positional, monadic                          | `number{:ts}`      | [conv]                   | [inline], [enums], [range]          |
+| [strings]  | positional, delimited, variadic, append-able | `string[]{:ts}`    | [unique], [trim], [case] | [inline], [enums], [regex], [limit] |
+| [numbers]  | positional, delimited, variadic, append-able | `number[]{:ts}`    | [unique], [conv]         | [inline], [enums], [range], [limit] |
 
 The meaning of each column is explained below.
 
@@ -45,7 +45,7 @@ The parameters column indicates how many parameters an option expects on the com
 - **variadic** - variable number of parameters
 - **delimited** - single parameter in which values are delimited by a [separator]
 - **append-able** - can be specified multiple times, with values getting [appended]
-- **configurable** - can be configured with a certain [parameter count]
+- **configurable** - niladic by default, but can be configured with a certain [parameter count]
 
 In the case of non-niladic options, parameters can be made optional by setting a [fallback value].
 
@@ -63,13 +63,12 @@ for the help and version options, which do not have values, the initial value of
 
 ### Normalization & constraints
 
-All options that accept parameters can be configured with normalization and constraint attributes.
+Non-niladic options can be configured with normalization and constraint attributes. There are three
+kinds of attributes:
 
-In the case of string- and number-valued options, these attributes indicate how the option value
-should be transformed after being parsed, and if it should comply with value constraints.
-
-In the case of the function and boolean options, there are specialized constraints for the handling
-of option parameters (i.e., before they get parsed).
+- **parameter constraint** - restriction applied to option parameters (i.e., before they get parsed)
+- **value normalization** - indicate how the option value should be transformed after being parsed
+- **value constraint** - restriction applied to the parsed and normalized value
 
 ## Common attributes
 
@@ -138,7 +137,9 @@ All options that may have a value share a set of attributes, which are described
 The `required` attribute, if present, indicates that the option is _always_ required, regardless of
 other options.
 
-Mutually exclusive with [default value] and [conditional requirements].
+<Callout type="info">
+  Mutually exclusive with [default value] and [conditional requirements].
+</Callout>
 
 <Callout type="default">
   When using this attribute, we recommend also setting [preferred name] to some explanatory name.
@@ -150,7 +151,7 @@ The `default` attribute, if present, specifies a value to be used in case the op
 _neither_ on the command-line _nor_ as an [environment variable]. It is only evaluated at the end of
 the parsing loop.
 
-Mutually exclusive with [always required].
+<Callout type="info">Mutually exclusive with [always required].</Callout>
 
 ##### String representation
 
@@ -228,7 +229,7 @@ The `requiredIf` attribute, if present, specifies conditional requirements. They
 reverse of the previous attribute: they indicate requirements that must be satisfied for the
 affected option to be _considered_ required.
 
-Mutually exclusive with [always required].
+<Callout type="info">Mutually exclusive with [always required].</Callout>
 
 An example might help elucidate this distinction. Suppose we have these requirements:
 
@@ -310,7 +311,7 @@ All non-niladic options share a set of attributes, which are described below.
 The `paramName` attribute, if present, specifies a name that replaces the option type in the help
 message.
 
-Mutually exclusive with [example value].
+<Callout type="info">Mutually exclusive with [example value].</Callout>
 
 #### Positional | marker
 
@@ -348,6 +349,8 @@ The `inline` attribute, if present, indicates the option's treatment of [inline 
 either `false{:ts}` to disallow or `'always'{:ts}` to always require. By default, parameters are
 allowed (but not required) to be inlined with option names.
 
+<Callout type="info">Can only be used on monadic or delimited array options.</Callout>
+
 ### Known value attributes
 
 All non-niladic options that have known values share a set of attributes, which are described below.
@@ -357,7 +360,7 @@ All non-niladic options that have known values share a set of attributes, which 
 The `example` attribute, if present, specifies a value that replaces the option type in the help
 message.
 
-Mutually exclusive with [parameter name].
+<Callout type="info">Mutually exclusive with [parameter name].</Callout>
 
 #### Parse callback
 
@@ -366,7 +369,7 @@ parameter(s). It receives a single parameter that contains the current [argument
 information, in which `param` holds the option parameter(s) and `comp` indicates whether [word
 completion] is in effect.
 
-Mutually exclusive with [append values].
+<Callout type="info">Mutually exclusive with [append values].</Callout>
 
 Notes about this callback:
 
@@ -380,8 +383,10 @@ of parsing a single option parameter. Any parameter whose parsed and normalized 
 one of these values will cause an error to be thrown. They are also considered by the [completion
 algorithm] when a word is being completed.
 
-Mutually exclusive with [regular expression] and [numeric range]. Explicitly _not_ available for the
-[boolean option].
+<Callout type="info">
+  Mutually exclusive with [regular expression] and [numeric range]. Explicitly _not_ available for
+  the [boolean option].
+</Callout>
 
 #### Fallback value
 
@@ -407,7 +412,7 @@ The `regex` attribute, if present, specifies a regular expression that string va
 Any parameter whose normalized value that does _not_ match the regular expression will cause an
 error to be thrown.
 
-Mutually exclusive with [enumeration].
+<Callout type="info">Mutually exclusive with [enumeration].</Callout>
 
 #### Trim whitespace
 
@@ -430,7 +435,7 @@ The `range` attribute, if present, specifies a (closed) numeric range within whi
 should fall. Any parameter whose parsed and normalized value is _not_ within the given range will
 cause an error to be thrown. You may want to use `[-Infinity, Infinity]{:ts}` to disallow `NaN{:ts}`.
 
-Mutually exclusive with [enumeration].
+<Callout type="info">Mutually exclusive with [enumeration].</Callout>
 
 #### Math conversion
 
@@ -448,9 +453,9 @@ The `separator` attribute, if present, specifies a delimiter by which to split t
 If specified, the option will accept a single parameter[^4] on the command-line, not multiple
 parameters (as is the default). It can be either a string or a regular expression.
 
-<Callout type="default">
-  When _not_ using this attribute, we recommend disabling [inline] parameters for array-valued
-  options.
+<Callout type="info">
+  When using this attribute, [inline parameters] will be allowed for an array-valued option, unless
+  explicitly disabled by the [inline] attribute.
 </Callout>
 
 #### Remove duplicates
@@ -470,7 +475,7 @@ The `append` attribute, if present, indicates that the option allows appending e
 if specified multiple times on the command-line. Both the [remove duplicates] normalization and the
 [count limit] constraint, if enabled, are applied after appendage.
 
-Mutually exclusive with [parse callback].
+<Callout type="info">Mutually exclusive with [parse callback].</Callout>
 
 #### Count limit
 
@@ -568,7 +573,7 @@ message. In addition to the set of [basic attributes], it has the attributes des
 
 The `version` attribute specifies a semantic version or version information.
 
-Mutually exclusive with [resolve callback].
+<Callout type="info">Mutually exclusive with [resolve callback].</Callout>
 
 #### Resolve callback
 
@@ -580,7 +585,7 @@ Notes about this callback:
 - it is meant for use in non-browser environments
 - you should use [`import.meta.resolve`] as value
 
-Mutually exclusive with [version info]
+<Callout type="info">Mutually exclusive with [version info].</Callout>
 
 #### Save message
 
@@ -647,11 +652,7 @@ have either of the following values:
 - a **positive** number: the option expects exactly this number of parameters
 - a numeric **range**: the option expects between a minimum and maximum count
 
-Mutually exclusive with [skip count].
-
-<Callout type="default">
-  When using this attribute, we recommend also disabling [inline] parameters.
-</Callout>
+<Callout type="info">Mutually exclusive with [skip count].</Callout>
 
 <Callout type="info">
   Notice that a function option cannot have a parameter [separator]. The latter is only intended for
@@ -663,7 +664,7 @@ Mutually exclusive with [skip count].
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
 returns. Its value is meant to be changed by the callback (the parser does not alter it).
 
-Mutually exclusive with [parameter count].
+<Callout type="info">Mutually exclusive with [parameter count].</Callout>
 
 It is useful in cases where the number of parameters is unknown, and the callback wants to have
 control over where an argument sequence ends. Here is an example of how it might be used inside the
