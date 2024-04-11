@@ -180,6 +180,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     group: 'String options:',
     enums: ['one', 'two'],
     example: 'one',
+    inline: false,
   },
   /**
    * A number option that has an enumeration constraint.
@@ -191,6 +192,7 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     group: 'Number options:',
     enums: [1, 2],
     example: 1,
+    inline: 'always',
   },
   /**
    * A strings option that has a regex constraint.

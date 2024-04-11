@@ -150,6 +150,11 @@ export const enum ErrorItem {
    * Warning produced by the validator when a variadic option declares cluster letters.
    */
   variadicWithClusterLetter,
+  /**
+   * Raised by the parser when an option is specified without an inline parameter, despite it being
+   * required.
+   */
+  missingInlineParameter,
 }
 
 /**
@@ -260,6 +265,10 @@ export const enum HelpItem {
    * Whether a help option uses the remaining arguments as option filter.
    */
   useFilter,
+  /**
+   * The option's treatment of inline parameters, if enabled.
+   */
+  inline,
 }
 
 /**

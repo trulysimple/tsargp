@@ -338,7 +338,7 @@ describe('ArgumentParser', () => {
             type: 'function',
             names: ['-f'],
             paramCount: 1,
-            noInline: true,
+            inline: false,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -659,12 +659,42 @@ describe('ArgumentParser', () => {
     });
 
     describe('boolean', () => {
-      it('should throw an error on boolean option specified with inline parameter, despite it being disallowed', async () => {
+      it('should accept a boolean option with fallback value with missing inline parameter, despite it being required', async () => {
         const options = {
           boolean: {
             type: 'boolean',
             names: ['-b'],
-            noInline: true,
+            inline: 'always',
+            fallback: true,
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b'])).resolves.toEqual({ boolean: true });
+      });
+
+      it('should throw an error on boolean option with missing inline parameter, despite it being required', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            inline: 'always',
+          },
+        } as const satisfies Options;
+        const parser = new ArgumentParser(options);
+        await expect(parser.parse(['-b'])).rejects.toThrow(
+          `Option -b requires an inline parameter.`,
+        );
+        await expect(parser.parse(['-b', '1'])).rejects.toThrow(
+          `Option -b requires an inline parameter.`,
+        );
+      });
+
+      it('should throw an error on boolean option with inline parameter, despite it being disallowed', async () => {
+        const options = {
+          boolean: {
+            type: 'boolean',
+            names: ['-b'],
+            inline: false,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);

@@ -34,13 +34,25 @@ describe('ArgumentParser', () => {
       await expect(parser.parse('cmd -s a -s ', { compIndex: 12 })).rejects.toThrow(/^abc$/);
     });
 
-    it('should ignore the completion of a disallowed inline parameter during completion', async () => {
+    it('should ignore required inline parameter during completion', async () => {
+      const options = {
+        string: {
+          type: 'string',
+          names: ['-s'],
+          inline: 'always',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse('cmd -s ', { compIndex: 9 })).rejects.toThrow(/^-s$/);
+    });
+
+    it('should ignore disallowed inline parameter during completion', async () => {
       const options = {
         string: {
           type: 'string',
           names: ['-s'],
           enums: ['one', 'two'],
-          noInline: true,
+          inline: false,
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);

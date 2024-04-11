@@ -25,13 +25,28 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-b=1'], flags)).resolves.toEqual({ boolean: true });
     });
 
+    it('should throw an error on boolean option with missing inline cluster parameter, despite it being required', async () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['--bool'],
+          clusterLetters: 'b',
+          inline: 'always',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-b'], flags)).rejects.toThrow(
+        `Option --bool requires an inline parameter.`,
+      );
+    });
+
     it('should throw an error on boolean option with inline cluster parameter, despite it being disallowed', async () => {
       const options = {
         boolean: {
           type: 'boolean',
           names: ['--bool'],
           clusterLetters: 'b',
-          noInline: true,
+          inline: false,
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);

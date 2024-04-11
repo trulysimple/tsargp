@@ -335,9 +335,10 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
       prev = next;
       const [key, name, option] = info;
       paramCount = getParamCount(option);
-      const niladic = !paramCount[1];
+      const [min, max] = paramCount;
+      const niladic = !max;
       const hasValue = value !== undefined;
-      if (niladic || marker || option.noInline) {
+      if (niladic || marker || option.inline === false) {
         if (comp) {
           throw new TextMessage();
         }
@@ -351,6 +352,13 @@ async function parseArgs(context: ParseContext): Promise<boolean> {
           const [alt, name2] = marker ? [1, info[3]] : [0, name];
           throw validator.error(ErrorItem.disallowedInlineValue, { o: name2 }, { alt });
         }
+      } else if (min && !hasValue && option.inline === 'always') {
+        if (completing) {
+          // ignore required inline parameters while completing
+          prev[1] = undefined;
+          continue;
+        }
+        throw validator.error(ErrorItem.missingInlineParameter, { o: name });
       }
       if (!completing && !specifiedKeys.has(key)) {
         if (option.deprecated) {

@@ -176,6 +176,12 @@ Notes about this callback:
 - it can be asynchronous
 - it may be configured with a custom `toString` method to render it in the help message
 
+<Callout type="info">
+  Note that the help message does not use the value returned by the callback, as it may depend on
+  the values of options passed in the command-line, which are generally not available when throwing
+  the help.
+</Callout>
+
 #### Forward requirements
 
 The `requires` attribute, if present, specifies requirements that must be satisfied _if_ the option
@@ -293,6 +299,8 @@ Notice how the parameters appear "glued" to the first letter, with no intervenin
 contain characters that are not valid cluster letters. The first one _must_ be valid, otherwise the
 argument will not be considered a cluster.
 
+<Callout type="info">This feature is affected by the [inline] attribute.</Callout>
+
 ### Parameter attributes
 
 All non-niladic options share a set of attributes, which are described below.
@@ -334,9 +342,11 @@ Notes about this callback:
   the option.
 </Callout>
 
-#### Disable inline
+#### Disable | require inline
 
-The `noInline` attribute, if present, indicates that the option does not accept [inline parameters].
+The `inline` attribute, if present, indicates the option's treatment of [inline parameters]. Can be
+either `false{:ts}` to disallow or `'always'{:ts}` to always require. By default, parameters are
+allowed (but not required) to be inlined with option names.
 
 ### Known value attributes
 
@@ -437,6 +447,11 @@ Array-valued options share a set of attributes, as described below.
 The `separator` attribute, if present, specifies a delimiter by which to split the option parameter.
 If specified, the option will accept a single parameter[^4] on the command-line, not multiple
 parameters (as is the default). It can be either a string or a regular expression.
+
+<Callout type="default">
+  When _not_ using this attribute, we recommend disabling [inline] parameters for array-valued
+  options.
+</Callout>
 
 #### Remove duplicates
 
@@ -633,6 +648,15 @@ have either of the following values:
 - a numeric **range**: the option expects between a minimum and maximum count
 
 Mutually exclusive with [skip count].
+
+<Callout type="default">
+  When using this attribute, we recommend also disabling [inline] parameters.
+</Callout>
+
+<Callout type="info">
+  Notice that a function option cannot have a parameter [separator]. The latter is only intended for
+  array-valued options, as they lack the flexibility of specifying a parameter count.
+</Callout>
 
 #### Skip count
 
@@ -851,6 +875,7 @@ attributes:
 - [miscellaneous attributes]
 
 [param count]: #parameter-count
+[inline]: #disable--require-inline
 [trim]: #trim-whitespace
 [case]: #case-conversion
 [conv]: #math-conversion
