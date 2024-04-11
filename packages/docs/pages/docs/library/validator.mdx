@@ -232,6 +232,8 @@ They are listed in the next sub-sections.
 - `invalidClusterOption` -
   when either a variadic option or a command option is specified in the middle of a [cluster
   argument]
+- `missingInlineParameter` -
+  when an option is specified without an inline parameter, despite it being required
 
 #### Validation errors
 
@@ -334,6 +336,7 @@ It has the following optional properties, whose keys are enumerators from `Error
 - `invalidNumericRange` - `'Option %o has invalid numeric range [%n].'{:ts}`
 - `invalidParamCount` - `'Option %o has invalid parameter count [%n].'{:ts}`
 - `variadicWithClusterLetter` - `'Variadic option %o may only appear as the last option in a cluster.'{:ts}`
+- `missingInlineParameter` - `'Option %o requires an inline parameter.'{:ts}`
 
 These phrases will be formatted according to [text formatting] rules.
 
@@ -377,6 +380,7 @@ message, along with a description of the corresponding value:
 | invalidNumericRange        | `%o` = the option's key; `%n` = the numeric range                                                                                          |
 | invalidParamCount          | `%o` = the option's key; `%n` = the parameter count                                                                                        |
 | variadicWithClusterLetter  | `%o` = the option's key                                                                                                                    |
+| missingInlineParameter     | `%o` = the specified option name                                                                                                           |
 
 ### Connective words
 

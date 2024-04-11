@@ -387,9 +387,9 @@ export type WithParam = {
    */
   readonly complete?: CompleteCallback;
   /**
-   * Whether inline parameters should be disallowed for this option.
+   * Whether inline parameters should be disallowed or required for this option.
    */
-  readonly noInline?: true;
+  readonly inline?: false | 'always';
 };
 
 /**

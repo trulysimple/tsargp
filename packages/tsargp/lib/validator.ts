@@ -77,6 +77,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.invalidParamCount]: 'Option %o has invalid parameter count [%n].',
     [ErrorItem.variadicWithClusterLetter]:
       'Variadic option %o may only appear as the last option in a cluster.',
+    [ErrorItem.missingInlineParameter]: 'Option %o requires an inline parameter.',
   },
   connectives: {
     [ConnectiveWord.and]: 'and',
