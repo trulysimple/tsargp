@@ -1,5 +1,17 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.3-dev.0
+
+### Patch Changes
+
+- [#155](https://github.com/trulysimple/tsargp/pull/155) [`178e97e`](https://github.com/trulysimple/tsargp/commit/178e97e235527aeb0b48060c19df87078ccbbe03) Thanks [@disog](https://github.com/disog)! - The Options and Parser pages were updated to document the new behavior of inline parameters for variadic options. The Validator page was updated to document the new validation for the inline parameter constraint. The Formatter page was updated to document the new syntax of the parameter column.
+
+- [#159](https://github.com/trulysimple/tsargp/pull/159) [`9476b4a`](https://github.com/trulysimple/tsargp/commit/9476b4a797e8e928bcc2568ac7f0ec242871027c) Thanks [@disog](https://github.com/disog)! - The formatter page was updated to document the new `merge` value of help column alignment.
+
+- [#153](https://github.com/trulysimple/tsargp/pull/153) [`9a54671`](https://github.com/trulysimple/tsargp/commit/9a5467135a1d962820ac24d515c0b4468ee88d79) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new behavior of the `inline` attribute (previously `noInline`) for non-niladic options, which specifies the option's treatment of inline parameters. The Formatter page was updated to document the new `inline` help item.
+
+- [#150](https://github.com/trulysimple/tsargp/pull/150) [`534d816`](https://github.com/trulysimple/tsargp/commit/534d816e9e0828c3e5729cb5b2ccc1db3b8228af) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `noInline` attribute for non-niladic options.
+
 ## 0.4.2
 
 ### Patch Changes
