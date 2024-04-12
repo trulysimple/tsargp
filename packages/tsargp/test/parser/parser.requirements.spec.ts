@@ -756,7 +756,7 @@ describe('ArgumentParser', () => {
     await expect(parser.parse(['-s', 'a', '1'])).resolves.toMatchObject({});
   });
 
-  it('should accept a conditional requirement with req.all with zero items', async () => {
+  it('should throw an error on conditional requirement with req.all with zero items', async () => {
     const options = {
       requires: {
         type: 'flag',
@@ -768,7 +768,7 @@ describe('ArgumentParser', () => {
     await expect(parser.parse([])).rejects.toThrow(`Option -f is required if.`);
   });
 
-  it('should throw an error on conditional requirement with req.one with zero items', async () => {
+  it('should accept a conditional requirement with req.one with zero items', async () => {
     const options = {
       requires: {
         type: 'flag',
