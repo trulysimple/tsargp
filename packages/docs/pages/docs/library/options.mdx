@@ -193,18 +193,23 @@ is specified on the command-line. It can be either:
 - a requirement **expression**; or
 - a requirement **callback**
 
-In the case of an option key, the referenced option must also be present on the command-line.
-In the case of an object, every referenced option must have the corresponding value.
-In the case of an expression, it is evaluated as follows:
+In the case of an option key, the referenced option must also be present on the command-line. When
+an object is specified, every referenced option must have the corresponding value, which can be any
+value accepted by that option, or `undefined{:ts}` to signify _presence_ or `null{:ts}` to signify
+_absence_.
 
-- `req.all` - an expression that is satisfied only when _all_ requirements are satisfied
+<Callout type="info">
+  You cannot reference options from a [nested command] (parent or child) in a requirement. Option
+  keys must always refer to options in the same set of option definitions.
+</Callout>
+
+##### Requirement expression
+
+You can also specify an expression, in which case it is evaluated as follows:
+
+- `req.all` - an expression that is satisfied when _all_ requirements are satisfied
 - `req.one` - an expression that is satisfied when at least _one_ requirement is satisfied
 - `req.not` - an expression that is satisfied when the requirement is _not_ satisfied.
-
-<Callout type="default">
-  When an object is specified, `undefined{:ts}` values can be used to signify required _presence_,
-  and `null{:ts}` values to signify required _absence_.
-</Callout>
 
 ##### Requirement callback
 
@@ -221,11 +226,6 @@ Notes about this callback:
 <Callout type="default">
   The callback may perform any kind of verification, not only inspect parsed values. For example, it
   may check whether the environment is setup correctly for the use of an option.
-</Callout>
-
-<Callout type="info">
-  You cannot reference options from a [nested command] (parent or child) in a requirement. Option
-  keys must always refer to options in the same set of option definitions.
 </Callout>
 
 #### Conditional requirements

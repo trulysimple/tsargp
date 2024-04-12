@@ -167,6 +167,14 @@ the restrictions listed below:
   This does not apply to [requirement callbacks]. They are ignored during validation.
 </Callout>
 
+<Callout type="warning">
+  Note that the library does not validate the _satisfiability_ of option requirements, not only
+  because it cannot evaluate callbacks at validation time, but also because [requirement expressions]
+  can be arbitrarily complex. For example, a simple expression like `req.all({opt:1}, {opt:2}){:ts}`
+  cannot be satisfied, but is hard to verify in general. This problem is known as [B-SAT], which is
+  known to be [NP-complete].
+</Callout>
+
 ### Positional validation
 
 Options declared with the [positional] attribute are subject to the restrictions listed below:
@@ -434,6 +442,9 @@ It has the following optional properties, whose keys are enumerators from `Conne
 [cluster argument]: options#cluster-letters
 [truth and falsity]: options#truth--falsity-names
 [inline constraint]: options#disable--require-inline
+[requirement expressions]: options#requirement-expression
+[B-SAT]: https://www.wikiwand.com/en/Boolean_satisfiability_problem
+[NP-complete]: https://www.wikiwand.com/en/NP-complete
 
 [^1]:
     The command prefix is a series of option keys interspersed with periods, denoting the current
