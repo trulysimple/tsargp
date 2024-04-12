@@ -3,7 +3,7 @@
   "version": "0.2",
   "language": "en",
   "dictionaries": ["typescript"],
-  "words": ["overlined", "niladic", "polyadic"],
+  "words": ["overlined", "niladic", "polyadic", "satisfiability"],
   "ignoreWords": [
     "tsargp",
     "nextra",

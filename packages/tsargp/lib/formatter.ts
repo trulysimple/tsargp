@@ -30,7 +30,7 @@ export type Alignment = 'left' | 'right';
  * Defines attributes common to all help columns.
  * @template A The type of text alignment
  */
-export type WithColumn<A = Alignment> = {
+export type WithColumn<A extends string = Alignment> = {
   /**
    * The text alignment for this column. (Defaults to 'left')
    */
