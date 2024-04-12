@@ -172,12 +172,31 @@ In addition to the [common properties], a usage section has the following proper
 - `indent` - the level of indentation of the section content (defaults to `0{:ts}`)
 - `filter` - a list of option keys to include or exclude (defaults to including all options)
 - `exclude` - whether the filter should exclude (defaults to `false{:ts}`)
-- `required` - a list of options that should be considered required in the usage
+- `required` - a list of options that should be considered always required
+- `requires` - a map of option keys to required options (defaults to none)
 - `comment` - a commentary to append to the usage (defaults to none)
 
 <Callout type="default">
   The filter can be used to create multiple usages of the same command, with different options. In
   the case of an inclusion filter, the options are listed in the same order specified in the filter.
+</Callout>
+
+#### Option dependencies
+
+The `requires` property is equivalent to an adjacency list, except that each source option can only
+reference a single target. Mutually dependent options are supported. The following table lists some
+examples that illustrate how this works. Suppose we have options A, B and C. Then:
+
+| Dependencies                       | Usage         | If C is always required |
+| ---------------------------------- | ------------- | ----------------------- |
+| A requires B requires C            | `[[[A] B] C]` | `[[A] B] C`             |
+| A and B require each other         | `[A B] [C]`   | `[A B] C`               |
+| A requires B requires C requires A | `[A B C]`     | `A B C`                 |
+| A and C require B                  | `[[A] B [C]]` | `[A] B C`               |
+| A requires B; C requires A         | `[[A [C]] B]` | `A C B`                 |
+
+<Callout type="info">
+  Mutual exclusivity is _not_ supported. For that purpose, you have to create different usages.
 </Callout>
 
 ### Groups section

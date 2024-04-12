@@ -166,6 +166,10 @@ export type WithRequired = {
    */
   readonly required?: ReadonlyArray<string>;
   /**
+   * A map of option keys to required options.
+   */
+  readonly requires?: Readonly<Record<string, string>>;
+  /**
    * A commentary to append to the usage.
    */
   readonly comment?: string;
@@ -268,6 +272,11 @@ type GroupsFunction<T> = (group: string, entries: ReadonlyArray<T>, section: Hel
  * @template T The type of the help entry
  */
 type EntriesByGroup<T> = Map<string, ReadonlyArray<T>>;
+
+/**
+ * The adjacency list for a usage section.
+ */
+type RequiredBy = Record<string, Array<string>>;
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -1063,12 +1072,7 @@ function formatDescription(context: HelpContext, option: OpaqueOption): Terminal
   } finally {
     delete styles.current;
   }
-  if (result.count === count) {
-    result.pop(count).break(); // this string does not contain any word
-  } else {
-    result.clear().break(); // add ending breaks after styles
-  }
-  return result;
+  return (result.count === count ? result.pop(count) : result.clear()).break();
 }
 
 /**
@@ -1384,56 +1388,113 @@ function formatUsage(
   breaks?: number,
 ): TerminalString {
   const [styles, options] = context;
-  const { filter, exclude, required, comment } = section;
-  const filterKeys = filter && new Set(filter);
-  const requiredKeys = required && new Set(required);
   const result = new TerminalString(indent, breaks).seq(styles.text);
+  const { filter, exclude, required, requires, comment } = section;
+  const visited = new Set<string>(exclude ? filter : []);
+  const requiredKeys = new Set(required);
+  const requiredBy = requires && getRequiredBy(requires);
+  const allKeys = Object.keys(options);
+  const keys = exclude ? allKeys : filter?.filter((key) => key in options) ?? allKeys;
   const count = result.count;
-  if (filterKeys && !exclude) {
-    // list options in the same order specified in the filter
-    for (const key of filterKeys) {
-      if (key in options) {
-        formatUsageOption(context, options[key], result, requiredKeys?.has(key));
-      }
-    }
-  } else {
-    for (const key in options) {
-      const option = options[key];
-      if (!option.hide && !(exclude && filterKeys?.has(key))) {
-        formatUsageOption(context, option, result);
-      }
-    }
+  for (const key of keys) {
+    formatUsageOption(context, key, result, visited, requiredKeys, requires, requiredBy);
   }
   if (comment) {
     result.split(comment);
   }
-  if (result.count === count) {
-    return new TerminalString(); // this string does not contain any word
+  return result.count === count ? result.pop(count) : result.clear();
+}
+
+/**
+ * Gets an adjacency list from a set of requirements.
+ * @param requires The map of option keys to required options
+ * @returns The adjacency list
+ */
+function getRequiredBy(requires: Readonly<Record<string, string>>): RequiredBy {
+  const result: RequiredBy = {};
+  for (const key in requires) {
+    const requiredKey = requires[key];
+    const list = result[requiredKey];
+    if (list) {
+      list.push(key);
+    } else {
+      result[requiredKey] = [key];
+    }
   }
-  return result.clear(); // to simplify client code
+  return result;
 }
 
 /**
  * Formats an option to be included in the the usage text.
  * @param context The help context
- * @param option The option definition
+ * @param key The option key
  * @param result The resulting string
- * @param required True if the option should be considered required
+ * @param visited The set of visited options
+ * @param requiredKeys The list of options to consider always required
+ * @param requires The map of option keys to required options
+ * @param requiredBy The adjacency list
+ * @param preOrderFn The formatting function to execute before rendering the option names
+ * @returns True if the option is considered always required
  */
 function formatUsageOption(
   context: HelpContext,
-  option: OpaqueOption,
+  key: string,
   result: TerminalString,
-  required = option.required ?? false,
-) {
-  if (!required) {
-    result.open('[');
+  visited: Set<string>,
+  requiredKeys: Set<string>,
+  requires?: Readonly<Record<string, string>>,
+  requiredBy?: RequiredBy,
+  preOrderFn?: (requiredKey?: string) => void,
+): boolean {
+  /** @ignore */
+  function format(receivedKey?: string, isLast = false): boolean {
+    const count = result.count;
+    preOrderFn?.(key === receivedKey ? undefined : receivedKey);
+    formatUsageNames(context, option, result);
+    formatParam(option, styles, result);
+    if (!required) {
+      list?.forEach((key) => {
+        if (formatUsageOption(context, key, result, visited, requiredKeys, requires, requiredBy)) {
+          required = true;
+        }
+      });
+      if (!required && (isLast || !receivedKey)) {
+        result.open('[', count).close(']');
+      }
+    }
+    return required;
   }
-  formatUsageNames(context, option, result);
-  formatParam(option, context[0], result);
-  if (!required) {
-    result.close(']');
+  let required = requiredKeys.has(key);
+  if (visited.has(key)) {
+    return required;
   }
+  visited.add(key);
+  const [styles, options] = context;
+  const option = options[key];
+  if (!required && option.required) {
+    required = true;
+    requiredKeys.add(key);
+  }
+  const list = requiredBy?.[key];
+  const requiredKey = requires?.[key];
+  if (requiredKey) {
+    if (required) {
+      requiredKeys.add(requiredKey);
+    }
+    if (!visited.has(requiredKey)) {
+      return formatUsageOption(
+        context,
+        requiredKey,
+        result,
+        visited,
+        requiredKeys,
+        requires,
+        requiredBy,
+        format,
+      );
+    }
+  }
+  return format(requiredKey, true);
 }
 
 /**
