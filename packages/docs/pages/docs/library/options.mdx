@@ -218,6 +218,11 @@ Notes about this callback:
 - it should return `true{:ts}` if the requirements were satisfied, otherwise `false{:ts}`
 - it may be configured with a custom `toString` method to render it in error and help messages
 
+<Callout type="default">
+  The callback may perform any kind of verification, not only inspect parsed values. For example, it
+  may check whether the environment is setup correctly for the use of an option.
+</Callout>
+
 <Callout type="info">
   You cannot reference options from a [nested command] (parent or child) in a requirement. Option
   keys must always refer to options in the same set of option definitions.

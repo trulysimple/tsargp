@@ -14,6 +14,7 @@ import type { Resolve, URL, KeyHaving, Range } from './utils';
 export const req = {
   /**
    * Creates a requirement expression that is satisfied only when all items are satisfied.
+   * If it contains zero items, it always evaluates to true.
    * @param items The requirement items
    * @returns The requirement expression
    */
@@ -23,6 +24,7 @@ export const req = {
 
   /**
    * Creates a requirement expression that is satisfied when at least one item is satisfied.
+   * If it contains zero items, it always evaluates to false.
    * @param items The requirement items
    * @returns The requirement expression
    */
