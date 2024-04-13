@@ -1,11 +1,11 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { OpaqueOption, Requires, RequiresVal, OpaqueOptions } from './options';
-import type { FormatArgs, FormattingFlags, MessageStyles } from './styles';
-import type { Concrete, NamingRules, Range } from './utils';
+import type { OpaqueOption, Requires, RequiresVal, OpaqueOptions } from './options.js';
+import type { FormatArgs, FormattingFlags, MessageStyles } from './styles.js';
+import type { Concrete, NamingRules, Range } from './utils.js';
 
-import { tf, fg, ErrorItem, ConnectiveWord } from './enums';
+import { tf, fg, ErrorItem, ConnectiveWord } from './enums.js';
 import {
   RequiresAll,
   RequiresOne,
@@ -13,9 +13,9 @@ import {
   isOpt,
   getParamCount,
   getOptionNames,
-} from './options';
-import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
-import { findSimilar, matchNamingRules } from './utils';
+} from './options.js';
+import { style, TerminalString, ErrorMessage, WarnMessage } from './styles.js';
+import { findSimilar, matchNamingRules } from './utils.js';
 
 //--------------------------------------------------------------------------------------------------
 // Constants

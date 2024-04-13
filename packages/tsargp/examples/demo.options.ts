@@ -143,10 +143,7 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     default: false,
     truthNames: ['yes'],
     falsityNames: ['no'],
-    requires: req.all(
-      'stringEnum',
-      req.one({ stringsRegex: ['a', 'b'] }, req.not({ numbersRange: [3, 4] })),
-    ),
+    requires: req.all('stringEnum', req.one({ strings: ['a', 'b'] }, req.not({ numbers: [3, 4] }))),
   },
   /**
    * A string option that has a regex constraint.
@@ -184,6 +181,7 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     group: 'String options:',
     enums: ['one', 'two'],
     example: 'one',
+    fallback: 'two',
     inline: false,
   },
   /**
@@ -201,14 +199,13 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
   /**
    * A strings option that has a regex constraint.
    */
-  stringsRegex: {
+  strings: {
     type: 'strings',
     names: ['-ss', '--strings'],
     desc: 'A strings option.',
     group: 'String options:',
-    regex: /^[\w-]+$/,
-    default: ['one', 'two'],
-    fallback: [],
+    default: ['one'],
+    fallback: ['two'],
     separator: ',',
     trim: true,
     case: 'upper',
@@ -216,12 +213,11 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
   /**
    * A numbers option that has a range constraint.
    */
-  numbersRange: {
+  numbers: {
     type: 'numbers',
     names: ['-ns', '--numbers'],
     desc: 'A numbers option.',
     group: 'Number options:',
-    range: [0, Infinity],
     default: [1, 2],
     conv: 'round',
   },
@@ -233,7 +229,6 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     names: ['', '--stringsEnum'],
     desc: 'A strings option.',
     group: 'String options:',
-    enums: ['one', 'two'],
     example: ['one'],
     positional: '--',
     limit: 3,
@@ -246,7 +241,6 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     names: ['', '--numbersEnum'],
     desc: 'A numbers option.',
     group: 'Number options:',
-    enums: [1, 2],
     example: [1, 2],
     separator: ',',
     append: true,

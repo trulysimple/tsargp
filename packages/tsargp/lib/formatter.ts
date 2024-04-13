@@ -1,12 +1,18 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { OpaqueOption, OpaqueOptions, Requires, RequiresEntry, RequiresVal } from './options';
-import type { Style, FormatStyles, ConnectiveWords, HelpMessage } from './styles';
-import type { Concrete } from './utils';
-import type { OptionValidator } from './validator';
+import type {
+  OpaqueOption,
+  OpaqueOptions,
+  Requires,
+  RequiresEntry,
+  RequiresVal,
+} from './options.js';
+import type { Style, FormatStyles, ConnectiveWords, HelpMessage } from './styles.js';
+import type { Concrete } from './utils.js';
+import type { OptionValidator } from './validator.js';
 
-import { tf, HelpItem, ConnectiveWord } from './enums';
+import { tf, HelpItem, ConnectiveWord } from './enums.js';
 import {
   RequiresAll,
   RequiresNot,
@@ -14,9 +20,9 @@ import {
   isOpt,
   getParamCount,
   getOptionNames,
-} from './options';
-import { AnsiMessage, JsonMessage, TextMessage, TerminalString, style, format } from './styles';
-import { max, combineRegExp, regexps } from './utils';
+} from './options.js';
+import { AnsiMessage, JsonMessage, TextMessage, TerminalString, style, format } from './styles.js';
+import { max, combineRegExp, regexps } from './utils.js';
 
 //--------------------------------------------------------------------------------------------------
 // Public types
@@ -1555,7 +1561,8 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
       spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
       value = example;
     }
-    result.format(styles, `${equals}%${spec}`, { [spec]: value });
+    const phrase = `${equals}%${spec}`;
+    result.format(styles, min <= 0 ? `[${phrase}]` : `${phrase}`, { [spec]: value });
     if (ellipsis) {
       result.setMerge().style(paramStyle, ellipsis, styles.text);
     }

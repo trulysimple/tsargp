@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { FormatterConfig, HelpSections } from './formatter';
-import type { HelpMessage, Style } from './styles';
-import type { Resolve, URL, KeyHaving, Range } from './utils';
+import type { FormatterConfig, HelpSections } from './formatter.js';
+import type { HelpMessage, Style } from './styles.js';
+import type { Resolve, URL, KeyHaving, Range } from './utils.js';
 
 //--------------------------------------------------------------------------------------------------
 // Constants

@@ -249,6 +249,22 @@ describe('AnsiFormatter', () => {
       expect(message.wrap()).toEqual(`  -b, --boolean  true  A boolean option\n`);
     });
 
+    it('should handle a boolean option with fallback and example values', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          fallback: true,
+          example: true,
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  [true]  A boolean option. Falls back to true if specified without parameter.\n`,
+      );
+    });
+
     it('should handle a string option with a fallback value', () => {
       const options = {
         string: {
