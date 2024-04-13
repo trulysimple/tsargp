@@ -1,5 +1,17 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.3-dev.1
+
+### Patch Changes
+
+- [#163](https://github.com/trulysimple/tsargp/pull/163) [`65196aa`](https://github.com/trulysimple/tsargp/commit/65196aa507ca7352eb451efd4abbe12d3f9ad183) Thanks [@disog](https://github.com/disog)! - The Formatter page was updated to document the new `requires` attribute for help usage sections.
+
+- [#164](https://github.com/trulysimple/tsargp/pull/164) [`ab2a6da`](https://github.com/trulysimple/tsargp/commit/ab2a6da44053c16f31ca9f0bde4cfd9c94dccf6c) Thanks [@disog](https://github.com/disog)! - The Home page was updated to show the help message of the demo example.
+
+- [#166](https://github.com/trulysimple/tsargp/pull/166) [`06f3269`](https://github.com/trulysimple/tsargp/commit/06f3269f2c7e95d12821ec04d0c711f679f19992) Thanks [@disog](https://github.com/disog)! - The Home page was updated with the new help message of the demo example.
+
+- [#161](https://github.com/trulysimple/tsargp/pull/161) [`265391b`](https://github.com/trulysimple/tsargp/commit/265391bb4920553a85c63d3239fad44b3bcf2979) Thanks [@disog](https://github.com/disog)! - Updated the Options and Validator pages to add more details about option requirements.
+
 ## 0.4.3-dev.0
 
 ### Patch Changes

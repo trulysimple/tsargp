@@ -1,5 +1,13 @@
 # tsargp
 
+## 0.7.0-dev.1
+
+### Minor Changes
+
+- [#166](https://github.com/trulysimple/tsargp/pull/166) [`06f3269`](https://github.com/trulysimple/tsargp/commit/06f3269f2c7e95d12821ec04d0c711f679f19992) Thanks [@disog](https://github.com/disog)! - The `example` value is now enclosed in square brackets in the help message when the option has a fallback value, just as is done with parameter names and option types.
+
+- [#163](https://github.com/trulysimple/tsargp/pull/163) [`65196aa`](https://github.com/trulysimple/tsargp/commit/65196aa507ca7352eb451efd4abbe12d3f9ad183) Thanks [@disog](https://github.com/disog)! - The usage section in help messages now supports option dependencies through the `requires` attribute. This is related to option requirements, but somewhat different.
+
 ## 0.7.0-dev.0
 
 ### Minor Changes
