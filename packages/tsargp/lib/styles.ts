@@ -428,9 +428,18 @@ export class TerminalString {
   /**
    * Appends a word that will be merged with the next word.
    * @param word The opening word
+   * @param pos The position of the next word
    * @returns The terminal string instance
    */
-  open(word: string): this {
+  open(word: string, pos = NaN): this {
+    if (pos >= 0) {
+      const [strings, lengths] = this.context;
+      if (pos < strings.length) {
+        strings[pos] = word + strings[pos];
+        lengths[pos] += word.length;
+      }
+      return this;
+    }
     return word ? this.word(word).setMerge() : this;
   }
 

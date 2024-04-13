@@ -100,7 +100,10 @@ describe('AnsiFormatter', () => {
           type: 'flag',
           names: ['-f', '--flag'],
           desc: 'A flag option.',
-          requires: req.all('required1', req.one({ required2: 1 }, req.not({ required3: '2' }))),
+          requires: req.all(
+            'required1',
+            req.one({ required2: [1, 2] }, req.not({ required3: '2' })),
+          ),
         },
         required1: {
           type: 'boolean',
@@ -108,7 +111,7 @@ describe('AnsiFormatter', () => {
           hide: true,
         },
         required2: {
-          type: 'number',
+          type: 'numbers',
           names: ['-req2', '--req2'],
           hide: true,
         },
@@ -120,7 +123,7 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
-        `  -f, --flag    A flag option. Requires (-req1 and (-req2 == 1 or -req3 != '2')).\n`,
+        `  -f, --flag    A flag option. Requires (-req1 and (-req2 == [1, 2] or -req3 != '2')).\n`,
       );
     });
 
@@ -248,7 +251,7 @@ describe('AnsiFormatter', () => {
           type: 'flag',
           names: ['-f', '--flag'],
           desc: 'A flag option.',
-          requiredIf: req.all('other1', req.one({ other2: 1 }, req.not({ other3: '2' }))),
+          requiredIf: req.all('other1', req.one({ other2: [1, 2] }, req.not({ other3: '2' }))),
         },
         other1: {
           type: 'boolean',
@@ -256,7 +259,7 @@ describe('AnsiFormatter', () => {
           hide: true,
         },
         other2: {
-          type: 'number',
+          type: 'numbers',
           names: ['-req2', '--req2'],
           hide: true,
         },
@@ -268,7 +271,7 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
-        `  -f, --flag    A flag option. Required if (-req1 and (-req2 == 1 or -req3 != '2')).\n`,
+        `  -f, --flag    A flag option. Required if (-req1 and (-req2 == [1, 2] or -req3 != '2')).\n`,
       );
     });
 
