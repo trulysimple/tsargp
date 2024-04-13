@@ -1561,8 +1561,8 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
       spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
       value = example;
     }
-    const phrase = min <= 0 ? `[${equals}%${spec}]` : `${equals}%${spec}`;
-    result.format(styles, phrase, { [spec]: value });
+    const phrase = `${equals}%${spec}`;
+    result.format(styles, min <= 0 ? `[${phrase}]` : `${phrase}`, { [spec]: value });
     if (ellipsis) {
       result.setMerge().style(paramStyle, ellipsis, styles.text);
     }
