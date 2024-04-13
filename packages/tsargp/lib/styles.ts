@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
-import { cs, tf, fg, bg, ConnectiveWord } from './enums';
-import { env, max, regexps, selectAlternative } from './utils';
+import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils.js';
+import { cs, tf, fg, bg, ConnectiveWord } from './enums.js';
+import { env, max, regexps, selectAlternative } from './utils.js';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -428,19 +428,18 @@ export class TerminalString {
   /**
    * Appends a word that will be merged with the next word.
    * @param word The opening word
-   * @param pos The position of the next word
+   * @param pos The position of a previously added word
    * @returns The terminal string instance
    */
   open(word: string, pos = NaN): this {
-    if (pos >= 0) {
+    if (pos >= 0 && pos < this.count) {
       const [strings, lengths] = this.context;
-      if (pos < strings.length) {
-        strings[pos] = word + strings[pos];
-        lengths[pos] += word.length;
-      }
-      return this;
+      strings[pos] = word + strings[pos];
+      lengths[pos] += word.length;
+    } else if (word) {
+      this.word(word).setMerge();
     }
-    return word ? this.word(word).setMerge() : this;
+    return this;
   }
 
   /**

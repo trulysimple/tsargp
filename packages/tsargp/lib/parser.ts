@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { HelpSections } from './formatter';
+import type { HelpSections } from './formatter.js';
 import type {
   Options,
   OptionValues,
@@ -11,22 +11,22 @@ import type {
   Requires,
   RequiresEntry,
   ResolveCallback,
-} from './options';
-import type { Range } from './utils';
+} from './options.js';
+import type { Range } from './utils.js';
 import type {
   OptionInfo,
   ConcreteConfig,
   ValidatorConfig,
   ValidationFlags,
   ValidationResult,
-} from './validator';
+} from './validator.js';
 
-import { ConnectiveWord, ErrorItem } from './enums';
-import { createFormatter, isHelpFormat } from './formatter';
-import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options';
-import { format, HelpMessage, WarnMessage, TextMessage, TerminalString } from './styles';
-import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils';
-import { OptionValidator, defaultConfig } from './validator';
+import { ConnectiveWord, ErrorItem } from './enums.js';
+import { createFormatter, isHelpFormat } from './formatter.js';
+import { RequiresAll, RequiresNot, RequiresOne, isOpt, getParamCount } from './options.js';
+import { format, HelpMessage, WarnMessage, TextMessage, TerminalString } from './styles.js';
+import { areEqual, findSimilar, getArgs, isTrue, max, findInObject, env } from './utils.js';
+import { OptionValidator, defaultConfig } from './validator.js';
 
 //--------------------------------------------------------------------------------------------------
 // Constants

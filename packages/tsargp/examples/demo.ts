@@ -16,8 +16,8 @@ interface Values {
   numberRange: number;
   stringEnum: 'one' | 'two' | undefined;
   numberEnum: 1 | 2 | undefined;
-  stringsRegex: string[];
-  numbersRange: number[];
+  strings: string[];
+  numbers: number[];
   stringsEnum: Array<'one' | 'two'> | undefined;
   numbersEnum: Array<1 | 2> | undefined;
 }

@@ -71,8 +71,8 @@ describe('TerminalString', () => {
     it('should add opening words at specific positions', () => {
       const str = new TerminalString().open('"', 0).word('type').open('[', 0);
       expect(str.count).toEqual(1);
-      expect(str.lengths).toEqual([5]);
-      expect(str.strings).toEqual(['[type']);
+      expect(str.lengths).toEqual([6]);
+      expect(str.strings).toEqual(['["type']);
     });
   });
 
