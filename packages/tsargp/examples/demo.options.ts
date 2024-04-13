@@ -92,7 +92,7 @@ export default {
         text: `MIT License.
 Copyright (c) 2024 ${style(tf.bold, tf.italic)}TrulySimple${style(tf.clear)}
 
-Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
+Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issues`,
         noWrap: true,
       },
     ],
