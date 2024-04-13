@@ -256,12 +256,12 @@ describe('AnsiFormatter', () => {
           names: ['-b', '--boolean'],
           desc: 'A boolean option.',
           fallback: true,
-          example: true,
+          example: false,
         },
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
-        `  -b, --boolean  [true]  A boolean option. Falls back to true if specified without parameter.\n`,
+        `  -b, --boolean  false  A boolean option. Falls back to true if specified without parameter.\n`,
       );
     });
 

@@ -201,7 +201,9 @@ describe('ArgumentParser', () => {
         boolean: {
           type: 'boolean',
           names: ['-b'],
-          default: () => true,
+          default() {
+            return this.type === 'boolean';
+          }, // test `this`
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
@@ -237,7 +239,9 @@ describe('ArgumentParser', () => {
         boolean: {
           type: 'boolean',
           names: ['-b'],
-          fallback: () => true,
+          fallback() {
+            return this.type === 'boolean';
+          }, // test `this`
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);

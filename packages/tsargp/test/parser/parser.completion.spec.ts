@@ -49,7 +49,7 @@ describe('ArgumentParser', () => {
       expect(options.string.fallback).toHaveBeenCalled();
     });
 
-    it('should ignore errors thrown by a function option callback during completion', async () => {
+    it('should ignore errors thrown by a function callback during completion', async () => {
       const options = {
         function: {
           type: 'function',
@@ -172,11 +172,13 @@ describe('ArgumentParser', () => {
           names: ['-f'],
           paramCount: 2,
           exec: vi.fn(),
-          complete: () => ['abc'],
+          complete() {
+            return [this.type]; // test `this`
+          },
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse('cmd -f 1 2', { compIndex: 10 })).rejects.toThrow(/^abc$/);
+      await expect(parser.parse('cmd -f 1 2', { compIndex: 10 })).rejects.toThrow(/^function$/);
       expect(options.function.exec).not.toHaveBeenCalled();
     });
 

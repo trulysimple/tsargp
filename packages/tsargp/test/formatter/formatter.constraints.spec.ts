@@ -140,7 +140,7 @@ describe('AnsiFormatter', () => {
       );
     });
 
-    it('should handle a variadic strings option that has a value count constraint', () => {
+    it('should handle a variadic strings option that has an element count constraint', () => {
       const options = {
         strings: {
           type: 'strings',
@@ -151,11 +151,11 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Value count is limited to 2.\n`,
+        `  -ss, --strings  <strings>...  A strings option. Accepts multiple parameters. Element count is limited to 2.\n`,
       );
     });
 
-    it('should handle a variadic numbers option that has a value count constraint', () => {
+    it('should handle a variadic numbers option that has an element count constraint', () => {
       const options = {
         numbers: {
           type: 'numbers',
@@ -166,7 +166,7 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Value count is limited to 2.\n`,
+        `  -ns, --numbers  <numbers>...  A numbers option. Accepts multiple parameters. Element count is limited to 2.\n`,
       );
     });
 

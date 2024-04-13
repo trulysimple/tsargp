@@ -10,7 +10,7 @@ import {
   matchNamingRules,
   escapeRegExp,
   combineRegExp,
-  findInObject,
+  findValue,
 } from '../lib/utils';
 
 /*
@@ -272,12 +272,12 @@ describe('combineRegExp', () => {
 
 describe('findInObject', () => {
   it('should return undefined on no match', () => {
-    expect(findInObject({}, () => true)).toBeUndefined();
-    expect(findInObject({ a: 1, b: 'a' }, () => false)).toBeUndefined();
+    expect(findValue({}, () => true)).toBeUndefined();
+    expect(findValue({ a: 1, b: 'a' }, () => false)).toBeUndefined();
   });
 
   it('should return the first match', () => {
-    expect(findInObject({ a: 1, b: 'a' }, () => true)).toEqual(1);
-    expect(findInObject({ a: 1, b: 'a' }, (val) => val === 'a')).toEqual('a');
+    expect(findValue({ a: 1, b: 'a' }, () => true)).toEqual(1);
+    expect(findValue({ a: 1, b: 'a' }, (val) => val === 'a')).toEqual('a');
   });
 });

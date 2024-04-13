@@ -82,7 +82,7 @@ export type Enumerate<N extends number, A extends Array<number> = []> = A['lengt
  * @template A The type of the helper array
  */
 export type Concrete<T, N extends number = 1, A extends Array<number> = []> = A['length'] extends N
-  ? { [K in keyof T]-?: T[K] }
+  ? Required<T>
   : { [K in keyof T]-?: Concrete<T[K], N, [...A, 1]> };
 
 /**
@@ -433,11 +433,10 @@ export function matchNamingRules<T extends NamingRules>(
   for (const name of names) {
     const lower = name.toLowerCase();
     const upper = name.toUpperCase();
-    for (const key1 in rules) {
-      const rule = rules[key1];
+    for (const [key1, category] of getEntries(rules)) {
       const res = result[key1];
-      for (const key2 in rule) {
-        if (!res[key2] && rule[key2](name, lower, upper)) {
+      for (const [key2, rule] of getEntries(category)) {
+        if (!res[key2] && rule(name, lower, upper)) {
           res[key2] = name;
         }
       }
@@ -480,16 +479,13 @@ export function combineRegExp(patterns: ReadonlyArray<string>): string {
 
 /**
  * Finds a value that matches a predicate in an object.
- * @param obj The object to search
+ * @param rec The record-like object to search in
  * @param pred The predicate function
  * @returns The first value matching the predicate
+ * @internal
  */
-export function findInObject<T extends object>(
-  obj: T,
-  pred: (val: T[keyof T]) => boolean,
-): T[keyof T] | undefined {
-  for (const key in obj) {
-    const val = obj[key];
+export function findValue<T>(rec: Record<string, T>, pred: (val: T) => boolean): T | undefined {
+  for (const val of getValues(rec)) {
     if (pred(val)) {
       return val;
     }
@@ -500,7 +496,58 @@ export function findInObject<T extends object>(
  * Gets the value of an environment variable.
  * @param name The variable name
  * @returns The variable value, if it exists; else undefined
+ * @internal
  */
-export function env(name: string): string | undefined {
+export function getEnv(name: string): string | undefined {
   return process?.env[name];
+}
+
+/**
+ * Gets a list of entries from an object.
+ * @param rec The record-like object
+ * @returns The list of object entries
+ * @internal
+ */
+export function getEntries<T>(rec: Readonly<Record<string, T>>): Array<[string, T]> {
+  return Object.entries(rec);
+}
+
+/**
+ * Gets a list of values from an object.
+ * @param rec The record-like object
+ * @returns The list of object values
+ * @internal
+ */
+export function getValues<T>(rec: Readonly<Record<string, T>>): Array<T> {
+  return Object.values(rec);
+}
+
+/**
+ * Gets a list of keys from an object.
+ * @param rec The record-like object
+ * @returns The list of object keys
+ * @internal
+ */
+export function getKeys(rec: object): Array<string> {
+  return Object.keys(rec);
+}
+
+/**
+ * Merges the first-level properties of a source object with those of a template object.
+ * @param template The template object
+ * @param source The source object
+ * @returns The result object
+ */
+export function mergeValues<T extends Record<string, unknown>>(
+  template: T,
+  source: Record<string, unknown>,
+): T {
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of getEntries(template)) {
+    result[key] =
+      Array.isArray(val) || typeof val !== 'object'
+        ? source[key] ?? val
+        : { ...val, ...(source[key] as object) };
+  }
+  return result as T;
 }

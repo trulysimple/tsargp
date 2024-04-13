@@ -146,6 +146,20 @@ describe('AnsiFormatter', () => {
       expect(message.wrap()).toEqual('[<boolean>]');
     });
 
+    it('should render a usage section with an example value with required inline parameter', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b'],
+          example: true,
+          inline: 'always',
+        },
+      } as const satisfies Options;
+      const sections: HelpSections = [{ type: 'usage' }];
+      const message = new AnsiFormatter(new OptionValidator(options)).sections(sections);
+      expect(message.wrap()).toEqual('[-b=true]');
+    });
+
     it('should render an empty groups section', () => {
       const sections: HelpSections = [{ type: 'groups' }];
       const message = new AnsiFormatter(new OptionValidator({})).sections(sections);
@@ -260,9 +274,11 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const sections1: HelpSections = [{ type: 'groups', filter: ['group1'] }];
       const sections2: HelpSections = [{ type: 'groups', filter: ['group1'], exclude: true }];
+      const sections3: HelpSections = [{ type: 'groups', filter: ['group2', 'group1'] }];
       const formatter = new AnsiFormatter(new OptionValidator(options));
       expect(formatter.sections(sections1).wrap()).toEqual('group1\n\n  -f1');
       expect(formatter.sections(sections2).wrap()).toEqual('group2\n\n  -f2');
+      expect(formatter.sections(sections3).wrap()).toEqual('group2\n\n  -f2\n\ngroup1\n\n  -f1');
     });
 
     it('should group options according to an adjacency list in a usage section', () => {

@@ -43,7 +43,7 @@ export const req = {
 } as const;
 
 /**
- * The option checking functions.
+ * The option testing functions.
  * @internal
  */
 export const isOpt = {
@@ -95,7 +95,7 @@ export const isOpt = {
   num(option) {
     return option.type === 'number' || option.type === 'numbers';
   },
-} as const satisfies CheckFunctions;
+} as const satisfies Record<string, (option: OpaqueOption) => boolean>;
 
 //--------------------------------------------------------------------------------------------------
 // Public types
@@ -775,18 +775,6 @@ export type OptionValues<T extends Options = Options> = Resolve<{
 // Internal types
 //--------------------------------------------------------------------------------------------------
 /**
- * An option checking function.
- * @param option The option definition
- * @returns True if the option satisfies the check
- */
-type CheckFunction = (option: OpaqueOption) => boolean;
-
-/**
- * A set of option checking functions.
- */
-type CheckFunctions = Record<string, CheckFunction>;
-
-/**
  * The option types.
  */
 type OptionTypes =
@@ -1069,4 +1057,37 @@ export function getParamCount(option: OpaqueOption): Range {
   }
   const count = option.paramCount ?? 0;
   return typeof count === 'object' ? count : count < 0 ? [0, Infinity] : [count, count];
+}
+
+/**
+ * Visits an option's requirements, executing a callback according to the type of the requirement.
+ * @param requires The option requirements
+ * @param keyFn The callback to process an option key
+ * @param notFn The callback to process a "not" expression
+ * @param allFn The callback to process an "all" expression
+ * @param oneFn The callback to process a "one" expression
+ * @param valFn The callback to process a requirement object
+ * @param cbkFn The callback to process a requirement callback
+ * @returns The result of the callback
+ */
+export function visitRequirements<T>(
+  requires: Requires,
+  keyFn: (req: string) => T,
+  notFn: (req: RequiresNot) => T,
+  allFn: (req: RequiresAll) => T,
+  oneFn: (req: RequiresOne) => T,
+  valFn: (req: RequiresVal) => T,
+  cbkFn: (req: RequiresCallback) => T,
+): T {
+  return typeof requires === 'string'
+    ? keyFn(requires)
+    : requires instanceof RequiresNot
+      ? notFn(requires)
+      : requires instanceof RequiresAll
+        ? allFn(requires)
+        : requires instanceof RequiresOne
+          ? oneFn(requires)
+          : typeof requires === 'object'
+            ? valFn(requires)
+            : cbkFn(requires);
 }

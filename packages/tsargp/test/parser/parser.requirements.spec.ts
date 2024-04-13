@@ -1047,7 +1047,9 @@ describe('ArgumentParser', () => {
         type: 'boolean',
         names: ['-b'],
         positional: true,
-        requiredIf: (values) => values['flag1'] === values['flag2'],
+        requiredIf(values) {
+          return !!this.positional && values['flag1'] === values['flag2']; // test `this`
+        },
       },
     } as const satisfies Options;
     options.boolean.requiredIf.toString = () => 'fcn';

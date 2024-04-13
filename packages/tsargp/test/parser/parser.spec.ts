@@ -285,7 +285,7 @@ describe('ArgumentParser', () => {
             type: 'function',
             names: ['-f2'],
             exec() {
-              this.skipCount = 1;
+              this.skipCount = 1; // test `this`
             },
           },
         } as const satisfies Options;
@@ -306,7 +306,7 @@ describe('ArgumentParser', () => {
             type: 'function',
             names: ['-f2'],
             exec() {
-              this.skipCount = -1;
+              this.skipCount = -1; // test `this`
             },
           },
         } as const satisfies Options;
@@ -426,12 +426,12 @@ describe('ArgumentParser', () => {
             type: 'command',
             names: ['-c'],
             async exec() {
-              throw 'abc';
+              throw this.type; // test `this`
             },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-c'])).rejects.toThrow('abc');
+        await expect(parser.parse(['-c'])).rejects.toThrow('command');
       });
 
       it('should handle a command option', async () => {
@@ -529,17 +529,19 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: async () => ({
-              flag: {
-                type: 'flag',
-                names: ['-f'],
-              },
-            }),
+            async options() {
+              return {
+                flag: {
+                  type: 'flag',
+                  names: this.names, // test `this`
+                },
+              };
+            },
             exec: ({ param }) => param,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: { flag: true } });
+        await expect(parser.parse(['-c', '-c'])).resolves.toEqual({ command: { flag: true } });
       });
 
       it('should handle a command option with options with async callbacks', async () => {

@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils.js';
 import { cs, tf, fg, bg, ConnectiveWord } from './enums.js';
-import { env, max, regexps, selectAlternative } from './utils.js';
+import { getEnv, max, regexps, selectAlternative } from './utils.js';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -865,7 +865,7 @@ function formatArgs(
  * @returns The terminal width (in number of columns)
  */
 function streamWidth(stream: 'stdout' | 'stderr'): number {
-  const forceWidth = env('FORCE_WIDTH');
+  const forceWidth = getEnv('FORCE_WIDTH');
   return forceWidth ? Number(forceWidth) : process?.[stream]?.columns;
 }
 
@@ -875,7 +875,7 @@ function streamWidth(stream: 'stdout' | 'stderr'): number {
  * @see https://clig.dev/#output
  */
 function omitStyles(width: number): boolean {
-  return !env('FORCE_COLOR') && (!width || !!env('NO_COLOR') || env('TERM') === 'dumb');
+  return !getEnv('FORCE_COLOR') && (!width || !!getEnv('NO_COLOR') || getEnv('TERM') === 'dumb');
 }
 
 /**

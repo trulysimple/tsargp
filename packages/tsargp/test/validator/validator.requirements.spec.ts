@@ -4,32 +4,53 @@ import '../utils.spec';
 
 describe('OptionValidator', () => {
   describe('validate', () => {
-    it('should throw an error on option required by itself', async () => {
+    it('should ignore requirement callbacks during validation', async () => {
       const options = {
         requires: {
           type: 'flag',
           names: ['-f1'],
-          requires: req.all('required', req.one({ requires: 'o' })),
+          requires: () => false,
         },
         required: {
           type: 'flag',
           names: ['-f2'],
+          requiredIf: async () => false,
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).resolves.toMatchObject({});
+    });
+
+    it('should throw an error on option required by itself with req.not', async () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f1'],
+          requires: req.not('requires'),
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       await expect(validator.validate()).rejects.toThrow(`Option requires requires itself.`);
     });
 
-    it('should throw an error on unknown required option', async () => {
+    it('should throw an error on option required by itself with req.all', async () => {
       const options = {
         requires: {
           type: 'flag',
           names: ['-f1'],
-          requires: req.all('required', req.one({ unknown: 'o' })),
+          requires: req.all('requires'),
         },
-        required: {
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).rejects.toThrow(`Option requires requires itself.`);
+    });
+
+    it('should throw an error on unknown option required with req.one', async () => {
+      const options = {
+        requires: {
           type: 'flag',
-          names: ['-f2'],
+          names: ['-f1'],
+          requires: req.one('unknown'),
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -41,7 +62,7 @@ describe('OptionValidator', () => {
         requires: {
           type: 'flag',
           names: ['-f'],
-          requires: 'required',
+          requires: { required: undefined },
         },
         required: {
           type: 'help',
@@ -57,7 +78,7 @@ describe('OptionValidator', () => {
         requires: {
           type: 'flag',
           names: ['-f'],
-          requires: 'required',
+          requires: { required: null },
         },
         required: {
           type: 'version',
