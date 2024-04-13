@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
 import { cs, tf, fg, bg, ConnectiveWord } from './enums';
-import { env, max, overrides, regexps, selectAlternative } from './utils';
+import { env, max, regexps, selectAlternative } from './utils';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -677,7 +677,7 @@ export class AnsiMessage extends Array<TerminalString> {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(overrides.stdoutCols ?? process?.stdout?.columns);
+    return this.wrap(streamWidth('stdout'));
   }
 
   /**
@@ -715,7 +715,7 @@ export class WarnMessage extends AnsiMessage {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(overrides.stderrCols ?? process?.stderr?.columns);
+    return this.wrap(streamWidth('stderr'));
   }
 }
 
@@ -858,6 +858,16 @@ function formatArgs(
       }
     }
   };
+}
+
+/**
+ * Gets the terminal width of a process stream.
+ * @param stream The name of the stream
+ * @returns The terminal width (in number of columns)
+ */
+function streamWidth(stream: 'stdout' | 'stderr'): number {
+  const forceWidth = env('FORCE_WIDTH');
+  return forceWidth ? Number(forceWidth) : process?.[stream]?.columns;
 }
 
 /**

@@ -196,7 +196,8 @@ examples that illustrate how this works. Suppose we have options A, B and C. The
 | A requires B; C requires A         | `[[A [C]] B]` | `A C B`                 |
 
 <Callout type="info">
-  Mutual exclusivity is _not_ supported. For that purpose, you have to create different usages.
+  Mutual exclusivity and multi-targeting are _not_ supported. For that purpose, you have to create
+  different usages. (The reason is that this is difficult to implement. We sincerely apologize.)
 </Callout>
 
 ### Groups section
@@ -259,6 +260,8 @@ configuration:
 
 The following is an extract of a help message produced with these settings:
 
+{/* cSpell:disable */}
+
 ```ansi
   [95m-ne[0m,   [95m--numberEnum[0m
             [33m1[0m
@@ -268,6 +271,8 @@ The following is an extract of a help message produced with these settings:
                       [0mA numbers option. Accepts multiple parameters. Values
                     must be in the range [[33m0[0m, [33mInfinity[0m]. Defaults to [[33m1[0m, [33m2[0m].[0m
 ```
+
+{/* cSpell:enable */}
 
 ### Help items
 
@@ -303,7 +308,13 @@ and in what order. It is an array whose values can be one of the enumerators fro
 - `useFilter` - whether a help option uses the remaining arguments as [option filter]
 - `inline` - the option's treatment of [inline parameters], if enabled
 
-The default is to print all items in the order listed above.
+The default is to render all items in the order listed above.
+
+<Callout type="default">
+  You might want to use this to limit the amount of information, especially if you intend to export
+  the help message in either CSV or Markdown format. In these formats, a table column is rendered
+  for each help item, regardless of whether it has information or not.
+</Callout>
 
 ### Help phrases
 
@@ -338,7 +349,10 @@ following optional properties, whose keys are enumerators from `HelpItem`:
 - `useFilter` - `'Uses the remaining arguments as option filter.'{:ts}`
 - `inline` - `'(Disallows|Requires) inline parameters.'{:ts}`
 
-These phrases will be formatted according to [text formatting] rules.
+<Callout type="info">
+  Phrases are formatted according to [text formatting] rules. They are only rendered in help
+  messages in ANSI format.
+</Callout>
 
 #### Format specifiers
 

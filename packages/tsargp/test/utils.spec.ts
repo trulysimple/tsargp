@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NamingRules } from '../lib/utils';
 import {
-  overrides,
   areEqual,
   gestaltSimilarity,
   findSimilar,
@@ -15,18 +14,16 @@ import {
 } from '../lib/utils';
 
 /*
-  Initialization section. Do not do any of the following:
-  - wrap this code in an IIFE, default export or vitest's `beforeAll`
-  - assign `undefined` to `process.env`, as it will be converted to the string 'undefined'
+  Initialization section.
+  Do not wrap this code in an IIFE, default export or vitest's `beforeAll`.
 */
 {
-  overrides.stderrCols = 0;
-  overrides.stdoutCols = 0;
   resetEnv();
 }
 
 /** @ignore */
 export function resetEnv() {
+  process.env['FORCE_WIDTH'] = '0';
   for (const name of ['FORCE_COLOR', 'NO_COLOR', 'TERM', 'COMP_LINE', 'COMP_POINT']) {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete process.env[name];
