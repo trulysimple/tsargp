@@ -1449,15 +1449,20 @@ function formatUsageOption(
   /** @ignore */
   function format(receivedKey?: string, isLast = false): boolean {
     const count = result.count;
+    // if the received key is my own key, then I'm the junction point in a circular dependency:
+    // reset it so that remaining options in the chain can be considered optional
     preOrderFn?.(key === receivedKey ? undefined : receivedKey);
     formatUsageNames(context, option, result);
     formatParam(option, styles, result);
     if (!required) {
+      // process requiring options in my dependency group (if they have not already been visited)
       list?.forEach((key) => {
         if (formatUsageOption(context, key, result, visited, requiredKeys, requires, requiredBy)) {
-          required = true;
+          required = true; // update my status, since I'm required by an always required option
         }
       });
+      // if I'm not always required and I'm the last option in a dependency chain, ignore the
+      // received key, so I can be considered optional
       if (!required && (isLast || !receivedKey)) {
         result.open('[', count).close(']');
       }
@@ -1479,8 +1484,9 @@ function formatUsageOption(
   const requiredKey = requires?.[key];
   if (requiredKey) {
     if (required) {
-      requiredKeys.add(requiredKey);
+      requiredKeys.add(requiredKey); // transitivity of always required options
     }
+    // this check is needed, so we can fallback to the normal format call in the negative case
     if (!visited.has(requiredKey)) {
       return formatUsageOption(
         context,
