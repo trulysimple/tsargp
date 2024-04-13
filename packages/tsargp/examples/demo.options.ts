@@ -85,6 +85,7 @@ export default {
         breaks: 1,
         filter: ['help', 'version', 'helpCmd', 'hello'],
         exclude: true,
+        requires: { boolean: 'stringEnum' },
       },
       {
         type: 'text',
@@ -144,7 +145,6 @@ Report a bug: ${style(tf.faint)}https://github.com/trulysimple/tsargp/issues`,
     falsityNames: ['no'],
     requires: req.all(
       'stringEnum',
-      { numberEnum: 2 },
       req.one({ stringsRegex: ['a', 'b'] }, req.not({ numbersRange: [3, 4] })),
     ),
   },

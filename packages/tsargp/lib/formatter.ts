@@ -1721,8 +1721,14 @@ function formatRequiredValue(
     const connective = negate
       ? connectives[ConnectiveWord.notEquals]
       : connectives[ConnectiveWord.equals];
-    const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
+    const [spec, sep] = isOpt.bool(option)
+      ? ['b']
+      : isOpt.str(option)
+        ? ['s', connectives[ConnectiveWord.stringSep]]
+        : isOpt.num(option)
+          ? ['n', connectives[ConnectiveWord.numberSep]]
+          : 'v';
     const phrase = isOpt.arr(option) ? `[%${spec}]` : `%${spec}`;
-    result.word(connective).format(styles, phrase, { [spec]: value });
+    result.word(connective).format(styles, phrase, { [spec]: value }, { sep });
   }
 }

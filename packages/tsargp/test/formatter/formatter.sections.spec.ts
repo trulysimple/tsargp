@@ -334,6 +334,7 @@ describe('AnsiFormatter', () => {
         flag3: {
           type: 'flag',
           names: ['-f3'],
+          required: true,
         },
       } as const satisfies Options;
       const case0 = {};
@@ -350,7 +351,6 @@ describe('AnsiFormatter', () => {
       const case11: HelpSections = [
         {
           type: 'usage',
-          required: ['flag3'],
           filter: ['flag3', 'flag2', 'flag1'],
           requires: { flag1: 'flag2', flag2: 'flag3' },
         },
@@ -358,45 +358,22 @@ describe('AnsiFormatter', () => {
       const case12: HelpSections = [
         {
           type: 'usage',
-          required: ['flag3'],
           filter: ['flag3', 'flag2', 'flag1'],
           requires: { flag1: 'flag2', flag3: 'flag1' },
         },
       ];
       const formatter = new AnsiFormatter(new OptionValidator(options));
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case0 }]).wrap()).toEqual(
-        '[-f1] [-f2] -f3',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case1 }]).wrap()).toEqual(
-        '[[-f1] -f2] -f3',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case2 }]).wrap()).toEqual(
-        '[-f1 [-f2]] -f3',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case3 }]).wrap()).toEqual(
-        '[-f1 -f2] -f3',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case4 }]).wrap()).toEqual(
-        '[[-f1] -f2] -f3',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case5 }]).wrap()).toEqual(
-        '-f1 -f2 -f3',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case6 }]).wrap()).toEqual(
-        '[-f1] -f2 -f3',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case7 }]).wrap()).toEqual(
-        '[-f1] -f3 [-f2]',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case8 }]).wrap()).toEqual(
-        '-f1 -f3 -f2',
-      );
-      expect(formatter.sections([{ type: 'usage', required: ['flag3'], ...case9 }]).wrap()).toEqual(
-        '[-f1] -f2 -f3',
-      );
-      expect(
-        formatter.sections([{ type: 'usage', required: ['flag3'], ...case10 }]).wrap(),
-      ).toEqual('-f1 -f2 -f3');
+      expect(formatter.sections([{ type: 'usage', ...case0 }]).wrap()).toEqual('[-f1] [-f2] -f3');
+      expect(formatter.sections([{ type: 'usage', ...case1 }]).wrap()).toEqual('[[-f1] -f2] -f3');
+      expect(formatter.sections([{ type: 'usage', ...case2 }]).wrap()).toEqual('[-f1 [-f2]] -f3');
+      expect(formatter.sections([{ type: 'usage', ...case3 }]).wrap()).toEqual('[-f1 -f2] -f3');
+      expect(formatter.sections([{ type: 'usage', ...case4 }]).wrap()).toEqual('[[-f1] -f2] -f3');
+      expect(formatter.sections([{ type: 'usage', ...case5 }]).wrap()).toEqual('-f1 -f2 -f3');
+      expect(formatter.sections([{ type: 'usage', ...case6 }]).wrap()).toEqual('[-f1] -f2 -f3');
+      expect(formatter.sections([{ type: 'usage', ...case7 }]).wrap()).toEqual('[-f1] -f3 [-f2]');
+      expect(formatter.sections([{ type: 'usage', ...case8 }]).wrap()).toEqual('-f1 -f3 -f2');
+      expect(formatter.sections([{ type: 'usage', ...case9 }]).wrap()).toEqual('[-f1] -f2 -f3');
+      expect(formatter.sections([{ type: 'usage', ...case10 }]).wrap()).toEqual('-f1 -f2 -f3');
       expect(formatter.sections(case11).wrap()).toEqual('-f3 [-f2 [-f1]]');
       expect(formatter.sections(case12).wrap()).toEqual('-f3 -f1 -f2');
     });
