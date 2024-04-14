@@ -1,5 +1,25 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.3
+
+### Patch Changes
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The Options and Parser pages were updated to document the new behavior of inline parameters for variadic options. The Validator page was updated to document the new validation for the inline parameter constraint. The Formatter page was updated to document the new syntax of the parameter column.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The formatter page was updated to document the new `merge` value of help column alignment.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new behavior of the `inline` attribute (previously `noInline`) for non-niladic options, which specifies the option's treatment of inline parameters. The Formatter page was updated to document the new `inline` help item.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The Formatter page was updated to document the new `requires` attribute for help usage sections.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The Home page was updated to show the help message of the demo example.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The Home page was updated with the new help message of the demo example.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - Updated the Options and Validator pages to add more details about option requirements.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the new `noInline` attribute for non-niladic options.
+
 ## 0.4.3-dev.1
 
 ### Patch Changes
