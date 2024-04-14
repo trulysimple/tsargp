@@ -506,15 +506,15 @@ async function completeParameter(
 /**
  * Parses the value(s) of the option parameter(s).
  * @param context The parsing context
- * @param index The starting index of the argument sequence
  * @param info The option information
+ * @param index The starting index of the argument sequence
  * @param params The option parameter(s)
  * @returns A promise that must be awaited before continuing
  */
 async function parseParam(
   context: ParseContext,
-  index: number,
   info: OptionInfo,
+  index: number,
   params: Array<string>,
 ) {
   /** @ignore */
@@ -629,7 +629,7 @@ async function handleNonNiladic(
   }
   try {
     // use await here instead of return, in order to catch errors
-    await parseParam(context, index, info, params);
+    await parseParam(context, info, index, params);
   } catch (err) {
     // do not propagate errors during completion
     if (!context[4]) {
@@ -665,20 +665,20 @@ async function handleNiladic(
       if (breakLoop) {
         await checkRequired(context);
       }
-      const skipCount = await handleFunction(context, index, rest, info);
+      const skipCount = await handleFunction(context, info, index, rest);
       return [breakLoop, skipCount];
     }
     case 'command': {
       if (!comp) {
         await checkRequired(context);
       }
-      await handleCommand(context, index, rest, info);
+      await handleCommand(context, info, index, rest);
       return [true, 0];
     }
     default: {
       // skip message-valued options during completion
       if (!comp) {
-        await handleMessage(context, rest, option, key);
+        await handleMessage(context, info, rest);
       }
       return [!comp, 0];
     }
@@ -688,16 +688,16 @@ async function handleNiladic(
 /**
  * Handles a function option.
  * @param context The parsing context
+ * @param info The option information
  * @param index The starting index of the argument sequence
  * @param param The remaining command-line arguments
- * @param info The option information
  * @returns The number of additional processed arguments
  */
 async function handleFunction(
   context: ParseContext,
+  info: OptionInfo,
   index: number,
   param: Array<string>,
-  info: OptionInfo,
 ): Promise<number> {
   const [key, name, option] = info;
   if (option.exec) {
@@ -718,16 +718,16 @@ async function handleFunction(
 /**
  * Handles a command option.
  * @param context The parsing context
+ * @param info The option information
  * @param index The starting index of the argument sequence
  * @param rest The remaining command-line arguments
- * @param info The option information
  * @returns The result of parsing the command arguments
  */
 async function handleCommand(
   context: ParseContext,
+  info: OptionInfo,
   index: number,
   rest: Array<string>,
-  info: OptionInfo,
 ) {
   const [validator, values, , , comp, warning] = context;
   const [key, name, option] = info;
@@ -749,21 +749,16 @@ async function handleCommand(
 /**
  * Handles a message-valued option.
  * @param context The parsing context
+ * @param info The option information
  * @param rest The remaining command-line arguments
- * @param option The option definition
- * @param key The option key
  * @throws The help or version message
  */
-async function handleMessage(
-  context: ParseContext,
-  rest: Array<string>,
-  option: OpaqueOption,
-  key: string,
-) {
+async function handleMessage(context: ParseContext, info: OptionInfo, rest: Array<string>) {
   const [validator, values] = context;
+  const [key, , option] = info;
   const message =
     option.type === 'help'
-      ? await handleHelp(context, rest, option)
+      ? await handleHelp(context, option, rest)
       : option.resolve
         ? await handleVersion(validator, option.resolve)
         : option.version ?? '';
@@ -777,14 +772,14 @@ async function handleMessage(
 /**
  * Handles a help option.
  * @param context The parsing context
- * @param rest The remaining command-line arguments
  * @param option The option definition
+ * @param rest The remaining command-line arguments
  * @returns The help message
  */
 async function handleHelp(
   context: ParseContext,
-  rest: Array<string>,
   option: OpaqueOption,
+  rest: Array<string>,
 ): Promise<HelpMessage> {
   let [validator, , , , , , progName] = context;
   if (option.useNested && rest.length) {
@@ -884,7 +879,8 @@ async function checkEnvVarAndDefaultValue(context: ParseContext, key: string) {
         // don't parse the flag value, for consistency with the semantics of the command-line
         context[1][key] = true;
       } else {
-        await parseParam(context, NaN, [key, envVar, option], [value]);
+        const handleFn = option.type === 'function' ? handleFunction : parseParam;
+        await handleFn(context, [key, envVar, option], NaN, [value]);
       }
       specifiedKeys.add(key);
       return;

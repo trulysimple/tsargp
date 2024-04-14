@@ -4,6 +4,32 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('parse', () => {
+    it('should handle a function option with an environment variable', async () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f1'],
+          envVar: 'FUNCTION',
+          requires: 'required',
+          exec: ({ param }) => param,
+        },
+        required: {
+          type: 'flag',
+          names: ['-f2'],
+          envVar: 'FLAG',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete process.env['FLAG'];
+      process.env['FUNCTION'] = '1';
+      await expect(parser.parse([])).rejects.toThrow(`Option -f1 requires -f2.`);
+      process.env['FLAG'] = '';
+      await expect(parser.parse([])).resolves.toEqual({ function: ['1'], required: true });
+      process.env['FUNCTION'] = '';
+      await expect(parser.parse([])).resolves.toEqual({ function: [''], required: true });
+    });
+
     it('should handle a flag option with an environment variable', async () => {
       const options = {
         flag: {
@@ -46,10 +72,10 @@ describe('ArgumentParser', () => {
       delete process.env['FLAG'];
       process.env['BOOLEAN'] = '1';
       await expect(parser.parse([])).rejects.toThrow(`Option -b requires -f.`);
-      process.env['FLAG'] = '1';
+      process.env['FLAG'] = '';
       await expect(parser.parse([])).resolves.toEqual({ boolean: true, required: true });
       process.env['BOOLEAN'] = '';
-      await expect(parser.parse(['-f'])).resolves.toEqual({ boolean: false, required: true });
+      await expect(parser.parse([])).resolves.toEqual({ boolean: false, required: true });
     });
 
     it('should handle a string option with an environment variable', async () => {
@@ -71,7 +97,7 @@ describe('ArgumentParser', () => {
       delete process.env['FLAG'];
       process.env['STRING'] = '123';
       await expect(parser.parse([])).rejects.toThrow(`Option -s requires -f.`);
-      process.env['FLAG'] = '1';
+      process.env['FLAG'] = '';
       await expect(parser.parse([])).resolves.toEqual({ string: '123', required: true });
       process.env['STRING'] = '';
       await expect(parser.parse([])).resolves.toEqual({ string: '', required: true });
@@ -96,10 +122,10 @@ describe('ArgumentParser', () => {
       delete process.env['FLAG'];
       process.env['NUMBER'] = '123';
       await expect(parser.parse([])).rejects.toThrow(`Option -n requires -f.`);
-      process.env['FLAG'] = '1';
+      process.env['FLAG'] = '';
       await expect(parser.parse([])).resolves.toEqual({ number: 123, required: true });
       process.env['NUMBER'] = '';
-      await expect(parser.parse(['-f'])).resolves.toEqual({ number: 0, required: true });
+      await expect(parser.parse([])).resolves.toEqual({ number: 0, required: true });
     });
 
     it('should handle a strings option with an environment variable', async () => {
@@ -123,7 +149,7 @@ describe('ArgumentParser', () => {
       delete process.env['FLAG'];
       process.env['STRINGS'] = 'one,two';
       await expect(parser.parse([])).rejects.toThrow(`Option -ss requires -f.`);
-      process.env['FLAG'] = '1';
+      process.env['FLAG'] = '';
       await expect(parser.parse([])).resolves.toEqual({ strings: ['ONE', 'TWO'], required: true });
       process.env['STRINGS'] = '';
       await expect(parser.parse([])).resolves.toEqual({ strings: [''], required: true });
@@ -150,7 +176,7 @@ describe('ArgumentParser', () => {
       delete process.env['FLAG'];
       process.env['NUMBERS'] = '1.1,2.2';
       await expect(parser.parse([])).rejects.toThrow(`Option -ns requires -f.`);
-      process.env['FLAG'] = '1';
+      process.env['FLAG'] = '';
       await expect(parser.parse([])).resolves.toEqual({ numbers: [1, 2], required: true });
       process.env['NUMBERS'] = '';
       await expect(parser.parse([])).resolves.toEqual({ numbers: [0], required: true });
