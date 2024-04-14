@@ -4,8 +4,8 @@ import '../utils.spec'; // initialize globals
 
 describe('ArgumentParser', () => {
   describe('validate', () => {
-    it('should validate', () => {
-      expect(new ArgumentParser({}).validate()).toEqual({});
+    it('should validate', async () => {
+      await expect(new ArgumentParser({}).validate()).resolves.toEqual({});
     });
   });
 
@@ -285,7 +285,7 @@ describe('ArgumentParser', () => {
             type: 'function',
             names: ['-f2'],
             exec() {
-              this.skipCount = 1;
+              this.skipCount = 1; // test `this`
             },
           },
         } as const satisfies Options;
@@ -306,30 +306,12 @@ describe('ArgumentParser', () => {
             type: 'function',
             names: ['-f2'],
             exec() {
-              this.skipCount = -1;
+              this.skipCount = -1; // test `this`
             },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
         await expect(parser.parse(['-f2', 'arg', '-f1'])).rejects.toThrow('Unknown option arg.');
-      });
-
-      it('should throw an error on function option specified with value', async () => {
-        const options = {
-          function: {
-            type: 'function',
-            names: ['-f'],
-            exec: vi.fn(),
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-f='])).rejects.toThrow(
-          `Option -f does not accept inline parameters.`,
-        );
-        await expect(parser.parse(['-f=a'])).rejects.toThrow(
-          `Option -f does not accept inline parameters.`,
-        );
-        expect(options.function.exec).not.toHaveBeenCalled();
       });
 
       it('should handle a function option', async () => {
@@ -444,30 +426,12 @@ describe('ArgumentParser', () => {
             type: 'command',
             names: ['-c'],
             async exec() {
-              throw 'abc';
+              throw this.type; // test `this`
             },
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-c'])).rejects.toThrow('abc');
-      });
-
-      it('should throw an error on command option specified with value', async () => {
-        const options = {
-          command: {
-            type: 'command',
-            names: ['-c'],
-            exec: vi.fn(),
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-c='])).rejects.toThrow(
-          `Option -c does not accept inline parameters.`,
-        );
-        await expect(parser.parse(['-c=a'])).rejects.toThrow(
-          `Option -c does not accept inline parameters.`,
-        );
-        expect(options.command.exec).not.toHaveBeenCalled();
+        await expect(parser.parse(['-c'])).rejects.toThrow('command');
       });
 
       it('should handle a command option', async () => {
@@ -565,17 +529,19 @@ describe('ArgumentParser', () => {
           command: {
             type: 'command',
             names: ['-c'],
-            options: async () => ({
-              flag: {
-                type: 'flag',
-                names: ['-f'],
-              },
-            }),
+            async options() {
+              return {
+                flag: {
+                  type: 'flag',
+                  names: this.names, // test `this`
+                },
+              };
+            },
             exec: ({ param }) => param,
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-c', '-f'])).resolves.toEqual({ command: { flag: true } });
+        await expect(parser.parse(['-c', '-c'])).resolves.toEqual({ command: { flag: true } });
       });
 
       it('should handle a command option with options with async callbacks', async () => {
@@ -609,22 +575,6 @@ describe('ArgumentParser', () => {
     });
 
     describe('flag', () => {
-      it('should throw an error on flag option specified with value', async () => {
-        const options = {
-          flag: {
-            type: 'flag',
-            names: ['-f'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-f='])).rejects.toThrow(
-          `Option -f does not accept inline parameters.`,
-        );
-        await expect(parser.parse(['-f=a'])).rejects.toThrow(
-          `Option -f does not accept inline parameters.`,
-        );
-      });
-
       it('should handle a flag option with negation names', async () => {
         const options = {
           flag: {
@@ -808,17 +758,6 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ss'])).rejects.toThrow(`Missing parameter to -ss.`);
       });
 
-      it('should parse an inline parameter of a strings option as a single parameter', async () => {
-        const options = {
-          strings: {
-            type: 'strings',
-            names: ['-ss'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-ss=one', 'two'])).rejects.toThrow(`Unknown option two.`);
-      });
-
       it('should handle a strings option that can be specified multiple times', async () => {
         const options = {
           strings: {
@@ -834,9 +773,6 @@ describe('ArgumentParser', () => {
         });
         await expect(parser.parse(['--strings', '', '   '])).resolves.toEqual({
           strings: ['', '   '],
-        });
-        await expect(parser.parse(['-ss=123', '-ss==456'])).resolves.toEqual({
-          strings: ['123', '=456'],
         });
         await expect(parser.parse(['-ss', 'a', 'b', '-ss', 'c', 'd'])).resolves.toEqual({
           strings: ['a', 'b', 'c', 'd'],
@@ -896,17 +832,6 @@ describe('ArgumentParser', () => {
         await expect(parser.parse(['-ns'])).rejects.toThrow(`Missing parameter to -ns.`);
       });
 
-      it('should parse an inline parameter of a numbers option as a single parameter', async () => {
-        const options = {
-          numbers: {
-            type: 'numbers',
-            names: ['-ns'],
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-ns=1', '2'])).rejects.toThrow(`Unknown option 2.`);
-      });
-
       it('should handle a numbers option that can be specified multiple times', async () => {
         const options = {
           numbers: {
@@ -921,9 +846,6 @@ describe('ArgumentParser', () => {
           numbers: [456, 123],
         });
         await expect(parser.parse(['--numbers', '', '   '])).resolves.toEqual({ numbers: [0, 0] });
-        await expect(parser.parse(['-ns=456', '-ns=123'])).resolves.toEqual({
-          numbers: [456, 123],
-        });
         await expect(parser.parse(['-ns', '5', '-ns', '6', '7'])).resolves.toEqual({
           numbers: [5, 6, 7],
         });
@@ -1042,6 +964,29 @@ describe('ArgumentParser', () => {
       expect(warning?.message).toEqual(
         `Option -f1 is deprecated and may be removed in future releases.\n` +
           `Option -f2 is deprecated and may be removed in future releases.\n`,
+      );
+    });
+
+    it('should output a warning on a deprecated option from a nested command', async () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            flag: {
+              type: 'flag',
+              names: ['-f'],
+              deprecated: 'yes',
+            },
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      const values = { command: undefined };
+      const { warning } = await parser.parseInto(values, ['-c', '-f']);
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Option -f is deprecated and may be removed in future releases.\n`,
       );
     });
   });

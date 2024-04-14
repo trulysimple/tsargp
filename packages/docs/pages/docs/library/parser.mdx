@@ -276,9 +276,12 @@ can be provided as an additional parameter to the parser constructor.
 ### Inline parameters
 
 Option parameters may be passed on the command-line using the syntax `<name>=<param>`. This syntax
-is only valid for non-niladic options and cannot be used with the positional marker. As is the case
-with standalone parameters, the value may contain any number of equal signs, and even start with one
-(e.g., `-opt==val` would be parsed as `'=val'{:ts}`).
+is only valid for monadic or delimited options and cannot be used with the positional marker.
+
+<Callout type="info">
+  As is the case with standalone parameters, inline parameters may contain any number of equal
+  signs, and even start with one (e.g., `-opt==val` would be parsed as `'=val'{:ts}`).
+</Callout>
 
 Cluster arguments may also have inline parameters, but their syntax is different. A cluster argument
 is considered to have an inline parameter if it contains an unknown letter that is not the first one

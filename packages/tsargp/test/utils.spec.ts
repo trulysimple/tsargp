@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NamingRules } from '../lib/utils';
 import {
-  overrides,
   areEqual,
   gestaltSimilarity,
   findSimilar,
@@ -11,22 +10,21 @@ import {
   matchNamingRules,
   escapeRegExp,
   combineRegExp,
-  findInObject,
+  findValue,
+  mergeValues,
 } from '../lib/utils';
 
 /*
-  Initialization section. Do not do any of the following:
-  - wrap this code in an IIFE, default export or vitest's `beforeAll`
-  - assign `undefined` to `process.env`, as it will be converted to the string 'undefined'
+  Initialization section.
+  Do not wrap this code in an IIFE, default export or vitest's `beforeAll`.
 */
 {
-  overrides.stderrCols = 0;
-  overrides.stdoutCols = 0;
   resetEnv();
 }
 
 /** @ignore */
 export function resetEnv() {
+  process.env['FORCE_WIDTH'] = '0';
   for (const name of ['FORCE_COLOR', 'NO_COLOR', 'TERM', 'COMP_LINE', 'COMP_POINT']) {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete process.env[name];
@@ -273,14 +271,30 @@ describe('combineRegExp', () => {
   });
 });
 
-describe('findInObject', () => {
+describe('findValue', () => {
   it('should return undefined on no match', () => {
-    expect(findInObject({}, () => true)).toBeUndefined();
-    expect(findInObject({ a: 1, b: 'a' }, () => false)).toBeUndefined();
+    expect(findValue({}, () => true)).toBeUndefined();
+    expect(findValue({ a: 1, b: 'a' }, () => false)).toBeUndefined();
   });
 
   it('should return the first match', () => {
-    expect(findInObject({ a: 1, b: 'a' }, () => true)).toEqual(1);
-    expect(findInObject({ a: 1, b: 'a' }, (val) => val === 'a')).toEqual('a');
+    expect(findValue({ a: 1, b: 'a' }, () => true)).toEqual(1);
+    expect(findValue({ a: 1, b: 'a' }, (val) => val === 'a')).toEqual('a');
+  });
+});
+
+describe('mergeValues', () => {
+  it('should merge source properties with template', () => {
+    expect(mergeValues({ a: { b: 2, c: 3 } }, { a: { a: 1, c: 2 } })).toEqual({
+      a: { a: 1, b: 2, c: 2 },
+    });
+  });
+
+  it('should ignore extra properties in source', () => {
+    expect(mergeValues({ a: 1, b: 2 }, { a: 2, c: 3 })).toEqual({ a: 2, b: 2 });
+  });
+
+  it('should replace array values from template', () => {
+    expect(mergeValues({ a: [1] }, { a: [2] })).toEqual({ a: [2] });
   });
 });

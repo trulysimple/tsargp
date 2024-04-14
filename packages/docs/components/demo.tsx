@@ -4,16 +4,16 @@
 import React from 'react';
 import { ArgumentParser, ErrorMessage, AnsiMessage } from 'tsargp';
 import { type Props, Command } from './classes/command';
-
-// @ts-expect-error since tsargp examples do not export types
 import { demo as options } from 'tsargp/examples';
 
-delete options.version; // remove version option since there's no package.json in the browser
+// @ts-expect-error remove version option since there's no package.json in the browser
+delete options.version;
 
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
 class DemoCommand extends Command {
+  // @ts-expect-error since tsargp examples do not export types
   private readonly parser = new ArgumentParser(options);
 
   constructor(props: Props) {

@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
-import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils';
-import { cs, tf, fg, bg, ConnectiveWord } from './enums';
-import { env, max, overrides, regexps, selectAlternative } from './utils';
+import type { Alias, Concrete, Enumerate, URL, ValuesOf } from './utils.js';
+import { cs, tf, fg, bg, ConnectiveWord } from './enums.js';
+import { getEnv, max, regexps, selectAlternative } from './utils.js';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
 export { underlineStyle as ul, formatFunctions as format };
@@ -358,10 +358,10 @@ export class TerminalString {
   }
 
   /**
-   * @returns The combined length of all internal strings, ignoring control sequences
+   * @returns The lengths of internal strings
    */
-  get length(): number {
-    return this.context[1].reduce((acc, len) => acc + len, 0);
+  get lengths(): Array<number> {
+    return this.context[1];
   }
 
   /**
@@ -428,10 +428,18 @@ export class TerminalString {
   /**
    * Appends a word that will be merged with the next word.
    * @param word The opening word
+   * @param pos The position of a previously added word
    * @returns The terminal string instance
    */
-  open(word: string): this {
-    return word ? this.word(word).setMerge() : this;
+  open(word: string, pos = NaN): this {
+    if (pos >= 0 && pos < this.count) {
+      const [strings, lengths] = this.context;
+      strings[pos] = word + strings[pos];
+      lengths[pos] += word.length;
+    } else if (word) {
+      this.word(word).setMerge();
+    }
+    return this;
   }
 
   /**
@@ -668,7 +676,7 @@ export class AnsiMessage extends Array<TerminalString> {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(overrides.stdoutCols ?? process?.stdout?.columns);
+    return this.wrap(streamWidth('stdout'));
   }
 
   /**
@@ -706,7 +714,7 @@ export class WarnMessage extends AnsiMessage {
    * @returns The wrapped message
    */
   override toString(): string {
-    return this.wrap(overrides.stderrCols ?? process?.stderr?.columns);
+    return this.wrap(streamWidth('stderr'));
   }
 }
 
@@ -852,12 +860,22 @@ function formatArgs(
 }
 
 /**
+ * Gets the terminal width of a process stream.
+ * @param stream The name of the stream
+ * @returns The terminal width (in number of columns)
+ */
+function streamWidth(stream: 'stdout' | 'stderr'): number {
+  const forceWidth = getEnv('FORCE_WIDTH');
+  return forceWidth ? Number(forceWidth) : process?.[stream]?.columns;
+}
+
+/**
  * @param width The terminal width (in number of columns)
  * @returns True if styles should be omitted from terminal strings
  * @see https://clig.dev/#output
  */
 function omitStyles(width: number): boolean {
-  return !env('FORCE_COLOR') && (!width || !!env('NO_COLOR') || env('TERM') === 'dumb');
+  return !getEnv('FORCE_COLOR') && (!width || !!getEnv('NO_COLOR') || getEnv('TERM') === 'dumb');
 }
 
 /**

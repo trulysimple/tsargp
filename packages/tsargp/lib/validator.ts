@@ -1,21 +1,21 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { OpaqueOption, Requires, RequiresVal, OpaqueOptions } from './options';
-import type { FormatArgs, FormattingFlags, MessageStyles } from './styles';
-import type { Concrete, NamingRules, Range } from './utils';
-
-import { tf, fg, ErrorItem, ConnectiveWord } from './enums';
-import {
+import type {
+  OpaqueOption,
+  Requires,
+  RequiresVal,
+  OpaqueOptions,
   RequiresAll,
   RequiresOne,
-  RequiresNot,
-  isOpt,
-  getParamCount,
-  getOptionNames,
-} from './options';
-import { style, TerminalString, ErrorMessage, WarnMessage } from './styles';
-import { findSimilar, matchNamingRules } from './utils';
+} from './options.js';
+import type { FormatArgs, FormattingFlags, MessageStyles } from './styles.js';
+import type { Concrete, NamingRules, Range } from './utils.js';
+
+import { tf, fg, ErrorItem, ConnectiveWord } from './enums.js';
+import { isOpt, getParamCount, getOptionNames, visitRequirements } from './options.js';
+import { style, TerminalString, ErrorMessage, WarnMessage } from './styles.js';
+import { findSimilar, getEntries, getValues, matchNamingRules } from './utils.js';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -41,7 +41,7 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.missingRequiredOption]: 'Option %o is required.',
     [ErrorItem.missingParameter]: 'Missing parameter to %o.',
     [ErrorItem.missingPackageJson]: 'Could not find a "package.json" file.',
-    [ErrorItem.disallowedInlineValue]:
+    [ErrorItem.disallowedInlineParameter]:
       '(Option|Positional marker) %o does not accept inline parameters.',
     [ErrorItem.emptyPositionalMarker]: 'Option %o has empty positional marker.',
     [ErrorItem.unnamedOption]: 'Non-positional option %o has no name.',
@@ -77,6 +77,8 @@ export const defaultConfig: ConcreteConfig = {
     [ErrorItem.invalidParamCount]: 'Option %o has invalid parameter count [%n].',
     [ErrorItem.variadicWithClusterLetter]:
       'Variadic option %o may only appear as the last option in a cluster.',
+    [ErrorItem.missingInlineParameter]: 'Option %o requires an inline parameter.',
+    [ErrorItem.invalidInlineConstraint]: 'Inline constraint for option %o has no effect.',
   },
   connectives: {
     [ConnectiveWord.and]: 'and',
@@ -202,8 +204,7 @@ export class OptionValidator {
     readonly options: OpaqueOptions,
     readonly config: ConcreteConfig = defaultConfig,
   ) {
-    for (const key in this.options) {
-      const option = this.options[key];
+    for (const [key, option] of getEntries(this.options)) {
       registerNames(this.names, this.letters, key, option);
       const positional = option.positional;
       if (positional) {
@@ -284,8 +285,7 @@ async function validate(context: ValidateContext) {
   const names = new Map<string, string>();
   const letters = new Map<string, string>();
   let positional = ''; // to check for duplicate positional options
-  for (const key in options) {
-    const option = options[key];
+  for (const [key, option] of getEntries(options)) {
     validateNames(context, names, letters, key, option);
     await validateOption(context, key, option);
     if (option.positional) {
@@ -407,8 +407,8 @@ function detectNamingIssues(context: ValidateContext, names: Iterable<string>) {
     const match = matchNamingRules(slot, namingConventions);
     // produce a warning for each naming rule category with more than one match,
     // with a list of key-value pairs (rule name, first match) as info
-    for (const key in match) {
-      const entries = Object.entries(match[key]);
+    for (const obj of getValues(match)) {
+      const entries = getEntries(obj);
       if (entries.length > 1) {
         const list = entries.map(([rule, name]) => rule + ': ' + name);
         const args = { o: prefix2, n: i, s: list };
@@ -461,8 +461,8 @@ function error(
  */
 function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
   const result: Array<Array<string>> = [];
-  for (const key in options) {
-    options[key].names?.forEach((name, i) => {
+  for (const option of getValues(options)) {
+    option.names?.forEach((name, i) => {
       if (name) {
         if (result[i]) {
           result[i].push(name);
@@ -485,14 +485,13 @@ function getNamesInEachSlot(options: OpaqueOptions): Array<Array<string>> {
 async function validateOption(context: ValidateContext, key: string, option: OpaqueOption) {
   const [config, , flags, warning, visited, prefix] = context;
   const prefixedKey = prefix + key;
+  validateConstraints(config, prefixedKey, option);
+  validateValue(config, prefixedKey, option, option.default);
+  validateValue(config, prefixedKey, option, option.example);
+  validateValue(config, prefixedKey, option, option.fallback);
   const [min, max] = getParamCount(option);
-  // no need to verify a flag option's default value
-  if (max) {
-    validateConstraints(config, prefixedKey, option);
-    // non-niladic function options are ignored in value validation
-    validateValue(config, prefixedKey, option, option.default);
-    validateValue(config, prefixedKey, option, option.example);
-    validateValue(config, prefixedKey, option, option.fallback);
+  if (option.inline !== undefined && max !== 1) {
+    throw error(config, ErrorItem.invalidInlineConstraint, { o: key });
   }
   if (min < max && option.clusterLetters) {
     warning.push(format(config, ErrorItem.variadicWithClusterLetter, { o: prefixedKey }));
@@ -526,19 +525,25 @@ async function validateOption(context: ValidateContext, key: string, option: Opa
  * @param requires The option requirements
  */
 function validateRequirements(context: ValidateContext, key: string, requires: Requires) {
-  if (typeof requires === 'string') {
-    validateRequirement(context, key, requires);
-  } else if (requires instanceof RequiresNot) {
-    validateRequirements(context, key, requires.item);
-  } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-    for (const item of requires.items) {
-      validateRequirements(context, key, item);
-    }
-  } else if (typeof requires === 'object') {
-    for (const requiredKey in requires) {
-      validateRequirement(context, key, requiredKey, requires[requiredKey]);
+  /** @ignore */
+  function validateItems(req: RequiresAll | RequiresOne) {
+    req.items.forEach((item) => validateRequirements(context, key, item));
+  }
+  /** @ignore */
+  function validateVals(req: RequiresVal) {
+    for (const requiredKey in req) {
+      validateRequirement(context, key, requiredKey, req[requiredKey]);
     }
   }
+  visitRequirements(
+    requires,
+    (req) => validateRequirement(context, key, req),
+    (req) => validateRequirements(context, key, req.item),
+    validateItems,
+    validateItems,
+    validateVals,
+    () => {}, // requirement callbacks are ignored
+  );
 }
 
 /**
@@ -636,10 +641,17 @@ function validateConstraints(config: ConcreteConfig, key: string, option: Opaque
  */
 function validateValue(config: ConcreteConfig, key: string, option: OpaqueOption, value: unknown) {
   /** @ignore */
-  function assertType<T>(value: unknown, type: string): asserts value is T {
+  function assert<T>(value: unknown, type: string): asserts value is T {
     if (typeof value !== type) {
       throw error(config, ErrorItem.incompatibleRequiredValue, { o: key, v: value, s: type });
     }
+  }
+  /** @ignore */
+  function call<T>(
+    normFn: (config: ConcreteConfig, option: OpaqueOption, name: string, value: T) => T,
+    value: T,
+  ) {
+    return normFn(config, option, key, value);
   }
   if (value === undefined || typeof value === 'function') {
     return;
@@ -647,32 +659,30 @@ function validateValue(config: ConcreteConfig, key: string, option: OpaqueOption
   switch (option.type) {
     case 'flag':
     case 'boolean':
-      assertType<boolean>(value, 'boolean');
+      assert<boolean>(value, 'boolean');
       break;
     case 'string':
-      assertType<string>(value, 'string');
-      normalizeString(config, option, key, value);
+      assert<string>(value, 'string');
+      call(normalizeString, value);
       break;
     case 'number':
-      assertType<number>(value, 'number');
-      normalizeNumber(config, option, key, value);
+      assert<number>(value, 'number');
+      call(normalizeNumber, value);
       break;
     case 'strings': {
-      assertType<Array<string>>(value, 'object');
-      const normalized = value.map((val) => {
-        assertType<string>(val, 'string');
-        return normalizeString(config, option, key, val);
-      });
-      normalizeArray(config, option, key, normalized);
+      assert<Array<string>>(value, 'object');
+      call(
+        normalizeArray,
+        value.map((val) => (assert<string>(val, 'string'), call(normalizeString, val))),
+      );
       break;
     }
     case 'numbers': {
-      assertType<Array<number>>(value, 'object');
-      const normalized = value.map((val) => {
-        assertType<number>(val, 'number');
-        return normalizeNumber(config, option, key, val);
-      });
-      normalizeArray(config, option, key, normalized);
+      assert<Array<number>>(value, 'object');
+      call(
+        normalizeArray,
+        value.map((val) => (assert<number>(val, 'number'), call(normalizeNumber, val))),
+      );
       break;
     }
   }
@@ -748,7 +758,7 @@ function normalizeNumber(
 }
 
 /**
- * Normalizes the value of an array option and checks its validity against any constraint.
+ * Normalizes the value of an array-valued option and checks its validity against any constraint.
  * @param config The validator configuration
  * @param option The option definition
  * @param name The option name (as specified on the command-line)

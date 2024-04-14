@@ -1,9 +1,9 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { FormatterConfig, HelpSections } from './formatter';
-import type { HelpMessage, Style } from './styles';
-import type { Resolve, URL, KeyHaving, Range } from './utils';
+import type { FormatterConfig, HelpSections } from './formatter.js';
+import type { HelpMessage, Style } from './styles.js';
+import type { Resolve, URL, KeyHaving, Range } from './utils.js';
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -14,6 +14,7 @@ import type { Resolve, URL, KeyHaving, Range } from './utils';
 export const req = {
   /**
    * Creates a requirement expression that is satisfied only when all items are satisfied.
+   * If it contains zero items, it always evaluates to true.
    * @param items The requirement items
    * @returns The requirement expression
    */
@@ -23,6 +24,7 @@ export const req = {
 
   /**
    * Creates a requirement expression that is satisfied when at least one item is satisfied.
+   * If it contains zero items, it always evaluates to false.
    * @param items The requirement items
    * @returns The requirement expression
    */
@@ -41,20 +43,20 @@ export const req = {
 } as const;
 
 /**
- * The option checking functions.
+ * The option testing functions.
  * @internal
  */
 export const isOpt = {
   /**
-   * Tests if an option is an array option (i.e., has an array value).
+   * Tests if an option has an array value.
    * @param option The option definition
-   * @returns True if the option is an array-valued option
+   * @returns True if the option is array-valued
    */
   arr(option) {
     return option.type === 'strings' || option.type === 'numbers';
   },
   /**
-   * Tests if an option has or throws a message to be printed in the terminal.
+   * Tests if an option has or throws a message.
    * @param option The option definition
    * @returns True if the option is message-valued
    */
@@ -62,7 +64,7 @@ export const isOpt = {
     return option.type === 'help' || option.type === 'version';
   },
   /**
-   * Tests if an option has unknown values.
+   * Tests if an option has an unknown value.
    * @param option The option definition
    * @returns True if the option is unknown-valued
    */
@@ -78,7 +80,7 @@ export const isOpt = {
     return option.type === 'flag' || option.type === 'boolean';
   },
   /**
-   * Tests if an option has string values.
+   * Tests if an option has string value(s).
    * @param option The option definition
    * @returns True if the option is string-valued
    */
@@ -86,14 +88,14 @@ export const isOpt = {
     return option.type === 'string' || option.type === 'strings';
   },
   /**
-   * Tests if an option has number values.
+   * Tests if an option has number value(s).
    * @param option The option definition
    * @returns True if the option is number-valued
    */
   num(option) {
     return option.type === 'number' || option.type === 'numbers';
   },
-} as const satisfies CheckFunctions;
+} as const satisfies Record<string, (option: OpaqueOption) => boolean>;
 
 //--------------------------------------------------------------------------------------------------
 // Public types
@@ -386,6 +388,11 @@ export type WithParam = {
    * If it throws an error, it is ignored, and the default completion message is thrown instead.
    */
   readonly complete?: CompleteCallback;
+  /**
+   * Whether inline parameters should be disallowed or required for this option.
+   * It can only be specified for monadic or delimited options.
+   */
+  readonly inline?: false | 'always';
 };
 
 /**
@@ -768,18 +775,6 @@ export type OptionValues<T extends Options = Options> = Resolve<{
 // Internal types
 //--------------------------------------------------------------------------------------------------
 /**
- * An option checking function.
- * @param option The option definition
- * @returns True if the option satisfies the check
- */
-type CheckFunction = (option: OpaqueOption) => boolean;
-
-/**
- * A set of option checking functions.
- */
-type CheckFunctions = Record<string, CheckFunction>;
-
-/**
  * The option types.
  */
 type OptionTypes =
@@ -1062,4 +1057,37 @@ export function getParamCount(option: OpaqueOption): Range {
   }
   const count = option.paramCount ?? 0;
   return typeof count === 'object' ? count : count < 0 ? [0, Infinity] : [count, count];
+}
+
+/**
+ * Visits an option's requirements, executing a callback according to the type of the requirement.
+ * @param requires The option requirements
+ * @param keyFn The callback to process an option key
+ * @param notFn The callback to process a "not" expression
+ * @param allFn The callback to process an "all" expression
+ * @param oneFn The callback to process a "one" expression
+ * @param valFn The callback to process a requirement object
+ * @param cbkFn The callback to process a requirement callback
+ * @returns The result of the callback
+ */
+export function visitRequirements<T>(
+  requires: Requires,
+  keyFn: (req: string) => T,
+  notFn: (req: RequiresNot) => T,
+  allFn: (req: RequiresAll) => T,
+  oneFn: (req: RequiresOne) => T,
+  valFn: (req: RequiresVal) => T,
+  cbkFn: (req: RequiresCallback) => T,
+): T {
+  return typeof requires === 'string'
+    ? keyFn(requires)
+    : requires instanceof RequiresNot
+      ? notFn(requires)
+      : requires instanceof RequiresAll
+        ? allFn(requires)
+        : requires instanceof RequiresOne
+          ? oneFn(requires)
+          : typeof requires === 'object'
+            ? valFn(requires)
+            : cbkFn(requires);
 }

@@ -1,5 +1,25 @@
 # tsargp
 
+## 0.7.0-dev.1
+
+### Minor Changes
+
+- [#166](https://github.com/trulysimple/tsargp/pull/166) [`06f3269`](https://github.com/trulysimple/tsargp/commit/06f3269f2c7e95d12821ec04d0c711f679f19992) Thanks [@disog](https://github.com/disog)! - The `example` value is now enclosed in square brackets in the help message when the option has a fallback value, just as is done with parameter names and option types.
+
+- [#163](https://github.com/trulysimple/tsargp/pull/163) [`65196aa`](https://github.com/trulysimple/tsargp/commit/65196aa507ca7352eb451efd4abbe12d3f9ad183) Thanks [@disog](https://github.com/disog)! - The usage section in help messages now supports option dependencies through the `requires` attribute. This is related to option requirements, but somewhat different.
+
+## 0.7.0-dev.0
+
+### Minor Changes
+
+- [#153](https://github.com/trulysimple/tsargp/pull/153) [`9a54671`](https://github.com/trulysimple/tsargp/commit/9a5467135a1d962820ac24d515c0b4468ee88d79) Thanks [@disog](https://github.com/disog)! - The `noInline` attribute was renamed to `inline` and supports a new value `always`, which indicates that the option _requires_ inline parameters. A new help item, `inline`, was added to report if an option disallows or requires inline parameters.
+
+- [#159](https://github.com/trulysimple/tsargp/pull/159) [`9476b4a`](https://github.com/trulysimple/tsargp/commit/9476b4a797e8e928bcc2568ac7f0ec242871027c) Thanks [@disog](https://github.com/disog)! - The `align` property of help columns now support a `merge` value, which instructs the formatter to merge the contents of the column with the previous one.
+
+- [#150](https://github.com/trulysimple/tsargp/pull/150) [`534d816`](https://github.com/trulysimple/tsargp/commit/534d816e9e0828c3e5729cb5b2ccc1db3b8228af) Thanks [@disog](https://github.com/disog)! - The `noInline` attribute was added for non-niladic options, to disallow inline parameters.
+
+- [#155](https://github.com/trulysimple/tsargp/pull/155) [`178e97e`](https://github.com/trulysimple/tsargp/commit/178e97e235527aeb0b48060c19df87078ccbbe03) Thanks [@disog](https://github.com/disog)! - The parameter column in the help message now shows an ellipsis `...` for variadic options with example values, as well as an equals sign `=` for options the require inline parameters. The parser was modified to disallow inline parameters of variadic options.
+
 ## 0.6.0
 
 ### Minor Changes

@@ -60,12 +60,24 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 - check if values get appended when an option is specified repeatedly (e.g.,
   `--numbersEnum 1 --numbersEnum 2`)
 
+### Inline parameters
+
+- check if parameters can be inlined with option names (e.g., `-ss=abc`)
+- check if inline parameters can contain equal signs (e.g., `-ss==a=b`)
+- check if inline parameters are disallowed for an option (e.g., `-se=one`)
+- check if inline parameters are required for an option (e.g., `-ne 1`)
+
+### Help format and filters
+
+- check if the help option accepts option filters (e.g., `-h -b -ne`)
+- check if the help option accepts a help format (e.g., `-h json`)
+- check if the help option accepts a nested command name (e.g., `-h hello`)
+- check if the all of the above can be combined (e.g., `-h hello json -h`)
+
 ### Miscellaneous
 
 - check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
 - check if the `-b` option can be specified in combination with other options
-- check if parameters can be inlined with option names (e.g., `-ss=abc`)
-- check if the help option accepts option filters (e.g., `-h -b`)
 
 ### Nested commands
 

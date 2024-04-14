@@ -17,6 +17,22 @@ describe('AnsiFormatter', () => {
       expect(message.wrap()).toEqual(`  -f, --function  <param>  A function option\n`);
     });
 
+    it('should handle a function option with a single optional parameter required to be inline', () => {
+      const options = {
+        function: {
+          type: 'function',
+          names: ['-f', '--function'],
+          desc: 'A function option.',
+          paramCount: [0, 1],
+          inline: 'always',
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
+      expect(message.wrap()).toEqual(
+        `  -f, --function  [=<param>]  A function option. Requires inline parameters.\n`,
+      );
+    });
+
     it('should handle a function option with a single optional parameter', () => {
       const options = {
         function: {
@@ -149,6 +165,36 @@ describe('AnsiFormatter', () => {
       expect(message.wrap()).toEqual(`  -f, --function  <myParam>  A function option\n`);
     });
 
+    it('should handle a boolean option that disallows inline parameters', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          inline: false,
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  <boolean>  A boolean option. Disallows inline parameters.\n`,
+      );
+    });
+
+    it('should handle a boolean option that requires inline parameters', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          inline: 'always',
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  =<boolean>  A boolean option. Requires inline parameters.\n`,
+      );
+    });
+
     it('should handle a boolean option with a parameter name', () => {
       const options = {
         boolean: {
@@ -201,6 +247,22 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(`  -b, --boolean  true  A boolean option\n`);
+    });
+
+    it('should handle a boolean option with fallback and example values', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option.',
+          fallback: true,
+          example: false,
+        },
+      } as const satisfies Options;
+      const message = new AnsiFormatter(new OptionValidator(options)).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  false  A boolean option. Falls back to true if specified without parameter.\n`,
+      );
     });
 
     it('should handle a string option with a fallback value', () => {
@@ -285,7 +347,7 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
-        `  -ss, --strings  'one' 'two'  A strings option. Accepts multiple parameters.\n`,
+        `  -ss, --strings  'one' 'two'...  A strings option. Accepts multiple parameters.\n`,
       );
     });
 
@@ -315,7 +377,7 @@ describe('AnsiFormatter', () => {
       } as const satisfies Options;
       const message = new AnsiFormatter(new OptionValidator(options)).format();
       expect(message.wrap()).toEqual(
-        `  -ns, --numbers  1 2  A numbers option. Accepts multiple parameters.\n`,
+        `  -ns, --numbers  1 2...  A numbers option. Accepts multiple parameters.\n`,
       );
     });
 

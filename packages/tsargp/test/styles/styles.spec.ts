@@ -11,8 +11,8 @@ describe('TerminalString', () => {
         .seq(seq(cs.cbt, 1))
         .seq(seq(cs.tbm, 1, 2))
         .seq(seq(cs.rm, 1, 2, 3));
-      expect(str).toHaveLength(0);
       expect(str.count).toEqual(4);
+      expect(str.lengths).toEqual([0, 0, 0, 0]);
       expect(str.strings).toEqual(['\x1b[u', '\x1b[1Z', '\x1b[1;2r', '\x1b[1;2;3l']);
     });
   });
@@ -20,8 +20,8 @@ describe('TerminalString', () => {
   describe('word', () => {
     it('should add words without sequences', () => {
       const str = new TerminalString().word('type').word('script');
-      expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
+      expect(str.lengths).toEqual([4, 6]);
       expect(str.strings).toEqual(['type', 'script']);
     });
   });
@@ -29,14 +29,13 @@ describe('TerminalString', () => {
   describe('pop', () => {
     it('should remove the last word', () => {
       const str = new TerminalString().split('type script').pop();
-      expect(str).toHaveLength(4);
       expect(str.count).toEqual(1);
+      expect(str.lengths).toEqual([4]);
       expect(str.strings).toEqual(['type']);
     });
 
     it('should remove all words', () => {
       const str = new TerminalString().split('type script').pop(3);
-      expect(str).toHaveLength(0);
       expect(str.count).toEqual(0);
     });
   });
@@ -48,8 +47,8 @@ describe('TerminalString', () => {
         'type',
         style(tf.clear),
       );
-      expect(str).toHaveLength(4);
       expect(str.count).toEqual(1);
+      expect(str.lengths).toEqual([4]);
       expect(str.strings).toEqual(['\x1b[38;5;0;48;5;0;58;5;0m' + 'type' + '\x1b[0m']);
     });
   });
@@ -57,16 +56,23 @@ describe('TerminalString', () => {
   describe('open', () => {
     it('should add opening words to a word', () => {
       const str = new TerminalString().open('[').open('"').word('type');
-      expect(str).toHaveLength(6);
       expect(str.count).toEqual(1);
+      expect(str.lengths).toEqual([6]);
       expect(str.strings).toEqual(['["type']);
     });
 
     it('should not merge previous words if the opening is empty', () => {
       const str = new TerminalString().word('type').open('').word('script');
-      expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
+      expect(str.lengths).toEqual([4, 6]);
       expect(str.strings).toEqual(['type', 'script']);
+    });
+
+    it('should add opening words at specific positions', () => {
+      const str = new TerminalString().open('"', 0).word('type').open('[', 0);
+      expect(str.count).toEqual(1);
+      expect(str.lengths).toEqual([6]);
+      expect(str.strings).toEqual(['["type']);
     });
   });
 
@@ -74,16 +80,16 @@ describe('TerminalString', () => {
     it('should add the strings from the other string', () => {
       const str1 = new TerminalString().split('type script').setMerge();
       const str2 = new TerminalString().other(str1).split(': is fun');
-      expect(str2).toHaveLength(16);
       expect(str2.count).toEqual(4);
+      expect(str2.lengths).toEqual([4, 7, 2, 3]);
       expect(str2.strings).toEqual(['type', 'script:', 'is', 'fun']);
     });
 
     it('should merge the endpoint strings if merge is true in the first string', () => {
       const str1 = new TerminalString().split('type script');
       const str2 = new TerminalString().open('[').other(str1).close(']');
-      expect(str2).toHaveLength(12);
       expect(str2.count).toEqual(2);
+      expect(str2.lengths).toEqual([5, 7]);
       expect(str2.strings).toEqual(['[type', 'script]']);
     });
   });
@@ -91,8 +97,8 @@ describe('TerminalString', () => {
   describe('close', () => {
     it('should add a closing word when there are no strings', () => {
       const str = new TerminalString().close(']');
-      expect(str).toHaveLength(1);
       expect(str.count).toEqual(1);
+      expect(str.lengths).toEqual([1]);
       expect(str.strings).toEqual([']']);
     });
 
@@ -102,15 +108,15 @@ describe('TerminalString', () => {
         .seq(style(fg.default, bg.default, ul.curly))
         .close(']')
         .close('.');
-      expect(str).toHaveLength(6);
       expect(str.count).toEqual(2);
+      expect(str.lengths).toEqual([4, 2]);
       expect(str.strings).toEqual(['type', '\x1b[39;49;4;3m].']);
     });
 
     it('should not merge next words if the closing is empty', () => {
       const str = new TerminalString().word('type').close('').word('script');
-      expect(str).toHaveLength(10);
       expect(str.count).toEqual(2);
+      expect(str.lengths).toEqual([4, 6]);
       expect(str.strings).toEqual(['type', 'script']);
     });
   });

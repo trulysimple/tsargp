@@ -4,14 +4,13 @@
 import React from 'react';
 import { ArgumentParser, ErrorMessage, AnsiMessage } from 'tsargp';
 import { type Props, Command } from './classes/command';
-
-// @ts-expect-error since tsargp examples do not export types
 import { calc as options } from 'tsargp/examples';
 
 //--------------------------------------------------------------------------------------------------
 // Classes
 //--------------------------------------------------------------------------------------------------
 class CalcCommand extends Command {
+  // @ts-expect-error since tsargp examples do not export types
   private readonly parser = new ArgumentParser(options);
 
   constructor(props: Props) {

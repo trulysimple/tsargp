@@ -1,22 +1,37 @@
 //--------------------------------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------------------------------
-import type { OpaqueOption, OpaqueOptions, Requires, RequiresEntry, RequiresVal } from './options';
-import type { Style, FormatStyles, ConnectiveWords, HelpMessage } from './styles';
-import type { Concrete } from './utils';
-import type { OptionValidator } from './validator';
+import type {
+  OpaqueOption,
+  OpaqueOptions,
+  Requires,
+  RequiresCallback,
+  RequiresEntry,
+  RequiresVal,
+} from './options.js';
+import type { Style, FormatStyles, ConnectiveWords, HelpMessage } from './styles.js';
+import type { Concrete } from './utils.js';
+import type { OptionValidator } from './validator.js';
 
-import { tf, HelpItem, ConnectiveWord } from './enums';
+import { tf, HelpItem, ConnectiveWord } from './enums.js';
 import {
   RequiresAll,
-  RequiresNot,
   RequiresOne,
   isOpt,
   getParamCount,
   getOptionNames,
-} from './options';
-import { AnsiMessage, JsonMessage, TextMessage, TerminalString, style, format } from './styles';
-import { max, combineRegExp, regexps } from './utils';
+  visitRequirements,
+} from './options.js';
+import { AnsiMessage, JsonMessage, TextMessage, TerminalString, style, format } from './styles.js';
+import {
+  max,
+  combineRegExp,
+  regexps,
+  getEntries,
+  getValues,
+  getKeys,
+  mergeValues,
+} from './utils.js';
 
 //--------------------------------------------------------------------------------------------------
 // Public types
@@ -30,7 +45,7 @@ export type Alignment = 'left' | 'right';
  * Defines attributes common to all help columns.
  * @template A The type of text alignment
  */
-export type WithColumn<A = Alignment> = {
+export type WithColumn<A extends string = Alignment> = {
   /**
    * The text alignment for this column. (Defaults to 'left')
    */
@@ -71,11 +86,11 @@ export type FormatterConfig = {
   /**
    * The settings for the parameter column.
    */
-  readonly param?: WithColumn & WithAbsolute;
+  readonly param?: WithColumn<Alignment | 'merge'> & WithAbsolute;
   /**
    * The settings for the description column.
    */
-  readonly descr?: WithColumn & WithAbsolute;
+  readonly descr?: WithColumn<Alignment | 'merge'> & WithAbsolute;
   /**
    * The order of items to be shown in the option description.
    */
@@ -166,6 +181,10 @@ export type WithRequired = {
    */
   readonly required?: ReadonlyArray<string>;
   /**
+   * A map of option keys to required options.
+   */
+  readonly requires?: Readonly<Record<string, string>>;
+  /**
    * A commentary to append to the usage.
    */
   readonly comment?: string;
@@ -240,13 +259,16 @@ type HelpContext = [
 
 /**
  * A function to format a help item.
+ * @param option The option definition
+ * @param phrase The help item phrase
+ * @param context The help context
+ * @param result The resulting string
  */
 type HelpFunction = (
   option: OpaqueOption,
   phrase: string,
   context: HelpContext,
   result: TerminalString,
-  negate: boolean,
 ) => void;
 
 /**
@@ -264,7 +286,12 @@ type GroupsFunction<T> = (group: string, entries: ReadonlyArray<T>, section: Hel
  * A map of option groups to help entries.
  * @template T The type of the help entry
  */
-type EntriesByGroup<T> = Map<string, ReadonlyArray<T>>;
+type EntriesByGroup<T> = Readonly<Record<string, ReadonlyArray<T>>>;
+
+/**
+ * The adjacency list for a usage section.
+ */
+type RequiredBy = Record<string, Array<string>>;
 
 //--------------------------------------------------------------------------------------------------
 // Constants
@@ -313,6 +340,7 @@ const defaultConfig: ConcreteFormat = {
     HelpItem.useNested,
     HelpItem.useFormat,
     HelpItem.useFilter,
+    HelpItem.inline,
   ],
   phrases: {
     [HelpItem.desc]: '%t',
@@ -328,7 +356,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.regex]: 'Values must match the regex %r.',
     [HelpItem.range]: 'Values must be in the range [%n].',
     [HelpItem.unique]: 'Duplicate values will be removed.',
-    [HelpItem.limit]: 'Value count is limited to %n.',
+    [HelpItem.limit]: 'Element count is limited to %n.',
     [HelpItem.requires]: 'Requires %p.',
     [HelpItem.required]: 'Always required.',
     [HelpItem.default]: 'Defaults to (%b|%s|%n|[%s]|[%n]|%v).',
@@ -341,6 +369,7 @@ const defaultConfig: ConcreteFormat = {
     [HelpItem.useNested]: 'Uses the next argument as the name of a nested command.',
     [HelpItem.useFormat]: 'Uses the next argument as the name of a help format.',
     [HelpItem.useFilter]: 'Uses the remaining arguments as option filter.',
+    [HelpItem.inline]: '(Disallows|Requires) inline parameters.',
   },
   filter: [],
 };
@@ -349,32 +378,290 @@ const defaultConfig: ConcreteFormat = {
  * Keep this in-sync with {@link HelpItem}.
  */
 const helpFunctions = [
-  formatDesc,
-  formatNegationNames,
-  formatSeparator,
-  formatParamCount,
-  formatPositional,
-  formatAppend,
-  formatTrim,
-  formatCase,
-  formatConv,
-  formatEnums,
-  formatRegex,
-  formatRange,
-  formatUnique,
-  formatLimit,
-  formatRequires,
-  formatRequired,
-  formatDefault,
-  formatDeprecated,
-  formatLink,
-  formatEnvVar,
-  formatRequiredIf,
-  formatClusterLetters,
-  formatFallback,
-  formatUseNested,
-  formatUseFormat,
-  formatUseFilter,
+  /**
+   * Formats an option's synopsis to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const desc = option.desc;
+    if (desc) {
+      result.format(context[0], phrase, { t: desc });
+    }
+  },
+  /**
+   * Formats an option's negation names to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const names = option.negationNames?.filter((name) => name);
+    if (names?.length) {
+      const sep = context[2][ConnectiveWord.optionSep];
+      result.format(context[0], phrase, { o: names }, { sep });
+    }
+  },
+  /**
+   * Formats an option's separator string to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const separator = option.separator;
+    if (separator) {
+      const [spec, alt] = typeof separator === 'string' ? ['s', 0] : ['r', 1];
+      result.format(context[0], phrase, { [spec]: separator }, { alt });
+    }
+  },
+  /**
+   * Formats an option's parameter count to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const [min, max] = getParamCount(option);
+    if (max > 1) {
+      const [alt, val] =
+        min === max
+          ? [1, min] // exactly %n
+          : min <= 0
+            ? isFinite(max)
+              ? [2, max] // at most %n
+              : [0, undefined] // multiple
+            : isFinite(max)
+              ? [4, [min, max]] // between %n
+              : min > 1
+                ? [3, min] // at least %n
+                : [0, undefined]; // multiple
+      const sep = context[2][ConnectiveWord.and];
+      result.format(context[0], phrase, { n: val }, { alt, sep, mergePrev: false });
+    }
+  },
+  /**
+   * Formats an option's positional attribute to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const positional = option.positional;
+    if (positional) {
+      const [spec, alt] = positional === true ? ['', 0] : ['o', 1];
+      result.format(context[0], phrase, { [spec]: positional }, { alt });
+    }
+  },
+  /**
+   * Formats an option's append attribute to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.append) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's trim normalization to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.trim) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's case conversion to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const conv = option.case;
+    if (conv) {
+      const alt = conv === 'lower' ? 0 : 1;
+      result.format(context[0], phrase, undefined, { alt });
+    }
+  },
+  /**
+   * Formats an option's math conversion to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const conv = option.conv;
+    if (conv) {
+      result.format(context[0], phrase, { t: conv });
+    }
+  },
+  /**
+   * Formats an option's enumerated values to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const values = [
+      ...(option.enums ?? []),
+      ...(option.truthNames ?? []),
+      ...(option.falsityNames ?? []),
+    ];
+    if (values.length) {
+      const connectives = context[2];
+      const [spec, alt, sep] = isOpt.num(option)
+        ? ['n', 1, connectives[ConnectiveWord.numberSep]]
+        : ['s', 0, connectives[ConnectiveWord.stringSep]];
+      result.format(context[0], phrase, { [spec]: values }, { alt, sep });
+    }
+  },
+  /**
+   * Formats an option's regex constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const regex = option.regex;
+    if (regex) {
+      result.format(context[0], phrase, { r: regex });
+    }
+  },
+  /**
+   * Formats an option's range constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const range = option.range;
+    if (range) {
+      const sep = context[2][ConnectiveWord.numberSep];
+      result.format(context[0], phrase, { n: range }, { sep });
+    }
+  },
+  /**
+   * Formats an option's unique constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.unique) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's limit constraint to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const limit = option.limit;
+    if (limit !== undefined) {
+      result.format(context[0], phrase, { n: limit });
+    }
+  },
+  /**
+   * Formats an option's requirements to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const requires = option.requires;
+    if (requires) {
+      result.split(phrase, () => formatRequirements(context, requires, result));
+    }
+  },
+  /**
+   * Formats an option's required attribute to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.required) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's default value to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    formatValue(context, option, phrase, result, option.default);
+  },
+  /**
+   * Formats an option's deprecation notice to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const deprecated = option.deprecated;
+    if (deprecated) {
+      result.format(context[0], phrase, { t: deprecated });
+    }
+  },
+  /**
+   * Formats an option's external resource reference to be included in the description
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const link = option.link;
+    if (link) {
+      result.format(context[0], phrase, { u: link });
+    }
+  },
+  /**
+   * Formats an option's environment variable to be included in the description.
+   * @ignore
+   */
+  (option: OpaqueOption, phrase: string, context: HelpContext, result: TerminalString) => {
+    const envVar = option.envVar;
+    if (envVar) {
+      result.format(context[0], phrase, { o: envVar });
+    }
+  },
+  /**
+   * Formats an option's conditional requirements to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const requiredIf = option.requiredIf;
+    if (requiredIf) {
+      result.split(phrase, () => formatRequirements(context, requiredIf, result));
+    }
+  },
+  /**
+   * Formats an option's cluster letters to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const letters = option.clusterLetters;
+    if (letters) {
+      result.format(context[0], phrase, { s: letters });
+    }
+  },
+  /**
+   * Formats an option's fallback value to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    formatValue(context, option, phrase, result, option.fallback);
+  },
+  /**
+   * Formats a help option's useNested to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.useNested) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats a help option's useFormat to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.useFormat) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats a help option's useFilter to be included in the description.
+   * @ignore
+   */
+  (option, phrase, _, result) => {
+    if (option.useFilter) {
+      result.split(phrase);
+    }
+  },
+  /**
+   * Formats an option's inline treatment to be included in the description.
+   * @ignore
+   */
+  (option, phrase, context, result) => {
+    const inline = option.inline;
+    if (inline !== undefined) {
+      const alt = inline === false ? 0 : 1;
+      result.format(context[0], phrase, undefined, { alt });
+    }
+  },
 ] as const satisfies HelpFunctions;
 
 /**
@@ -407,6 +694,7 @@ const fieldNames = [
   'useNested',
   'useFormat',
   'useFilter',
+  'inline',
 ] as const satisfies ReadonlyArray<keyof OpaqueOption>;
 
 /**
@@ -415,9 +703,9 @@ const fieldNames = [
 const helpFormats = ['ansi', 'json', 'csv', 'md'] as const;
 
 /**
- * The Markdown table cell delimiter.
+ * The Markdown text elements.
  */
-const markdownSep = ' | ';
+const markdown: [sep: string, open: string, close: string] = [' | ', '| ', ' |'];
 
 //--------------------------------------------------------------------------------------------------
 // Classes
@@ -433,9 +721,10 @@ export abstract class HelpFormatter {
    * @param validator The validator instance
    * @param config The formatter configuration
    */
-  constructor(validator: OptionValidator, config?: FormatterConfig) {
+  constructor(validator: OptionValidator, config: FormatterConfig = {}) {
     const { styles, connectives } = validator.config;
-    this.context = [styles, validator.options, connectives, mergeConfig(config)];
+    const concreteConfig = mergeValues(defaultConfig, config);
+    this.context = [styles, validator.options, connectives, concreteConfig];
   }
 
   /**
@@ -468,7 +757,7 @@ export class AnsiFormatter extends HelpFormatter {
   }
 
   override format(name = ''): AnsiMessage {
-    return formatAnsiEntries(this.groups.get(name) ?? []);
+    return formatAnsiEntries(this.groups[name] ?? []);
   }
 
   override sections(sections: HelpSections, progName = ''): AnsiMessage {
@@ -492,7 +781,7 @@ export class JsonFormatter extends HelpFormatter {
   }
 
   override format(name = ''): JsonMessage {
-    return new JsonMessage(...(this.groups.get(name) ?? []));
+    return new JsonMessage(...(this.groups[name] ?? []));
   }
 
   override sections(sections: HelpSections): JsonMessage {
@@ -522,7 +811,7 @@ export class CsvFormatter extends HelpFormatter {
   }
 
   override format(name = ''): TextMessage {
-    const entries = this.groups.get(name);
+    const entries = this.groups[name];
     return formatCsvEntries(entries ? [this.fields, ...entries] : []);
   }
 
@@ -537,17 +826,16 @@ export class CsvFormatter extends HelpFormatter {
  * Implements formatting of Markdown help messages for a set of option definitions.
  */
 export class MdFormatter extends CsvFormatter {
-  private readonly splitter: CsvHelpEntry;
+  private readonly header: [CsvHelpEntry, CsvHelpEntry];
 
   constructor(validator: OptionValidator, config?: FormatterConfig) {
     super(validator, config, ['type', 'names']);
-    this.splitter = this.fields.map((field) => '-'.repeat(field.length));
+    this.header = [this.fields, this.fields.map((field) => '-'.repeat(field.length))];
   }
 
   override format(name = ''): TextMessage {
-    const entries = this.groups.get(name);
-    const entriesWithHeader = entries ? [this.fields, this.splitter, ...entries] : [];
-    return formatCsvEntries(entriesWithHeader, undefined, markdownSep, markdownSep);
+    const entries = this.groups[name];
+    return formatCsvEntries(entries ? [...this.header, ...entries] : [], undefined, ...markdown);
   }
 
   override sections(sections: HelpSections): TextMessage {
@@ -560,7 +848,7 @@ export class MdFormatter extends CsvFormatter {
       if (title) {
         result.push('## ' + title, ''); // section before table
       }
-      formatCsvEntries([this.fields, this.splitter, ...entries], result, markdownSep, markdownSep);
+      formatCsvEntries([...this.header, ...entries], result, ...markdown);
     });
     return result;
   }
@@ -626,26 +914,14 @@ function formatGroups<T>(
   formatFn: GroupsFunction<T>,
 ) {
   const { filter, exclude } = section;
-  const filterGroups = filter && new Set(filter);
-  for (const [group, entries] of groups.entries()) {
-    if ((filterGroups?.has(group) ?? !exclude) !== !!exclude) {
-      formatFn(group, entries, section);
+  const allNames = getKeys(groups);
+  const names = exclude ? allNames : filter ?? allNames;
+  const excludeNames = new Set(exclude && filter);
+  for (const name of names) {
+    if (name in groups && !excludeNames.has(name)) {
+      formatFn(name, groups[name], section);
     }
   }
-}
-
-/**
- * Matches an option with a regular expression.
- * @param option The option definition
- * @param regexp The regular expression
- * @returns True if the option matches
- */
-function matchOption(option: OpaqueOption, regexp: RegExp): boolean {
-  return !!(
-    option.names?.find((name) => name?.match(regexp)) ||
-    option.desc?.match(regexp) ||
-    option.envVar?.match(regexp)
-  );
 }
 
 /**
@@ -659,19 +935,26 @@ function buildEntries<T>(
   context: HelpContext,
   buildFn: (option: OpaqueOption) => T,
 ): EntriesByGroup<T> {
+  /** @ignore */
+  function exclude(option: OpaqueOption): 0 | boolean {
+    return (
+      regexp &&
+      !option.names?.find((name) => name?.match(regexp)) &&
+      !option.desc?.match(regexp) &&
+      !option.envVar?.match(regexp)
+    );
+  }
   const [, options, , config] = context;
-  const regexp = config.filter.length ? RegExp(combineRegExp(config.filter), 'i') : undefined;
-  const groups = new Map<string, Array<T>>();
-  for (const key in options) {
-    const option = options[key];
-    if (!option.hide && (!regexp || matchOption(option, regexp))) {
+  const regexp = config.filter.length && RegExp(combineRegExp(config.filter), 'i');
+  const groups: Record<string, Array<T>> = {};
+  for (const option of getValues(options)) {
+    if (!option.hide && !exclude(option)) {
       const entry = buildFn(option);
       const name = option.group ?? '';
-      const group = groups.get(name);
-      if (!group) {
-        groups.set(name, [entry]);
+      if (name in groups) {
+        groups[name].push(entry);
       } else {
-        group.push(entry);
+        groups[name] = [entry];
       }
     }
   }
@@ -684,40 +967,48 @@ function buildEntries<T>(
  * @returns The option groups
  */
 function buildAnsiEntries(context: HelpContext): EntriesByGroup<AnsiHelpEntry> {
-  const [, options, connectives, config] = context;
-  const { hidden, align } = config.names;
-  const optionSep = connectives[ConnectiveWord.optionSep];
-  const nameWidths = hidden
-    ? 0
-    : align === 'slot'
-      ? getNameWidths(options)
-      : getMaxNamesWidth(options, optionSep);
+  let nameWidths = getNameWidths(context);
   let paramWidth = 0;
-  const groups = buildEntries(context, (option) => {
-    const [entry, paramLen] = formatOption(context, nameWidths, option);
+  const groups = buildEntries(context, (option): AnsiHelpEntry => {
+    const names = formatNames(context, option, nameWidths);
+    const [param, paramLen] = formatParams(context, option);
+    const descr = formatDescription(context, option);
     paramWidth = max(paramWidth, paramLen);
-    return entry;
+    return [names, param, descr];
   });
-  adjustEntries(groups, config, nameWidths, paramWidth);
+  if (typeof nameWidths !== 'number') {
+    nameWidths = nameWidths.length ? nameWidths.reduce((acc, len) => acc + len + 2, -2) : 0;
+  }
+  const { names, param, descr } = context[3];
+  const namesIndent = max(0, names.indent);
+  const paramIndent = param.absolute
+    ? max(0, param.indent)
+    : namesIndent + nameWidths + param.indent;
+  const descrIndent = descr.absolute
+    ? max(0, descr.indent)
+    : paramIndent + paramWidth + descr.indent;
+  const paramRight = param.align === 'right';
+  const paramMerge = param.align === 'merge';
+  const descrMerge = descr.align === 'merge';
+  for (const [names, param, descr] of getValues(groups).flat()) {
+    if (descrMerge) {
+      param.other(descr);
+      descr.pop(descr.count);
+    } else {
+      descr.indent = descrIndent;
+    }
+    if (paramMerge) {
+      if (names.length) {
+        names[names.length - 1].other(param);
+        param.pop(param.count);
+      } else {
+        param.indent = namesIndent;
+      }
+    } else {
+      param.indent = paramIndent + (paramRight ? paramWidth - param.indent : 0);
+    }
+  }
   return groups;
-}
-
-/**
- * Formats an option to be printed on the terminal.
- * @param context The help context
- * @param nameWidths The name slot widths
- * @param option The option definition
- * @returns [the help entry, the length of the option parameter]
- */
-function formatOption(
-  context: HelpContext,
-  nameWidths: Array<number> | number,
-  option: OpaqueOption,
-): [AnsiHelpEntry, number] {
-  const names = formatNames(context, option, nameWidths);
-  const [param, paramLen] = formatParams(context, option);
-  const descr = formatDescription(context, option);
-  return [[names, param, descr], paramLen];
 }
 
 /**
@@ -732,14 +1023,43 @@ function formatNames(
   option: OpaqueOption,
   nameWidths: Array<number> | number,
 ): Array<TerminalString> {
-  const config = context[3];
-  if (config.names.hidden || !option.names) {
+  const [styles, , connectives, config] = context;
+  let { indent, breaks, align, hidden } = config.names;
+  if (hidden || !option.names) {
     return [];
   }
-  const [styles, , connectives] = context;
-  const namesStyle = option.styles?.names ?? styles.option;
+  const style = option.styles?.names ?? styles.option;
   const sep = connectives[ConnectiveWord.optionSep];
-  return formatNameSlots(config, option.names, nameWidths, namesStyle, styles.text, sep);
+  const slotted = typeof nameWidths !== 'number';
+  const result: Array<TerminalString> = [];
+  const sepLen = sep.length + 1;
+  let str: TerminalString | undefined;
+  indent = max(0, indent);
+  let len = 0;
+  option.names.forEach((name, i) => {
+    if (name) {
+      if (str) {
+        str.close(sep);
+        len += sepLen;
+      }
+      if (!str || slotted) {
+        str = new TerminalString(indent, breaks);
+        result.push(str);
+        breaks = 0; // break only on the first name
+      }
+      str.style(style, name, styles.text);
+      len += name.length;
+    } else if (slotted) {
+      str = undefined;
+    }
+    if (slotted) {
+      indent += nameWidths[i] + sepLen;
+    }
+  });
+  if (str && !slotted && align === 'right') {
+    str.indent += nameWidths - len;
+  }
+  return result;
 }
 
 /**
@@ -754,7 +1074,11 @@ function formatParams(context: HelpContext, option: OpaqueOption): [TerminalStri
   if (hidden) {
     return [result, 0];
   }
-  const len = formatParam(option, context[0], result, breaks);
+  formatParam(option, context[0], result.break(breaks));
+  const len = result.lengths.reduce((acc, len) => acc + (len ? len + 1 : 0), -1);
+  if (len < 0) {
+    return [result.pop(result.count), 0]; // this string does not contain any word
+  }
   result.indent = len; // hack: save the length, since we will need it in `adjustEntries`
   return [result, len];
 }
@@ -774,9 +1098,9 @@ function formatDescription(context: HelpContext, option: OpaqueOption): Terminal
   if (hidden || !items.length) {
     return result.break();
   }
-  const descrStyle = option.styles?.descr ?? styles.text;
-  result.break(breaks).seq(descrStyle);
-  styles.current = descrStyle;
+  const style = option.styles?.descr ?? styles.text;
+  result.break(breaks).seq(style);
+  styles.current = style;
   const count = result.count;
   try {
     for (const item of items) {
@@ -785,151 +1109,38 @@ function formatDescription(context: HelpContext, option: OpaqueOption): Terminal
   } finally {
     delete styles.current;
   }
-  if (result.count === count) {
-    result.pop(count).break(); // this string does not contain any word
-  } else {
-    result.clear().break(); // add ending breaks after styles
+  return (result.count === count ? result.pop(count) : result.clear()).break();
+}
+
+/**
+ * Gets the required width of option names in a set of option definitions.
+ * @param context The help context
+ * @returns The name slot widths, or the maximum combined width
+ */
+function getNameWidths(context: HelpContext): Array<number> | number {
+  const [, options, connectives, config] = context;
+  const { hidden, align } = config.names;
+  if (hidden) {
+    return 0;
   }
-  return result;
-}
-
-/**
- * Merges a help configuration with the default configuration.
- * @param config The provided configuration
- * @returns The merged configuration
- */
-function mergeConfig(config: FormatterConfig = {}): ConcreteFormat {
-  return {
-    names: { ...defaultConfig.names, ...config.names },
-    param: { ...defaultConfig.param, ...config.param },
-    descr: { ...defaultConfig.descr, ...config.descr },
-    items: config.items ?? defaultConfig.items,
-    phrases: { ...defaultConfig.phrases, ...config.phrases },
-    filter: config.filter ?? defaultConfig.filter,
-  };
-}
-
-/**
- * Gets the required width of each name slot in a set of option definitions.
- * @param options The option definitions
- * @returns The name slot widths
- */
-function getNameWidths(options: OpaqueOptions): Array<number> {
-  const result: Array<number> = [];
-  for (const key in options) {
-    const option = options[key];
+  const sepLen = connectives[ConnectiveWord.optionSep].length + 1;
+  const slotted = align === 'slot';
+  const slotWidths: Array<number> = [];
+  let maxWidth = 0;
+  for (const option of getValues(options)) {
     const names = option.names;
     if (!option.hide && names) {
-      names.forEach((name, i) => {
-        result[i] = max(result[i] ?? 0, name?.length ?? 0);
-      });
-    }
-  }
-  return result;
-}
-
-/**
- * Gets the maximum combined width of option names in a set of option definitions.
- * @param options The option definitions
- * @param sep The option name separator
- * @returns The maximum width
- */
-function getMaxNamesWidth(options: OpaqueOptions, sep: string): number {
-  const sepLen = sep.length + 1;
-  let result = 0;
-  for (const key in options) {
-    const option = options[key];
-    const names = option.names;
-    if (!option.hide && names) {
-      const len = names.reduce((acc, name) => acc + sepLen + (name?.length ?? -sepLen), -sepLen);
-      result = max(result, len);
-    }
-  }
-  return result;
-}
-
-/**
- * Updates help entries to start at the appropriate terminal column.
- * @param groups The option groups
- * @param config The format configuration
- * @param namesWidth The width (or widths) of the names column
- * @param paramWidth The width of the param column
- */
-function adjustEntries(
-  groups: EntriesByGroup<AnsiHelpEntry>,
-  config: ConcreteFormat,
-  namesWidth: Array<number> | number,
-  paramWidth: number,
-) {
-  if (typeof namesWidth !== 'number') {
-    namesWidth = namesWidth.length ? namesWidth.reduce((acc, len) => acc + len + 2, -2) : 0;
-  }
-  const { names, param, descr } = config;
-  const alignLeft = param.align === 'left';
-  const namesIndent = max(0, names.indent);
-  const paramIndent = param.absolute
-    ? max(0, param.indent)
-    : namesIndent + namesWidth + param.indent;
-  const descrIndent = descr.absolute
-    ? max(0, descr.indent)
-    : paramIndent + paramWidth + descr.indent;
-  for (const entries of groups.values()) {
-    for (const [, param, descr] of entries) {
-      param.indent = paramIndent + (alignLeft ? 0 : paramWidth - param.indent);
-      descr.indent = descrIndent;
-    }
-  }
-}
-
-/**
- * Formats a list of names to be printed on the terminal.
- * @param config The format configuration
- * @param names The list of option names
- * @param nameWidths The name slot widths
- * @param namesStyle The style to apply
- * @param defStyle The default style
- * @param sep The option name separator
- * @returns The resulting strings
- */
-function formatNameSlots(
-  config: ConcreteFormat,
-  names: ReadonlyArray<string | null>,
-  nameWidths: Array<number> | number,
-  namesStyle: Style,
-  defStyle: Style,
-  sep: string,
-): Array<TerminalString> {
-  const slotted = typeof nameWidths !== 'number';
-  const result: Array<TerminalString> = [];
-  const sepLen = sep.length + 1;
-  let str: TerminalString | undefined;
-  let { indent, breaks, align } = config.names;
-  indent = max(0, indent);
-  let len = 0;
-  names.forEach((name, i) => {
-    if (name) {
-      if (str) {
-        str.close(sep);
-        len += sepLen;
+      if (slotted) {
+        names.forEach((name, i) => {
+          slotWidths[i] = max(slotWidths[i] ?? 0, name?.length ?? 0);
+        });
+      } else {
+        const len = names.reduce((acc, name) => acc + sepLen + (name?.length ?? -sepLen), -sepLen);
+        maxWidth = max(maxWidth, len);
       }
-      if (!str || slotted) {
-        str = new TerminalString(indent, breaks);
-        result.push(str);
-        breaks = 0; // break only on the first name
-      }
-      str.style(namesStyle, name, defStyle);
-      len += name.length;
-    } else if (slotted) {
-      str = undefined;
     }
-    if (slotted) {
-      indent += nameWidths[i] + sepLen;
-    }
-  });
-  if (str && !slotted && align === 'right') {
-    str.indent += nameWidths - len;
   }
-  return result;
+  return slotted ? slotWidths : maxWidth;
 }
 
 /**
@@ -954,23 +1165,25 @@ function formatAnsiEntries(
  * @param entries The help entries
  * @param result The resulting message
  * @param itemSep The help item delimiter
- * @param entryQuote The quote character for a whole help entry
+ * @param openChar The character to begin a help entry
+ * @param closeChar The character to end a help entry
  * @returns The resulting message
  */
 function formatCsvEntries(
   entries: ReadonlyArray<CsvHelpEntry>,
   result = new TextMessage(),
   itemSep = '\t',
-  entryQuote = '',
+  openChar = '',
+  closeChar = '',
 ): TextMessage {
   result.push(
     ...entries.map(
       (entry) =>
-        entryQuote.trimStart() +
+        openChar +
         entry
           .map((item) => item.replace(regexps.space, ' ').replace(regexps.style, ''))
           .join(itemSep) +
-        entryQuote.trimEnd(),
+        closeChar,
     ),
   );
   return result;
@@ -994,7 +1207,18 @@ function formatAnsiSection(
 ) {
   let breaks = section.breaks ?? (result.length ? 2 : 0);
   if (section.type === 'groups') {
-    formatGroupsSection(groups, breaks, section, result);
+    const { title, noWrap, style: sty } = section;
+    const headingStyle = sty ?? style(tf.bold);
+    formatGroups(groups, section, (group, entries) => {
+      const title2 = group || title;
+      const heading = title2
+        ? formatText(title2, headingStyle, 0, breaks, noWrap).break(2)
+        : new TerminalString(0, breaks);
+      result.push(heading);
+      formatAnsiEntries(entries, result);
+      result[result.length - 1].pop(); // remove trailing break
+      breaks = 2;
+    });
   } else {
     const { title, noWrap, style: sty } = section;
     if (title) {
@@ -1017,34 +1241,6 @@ function formatAnsiSection(
       }
     }
   }
-}
-
-/**
- * Formats a groups section to be included in the full help message.
- * Options are rendered in the same order as was declared in the option definitions.
- * @param groups The option groups
- * @param breaks The number of line breaks
- * @param section The help section
- * @param result The resulting message
- */
-function formatGroupsSection(
-  groups: EntriesByGroup<AnsiHelpEntry>,
-  breaks: number,
-  section: HelpGroups,
-  result: AnsiMessage,
-) {
-  const { title, noWrap, style: sty } = section;
-  const headingStyle = sty ?? style(tf.bold);
-  formatGroups(groups, section, (group, entries) => {
-    const title2 = group || title;
-    const heading = title2
-      ? formatText(title2, headingStyle, 0, breaks, noWrap).break(2)
-      : new TerminalString(0, breaks);
-    result.push(heading);
-    formatAnsiEntries(entries, result);
-    result[result.length - 1].pop(); // remove trailing break
-    breaks = 2;
-  });
 }
 
 /**
@@ -1088,56 +1284,117 @@ function formatUsage(
   breaks?: number,
 ): TerminalString {
   const [styles, options] = context;
-  const { filter, exclude, required, comment } = section;
-  const filterKeys = filter && new Set(filter);
-  const requiredKeys = required && new Set(required);
   const result = new TerminalString(indent, breaks).seq(styles.text);
+  const { filter, exclude, required, requires, comment } = section;
+  const visited = new Set<string>(exclude && filter);
+  const requiredKeys = new Set(required);
+  const requiredBy = requires && getRequiredBy(requires);
+  const allKeys = getKeys(options);
+  const keys = exclude ? allKeys : filter?.filter((key) => key in options) ?? allKeys;
   const count = result.count;
-  if (filterKeys && !exclude) {
-    // list options in the same order specified in the filter
-    for (const key of filterKeys) {
-      if (key in options) {
-        formatUsageOption(context, options[key], result, requiredKeys?.has(key));
-      }
-    }
-  } else {
-    for (const key in options) {
-      const option = options[key];
-      if (!option.hide && !(exclude && filterKeys?.has(key))) {
-        formatUsageOption(context, option, result);
-      }
-    }
+  for (const key of keys) {
+    formatUsageOption(context, key, result, visited, requiredKeys, requires, requiredBy);
   }
   if (comment) {
     result.split(comment);
   }
-  if (result.count === count) {
-    return new TerminalString(); // this string does not contain any word
+  return result.count === count ? result.pop(count) : result.clear();
+}
+
+/**
+ * Gets an adjacency list from a set of requirements.
+ * @param requires The map of option keys to required options
+ * @returns The adjacency list
+ */
+function getRequiredBy(requires: Readonly<Record<string, string>>): RequiredBy {
+  const result: RequiredBy = {};
+  for (const [key, requiredKey] of getEntries(requires)) {
+    if (requiredKey in result) {
+      result[requiredKey].push(key);
+    } else {
+      result[requiredKey] = [key];
+    }
   }
-  return result.clear(); // to simplify client code
+  return result;
 }
 
 /**
  * Formats an option to be included in the the usage text.
  * @param context The help context
- * @param option The option definition
+ * @param key The option key
  * @param result The resulting string
- * @param required True if the option should be considered required
+ * @param visited The set of visited options
+ * @param requiredKeys The list of options to consider always required
+ * @param requires The map of option keys to required options
+ * @param requiredBy The adjacency list
+ * @param preOrderFn The formatting function to execute before rendering the option names
+ * @returns True if the option is considered always required
  */
 function formatUsageOption(
   context: HelpContext,
-  option: OpaqueOption,
+  key: string,
   result: TerminalString,
-  required = option.required ?? false,
-) {
-  if (!required) {
-    result.open('[');
+  visited: Set<string>,
+  requiredKeys: Set<string>,
+  requires?: Readonly<Record<string, string>>,
+  requiredBy?: RequiredBy,
+  preOrderFn?: (requiredKey?: string) => void,
+): boolean {
+  /** @ignore */
+  function format(receivedKey?: string, isLast = false): boolean {
+    const count = result.count;
+    // if the received key is my own key, then I'm the junction point in a circular dependency:
+    // reset it so that remaining options in the chain can be considered optional
+    preOrderFn?.(key === receivedKey ? undefined : receivedKey);
+    formatUsageNames(context, option, result);
+    formatParam(option, styles, result);
+    if (!required) {
+      // process requiring options in my dependency group (if they have not already been visited)
+      list?.forEach((key) => {
+        if (formatUsageOption(context, key, result, visited, requiredKeys, requires, requiredBy)) {
+          required = true; // update my status, since I'm required by an always required option
+        }
+      });
+      // if I'm not always required and I'm the last option in a dependency chain, ignore the
+      // received key, so I can be considered optional
+      if (!required && (isLast || !receivedKey)) {
+        result.open('[', count).close(']');
+      }
+    }
+    return required;
   }
-  formatUsageNames(context, option, result);
-  formatParam(option, context[0], result);
-  if (!required) {
-    result.close(']');
+  let required = requiredKeys.has(key);
+  if (visited.has(key)) {
+    return required;
   }
+  visited.add(key);
+  const [styles, options] = context;
+  const option = options[key];
+  if (!required && option.required) {
+    required = true;
+    requiredKeys.add(key);
+  }
+  const list = requiredBy?.[key];
+  const requiredKey = requires?.[key];
+  if (requiredKey) {
+    if (required) {
+      requiredKeys.add(requiredKey); // transitivity of always required options
+    }
+    // this check is needed, so we can fallback to the normal format call in the negative case
+    if (!visited.has(requiredKey)) {
+      return formatUsageOption(
+        context,
+        requiredKey,
+        result,
+        visited,
+        requiredKeys,
+        requires,
+        requiredBy,
+        format,
+      );
+    }
+  }
+  return format(requiredKey, true);
 }
 
 /**
@@ -1150,408 +1407,62 @@ function formatUsageNames(context: HelpContext, option: OpaqueOption, result: Te
   const [styles, , connectives] = context;
   const names = getOptionNames(option);
   if (names.length) {
-    const positional = option.positional;
-    if (positional) {
-      result.open('[');
-    }
+    const count = result.count;
     if (names.length > 1) {
       const sep = connectives[ConnectiveWord.optionAlt];
       result.format(styles, '(%o)', { o: names }, { sep, mergeNext: true });
     } else {
       format.o(names[0], styles, result);
     }
-    if (positional) {
-      result.close(']');
+    if (option.positional) {
+      result.open('[', count).close(']');
     }
   }
 }
 
 /**
  * Formats an option's parameter to be included in the description or the usage text.
- * Assumes that the option is not niladic.
  * @param option The option definition
  * @param styles The set of styles
  * @param result The resulting string
- * @param breaks The number of line breaks (non-positive values are ignored)
- * @returns The string length
  */
-function formatParam(
-  option: OpaqueOption,
-  styles: FormatStyles,
-  result: TerminalString,
-  breaks = 0,
-): number {
-  if (option.example !== undefined) {
-    return formatExample(option, styles, result.break(breaks));
-  }
-  const paramStyle = option.styles?.param ?? styles.value;
-  const ellipsis = '...';
-  if (option.type === 'command') {
-    result.break(breaks).style(paramStyle, ellipsis, styles.text);
-    return ellipsis.length;
-  }
+function formatParam(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
   const [min, max] = getParamCount(option);
-  if (!max) {
-    return 0;
+  const ellipsis = max > 1 ? '...' : '';
+  const equals = option.inline === 'always' ? '=' : '';
+  if (equals) {
+    result.setMerge();
   }
-  const paramName = option.paramName;
-  const param0 = paramName
-    ? paramName.includes('<')
-      ? paramName
-      : `<${paramName}>`
-    : option.type === 'function'
-      ? '<param>'
-      : `<${option.type}>`;
-  const param1 = param0 + (max > 1 ? ellipsis : '');
-  const param2 = min <= 0 ? `[${param1}]` : param1;
-  result.break(breaks).style(paramStyle, param2, styles.text);
-  return param2.length;
-}
-
-/**
- * Formats an option's example value to be included in the description or the usage text.
- * Assumes that the option was validated.
- * @param option The option definition
- * @param styles The set of styles
- * @param result The resulting string
- * @returns The string length, counting spaces in non-delimited array values
- */
-function formatExample(option: OpaqueOption, styles: FormatStyles, result: TerminalString): number {
-  const example = option.example;
-  const separator = option.separator;
-  if (separator) {
-    const sep = typeof separator === 'string' ? separator : separator.source;
-    const value = (example as Array<unknown>).join(sep);
-    result.format(styles, '%s', { s: value });
-    return result.length;
+  let param;
+  let example = option.example;
+  if (example !== undefined) {
+    let spec;
+    const separator = option.separator;
+    if (separator) {
+      const sep = typeof separator === 'string' ? separator : separator.source;
+      example = (example as Array<unknown>).join(sep);
+      spec = 's';
+    } else {
+      spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
+    }
+    result.format(styles, equals + '%' + spec, { [spec]: example });
+    if (ellipsis) {
+      param = ellipsis;
+      result.setMerge();
+    }
+  } else {
+    const type = option.type;
+    if (type === 'command') {
+      param = '...';
+    } else if (max) {
+      const param0 = option.paramName ?? (type === 'function' ? 'param' : type);
+      const param1 = equals + (param0.includes('<') ? param0 : `<${param0}>`) + ellipsis;
+      param = min <= 0 ? `[${param1}]` : param1;
+    }
   }
-  const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
-  result.format(styles, `%${spec}`, { [spec]: example });
-  const nonDelimited = spec !== 'v' && Array.isArray(example);
-  return result.length + (nonDelimited ? example.length - 1 : 0);
-}
-
-/**
- * Formats an option's synopsis to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatDesc(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const desc = option.desc;
-  if (desc) {
-    result.format(context[0], phrase, { t: desc });
+  if (param) {
+    result.style(option.styles?.param ?? styles.value, param, styles.text);
   }
-}
-
-/**
- * Formats an option's negation names to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatNegationNames(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const names = option.negationNames?.filter((name) => name);
-  if (names?.length) {
-    const sep = context[2][ConnectiveWord.optionSep];
-    result.format(context[0], phrase, { o: names }, { sep });
-  }
-}
-
-/**
- * Formats an option's separator string to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatSeparator(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const separator = option.separator;
-  if (separator) {
-    const [spec, alt] = typeof separator === 'string' ? ['s', 0] : ['r', 1];
-    result.format(context[0], phrase, { [spec]: separator }, { alt });
-  }
-}
-
-/**
- * Formats an option's parameter count to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatParamCount(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const [min, max] = getParamCount(option);
-  if (max > 1) {
-    const [alt, val] =
-      min === max
-        ? [1, min] // exactly %n
-        : min <= 0
-          ? isFinite(max)
-            ? [2, max] // at most %n
-            : [0, undefined] // multiple
-          : isFinite(max)
-            ? [4, [min, max]] // between %n
-            : min > 1
-              ? [3, min] // at least %n
-              : [0, undefined]; // multiple
-    const sep = context[2][ConnectiveWord.and];
-    result.format(context[0], phrase, { n: val }, { alt, sep, mergePrev: false });
-  }
-}
-
-/**
- * Formats an option's positional attribute to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatPositional(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const positional = option.positional;
-  if (positional) {
-    const [spec, alt] = positional === true ? ['', 0] : ['o', 1];
-    result.format(context[0], phrase, { [spec]: positional }, { alt });
-  }
-}
-
-/**
- * Formats an option's append attribute to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatAppend(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.append) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's trim normalization to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatTrim(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.trim) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's case conversion to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatCase(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const conv = option.case;
-  if (conv) {
-    const alt = conv === 'lower' ? 0 : 1;
-    result.format(context[0], phrase, undefined, { alt });
-  }
-}
-
-/**
- * Formats an option's math conversion to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatConv(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const conv = option.conv;
-  if (conv) {
-    result.format(context[0], phrase, { t: conv });
-  }
-}
-
-/**
- * Formats an option's enumerated values to be included in the description.
- * This includes truth and falsity names of a boolean option.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatEnums(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const enums = option.enums;
-  const truth = option.truthNames;
-  const falsity = option.falsityNames;
-  if (enums || truth || falsity) {
-    const connectives = context[2];
-    const values = [...(enums ?? []), ...(truth ?? []), ...(falsity ?? [])];
-    const [spec, alt, sep] = isOpt.num(option)
-      ? ['n', 1, connectives[ConnectiveWord.numberSep]]
-      : ['s', 0, connectives[ConnectiveWord.stringSep]];
-    result.format(context[0], phrase, { [spec]: values }, { alt, sep });
-  }
-}
-
-/**
- * Formats an option's regex constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatRegex(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const regex = option.regex;
-  if (regex) {
-    result.format(context[0], phrase, { r: regex });
-  }
-}
-
-/**
- * Formats an option's range constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatRange(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const range = option.range;
-  if (range) {
-    const sep = context[2][ConnectiveWord.numberSep];
-    result.format(context[0], phrase, { n: range }, { sep });
-  }
-}
-
-/**
- * Formats an option's unique constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUnique(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.unique) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's limit constraint to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatLimit(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const limit = option.limit;
-  if (limit !== undefined) {
-    result.format(context[0], phrase, { n: limit });
-  }
-}
-
-/**
- * Formats an option's required attribute to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatRequired(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.required) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats an option's default value to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatDefault(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  formatValue(context, option, phrase, result, option.default);
 }
 
 /**
@@ -1591,82 +1502,6 @@ function formatValue(
 }
 
 /**
- * Formats an option's deprecation notice to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatDeprecated(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const deprecated = option.deprecated;
-  if (deprecated) {
-    result.format(context[0], phrase, { t: deprecated });
-  }
-}
-
-/**
- * Formats an option's external resource reference to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatLink(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const link = option.link;
-  if (link) {
-    result.format(context[0], phrase, { u: link });
-  }
-}
-
-/**
- * Formats an option's environment variable to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatEnvVar(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const envVar = option.envVar;
-  if (envVar) {
-    result.format(context[0], phrase, { o: envVar });
-  }
-}
-
-/**
- * Formats an option's cluster letters to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatClusterLetters(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const letters = option.clusterLetters;
-  if (letters) {
-    result.format(context[0], phrase, { s: letters });
-  }
-}
-
-/**
  * Recursively formats an option's requirements to be included in the description.
  * Assumes that the options were validated.
  * @param context The help context
@@ -1680,25 +1515,37 @@ function formatRequirements(
   result: TerminalString,
   negate: boolean = false,
 ) {
+  visitRequirements(
+    requires,
+    (req) => formatRequiredKey(context, req, result, negate),
+    (req) => formatRequirements(context, req.item, result, !negate),
+    (req) => formatRequiresExp(context, req, result, negate, true),
+    (req) => formatRequiresExp(context, req, result, negate, false),
+    (req) => formatRequiresVal(context, req, result, negate),
+    (req) => formatRequiresCallback(context, req, result, negate),
+  );
+}
+
+/**
+ * Formats a required option key to be included in the description.
+ * Assumes that the options were validated.
+ * @param context The help context
+ * @param requiredKey The required option key
+ * @param result The resulting string
+ * @param negate True if the requirement should be negated
+ */
+function formatRequiredKey(
+  context: HelpContext,
+  requiredKey: string,
+  result: TerminalString,
+  negate: boolean,
+) {
   const [styles, options, connectives] = context;
-  if (typeof requires === 'string') {
-    if (negate) {
-      result.word(connectives[ConnectiveWord.no]);
-    }
-    const name = options[requires].preferredName ?? '';
-    format.o(name, styles, result);
-  } else if (requires instanceof RequiresNot) {
-    formatRequirements(context, requires.item, result, !negate);
-  } else if (requires instanceof RequiresAll || requires instanceof RequiresOne) {
-    formatRequiresExp(context, requires, result, negate);
-  } else if (typeof requires === 'object') {
-    formatRequiresVal(context, requires, result, negate);
-  } else {
-    if (negate) {
-      result.word(connectives[ConnectiveWord.not]);
-    }
-    format.v(requires, styles, result);
+  if (negate) {
+    result.word(connectives[ConnectiveWord.no]);
   }
+  const name = options[requiredKey].preferredName ?? '';
+  format.o(name, styles, result);
 }
 
 /**
@@ -1708,12 +1555,14 @@ function formatRequirements(
  * @param requires The requirement expression
  * @param result The resulting string
  * @param negate True if the requirement should be negated
+ * @param isAll True if the requirement is an "all" expression
  */
 function formatRequiresExp(
   context: HelpContext,
   requires: RequiresAll | RequiresOne,
   result: TerminalString,
   negate: boolean,
+  isAll: boolean,
 ) {
   /** @ignore */
   function custom(item: Requires) {
@@ -1722,10 +1571,7 @@ function formatRequiresExp(
   const connectives = context[2];
   const items = requires.items;
   const phrase = items.length > 1 ? '(%c)' : '%c';
-  const sep =
-    requires instanceof RequiresAll === negate
-      ? connectives[ConnectiveWord.or]
-      : connectives[ConnectiveWord.and];
+  const sep = isAll === negate ? connectives[ConnectiveWord.or] : connectives[ConnectiveWord.and];
   result.format(context[0], phrase, { c: items }, { sep, custom, mergePrev: false });
 }
 
@@ -1748,7 +1594,7 @@ function formatRequiresVal(
     formatRequiredValue(context, options[key], value, result, negate);
   }
   const [, options, connectives] = context;
-  const entries = Object.entries(requires);
+  const entries = getEntries(requires);
   const phrase = entries.length > 1 ? '(%c)' : '%c';
   const sep = connectives[ConnectiveWord.and];
   result.format(context[0], phrase, { c: entries }, { sep, custom, mergePrev: false });
@@ -1781,116 +1627,35 @@ function formatRequiredValue(
     const connective = negate
       ? connectives[ConnectiveWord.notEquals]
       : connectives[ConnectiveWord.equals];
-    const spec = isOpt.bool(option) ? 'b' : isOpt.str(option) ? 's' : isOpt.num(option) ? 'n' : 'v';
+    const [spec, sep] = isOpt.bool(option)
+      ? ['b']
+      : isOpt.str(option)
+        ? ['s', connectives[ConnectiveWord.stringSep]]
+        : isOpt.num(option)
+          ? ['n', connectives[ConnectiveWord.numberSep]]
+          : 'v';
     const phrase = isOpt.arr(option) ? `[%${spec}]` : `%${spec}`;
-    result.word(connective).format(styles, phrase, { [spec]: value });
+    result.word(connective).format(styles, phrase, { [spec]: value }, { sep });
   }
 }
 
 /**
- * Formats an option's requirements to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
+ * Formats a requirement callback to be included in the description.
+ * Assumes that the options were validated.
  * @param context The help context
+ * @param callback The requirement callback
  * @param result The resulting string
+ * @param negate True if the requirement should be negated
  */
-function formatRequires(
-  option: OpaqueOption,
-  phrase: string,
+function formatRequiresCallback(
   context: HelpContext,
+  callback: RequiresCallback,
   result: TerminalString,
+  negate: boolean,
 ) {
-  const requires = option.requires;
-  if (requires) {
-    result.split(phrase, () => formatRequirements(context, requires, result));
+  const [styles, , connectives] = context;
+  if (negate) {
+    result.word(connectives[ConnectiveWord.not]);
   }
-}
-
-/**
- * Formats an option's conditional requirements to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatRequiredIf(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  const requiredIf = option.requiredIf;
-  if (requiredIf) {
-    result.split(phrase, () => formatRequirements(context, requiredIf, result));
-  }
-}
-
-/**
- * Formats an option's fallback value to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param context The help context
- * @param result The resulting string
- */
-function formatFallback(
-  option: OpaqueOption,
-  phrase: string,
-  context: HelpContext,
-  result: TerminalString,
-) {
-  formatValue(context, option, phrase, result, option.fallback);
-}
-
-/**
- * Formats a help option's useNested to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUseNested(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.useNested) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats a help option's useFormat to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUseFormat(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.useFormat) {
-    result.split(phrase);
-  }
-}
-
-/**
- * Formats a help option's useFilter to be included in the description.
- * @param option The option definition
- * @param phrase The description item phrase
- * @param _context The help context
- * @param result The resulting string
- */
-function formatUseFilter(
-  option: OpaqueOption,
-  phrase: string,
-  _context: HelpContext,
-  result: TerminalString,
-) {
-  if (option.useFilter) {
-    result.split(phrase);
-  }
+  format.v(callback, styles, result);
 }

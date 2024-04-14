@@ -52,12 +52,14 @@ describe('ArgumentParser', () => {
         boolean: {
           type: 'boolean',
           names: ['-b'],
-          parse: async ({ param }) => param.includes('123'),
+          async parse({ param }) {
+            return param.includes(this.type); // test `this`
+          },
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
       await expect(parser.parse(['-b', 'abc'])).resolves.toEqual({ boolean: false });
-      await expect(parser.parse(['-b', '0123'])).resolves.toEqual({ boolean: true });
+      await expect(parser.parse(['-b', 'boolean'])).resolves.toEqual({ boolean: true });
     });
 
     it('should handle a string option with custom parsing', async () => {

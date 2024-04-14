@@ -34,7 +34,7 @@ export const enum ErrorItem {
    * Raised by the parser when either a niladic option or a positional marker is specified with an
    * inline parameter.
    */
-  disallowedInlineValue,
+  disallowedInlineParameter,
   /**
    * Raised by the validator when a positional option has an empty positional marker.
    */
@@ -150,6 +150,15 @@ export const enum ErrorItem {
    * Warning produced by the validator when a variadic option declares cluster letters.
    */
   variadicWithClusterLetter,
+  /**
+   * Raised by the parser when an option is specified without an inline parameter, despite it being
+   * required.
+   */
+  missingInlineParameter,
+  /**
+   * Raised by the validator when a variadic option declares an inline constraint.
+   */
+  invalidInlineConstraint,
 }
 
 /**
@@ -165,7 +174,7 @@ export const enum HelpItem {
    */
   negationNames,
   /**
-   * The element delimiter of an array option, if enabled.
+   * The element delimiter of an array-valued option, if enabled.
    */
   separator,
   /**
@@ -177,7 +186,7 @@ export const enum HelpItem {
    */
   positional,
   /**
-   * Reports if an array option can be specified multiple times.
+   * Reports if an array-valued option can be specified multiple times.
    */
   append,
   /**
@@ -205,11 +214,11 @@ export const enum HelpItem {
    */
   range,
   /**
-   * Reports if duplicate elements will be removed from an array option value.
+   * Reports if duplicate elements will be removed from an array-valued option value.
    */
   unique,
   /**
-   * The element count limit of an array option, if enabled.
+   * The element count limit of an array-valued option, if enabled.
    */
   limit,
   /**
@@ -260,6 +269,10 @@ export const enum HelpItem {
    * Whether a help option uses the remaining arguments as option filter.
    */
   useFilter,
+  /**
+   * The option's treatment of inline parameters, if enabled.
+   */
+  inline,
 }
 
 /**

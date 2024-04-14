@@ -13,54 +13,6 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-x'], flags)).rejects.toThrow(`Unknown option -x.`);
     });
 
-    it('should not consider an argument with an inline parameter as a cluster', async () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-b'],
-          clusterLetters: 'b',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-b=1'], flags)).resolves.toEqual({ boolean: true });
-    });
-
-    it('should parse a boolean option with inline cluster parameter', async () => {
-      const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['--bool'],
-          clusterLetters: 'b',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-b1'], flags)).resolves.toEqual({ boolean: true });
-    });
-
-    it('should parse a string option with inline cluster parameter', async () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['--str'],
-          clusterLetters: 's',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-s1'], flags)).resolves.toEqual({ string: '1' });
-    });
-
-    it('should parse a number option with inline cluster parameter', async () => {
-      const options = {
-        number: {
-          type: 'number',
-          names: ['--num'],
-          clusterLetters: 'n',
-        },
-      } as const satisfies Options;
-      const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-n1'], flags)).resolves.toEqual({ number: 1 });
-    });
-
     it('should parse a flag option in a cluster argument', async () => {
       const options = {
         flag: {

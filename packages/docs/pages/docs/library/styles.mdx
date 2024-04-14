@@ -256,15 +256,28 @@ which can be used to obtain a normal `string{:ts}`.
 
 ### User-facing messages
 
-User-facing messages are meant to be consumed by humans. Each kind of message uses a default
-terminal width to render the resulting string. They are described below.
+User-facing messages are meant to be consumed by humans. Each message class of this kind uses a
+default terminal width to render the resulting string when calling `toString` or using the `message`
+property. They are described below.
 
 #### ANSI message
 
-The `AnsiMessage` is a base class that wraps a list of terminal strings. It provides a `wrap` method
-to get a normal string compiled from the list. This method accepts two optional parameters:
+The `AnsiMessage` is a base class that wraps a list of terminal strings.
 
-- `width` - the terminal width
+The default terminal width used by this class is the value of the `'FORCE_WIDTH'{:ts}` environment
+variable (if present), or the `columns` property of the standard _output_ stream (i.e.,
+`process.stdout{:ts}`). Therefore, this kind of message should be printed with `console.log{:ts}` or
+equivalent.
+
+<Callout type="info">
+  When redirecting the output of a command (e.g., writing to a file or piping to another command),
+  the associated stream will not have a `columns` property, thus defaulting to zero.
+</Callout>
+
+This class provides an additional `wrap` method to get a normal string. It accepts two optional
+parameters:
+
+- `width` - the desired terminal width (or zero to avoid wrapping)
 - `emitStyles` - whether styles should be emitted
 
 The default value of `emitStyles` depends on a few environment variables:
@@ -279,36 +292,29 @@ with a line feed character `'\n'{:ts}`, or _append_ text starting with a line fe
 preserve the disposition of wrapped text.
 
 <Callout type="default">
-  Alternatively, you can retrieve the underlying terminal string instances from the list and
-  manipulate them before converting the message to string.
-</Callout>
-
-The default terminal width used by this class is that of the standard _output_ stream
-(`process.stdout.columns{:ts}`). Therefore, this kind of message should be printed with
-`console.log` or equivalent, unless you are calling `wrap` directly.
-
-<Callout type="info">
-  When redirecting the output of a command (e.g., writing to a file or piping to another command),
-  the associated stream will not have a `columns` property, thus disabling wrapping and, possibly,
-  omitting styles.
+  Alternatively, you can retrieve the underlying terminal strings from the list and manipulate them
+  before converting the message to string.
 </Callout>
 
 #### Warning message
 
-The `WarnMessage` class is a specialization of the ANSI message that uses the width of the standard
-_error_ stream (`process.stderr.columns{:ts}`) by default. It should be printed with `console.error`
+The `WarnMessage` class is a specialization of the ANSI message.
+
+The default terminal width used by this class is the value of the `'FORCE_WIDTH'{:ts}` environment
+variable (if present), or the `columns` property of the standard _error_ stream (i.e.,
+`process.stderr{:ts}`). Therefore, this kind of message should be printed with `console.error{:ts}`
 or equivalent.
 
 #### Error message
 
 The `ErrorMessage` class is a specialization of a warning message that actually derives from the
-standard `Error` class. It should be printed with `console.error` or equivalent.
+standard `Error` class. It should be printed with `console.error{:ts}` or equivalent.
 
 #### Version message
 
 A version message is a plain `string{:ts}`, so it has no wrapping. However, it may be remodeled in
-future versions of the library to accommodate new features. It should be printed with `console.log`
-or equivalent.
+future versions of the library to accommodate new features. It should be printed with
+`console.log{:ts}` or equivalent.
 
 ### Machine-readable messages
 
@@ -318,7 +324,7 @@ Machine-readable messages are meant to be consumed by computers. They are descri
 
 The `JsonMessage` class represents a message in JSON format. It is intended for consumption by
 introspection tools and other text-processing applications. It should be printed with
-`console.log` or equivalent.
+`console.log{:ts}` or equivalent.
 
 #### Text message
 
@@ -329,7 +335,7 @@ The `TextMessage` class represents a list of text lines. It is used by the libra
 - by the [formatter] to create help messages in either CSV or Markdown [format]
 
 This message produces a string with lines separated by line feeds, and should be printed with
-`console.log` or equivalent.
+`console.log{:ts}` or equivalent.
 
 [parser]: parser
 [validator]: validator

@@ -161,9 +161,7 @@ describe('AnsiFormatter', () => {
         descr: { breaks: 1, absolute: true },
       };
       const message = new AnsiFormatter(new OptionValidator(options), config).format();
-      expect(message.wrap()).toMatch(
-        /^\n {2}-b, --boolean\n {2}<boolean>\n {2}A boolean option\n$/,
-      );
+      expect(message.wrap()).toMatch(`\n  -b, --boolean\n  <boolean>\n  A boolean option\n`);
     });
 
     it('should break columns in the help message when configured with negative indentation', () => {
@@ -245,7 +243,7 @@ describe('AnsiFormatter', () => {
       };
       const message = new AnsiFormatter(new OptionValidator(options, valCfg), config).format();
       expect(message.wrap()).toEqual(
-        '  -f --flag    A flag option\n  --flag2      A flag option\n',
+        `  -f --flag    A flag option\n  --flag2      A flag option\n`,
       );
     });
 
@@ -322,20 +320,20 @@ describe('AnsiFormatter', () => {
 
     it('should align option parameters to the right boundary', () => {
       const options = {
-        numbers1: {
-          type: 'numbers',
-          names: ['-ns1'],
-          example: [1, 2],
+        string1: {
+          type: 'string',
+          names: ['-s1'],
+          example: 'abcde',
         },
-        numbers2: {
-          type: 'numbers',
-          names: ['-ns2'],
-          example: [1],
+        string2: {
+          type: 'string',
+          names: ['-s2'],
+          example: 'ab',
         },
       } as const satisfies Options;
       const config: FormatterConfig = { param: { align: 'right' }, items: [] };
       const message = new AnsiFormatter(new OptionValidator(options), config).format();
-      expect(message.wrap()).toEqual('  -ns1  1 2\n  -ns2    1\n');
+      expect(message.wrap()).toEqual(`  -s1  'abcde'\n  -s2     'ab'\n`);
     });
 
     it('should align option descriptions to the right boundary', () => {
@@ -349,6 +347,74 @@ describe('AnsiFormatter', () => {
       const config: FormatterConfig = { descr: { align: 'right' } };
       const message = new AnsiFormatter(new OptionValidator(options), config).format();
       expect(message.wrap(14, false)).toEqual('  -f    A flag\n        option\n');
+    });
+
+    it('should merge option parameters with option names', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option',
+        },
+        string: {
+          type: 'string',
+          desc: 'A string option.',
+          positional: true,
+        },
+      } as const satisfies Options;
+      const config: FormatterConfig = { param: { align: 'merge' } };
+      const message = new AnsiFormatter(new OptionValidator(options), config).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean <boolean>   A boolean option\n` +
+          `  <string>                  A string option. Accepts positional parameters.\n`,
+      );
+    });
+
+    it('should merge option descriptions with option parameters', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option',
+        },
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option',
+        },
+      } as const satisfies Options;
+      const config: FormatterConfig = { descr: { align: 'merge' } };
+      const message = new AnsiFormatter(new OptionValidator(options), config).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean  <boolean> A boolean option\n` + `  -f, --flag     A flag option\n`,
+      );
+    });
+
+    it('should merge option descriptions with option parameters and option names', () => {
+      const options = {
+        boolean: {
+          type: 'boolean',
+          names: ['-b', '--boolean'],
+          desc: 'A boolean option',
+        },
+        string: {
+          type: 'string',
+          desc: 'A string option.',
+          positional: true,
+        },
+        flag: {
+          type: 'flag',
+          names: ['-f', '--flag'],
+          desc: 'A flag option',
+        },
+      } as const satisfies Options;
+      const config: FormatterConfig = { param: { align: 'merge' }, descr: { align: 'merge' } };
+      const message = new AnsiFormatter(new OptionValidator(options), config).format();
+      expect(message.wrap()).toEqual(
+        `  -b, --boolean <boolean> A boolean option\n` +
+          `  <string> A string option. Accepts positional parameters.\n` +
+          `  -f, --flag A flag option\n`,
+      );
     });
   });
 });

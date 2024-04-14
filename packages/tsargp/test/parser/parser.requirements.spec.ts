@@ -288,6 +288,30 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-s', 'a', '1'])).rejects.toThrow(`Option -b requires -s != 'a'.`);
     });
 
+    it('should accept a forward requirement with req.all with zero items', async () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: req.all(),
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-f'])).resolves.toEqual({ requires: true });
+    });
+
+    it('should throw an error on forward requirement with req.one with zero items', async () => {
+      const options = {
+        requires: {
+          type: 'flag',
+          names: ['-f'],
+          requires: req.one(),
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['-f'])).rejects.toThrow(`Option -f requires.`);
+    });
+
     it('should throw an error on forward requirement not satisfied with req.all', async () => {
       const options = {
         flag1: {
@@ -732,6 +756,30 @@ describe('ArgumentParser', () => {
     await expect(parser.parse(['-s', 'a', '1'])).resolves.toMatchObject({});
   });
 
+  it('should throw an error on conditional requirement with req.all with zero items', async () => {
+    const options = {
+      requires: {
+        type: 'flag',
+        names: ['-f'],
+        requiredIf: req.all(),
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options);
+    await expect(parser.parse([])).rejects.toThrow(`Option -f is required if.`);
+  });
+
+  it('should accept a conditional requirement with req.one with zero items', async () => {
+    const options = {
+      requires: {
+        type: 'flag',
+        names: ['-f'],
+        requiredIf: req.one(),
+      },
+    } as const satisfies Options;
+    const parser = new ArgumentParser(options);
+    await expect(parser.parse([])).resolves.toEqual({ requires: undefined });
+  });
+
   it('should throw an error on conditional requirement not satisfied with req.all', async () => {
     const options = {
       flag1: {
@@ -999,7 +1047,9 @@ describe('ArgumentParser', () => {
         type: 'boolean',
         names: ['-b'],
         positional: true,
-        requiredIf: (values) => values['flag1'] === values['flag2'],
+        requiredIf(values) {
+          return !!this.positional && values['flag1'] === values['flag2']; // test `this`
+        },
       },
     } as const satisfies Options;
     options.boolean.requiredIf.toString = () => 'fcn';

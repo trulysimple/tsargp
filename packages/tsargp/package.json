@@ -1,6 +1,6 @@
 {
   "name": "tsargp",
-  "version": "0.6.0",
+  "version": "0.7.0-dev.1",
   "description": "Argument parser for TypeScript",
   "homepage": "https://trulysimple.dev/tsargp",
   "license": "MIT",
@@ -44,10 +44,10 @@
     "directory": "packages/tsargp"
   },
   "devDependencies": {
-    "@tsconfig/bun": "^1.0.4",
-    "@types/bun": "^1.0.4",
-    "typescript": "^5.4.2",
-    "vitest": "^1.3.0"
+    "@tsconfig/bun": "^1.0.0",
+    "@types/bun": "^1.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
   },
   "scripts": {
     "prepare": "bun run dist",
