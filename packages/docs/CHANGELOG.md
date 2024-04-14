@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.5
+
+### Patch Changes
+
+- [#177](https://github.com/trulysimple/tsargp/pull/177) [`8dfe53b`](https://github.com/trulysimple/tsargp/commit/8dfe53b8d7ac0e7c00c884984145f1f60555e801) Thanks [@disog](https://github.com/disog)! - Updated the Demo page to reflect the most recent version of the demo example. Updated the Play page to add some tips for testing validation errors and warnings.
+
 ## 0.4.4
 
 ### Patch Changes
