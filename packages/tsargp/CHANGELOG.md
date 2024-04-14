@@ -1,5 +1,21 @@
 # tsargp
 
+## 0.7.0
+
+### Minor Changes
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The `example` value is now enclosed in square brackets in the help message when the option has a fallback value, just as is done with parameter names and option types.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The `noInline` attribute was renamed to `inline` and supports a new value `always`, which indicates that the option _requires_ inline parameters. A new help item, `inline`, was added to report if an option disallows or requires inline parameters.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The `align` property of help columns now support a `merge` value, which instructs the formatter to merge the contents of the column with the previous one.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The `noInline` attribute was added for non-niladic options, to disallow inline parameters.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The parameter column in the help message now shows an ellipsis `...` for variadic options with example values, as well as an equals sign `=` for options the require inline parameters. The parser was modified to disallow inline parameters of variadic options.
+
+- [#167](https://github.com/trulysimple/tsargp/pull/167) [`d2e7fb7`](https://github.com/trulysimple/tsargp/commit/d2e7fb744eea345b7fad634a40c9efdd495f52e2) Thanks [@disog](https://github.com/disog)! - The usage section in help messages now supports option dependencies through the `requires` attribute. This is related to option requirements, but somewhat different.
+
 ## 0.7.0-dev.1
 
 ### Minor Changes
