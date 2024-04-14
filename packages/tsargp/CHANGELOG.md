@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.7.1
+
+### Patch Changes
+
+- [#172](https://github.com/trulysimple/tsargp/pull/172) [`fee4848`](https://github.com/trulysimple/tsargp/commit/fee484816b56a6a47ba489b465afd2a6a0e18425) Thanks [@disog](https://github.com/disog)! - Option requirements are now correctly rendered in the help message when they have negated requirement objects.
+
 ## 0.7.0
 
 ### Minor Changes

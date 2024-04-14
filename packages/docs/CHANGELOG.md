@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.4
+
+### Patch Changes
+
+- [#172](https://github.com/trulysimple/tsargp/pull/172) [`fee4848`](https://github.com/trulysimple/tsargp/commit/fee484816b56a6a47ba489b465afd2a6a0e18425) Thanks [@disog](https://github.com/disog)! - The Home page was updated to fix outdated help message of the Demo example.
+
 ## 0.4.3
 
 ### Patch Changes
