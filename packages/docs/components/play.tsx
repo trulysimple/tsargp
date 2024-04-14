@@ -41,7 +41,7 @@ class PlayCommand extends Command<PlayProps> {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
     const parser = new ArgumentParser(options);
-    const { warning } = await parser.validate();
+    const { warning } = await parser.validate({ detectNamingIssues: true });
     if (warning) {
       this.println(warning.wrap(this.state.width));
     }

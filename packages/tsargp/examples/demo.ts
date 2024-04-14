@@ -16,10 +16,10 @@ interface Values {
   numberRange: number;
   stringEnum: 'one' | 'two' | undefined;
   numberEnum: 1 | 2 | undefined;
-  strings: string[];
-  numbers: number[];
-  stringsEnum: Array<'one' | 'two'> | undefined;
-  numbersEnum: Array<1 | 2> | undefined;
+  strings: Array<string>;
+  numbers: Array<number>;
+  stringsLimit: Array<string> | undefined;
+  numbersUnique: Array<number> | undefined;
 }
 
 try {

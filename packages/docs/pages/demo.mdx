@@ -23,42 +23,41 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 
 ### Word completion
 
-- check if completion works by pressing `Tab` (it behaves slightly differently than a real bash)
-- check if an option name gets completed (e.g., `-<Tab>`, `--<Tab>`, `--h<Tab>`)
-- check if an option parameter gets completed (e.g., `o<Tab>`, `-b <Tab>`, `-se <Tab>`, `-ne <Tab>`)
+- check if completion works by pressing `<Tab>` (it behaves slightly differently than a real bash)
+- check if option names get completed (e.g., `<Tab>`, `--<Tab>`, `--h<Tab>`)
+- check if option parameters get completed (e.g., `-b <Tab>`, `-se <Tab>`, `-ne=<Tab>`)
 
 ### Positional arguments
 
 - check if positional arguments can be specified before named ones (e.g., `one -s 0`)
-- check if all arguments after `--` are recognized as positional (e.g., try `-- -f` and see that it
-  fails)
+- check if all arguments after `--` are recognized as positional (e.g., `-- -f`)
 
 ### Cluster arguments
 
 - check if cluster arguments can be specified (e.g., `-sn 1 -1`)
 - check if cluster arguments can be specified with inline parameters (e.g., `-s1` or `-n-1`)
 
-### String parameters
+### Value constraints
 
 - check if a string parameter matches the required regex (e.g., try `-s A` and see that it fails)
 - check if a string parameter matches the required enums (e.g., try `-se A` and see that it fails)
-- check if a string parameter gets normalized (e.g., `-ss abc` and see that it outputs `ABC`)
-- check if values get overridden when an option is specified repeatedly (e.g., `-s 1 -s 2`)
-
-### Number parameters
-
 - check if a number parameter matches the required range (e.g., try `-n 1` and see that it fails)
-- check if a number parameter matches the required enums (e.g., try `-ne 0` and see that it fails)
+- check if a number parameter matches the required enums (e.g., try `-ne=0` and see that it fails)
+- check if the element count is limited to a certain amount (e.g., `-- a b c d`)
+
+### Value normalization
+
+- check if a string parameter gets normalized (e.g., `-ss abc` and see that it outputs `ABC`)
 - check if a number parameter gets normalized (e.g., `-ns 1.7` and see that it outputs `2`)
-- check if values get overridden when an option is specified repeatedly (e.g., `-n -1 -n -2`)
+- check if duplicate values get removed (e.g., `--numbersUnique 1,2,1,2`)
 
-### Array parameters
+### Value overwriting/appendage
 
-- check if duplicate values get removed (e.g., `--numbersEnum 1,2,1,2`)
-- check if values get limited to a certain element count (e.g., `-- one two one two`)
-- check if values get overridden when an option is specified repeatedly (e.g., `one -- two`)
-- check if values get appended when an option is specified repeatedly (e.g.,
-  `--numbersEnum 1 --numbersEnum 2`)
+- check if values get overridden when a string option is specified repeatedly (e.g., `-s 1 -s 2`)
+- check if values get overridden when a number option is specified repeatedly (e.g., `-n -1 -n -2`)
+- check if values get overridden when an array option is specified repeatedly (e.g., `one -- two`)
+- check if values get appended when an array option is specified repeatedly (e.g.,
+  `--numbersUnique 1 --numbersUnique 2`)
 
 ### Inline parameters
 
@@ -77,7 +76,7 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 ### Miscellaneous
 
 - check if the `-f` option can be specified without a parameter, and negated with `--no-flag`
-- check if the `-b` option can be specified in combination with other options
+- check if the `-b` option can be specified in combination with required options
 
 ### Nested commands
 

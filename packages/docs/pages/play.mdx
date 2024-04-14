@@ -27,3 +27,17 @@ return {
 ---
 
 <Play callbacks={callbacks} />
+
+## Things to try out
+
+### Validation errors
+
+- check if an error is reported for duplicate option names
+- check if an error is reported for duplicate enumerated values
+- check if an error is reported for duplicate positional options
+
+### Validation warnings
+
+- check if a warning is reported for option names too similar to each other (e.g. `-help1` and `-help2`)
+- check if a warning is reported for option names with mixed naming conventions (e.g. `-h` and `--b`)
+- check if a warning is reported for a variadic option with cluster letters

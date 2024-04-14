@@ -182,18 +182,19 @@ export class ArgumentParser<T extends Options = Options> {
   async parseInto(
     values: OptionValues<T>,
     cmdLine = getEnv('COMP_LINE') ?? getEnv('BUFFER') ?? process?.argv.slice(2) ?? [],
-    flags: ParsingFlags = {
-      compIndex: Number(getEnv('COMP_POINT') ?? getEnv('CURSOR')) || getEnv('BUFFER')?.length,
-    },
+    flags?: ParsingFlags,
   ): Promise<ParsingResult> {
-    const args = typeof cmdLine === 'string' ? getArgs(cmdLine, flags.compIndex) : cmdLine;
+    const compIndex =
+      flags?.compIndex ??
+      (Number(getEnv('COMP_POINT') ?? getEnv('CURSOR')) || getEnv('BUFFER')?.length);
+    const args = typeof cmdLine === 'string' ? getArgs(cmdLine, compIndex) : cmdLine;
     const context = createContext(
       this.validator,
       values,
       args,
-      !!flags.compIndex,
-      flags.progName,
-      flags.clusterPrefix,
+      !!compIndex,
+      flags?.progName,
+      flags?.clusterPrefix,
     );
     await parseArgs(context);
     const warning = context[5];
@@ -254,7 +255,7 @@ function parseCluster(context: ParseContext, index: number): boolean {
   }
   const [validator, , args, , completing, , , prefix] = context;
   const cluster = args[index++];
-  if (!prefix || !cluster.startsWith(prefix) || cluster.length === prefix.length) {
+  if (prefix === undefined || !cluster.startsWith(prefix) || cluster.length === prefix.length) {
     return false;
   }
   const letters = validator.letters;

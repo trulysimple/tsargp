@@ -181,7 +181,6 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     group: 'String options:',
     enums: ['one', 'two'],
     example: 'one',
-    fallback: 'two',
     inline: false,
   },
   /**
@@ -197,7 +196,7 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     inline: 'always',
   },
   /**
-   * A strings option that has a regex constraint.
+   * A delimited strings option whose values are trimmed and converted to uppercase.
    */
   strings: {
     type: 'strings',
@@ -211,7 +210,7 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     case: 'upper',
   },
   /**
-   * A numbers option that has a range constraint.
+   * A variadic numbers option whose values are rounded to the nearest integer.
    */
   numbers: {
     type: 'numbers',
@@ -222,11 +221,11 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     conv: 'round',
   },
   /**
-   * A strings option that has an enumeration constraint.
+   * A variadic strings option that accepts positional arguments, but no more than 3 values.
    */
-  stringsEnum: {
+  stringsLimit: {
     type: 'strings',
-    names: ['', '--stringsEnum'],
+    names: ['', '--stringsLimit'],
     desc: 'A strings option.',
     group: 'String options:',
     example: ['one'],
@@ -234,11 +233,11 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     limit: 3,
   },
   /**
-   * A numbers option that has an enumeration constraint.
+   * A delimited numbers option whose values are unique and can be specified multiple times.
    */
-  numbersEnum: {
+  numbersUnique: {
     type: 'numbers',
-    names: ['', '--numbersEnum'],
+    names: ['', '--numbersUnique'],
     desc: 'A numbers option.',
     group: 'Number options:',
     example: [1, 2],
