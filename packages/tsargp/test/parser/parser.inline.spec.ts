@@ -155,7 +155,7 @@ describe('ArgumentParser', () => {
         },
       } as const satisfies Options;
       const parser = new ArgumentParser(options);
-      await expect(parser.parse(['-b=1'], flags)).resolves.toEqual({ boolean: true });
+      await expect(parser.parse(['-b=0'], flags)).resolves.toEqual({ boolean: false });
     });
 
     it('should throw an error on boolean option with missing inline parameter, despite it being required', async () => {

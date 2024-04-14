@@ -531,8 +531,8 @@ function validateRequirements(context: ValidateContext, key: string, requires: R
   }
   /** @ignore */
   function validateVals(req: RequiresVal) {
-    for (const [requiredKey, requiredVal] of getEntries(req)) {
-      validateRequirement(context, key, requiredKey, requiredVal);
+    for (const requiredKey in req) {
+      validateRequirement(context, key, requiredKey, req[requiredKey]);
     }
   }
   visitRequirements(

@@ -966,5 +966,28 @@ describe('ArgumentParser', () => {
           `Option -f2 is deprecated and may be removed in future releases.\n`,
       );
     });
+
+    it('should output a warning on a deprecated option from a nested command', async () => {
+      const options = {
+        command: {
+          type: 'command',
+          names: ['-c'],
+          options: {
+            flag: {
+              type: 'flag',
+              names: ['-f'],
+              deprecated: 'yes',
+            },
+          },
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      const values = { command: undefined };
+      const { warning } = await parser.parseInto(values, ['-c', '-f']);
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Option -f is deprecated and may be removed in future releases.\n`,
+      );
+    });
   });
 });

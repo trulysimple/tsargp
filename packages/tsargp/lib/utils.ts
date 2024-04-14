@@ -418,26 +418,26 @@ export function isTrue(
 /**
  * Matches names against naming rules.
  * @param names The list of names
- * @param rules The sets of rules
+ * @param rulesets The sets of rules
  * @returns The matching result
  * @internal
  */
 export function matchNamingRules<T extends NamingRules>(
   names: Iterable<string>,
-  rules: T,
+  rulesets: T,
 ): NamingMatch<T> {
   const result: Record<string, Record<string, string>> = {};
-  for (const key in rules) {
+  for (const key in rulesets) {
     result[key] = {};
   }
   for (const name of names) {
     const lower = name.toLowerCase();
     const upper = name.toUpperCase();
-    for (const [key1, category] of getEntries(rules)) {
-      const res = result[key1];
-      for (const [key2, rule] of getEntries(category)) {
-        if (!res[key2] && rule(name, lower, upper)) {
-          res[key2] = name;
+    for (const [setId, ruleset] of getEntries(rulesets)) {
+      const matches = result[setId];
+      for (const ruleId in ruleset) {
+        if (!(ruleId in matches) && ruleset[ruleId](name, lower, upper)) {
+          matches[ruleId] = name;
         }
       }
     }
@@ -537,6 +537,7 @@ export function getKeys(rec: object): Array<string> {
  * @param template The template object
  * @param source The source object
  * @returns The result object
+ * @internal
  */
 export function mergeValues<T extends Record<string, unknown>>(
   template: T,

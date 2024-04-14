@@ -11,6 +11,7 @@ import {
   escapeRegExp,
   combineRegExp,
   findValue,
+  mergeValues,
 } from '../lib/utils';
 
 /*
@@ -270,7 +271,7 @@ describe('combineRegExp', () => {
   });
 });
 
-describe('findInObject', () => {
+describe('findValue', () => {
   it('should return undefined on no match', () => {
     expect(findValue({}, () => true)).toBeUndefined();
     expect(findValue({ a: 1, b: 'a' }, () => false)).toBeUndefined();
@@ -279,5 +280,21 @@ describe('findInObject', () => {
   it('should return the first match', () => {
     expect(findValue({ a: 1, b: 'a' }, () => true)).toEqual(1);
     expect(findValue({ a: 1, b: 'a' }, (val) => val === 'a')).toEqual('a');
+  });
+});
+
+describe('mergeValues', () => {
+  it('should merge source properties with template', () => {
+    expect(mergeValues({ a: { b: 2, c: 3 } }, { a: { a: 1, c: 2 } })).toEqual({
+      a: { a: 1, b: 2, c: 2 },
+    });
+  });
+
+  it('should ignore extra properties in source', () => {
+    expect(mergeValues({ a: 1, b: 2 }, { a: 2, c: 3 })).toEqual({ a: 2, b: 2 });
+  });
+
+  it('should replace array values from template', () => {
+    expect(mergeValues({ a: [1] }, { a: [2] })).toEqual({ a: [2] });
   });
 });

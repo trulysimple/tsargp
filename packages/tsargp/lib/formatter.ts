@@ -989,9 +989,9 @@ function buildAnsiEntries(context: HelpContext): EntriesByGroup<AnsiHelpEntry> {
     : paramIndent + paramWidth + descr.indent;
   const paramRight = param.align === 'right';
   const paramMerge = param.align === 'merge';
-  const descrMErge = descr.align === 'merge';
+  const descrMerge = descr.align === 'merge';
   for (const [names, param, descr] of getValues(groups).flat()) {
-    if (descrMErge) {
+    if (descrMerge) {
       param.other(descr);
       descr.pop(descr.count);
     } else {
@@ -1427,15 +1427,14 @@ function formatUsageNames(context: HelpContext, option: OpaqueOption, result: Te
  * @param result The resulting string
  */
 function formatParam(option: OpaqueOption, styles: FormatStyles, result: TerminalString) {
-  const paramStyle = option.styles?.param ?? styles.value;
   const [min, max] = getParamCount(option);
   const ellipsis = max > 1 ? '...' : '';
   const equals = option.inline === 'always' ? '=' : '';
   if (equals) {
     result.setMerge();
   }
-  let param,
-    example = option.example;
+  let param;
+  let example = option.example;
   if (example !== undefined) {
     let spec;
     const separator = option.separator;
@@ -1457,13 +1456,12 @@ function formatParam(option: OpaqueOption, styles: FormatStyles, result: Termina
       param = '...';
     } else if (max) {
       const param0 = option.paramName ?? (type === 'function' ? 'param' : type);
-      const param1 = param0.includes('<') ? param0 : `<${param0}>`;
-      const param2 = equals + param1 + ellipsis;
-      param = min <= 0 ? `[${param2}]` : param2;
+      const param1 = equals + (param0.includes('<') ? param0 : `<${param0}>`) + ellipsis;
+      param = min <= 0 ? `[${param1}]` : param1;
     }
   }
   if (param) {
-    result.style(paramStyle, param, styles.text);
+    result.style(option.styles?.param ?? styles.value, param, styles.text);
   }
 }
 

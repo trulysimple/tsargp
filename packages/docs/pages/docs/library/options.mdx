@@ -193,10 +193,9 @@ is specified on the command-line. It can be either:
 - a requirement **expression**; or
 - a requirement **callback**
 
-In the case of an option key, the referenced option must also be present on the command-line. When
-an object is specified, every referenced option must have the corresponding value, which can be any
-value accepted by that option, or `undefined{:ts}` to signify _presence_ or `null{:ts}` to signify
-_absence_.
+In the case of an option key, the referenced option must also be present on the command-line. In the
+case of an object, every referenced option must have the corresponding value, which can be any value
+accepted by that option, `undefined{:ts}` to signify _presence_ or `null{:ts}` to signify _absence_.
 
 <Callout type="info">
   You cannot reference options from a [nested command] (parent or child) in a requirement. Option
@@ -662,7 +661,7 @@ have either of the following values:
 Notice that a function option cannot have a parameter [separator]. The latter is only intended for
 array-valued options, as they lack the flexibility of specifying a parameter count. On the other
 hand, setting this attribute to `1{:ts}` or `[0, 1]{:ts}` makes the option _monadic_, which enables
-both [inline parameters] and the [inline] attribute.
+the use of [inline parameters] and/or the [inline] attribute.
 
 #### Skip count
 
