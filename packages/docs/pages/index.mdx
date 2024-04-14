@@ -38,13 +38,12 @@ Get started with:
 
   [95m-s[0m, [95m--stringRegex[0m  [90m<my str>[0m      [0mA string option. Values must match the regex [31m/^\d+$/[0m. Defaults to
                                    [32m'123456789'[0m. Can be clustered with [32m's'[0m.[0m
-  [95m-se[0m, [95m--stringEnum[0m  [32m'one'[0m         [0mA string option. Values must be one of {[32m'one'[0m, [32m'two'[0m}. Falls back
-                                   to [32m'two'[0m if specified without parameter. Disallows inline
-                                   parameters.[0m
+  [95m-se[0m, [95m--stringEnum[0m  [32m'one'[0m         [0mA string option. Values must be one of {[32m'one'[0m, [32m'two'[0m}. Disallows
+                                   inline parameters.[0m
   [95m-ss[0m, [95m--strings[0m     [90m[<strings>][0m   [0mA strings option. Values are delimited by [32m','[0m. Values will be
                                    trimmed. Values will be converted to uppercase. Defaults to
                                    [[32m'one'[0m]. Falls back to [[32m'two'[0m] if specified without parameter.[0m
-  [95m--stringsEnum[0m      [32m'one'[0m[90m...[0m      [0mA strings option. Accepts multiple parameters. Accepts positional
+  [95m--stringsLimit[0m     [32m'one'[0m[90m...[0m      [0mA strings option. Accepts multiple parameters. Accepts positional
                                    parameters that may be preceded by [95m--[0m. Element count is limited
                                    to [33m3[0m.[0m
 
@@ -56,7 +55,7 @@ Get started with:
                                    parameters.[0m
   [95m-ns[0m, [95m--numbers[0m     [90m<numbers>...[0m  [0mA numbers option. Accepts multiple parameters. Values will be
                                    converted with Math.round. Defaults to [[33m1[0m, [33m2[0m].[0m
-  [95m--numbersEnum[0m      [32m'1,2'[0m         [0mA numbers option. Values are delimited by [32m','[0m. May be specified
+  [95m--numbersUnique[0m    [32m'1,2'[0m         [0mA numbers option. Values are delimited by [32m','[0m. May be specified
                                    multiple times. Duplicate values will be removed.[0m
 
 [1mUsage:[0m
@@ -65,8 +64,8 @@ Get started with:
   [0mdemo.js[0m [0m[95mhello[0m [90m...[0m [32m# execute the hello command[0m
   [0mdemo.js[0m [0m[([95m-f[0m|[95m--flag[0m|[95m--no-flag[0m)] [[([95m-b[0m|[95m--boolean[0m) [90m<boolean>[0m] ([95m-se[0m|[95m--stringEnum[0m) [32m'one'[0m]
           [([95m-s[0m|[95m--stringRegex[0m) [90m<my str>[0m] [([95m-n[0m|[95m--numberRange[0m) [90m<my num>[0m] [([95m-ne[0m|[95m--numberEnum[0m)=[33m1[0m]
-          [([95m-ss[0m|[95m--strings[0m) [90m[<strings>][0m] [([95m-ns[0m|[95m--numbers[0m) [90m<numbers>...[0m] [[([95m--stringsEnum[0m|[95m--[0m)]
-          [32m'one'[0m[90m...[0m] [[95m--numbersEnum[0m [32m'1,2'[0m][0m
+          [([95m-ss[0m|[95m--strings[0m) [90m[<strings>][0m] [([95m-ns[0m|[95m--numbers[0m) [90m<numbers>...[0m] [[([95m--stringsLimit[0m|[95m--[0m)]
+          [32m'one'[0m[90m...[0m] [[95m--numbersUnique[0m [32m'1,2'[0m][0m
 
 [0mMIT License.
 Copyright (c) 2024 [1;3mTrulySimple[0m
