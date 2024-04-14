@@ -13,6 +13,18 @@ describe('ArgumentParser', () => {
       await expect(parser.parse(['-x'], flags)).rejects.toThrow(`Unknown option -x.`);
     });
 
+    it('should parse a flag option in a cluster argument with empty prefix', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          names: ['--flag'],
+          clusterLetters: 'f',
+        },
+      } as const satisfies Options;
+      const parser = new ArgumentParser(options);
+      await expect(parser.parse(['f'], { clusterPrefix: '' })).resolves.toEqual({ flag: true });
+    });
+
     it('should parse a flag option in a cluster argument', async () => {
       const options = {
         flag: {
