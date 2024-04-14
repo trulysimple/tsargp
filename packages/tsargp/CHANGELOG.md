@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.7.2
+
+### Patch Changes
+
+- [#177](https://github.com/trulysimple/tsargp/pull/177) [`8dfe53b`](https://github.com/trulysimple/tsargp/commit/8dfe53b8d7ac0e7c00c884984145f1f60555e801) Thanks [@disog](https://github.com/disog)! - Fixed the default value of the `compIndex` parsing flag when providing a set of flags without it.
+
 ## 0.7.1
 
 ### Patch Changes
