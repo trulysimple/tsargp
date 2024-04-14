@@ -1596,7 +1596,7 @@ function formatRequiresVal(
   const [, options, connectives] = context;
   const entries = getEntries(requires);
   const phrase = entries.length > 1 ? '(%c)' : '%c';
-  const sep = connectives[ConnectiveWord.and];
+  const sep = negate ? connectives[ConnectiveWord.or] : connectives[ConnectiveWord.and];
   result.format(context[0], phrase, { c: entries }, { sep, custom, mergePrev: false });
 }
 
