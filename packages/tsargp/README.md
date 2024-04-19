@@ -22,7 +22,7 @@ See the [source](examples/demo.options.ts).
 
 ## Usage
 
-Define your command-line options (we recommend placing them in a separate file):
+Define your command-line options:
 
 ```ts
 // <your_cli_name>.options.ts
@@ -42,7 +42,6 @@ import options from './<your_cli_name>.options.js';
 
 try {
   const parser = new ArgumentParser(options);
-  await parser.validate(); // validate the option definitions (you can skip this in production)
   const values = await parser.parse(); // use this to get the options' values
   // await parser.parseInto(myValues); // use this to fill an existing object or class instance
 } catch (err) {
@@ -53,6 +52,22 @@ try {
     console.log(`${err}`); // help message, version or completion words
   }
 }
+```
+
+Validate them in your test script:
+
+```ts
+// <your_cli_name>.spec.ts
+import { OptionValidator } from 'tsargp/lib';
+import options from './<your_cli_name>.options.js';
+
+describe('<your_cli_name>', () => {
+  it('should not throw any error', async () => {
+    const validator = new OptionValidator(options);
+    const { warning } = await validator.validate();
+    expect(warning).toBeUndefined(); // check warnings that are important to your application
+  });
+});
 ```
 
 Optionally, enable word completion:

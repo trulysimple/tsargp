@@ -1,87 +1,97 @@
-import { describe, expect, it } from 'vitest';
-import { type Options, OptionValidator } from '../../lib';
-import '../utils.spec';
+import { describe, describe as on, expect, it as should } from 'vitest';
+import { type Options } from '../../lib/options';
+import { OptionValidator } from '../../lib/validator';
+
+process.env['FORCE_WIDTH'] = '0'; // omit styles
 
 describe('OptionValidator', () => {
-  describe('constructor', () => {
-    it('should handle zero options', () => {
-      expect(() => new OptionValidator({})).not.toThrow();
-    });
-  });
-
-  describe('validate', () => {
-    it('should throw an error on boolean option with empty positional marker', async () => {
+  on('validate', () => {
+    should('accept an option with empty positional marker', async () => {
       const options = {
-        boolean: {
-          type: 'boolean',
-          names: ['-s'],
+        single: {
+          type: 'single',
+          positional: '',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).resolves.toMatchObject({});
+    });
+
+    should('accept a version option with empty version', async () => {
+      const options = {
+        version: {
+          type: 'version',
+          version: '',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).resolves.toMatchObject({});
+    });
+
+    should('accept a version option with empty choices', async () => {
+      const options = {
+        single: {
+          type: 'single',
+          choices: [],
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).resolves.toMatchObject({});
+    });
+
+    should('accept an option with empty cluster letters', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          cluster: '',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).resolves.toMatchObject({});
+    });
+
+    should('throw an error on duplicate positional option', async () => {
+      const options = {
+        single1: {
+          type: 'single',
+          positional: true,
+        },
+        single2: {
+          type: 'single',
           positional: '',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       await expect(validator.validate()).rejects.toThrow(
-        `Option boolean has empty positional marker.`,
+        `Duplicate positional option single2: previous was single1.`,
       );
     });
 
-    it('should throw an error on duplicate positional option', async () => {
+    should('validate nested command options recursively', async () => {
       const options = {
-        boolean1: {
-          type: 'boolean',
-          positional: true,
-        },
-        boolean2: {
-          type: 'boolean',
-          positional: true,
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      await expect(validator.validate()).rejects.toThrow(
-        `Duplicate positional option boolean2: previous was boolean1.`,
-      );
-    });
-
-    it('should throw an error on version option with empty version', async () => {
-      const options = {
-        version: {
-          type: 'version',
-          names: ['-v'],
-          version: '',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      await expect(validator.validate()).rejects.toThrow(`Option version has empty version.`);
-    });
-
-    it('should validate nested command options recursively', async () => {
-      const options = {
-        command: {
+        cmd1: {
           type: 'command',
-          names: ['-c'],
           options: {
-            command: {
+            cmd2: {
               type: 'command',
-              names: ['-c'],
-              options: { flag: { type: 'flag' } },
+              options: (): Options => ({ flag: { type: 'flag', names: [' '] } }),
             },
           },
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
       await expect(validator.validate()).rejects.toThrow(
-        `Non-positional option command.command.flag has no name.`,
+        `Option cmd1.cmd2.flag has invalid name ' '.`,
       );
     });
 
-    it('should avoid circular references while evaluating nested command options', async () => {
+    should('avoid circular references while evaluating nested command options', async () => {
       const options = {
         command: {
           type: 'command',
-          names: ['-c'],
           options: {
             command: {
               type: 'command',
-              names: ['-c'],
               options: (): Options => options,
             },
           },

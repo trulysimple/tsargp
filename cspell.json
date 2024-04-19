@@ -27,6 +27,7 @@
   "ignorePaths": [
     "*.lockb",
     "*.json",
+    "*.txt",
     ".git",
     ".prettierignore",
     "CODEOWNERS",
