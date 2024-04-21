@@ -116,12 +116,22 @@ describe('TerminalString', () => {
       expect(str2.strings).toEqual(['type', 'script:', 'is', 'fun']);
     });
 
-    should('merge the endpoint strings if the merge flag is set in the first string', () => {
+    should('merge the endpoint strings if the merge flag is set in the self string', () => {
       const str1 = new TerminalString().split('type script');
       const str2 = new TerminalString().open('[').other(str1).close(']');
       expect(str2.count).toEqual(2);
       expect(str2.lengths).toEqual([5, 7]);
       expect(str2.strings).toEqual(['[type', 'script]']);
+    });
+
+    should('merge the endpoint strings if the merge flag is set in the other string', () => {
+      const str1 = new TerminalString();
+      str1.merge = true;
+      str1.split('type script');
+      const str2 = new TerminalString().word('[').other(str1);
+      expect(str2.count).toEqual(2);
+      expect(str2.lengths).toEqual([5, 6]);
+      expect(str2.strings).toEqual(['[type', 'script']);
     });
   });
 

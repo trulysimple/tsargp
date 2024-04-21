@@ -390,16 +390,26 @@ describe('AnsiFormatter', () => {
       const options = {
         single1: {
           type: 'single',
-          names: ['-b'],
+          names: ['-s1'],
         },
         single2: {
           type: 'single',
         },
+        single3: {
+          type: 'single',
+          names: ['-s3'],
+          inline: 'always',
+        },
+        array: {
+          type: 'array',
+          names: ['-a'],
+          inline: 'always',
+        },
       } as const satisfies Options;
-      const config: HelpConfig = { param: { align: 'merge' } };
+      const config: HelpConfig = { param: { align: 'merge' }, items: [] };
       const registry = new OptionRegistry(options);
       const message = new AnsiFormatter(registry, cfg, config).format();
-      expect(message.wrap()).toEqual(`  -b <param>\n  <param>\n`);
+      expect(message.wrap()).toEqual(`  -s1 <param>\n  <param>\n  -s3=<param>\n  -a[=<param>]\n`);
     });
 
     should('merge option descriptions with option parameters', () => {

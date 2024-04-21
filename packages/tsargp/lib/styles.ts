@@ -505,6 +505,12 @@ export class TerminalString {
   private readonly context: TerminalContext = [[], [], false, ''];
 
   /**
+   * Whether to merge the first internal string to the last internal string of another terminal
+   * string.
+   */
+  private mergeFirst = false;
+
+  /**
    * @returns The list of internal strings
    */
   get strings(): Array<string> {
@@ -581,6 +587,7 @@ export class TerminalString {
   other(other: TerminalString): this {
     if (other.count) {
       const [otherStrings, otherLengths, otherMerge] = other.context;
+      this.context[2] ||= other.mergeFirst;
       const [str, ...restStr] = otherStrings;
       const [len, ...restLen] = otherLengths;
       const [strings, lengths] = this.add(str, len).context;
@@ -667,7 +674,12 @@ export class TerminalString {
   add(text: string, length: number): this {
     if (text) {
       const [strings, lengths, merge, curStyle] = this.context;
-      const index = max(0, strings.length - (merge ? 1 : 0));
+      let index = 0;
+      if (!strings.length) {
+        this.mergeFirst = merge;
+      } else {
+        index = strings.length - (merge ? 1 : 0);
+      }
       const revert = curStyle ? sgr(tf.clear) + this.defStyle : '';
       strings[index] = (strings[index] ?? '') + curStyle + text + revert;
       lengths[index] = (lengths[index] ?? 0) + length;
