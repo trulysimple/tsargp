@@ -1,9 +1,0 @@
-{
-  "mode": "exit",
-  "tag": "dev",
-  "initialVersions": {
-    "@trulysimple/tsargp-docs": "0.4.4",
-    "tsargp": "0.7.1"
-  },
-  "changesets": []
-}
