@@ -1,5 +1,11 @@
 # tsargp
 
+## 0.8.0
+
+### Minor Changes
+
+- [#179](https://github.com/trulysimple/tsargp/pull/179) [`ea85505`](https://github.com/trulysimple/tsargp/commit/ea855050048581c5eec1502072e8f162ccf10692) Thanks [@disog](https://github.com/disog)! - The function option now supports environment variables.
+
 ## 0.7.2
 
 ### Patch Changes

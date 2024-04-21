@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.6
+
+### Patch Changes
+
+- [#179](https://github.com/trulysimple/tsargp/pull/179) [`ea85505`](https://github.com/trulysimple/tsargp/commit/ea855050048581c5eec1502072e8f162ccf10692) Thanks [@disog](https://github.com/disog)! - The Options page was updated to document the support for environment variables in function options.
+
 ## 0.4.5
 
 ### Patch Changes
