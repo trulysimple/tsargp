@@ -489,8 +489,7 @@ an error to be thrown.
 
 ### Miscellaneous attributes
 
-Some attributes are shared by all valued options except unknown-valued ones. They are described
-below.
+Some attributes are shared by all valued options except command options. They are described below.
 
 #### Environment variable
 
@@ -613,6 +612,7 @@ This option has the following sets of attributes:
 - [basic attributes]
 - [value attributes]
 - [parameter attributes]
+- [miscellaneous attributes]
 - the attributes described below
 
 #### Function callback
@@ -662,6 +662,13 @@ Notice that a function option cannot have a parameter [separator]. The latter is
 array-valued options, as they lack the flexibility of specifying a parameter count. On the other
 hand, setting this attribute to `1{:ts}` or `[0, 1]{:ts}` makes the option _monadic_, which enables
 the use of [inline parameters] and/or the [inline] attribute.
+
+<Callout type="warning">
+  If the parameter comes from an environment variable, then the `param` property of the object
+  received by the function callback will contain a single element, which may be _less_ than the
+  expected count. You can check if this is the case by inspecting the `index` property, which will
+  be `NaN{:ts}` in this case.
+</Callout>
 
 #### Skip count
 

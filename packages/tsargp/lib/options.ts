@@ -641,6 +641,7 @@ export type VersionOption = WithType<'version'> &
  */
 export type FunctionOption = WithType<'function'> &
   WithBasic &
+  WithMisc &
   WithFunction &
   WithParam &
   WithValue<unknown> &
