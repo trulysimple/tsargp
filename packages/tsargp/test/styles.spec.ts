@@ -65,7 +65,9 @@ describe('TerminalString', () => {
 
   on('setStyle', () => {
     should('add a style to the next word and reset to the default style afterwards', () => {
-      const str = new TerminalString().setStyle(style(fg8(0), bg8(0), ul8(0))).word('type');
+      const str = new TerminalString();
+      str.style = style(fg8(0), bg8(0), ul8(0));
+      str.word('type');
       expect(str.count).toEqual(1);
       expect(str.lengths).toEqual([4]);
       expect(str.strings).toEqual(['\x1b[38;5;0;48;5;0;58;5;0m' + 'type' + '\x1b[0m']);
@@ -97,7 +99,8 @@ describe('TerminalString', () => {
 
   on('other', () => {
     should('avoid changing internal state if the other string is empty', () => {
-      const str1 = new TerminalString().setMerge();
+      const str1 = new TerminalString();
+      str1.merge = true;
       const str2 = new TerminalString().word('[').other(str1).word('type');
       expect(str2.count).toEqual(2);
       expect(str2.lengths).toEqual([1, 4]);
@@ -105,7 +108,8 @@ describe('TerminalString', () => {
     });
 
     should('add the internal strings from the other string and preserve its merge flag', () => {
-      const str1 = new TerminalString().split('type script').setMerge();
+      const str1 = new TerminalString().split('type script');
+      str1.merge = true;
       const str2 = new TerminalString().other(str1).split(': is fun');
       expect(str2.count).toEqual(4);
       expect(str2.lengths).toEqual([4, 7, 2, 3]);

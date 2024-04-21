@@ -753,7 +753,8 @@ function formatNames(
         result.push(str);
         breaks = 0; // break only on the first name
       }
-      str.setStyle(style).word(name);
+      str.style = style;
+      str.word(name);
       len += name.length;
     } else if (slotted) {
       str = undefined;
@@ -1113,7 +1114,7 @@ function formatParam(option: OpaqueOption, config: MessageConfig, result: Termin
   const equals = option.inline ? '=' : '';
   const ellipsis = max > 1 && !equals ? '...' : '';
   if (equals) {
-    result.setMerge();
+    result.merge = true;
   }
   let param;
   let example = option.example;
@@ -1126,7 +1127,7 @@ function formatParam(option: OpaqueOption, config: MessageConfig, result: Termin
     fmt.v(example, config, result.open(equals), { sep: '', open: '', close: '' });
     if (ellipsis) {
       param = ellipsis;
-      result.setMerge();
+      result.merge = true;
     }
   } else {
     const type = option.type;
@@ -1140,7 +1141,8 @@ function formatParam(option: OpaqueOption, config: MessageConfig, result: Termin
     }
   }
   if (param) {
-    result.setStyle(option.styles?.param ?? config.styles.value).word(param);
+    result.style = option.styles?.param ?? config.styles.value;
+    result.word(param);
   }
 }
 

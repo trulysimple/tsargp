@@ -111,7 +111,8 @@ const formatFunctions = {
    * @param result The resulting string
    */
   b(value: boolean, config, result) {
-    result.setStyle(config.styles.boolean).word(`${value}`);
+    result.style = config.styles.boolean;
+    result.word(`${value}`);
   },
   /**
    * The formatting function for string values.
@@ -121,7 +122,8 @@ const formatFunctions = {
    */
   s(value: string, config, result) {
     const quote = config.connectives?.[ConnectiveWord.stringQuote] ?? '';
-    result.setStyle(config.styles.string).word(`${quote}${value}${quote}`);
+    result.style = config.styles.string;
+    result.word(`${quote}${value}${quote}`);
   },
   /**
    * The formatting function for number values.
@@ -130,7 +132,8 @@ const formatFunctions = {
    * @param result The resulting string
    */
   n(value: number, config, result) {
-    result.setStyle(config.styles.number).word(`${value}`);
+    result.style = config.styles.number;
+    result.word(`${value}`);
   },
   /**
    * The formatting function for regular expressions.
@@ -139,7 +142,8 @@ const formatFunctions = {
    * @param result The resulting string
    */
   r(value: RegExp, config, result) {
-    result.setStyle(config.styles.regex).word(`${value}`);
+    result.style = config.styles.regex;
+    result.word(`${value}`);
   },
   /**
    * The formatting function for symbols.
@@ -148,7 +152,8 @@ const formatFunctions = {
    * @param result The resulting string
    */
   m(value: symbol, config, result) {
-    result.setStyle(config.styles.symbol).word(Symbol.keyFor(value) ?? '');
+    result.style = config.styles.symbol;
+    result.word(Symbol.keyFor(value) ?? '');
   },
   /**
    * The formatting function for URLs.
@@ -157,7 +162,8 @@ const formatFunctions = {
    * @param result The resulting string
    */
   u(url: URL, config, result) {
-    result.setStyle(config.styles.url).word(url.href);
+    result.style = config.styles.url;
+    result.word(url.href);
   },
   /**
    * The formatting function for terminal strings.
@@ -197,10 +203,9 @@ const formatFunctions = {
       const spec = flags.custom ? 'c' : 'v';
       this[spec](val, config, result, flags);
       if (sep && i < value.length - 1) {
-        result
-          .setMerge(flags.mergePrev)
-          .word(sep)
-          .setMerge(flags.mergeNext ?? false);
+        result.merge = flags.mergePrev ?? true;
+        result.word(sep);
+        result.merge = flags.mergeNext ?? false;
       }
     });
     result.close(close);
@@ -259,9 +264,14 @@ const formatFunctions = {
       const connectives = config.connectives;
       const open = connectives?.[ConnectiveWord.valueOpen] ?? '';
       const close = connectives?.[ConnectiveWord.valueClose] ?? '';
-      result.seq(config.styles.value).setMerge().open(open).split(`${value}`).close(close);
+      result.seq(config.styles.value);
+      result.merge = true;
+      result.open(open).split(`${value}`).close(close);
       if (config.styles.value) {
-        result.setMerge().clear().setMerge().seq(result.defStyle); // TODO: optimize this
+        result.merge = true;
+        result.clear();
+        result.merge = true;
+        result.seq(result.defStyle); // TODO: optimize this
       }
     }
   },
@@ -516,6 +526,22 @@ export class TerminalString {
   }
 
   /**
+   * Sets a flag to merge the next word with the last word.
+   * @param merge The flag value
+   */
+  set merge(merge: boolean) {
+    this.context[2] = merge;
+  }
+
+  /**
+   * Sets a style to apply to the next word.
+   * @param style The style
+   */
+  set style(style: Style) {
+    this.context[3] = style;
+  }
+
+  /**
    * Creates a terminal string.
    * @param indent The starting column for this string (negative values are replaced by zero)
    * @param breaks The initial number of line feeds (non-positive values are ignored)
@@ -560,28 +586,8 @@ export class TerminalString {
       const [strings, lengths] = this.add(str, len).context;
       strings.push(...restStr);
       lengths.push(...restLen);
-      this.setMerge(otherMerge);
+      this.merge = otherMerge;
     }
-    return this;
-  }
-
-  /**
-   * Sets a flag to merge the next word with the last word.
-   * @param merge The flag value (defaults to true)
-   * @returns The terminal string instance
-   */
-  setMerge(merge = true): this {
-    this.context[2] = merge;
-    return this;
-  }
-
-  /**
-   * Sets a style to apply to the next word.
-   * @param style The style
-   * @returns The terminal string instance
-   */
-  setStyle(style: Style): this {
-    this.context[3] = style;
     return this;
   }
 
@@ -597,7 +603,7 @@ export class TerminalString {
       strings[pos] = word + strings[pos];
       lengths[pos] += word.length;
     } else if (word) {
-      this.word(word).setMerge();
+      this.word(word).merge = true;
     }
     return this;
   }
@@ -608,7 +614,11 @@ export class TerminalString {
    * @returns The terminal string instance
    */
   close(word: string): this {
-    return word ? this.setMerge().word(word) : this;
+    if (word) {
+      this.merge = true;
+      this.word(word);
+    }
+    return this;
   }
 
   /**
@@ -662,7 +672,9 @@ export class TerminalString {
       strings[index] = (strings[index] ?? '') + curStyle + text + revert;
       lengths[index] = (lengths[index] ?? 0) + length;
     }
-    return this.setMerge(false).setStyle('');
+    this.merge = false;
+    this.style = '';
+    return this;
   }
 
   /**
@@ -1015,9 +1027,9 @@ function splitItem(result: TerminalString, item: string, format?: FormatCallback
         result.open(parts[0]);
         for (let i = 1; i < parts.length; i += 2) {
           boundFormat(parts[i]);
-          result.close(parts[i + 1]).setMerge();
+          result.close(parts[i + 1]).merge = true;
         }
-        result.setMerge(false);
+        result.merge = false;
         continue;
       }
     }
