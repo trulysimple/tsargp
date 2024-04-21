@@ -10,7 +10,6 @@ import { calc as options } from 'tsargp/examples';
 // Classes
 //--------------------------------------------------------------------------------------------------
 class CalcCommand extends Command {
-  // @ts-expect-error since tsargp examples do not export types
   private readonly parser = new ArgumentParser(options);
 
   constructor(props: Props) {

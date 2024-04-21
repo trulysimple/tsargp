@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { ArgumentParser, ErrorMessage, AnsiMessage } from 'tsargp';
+import { ArgumentParser, ErrorMessage, AnsiMessage, type OptionValues } from 'tsargp';
 import { type Props, Command } from './classes/command';
 import { demo as options } from 'tsargp/examples';
 
@@ -13,7 +13,6 @@ delete options.version;
 // Classes
 //--------------------------------------------------------------------------------------------------
 class DemoCommand extends Command {
-  // @ts-expect-error since tsargp examples do not export types
   private readonly parser = new ArgumentParser(options);
 
   constructor(props: Props) {
@@ -22,7 +21,7 @@ class DemoCommand extends Command {
 
   override async run(line: string, compIndex?: number) {
     try {
-      const values: { hello?: number } = {};
+      const values = {} as OptionValues<typeof options>;
       const flags = { progName: 'tsargp', compIndex, clusterPrefix: '-' };
       const { warning } = await this.parser.parseInto(values, line, flags);
       if (warning) {

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "../dist/examples",
-    "removeComments": true
+    "declaration": true
     // "isolatedModules": true, // when setting this, import enums from 'tsargp/enums'
   },
   "references": [{ "path": "../lib" }]
