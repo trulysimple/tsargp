@@ -51,12 +51,12 @@ describe('AnsiFormatter', () => {
           single: {
             type: 'single',
             names: ['-s'],
-            hide: true,
+            group: null,
           },
           array: {
             type: 'array',
             names: ['-a'],
-            hide: true,
+            group: null,
           },
         } as const satisfies Options;
         const registry = new OptionRegistry(options);
@@ -133,12 +133,12 @@ describe('AnsiFormatter', () => {
           single: {
             type: 'single',
             names: ['-s'],
-            hide: true,
+            group: null,
           },
           array: {
             type: 'array',
             names: ['-a'],
-            hide: true,
+            group: null,
           },
         } as const satisfies Options;
         const registry = new OptionRegistry(options);

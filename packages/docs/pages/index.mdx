@@ -21,7 +21,7 @@ Get started with:
   [35m-h[0m, [35m--help[0m                       A help option. Prints this help message. Uses the next argument
                                    as the name of a nested command. Uses the next argument as the
                                    name of a help format. Uses the remaining arguments as option
-                                   filter.[0m
+                                   filter. Available formats are {[32m'ansi'[0m}.[0m
   [35m-v[0m, [35m--version[0m                    A version option. Prints the package version.[0m
   [0;38;5;138m-f[0m, [0;38;5;138m--no-flag[0m                    [0;3;9mA flag option. Deprecated for some reason.[0m
   [35mhello[0m              [90m...[0m           A recursive command option. Logs the arguments passed after it.[0m
@@ -31,7 +31,7 @@ Get started with:
                                    1. and a list
 
                                    Values must be one of {[32m'yes'[0m, [32m'no'[0m}. Reads environment data from
-                                   [35mBOOLEAN[0m. Requires ([35m-se[0m and ([35m-ss[0m == [[32m'a'[0m, [32m'b'[0m] or [35m-ns[0m != [[33m3[0m, [33m4[0m])).
+                                   [35mBOOLEAN[0m. Requires ([35m-se[0m or ([35m-ss[0m == [[32m'a'[0m, [32m'b'[0m] and [35m-ns[0m != [[33m1[0m, [33m2[0m])).
                                    Defaults to [34mfalse[0m.[0m
 
 [1mString options:[0m

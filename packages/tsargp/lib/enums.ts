@@ -189,7 +189,7 @@ export const enum HelpItem {
    */
   deprecated,
   /**
-   * The external resource reference.
+   * The option's external resource hyperlink.
    */
   link,
   /**
@@ -199,7 +199,7 @@ export const enum HelpItem {
   /**
    * The option's environment data sources.
    */
-  env,
+  sources,
   /**
    * The option's conditional requirements.
    */

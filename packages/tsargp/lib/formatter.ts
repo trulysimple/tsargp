@@ -116,7 +116,7 @@ const defaultConfig: FormatterConfig = {
     [HelpItem.unique]: 'Duplicate values will be removed.',
     [HelpItem.limit]: 'Element count is limited to #0.',
     [HelpItem.stdin]: 'Reads data from standard input.',
-    [HelpItem.env]: 'Reads environment data from #0.',
+    [HelpItem.sources]: 'Reads environment data from #0.',
     [HelpItem.requires]: 'Requires #0.',
     [HelpItem.required]: 'Always required.',
     [HelpItem.requiredIf]: 'Required if #0.',
@@ -141,7 +141,7 @@ const defaultConfig: FormatterConfig = {
     HelpItem.unique,
     HelpItem.limit,
     HelpItem.stdin,
-    HelpItem.env,
+    HelpItem.sources,
     HelpItem.requires,
     HelpItem.required,
     HelpItem.requiredIf,
@@ -326,7 +326,7 @@ const helpFunctions = [
    * @ignore
    */
   (option, phrase, context, result) => {
-    const env = option.env;
+    const env = option.sources;
     if (env?.length) {
       const map = (name: (typeof env)[number]) =>
         typeof name === 'string' ? getSymbol(name) : name;
@@ -421,7 +421,7 @@ const fieldNames = [
   'deprecated',
   'link',
   'stdin',
-  'env',
+  'sources',
   'requiredIf',
   'cluster',
   'useNested',
@@ -645,7 +645,7 @@ function buildEntries<T>(
       regexp &&
       !option.names?.find((name) => name?.match(regexp)) &&
       !option.synopsis?.match(regexp) &&
-      !option.env?.find((name) => `${name}`.match(regexp))
+      !option.sources?.find((name) => `${name}`.match(regexp))
     );
   }
   const [options, , config] = context;
@@ -653,7 +653,7 @@ function buildEntries<T>(
     config.filter.length && RegExp(`(${config.filter.map(escapeRegExp).join('|')})`, 'i');
   const groups: Record<string, Array<T>> = {};
   for (const option of getValues(options)) {
-    if (!option.hide && !exclude(option)) {
+    if (option.group !== null && !exclude(option)) {
       const entry = buildFn(option);
       const name = option.group ?? '';
       if (name in groups) {
@@ -829,7 +829,7 @@ function getNameWidths(context: HelpContext): Array<number> | number {
   let maxWidth = 0;
   for (const option of getValues(options)) {
     const names = option.names;
-    if (!option.hide && names) {
+    if (option.group !== null && names) {
       if (slotted) {
         names.forEach((name, i) => {
           slotWidths[i] = max(slotWidths[i] ?? 0, name?.length ?? 0);

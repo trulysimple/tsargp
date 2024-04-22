@@ -136,7 +136,7 @@ describe('AnsiFormatter', () => {
           type: 'flag',
           names: ['-f', '--flag'],
           synopsis: 'A flag option',
-          hide: true,
+          group: null,
         },
       } as const satisfies Options;
       const registry = new OptionRegistry(options);

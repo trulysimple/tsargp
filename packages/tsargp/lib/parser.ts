@@ -22,7 +22,6 @@ import {
   fmt,
   cfg,
   ErrorFormatter,
-  ErrorMessage,
   WarnMessage,
   HelpMessage,
   TextMessage,
@@ -597,12 +596,14 @@ async function parseParams(
   params: Array<string>,
 ): Promise<[boolean, number]> {
   /** @ignore */
+  function error(kind: ParseError, flags: FormattingFlags, ...args: Args) {
+    return formatter.error(kind, flags, getSymbol(name), ...args);
+  }
+  /** @ignore */
   function parse(param: string): unknown {
     // do not destructure `parse`, because the callback might need to use `this`
-    return choicesRec && param in choicesRec
-      ? choicesRec[param]
-      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        option.parse?.(param as any, seq) ?? param;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return rec && param in rec ? rec[param] : option.parse?.(param as any, seq) ?? param;
   }
   const [, formatter, values, , , comp] = context;
   const [key, option, name] = info;
@@ -624,48 +625,23 @@ async function parseParams(
   if (separator) {
     params = params.flatMap((param) => param.split(separator));
   }
-  checkParams(context, info, params);
-  const choices = option.choices;
-  const choicesRec = choices && !isReadonlyArray<string>(choices) ? choices : undefined;
-  if (option.type === 'single') {
-    values[key] = await parse(params[0]);
-  } else if (option.type === 'array') {
-    const prev = (option.append && (values[key] as Array<unknown>)) ?? [];
-    // do not use `map` with `Promise.all`, because the promises need to be chained
-    for (const param of params) {
-      prev.push(await parse(param));
+  if (index >= 0) {
+    const [min, max] = getParamCount(option);
+    if (params.length < min || params.length > max) {
+      // this may happen when the sequence comes from either the positional marker or environment data
+      // comp === false, otherwise completion would have taken place by now
+      const [alt, val] =
+        min === max ? [0, min] : !min ? [2, max] : isFinite(max) ? [3, [min, max]] : [1, min];
+      const sep = formatter.config.connectives[ConnectiveWord.and];
+      const flags = { alt, sep, mergePrev: false };
+      throw error(ParseError.mismatchedParamCount, flags, val);
     }
-    values[key] = normalizeArray(formatter, option, name, prev);
-  } else {
+  }
+  if (option.type === 'function') {
     // do not destructure `parse`, because the callback might need to use `this`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     values[key] = option.parse ? await option.parse(params as any, seq) : null;
-  }
-  return [breakLoop, 0];
-}
-
-/**
- * Checks the option parameter(s) against a set of parameter constraints.
- * @param context The parsing context
- * @param info The option information
- * @param params The option parameter(s)
- */
-function checkParams(context: ParseContext, info: OptionInfo, params: Array<string>) {
-  /** @ignore */
-  function error(kind: ParseError, flags?: FormattingFlags, ...args: Args): ErrorMessage {
-    return formatter.error(kind, flags, getSymbol(name), ...args);
-  }
-  const [, formatter] = context;
-  const [, option, name] = info;
-  const [min, max] = getParamCount(option);
-  if (params.length < min || params.length > max) {
-    // this may happen when the sequence comes from either the positional marker or environment data
-    // comp === false, otherwise completion would have taken place by now
-    const [alt, val] =
-      min === max ? [0, min] : !min ? [2, max] : isFinite(max) ? [3, [min, max]] : [1, min];
-    const sep = formatter.config.connectives[ConnectiveWord.and];
-    const flags = { alt, sep, mergePrev: false };
-    throw error(ParseError.mismatchedParamCount, flags, val);
+    return [breakLoop, 0];
   }
   const regex = option.regex;
   if (regex) {
@@ -673,27 +649,28 @@ function checkParams(context: ParseContext, info: OptionInfo, params: Array<stri
     if (mismatch) {
       throw error(ParseError.regexConstraintViolation, {}, mismatch, regex);
     }
-  } else {
-    const choices = option.choices;
-    if (choices) {
-      const keys = isReadonlyArray<string>(choices)
-        ? choices
-        : option.parse
-          ? undefined
-          : getKeys(choices);
-      if (keys) {
-        const mismatch = params.find((param) => !keys.includes(param));
-        if (mismatch) {
-          throw error(
-            ParseError.choiceConstraintViolation,
-            { open: '', close: '' },
-            mismatch,
-            keys,
-          );
-        }
-      }
+  }
+  const choices = option.choices;
+  const [keys, rec] = isReadonlyArray<string>(choices)
+    ? [choices]
+    : [option.parse ? undefined : choices && getKeys(choices), choices];
+  if (keys) {
+    const mismatch = params.find((param) => !keys.includes(param));
+    if (mismatch) {
+      throw error(ParseError.choiceConstraintViolation, { open: '', close: '' }, mismatch, keys);
     }
   }
+  if (option.type === 'single') {
+    values[key] = await parse(params[0]);
+  } else {
+    const prev = (option.append && (values[key] as Array<unknown>)) ?? [];
+    // do not use `map` with `Promise.all`, because the promises need to be chained
+    for (const param of params) {
+      prev.push(await parse(param));
+    }
+    values[key] = normalizeArray(formatter, option, name, prev);
+  }
+  return [breakLoop, 0];
 }
 
 /**
@@ -947,7 +924,7 @@ async function checkDefaultValue(context: ParseContext, key: string) {
   }
   const option = registry.options[key];
   const names: Array<0 | string | URL> = option.stdin ? [0] : [];
-  names.push(...(option.env ?? []));
+  names.push(...(option.sources ?? []));
   for (const name of names) {
     const param = typeof name === 'string' ? getEnv(name) : await readFile(name);
     if (param !== undefined) {

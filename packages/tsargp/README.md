@@ -62,10 +62,10 @@ import { OptionValidator } from 'tsargp/lib';
 import options from './<your_cli_name>.options.js';
 
 describe('<your_cli_name>', () => {
-  it('should not throw any error', async () => {
+  it('should have valid options', async () => {
     const validator = new OptionValidator(options);
     const { warning } = await validator.validate();
-    expect(warning).toBeUndefined(); // check warnings that are important to your application
+    expect(warning).toBeUndefined(); // or check warnings that are important to your application
   });
 });
 ```

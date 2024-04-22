@@ -6,12 +6,12 @@ process.env['FORCE_WIDTH'] = '0'; // omit styles
 
 describe('ArgumentParser', () => {
   on('parse', () => {
-    should('handle a function option with local file', async () => {
+    should('handle an array-valued option with local file', async () => {
       const options = {
         array: {
           type: 'array',
           names: ['-a'],
-          env: ['ARRAY', new URL(`file://${import.meta.dirname}/../data/test-read-file.txt`)],
+          sources: ['ARRAY', new URL(`file://${import.meta.dirname}/../data/test-read-file.txt`)],
           separator: '\n',
           parse: vi.fn((param) => param),
         },
@@ -47,13 +47,13 @@ describe('ArgumentParser', () => {
           flag1: {
             type: 'flag',
             names: ['-f1'],
-            env: ['FLAG1'],
+            sources: ['FLAG1'],
             requires: 'flag2',
           },
           flag2: {
             type: 'flag',
             names: ['-f2'],
-            env: ['FLAG2'],
+            sources: ['FLAG2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -70,13 +70,13 @@ describe('ArgumentParser', () => {
           single: {
             type: 'single',
             names: ['-s'],
-            env: ['SINGLE'],
+            sources: ['SINGLE'],
             requires: 'flag',
           },
           flag: {
             type: 'flag',
             names: ['-f'],
-            env: ['FLAG'],
+            sources: ['FLAG'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -95,14 +95,14 @@ describe('ArgumentParser', () => {
           array: {
             type: 'array',
             names: ['-a'],
-            env: ['ARRAY'],
+            sources: ['ARRAY'],
             separator: ',',
             requires: 'flag',
           },
           flag: {
             type: 'flag',
             names: ['-f'],
-            env: ['FLAG'],
+            sources: ['FLAG'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -116,19 +116,20 @@ describe('ArgumentParser', () => {
         await expect(parser.parse([])).resolves.toEqual({ array: [''], flag: true });
       });
 
-      should('handle a function option', async () => {
+      should('handle a function option and ignore its parameter count', async () => {
         const options = {
           function: {
             type: 'function',
             names: ['-f1'],
-            env: ['FUNCTION'],
+            sources: ['FUNCTION'],
             requires: 'flag',
+            paramCount: 2,
             parse: (param) => param,
           },
           flag: {
             type: 'flag',
             names: ['-f2'],
-            env: ['FLAG'],
+            sources: ['FLAG'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -150,13 +151,13 @@ describe('ArgumentParser', () => {
           flag1: {
             type: 'flag',
             names: ['-f1'],
-            env: ['FLAG1'],
+            sources: ['FLAG1'],
             requiredIf: 'flag2',
           },
           flag2: {
             type: 'flag',
             names: ['-f2'],
-            env: ['FLAG2'],
+            sources: ['FLAG2'],
           },
         } as const satisfies Options;
         const parser = new ArgumentParser(options);
@@ -172,7 +173,7 @@ describe('ArgumentParser', () => {
         single: {
           type: 'single',
           names: ['-s'],
-          env: ['SINGLE'],
+          sources: ['SINGLE'],
           regex: /\d+/,
         },
       } as const satisfies Options;
@@ -188,7 +189,7 @@ describe('ArgumentParser', () => {
         single: {
           type: 'single',
           names: ['-s'],
-          env: ['SINGLE'],
+          sources: ['SINGLE'],
           choices: ['1'],
         },
       } as const satisfies Options;
@@ -204,7 +205,7 @@ describe('ArgumentParser', () => {
         array: {
           type: 'array',
           names: ['-a'],
-          env: ['ARRAY'],
+          sources: ['ARRAY'],
           separator: ',',
           limit: 1,
         },

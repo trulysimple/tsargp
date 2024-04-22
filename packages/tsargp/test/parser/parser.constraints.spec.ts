@@ -41,21 +41,6 @@ describe('ArgumentParser', () => {
           `Invalid parameter to -a: 'abc'. Value must match the regex /\\d+/s.`,
         );
       });
-
-      should('handle a function option', async () => {
-        const options = {
-          function: {
-            type: 'function',
-            names: ['-f'],
-            regex: /\d+/s,
-          },
-        } as const satisfies Options;
-        const parser = new ArgumentParser(options);
-        await expect(parser.parse(['-f', '123'])).resolves.toEqual({ function: null });
-        await expect(parser.parse(['-f', 'abc'])).rejects.toThrow(
-          `Invalid parameter to -f: 'abc'. Value must match the regex /\\d+/s.`,
-        );
-      });
     });
 
     when('a choices array constraint is specified', () => {

@@ -13,20 +13,17 @@ available types and describe them in detail.
 
 ## Option types
 
-There is a total of ten option types, as summarized in the table below:
+There is a total of seven option types, as summarized in the table below:
 
-| Type       | Parameters                                   | Value              | Normalization            | Constraints                         |
-| ---------- | -------------------------------------------- | ------------------ | ------------------------ | ----------------------------------- |
-| [help]     | niladic                                      | `never{:ts}`[^1]   |                          |                                     |
-| [version]  | niladic                                      | `never{:ts}`[^1]   |                          |                                     |
-| [function] | configurable                                 | `unknown{:ts}`[^2] |                          | [inline], [param count]             |
-| [command]  | niladic[^3]                                  | `unknown{:ts}`[^2] |                          |                                     |
-| [flag]     | niladic                                      | `boolean{:ts}`     |                          |                                     |
-| [boolean]  | positional, monadic                          | `boolean{:ts}`     |                          | [inline], [truth and falsity]       |
-| [string]   | positional, monadic                          | `string{:ts}`      | [trim], [case]           | [inline], [enums], [regex]          |
-| [number]   | positional, monadic                          | `number{:ts}`      | [conv]                   | [inline], [enums], [range]          |
-| [strings]  | positional, delimited, variadic, append-able | `string[]{:ts}`    | [unique], [trim], [case] | [inline], [enums], [regex], [limit] |
-| [numbers]  | positional, delimited, variadic, append-able | `number[]{:ts}`    | [unique], [conv]         | [inline], [enums], [range], [limit] |
+| Type       | Attribute classes                                         |
+| ---------- | --------------------------------------------------------- |
+| [help]     | [basic], [message]                                        |
+| [version]  | [basic], [message]                                        |
+| [command]  | [basic], [value],                                         |
+| [flag]     | [basic], [value], [environment]                           |
+| [single]   | [basic], [value], [environment], [parameter], [selection] |
+| [array]    | [basic], [value], [environment], [parameter], [selection] |
+| [function] | [basic], [value], [environment], [parameter]              |
 
 The meaning of each column is explained below.
 
@@ -447,46 +444,6 @@ The `conv` attribute, if present, specifies the kind of math conversion to apply
 Can be any of JavaScript's [Math] functions that accept a single number parameter. This
 normalization is applied _before_ checking value constraints.
 
-### Array attributes
-
-Array-valued options share a set of attributes, as described below.
-
-#### Separator
-
-The `separator` attribute, if present, specifies a delimiter by which to split the option parameter.
-If specified, the option will accept a single parameter[^4] on the command-line, not multiple
-parameters (as is the default). It can be either a string or a regular expression.
-
-<Callout type="info">
-  When using this attribute, [inline parameters] will be allowed for an array-valued option, unless
-  explicitly disabled by the [inline] attribute.
-</Callout>
-
-#### Remove duplicates
-
-The `unique` attribute, if present, indicates that duplicate elements will be removed from the
-option value. This normalization is applied _after_ other normalizations and _before_ checking the
-[count limit] constraint.
-
-<Callout type="info">
-  Due to the nature of JavaScript's [Set] type, the order of elements is preserved (i.e., it
-  reflects the order in which they were parsed).
-</Callout>
-
-#### Append values
-
-The `append` attribute, if present, indicates that the option allows appending elements to its value
-if specified multiple times on the command-line. Both the [remove duplicates] normalization and the
-[count limit] constraint, if enabled, are applied after appendage.
-
-<Callout type="info">Mutually exclusive with [parse callback].</Callout>
-
-#### Count limit
-
-The `limit` attribute, if present, indicates the maximum allowed number of elements. Any parameter
-sequence that causes the option value to _exceed_ the given limit (after normalization) will cause
-an error to be thrown.
-
 ### Miscellaneous attributes
 
 Some attributes are shared by all valued options except command options. They are described below.
@@ -645,31 +602,6 @@ the callback.
   message that any option required by the affected one must be specified _before_ it.
 </Callout>
 
-#### Parameter count
-
-By default, a function option is niladic. However, this behavior can be changed with the
-`paramCount` attribute. If present, it specifies how many parameters the option expects. It can
-have either of the following values:
-
-- a **zero** value: same as the niladic case
-- a **negative** number: the option accepts unlimited parameters
-- a **positive** number: the option expects exactly this number of parameters
-- a numeric **range**: the option expects between a minimum and maximum count
-
-<Callout type="info">Mutually exclusive with [skip count].</Callout>
-
-Notice that a function option cannot have a parameter [separator]. The latter is only intended for
-array-valued options, as they lack the flexibility of specifying a parameter count. On the other
-hand, setting this attribute to `1{:ts}` or `[0, 1]{:ts}` makes the option _monadic_, which enables
-the use of [inline parameters] and/or the [inline] attribute.
-
-<Callout type="warning">
-  If the parameter comes from an environment variable, then the `param` property of the object
-  received by the function callback will contain a single element, which may be _less_ than the
-  expected count. You can check if this is the case by inspecting the `index` property, which will
-  be `NaN{:ts}` in this case.
-</Callout>
-
 #### Skip count
 
 The `skipCount` attribute indicates the number of remaining arguments to skip, after the callback
@@ -794,48 +726,7 @@ flag that has been previously specified must be reset by a supplementary list of
 
 Non-niladic options accept one or more parameters on the command-line.
 
-### Boolean option
-
-The **boolean** option accepts a single parameter that is converted to boolean according to the
-following rules:
-
-- if:
-  - it matches one of the [truth names], it is considered `true{:ts}`
-  - it matches one of the [falsity names], it is considered `false{:ts}`
-- else if:
-  - there are truth names, but no falsity name, the result is `false{:ts}`
-  - there are falsity names, but no truth name, the result is `true{:ts}`
-  - there are both truth and falsity names, an error is thrown
-- else, the string is considered `false{:ts}` if it evaluates to zero; otherwise `true{:ts}`
-
-This option has the following sets of attributes:
-
-- [basic attributes]
-- [value attributes]
-- [parameter attributes]
-- [known value attributes] for a `boolean{:ts}` data type
-- [miscellaneous attributes]
-- the attributes described below
-
-#### Truth & falsity names
-
-The `truthNames` attribute, if present, specifies the names of the boolean truth value (e.g. `true`,
-`yes`, `on`). The `falsityNames` attribute, if present, specifies the names of the boolean falsity
-value. (e.g. `false`, `no`, `off`).
-
-These names are equivalent to the [enumeration], but for a boolean value. As such, they share some
-of the same behaviors:
-
-- they are considered by the [completion algorithm]
-- they are included in the [constraints validation]
-- they appear under the same [help item]
-
-#### Case sensitive
-
-The `caseSensitive` attribute, if present, indicates whether the truth and falsity names should be
-considered case-sensitive.
-
-### String option
+### Single-valued option
 
 The **string** option accepts a single parameter that is normalized according to the constraints
 specified in its definition. It has the following sets of attributes:
@@ -847,143 +738,209 @@ specified in its definition. It has the following sets of attributes:
 - [string attributes]
 - [miscellaneous attributes]
 
-### Number option
+### Array-valued option
 
-The **number** option accepts a single parameter that is converted to `number{:ts}` and normalized
-according to the constraints specified in its definition. It has the following sets of attributes:
+The **array** option accepts multiple (zero or more) parameters. Its value is an array whose
+elements are either the result of the [parse callback], the [choices or mapping] or the string
+parameters themselves. Its value may be normalized according to the constraints specified in the
+option definition. It has the following sets of attributes:
 
-- [basic attributes]
-- [value attributes]
-- [parameter attributes]
-- [known value attributes] for a `number{:ts}` data type
-- [number attributes]
-- [miscellaneous attributes]
+- [basic] attributes
+- [value] attributes
+- [environment] attributes
+- [parameter] attributes
+- [selection] attributes
+- the attributes described below
 
-### Strings option
+#### Parameter separator
 
-The **strings** option accepts multiple parameters that are normalized according to the constraints
-specified in its definition. It has the following sets of attributes:
+The `separator` attribute, if present, specifies a delimiter by which to split the option parameter.
+If specified, the option will accept a single parameter on the command-line, not multiple parameters
+(as is the default). It can be either a string or a regular expression.
 
-- [basic attributes]
-- [value attributes]
-- [parameter attributes]
-- [known value attributes] for a `string[]{:ts}` data type
-- [string attributes]
-- [array attributes]
-- [miscellaneous attributes]
+<Callout type="info">
+  When using this attribute, [inline parameters] will be allowed for an array-valued option, unless
+  explicitly disabled by the [inline] attribute.
+</Callout>
 
-### Numbers option
+#### Remove duplicates
 
-The **numbers** option accepts multiple parameters that are converted to `number{:ts}` and
-normalized according to the constraints specified in its definition. It has the following sets of
-attributes:
+The `unique` attribute, if present, indicates that duplicate elements will be removed from the
+option value. This normalization is applied _after_ other normalizations and _before_ checking the
+[count limit] constraint.
 
-- [basic attributes]
-- [value attributes]
-- [parameter attributes]
-- [known value attributes] for a `number[]{:ts}` data type
-- [number attributes]
-- [array attributes]
-- [miscellaneous attributes]
+<Callout type="info">
+  Due to the nature of JavaScript's [Set] type, the order of elements is preserved (i.e., it
+  reflects the order in which they were parsed).
+</Callout>
 
-[param count]: #parameter-count
-[inline]: #disable--require-inline
-[trim]: #trim-whitespace
-[case]: #case-conversion
-[conv]: #math-conversion
-[enums]: #enumeration
-[regex]: #regular-expression
-[range]: #numeric-range
-[unique]: #remove-duplicates
-[limit]: #count-limit
+#### Append values
+
+The `append` attribute, if present, indicates that the option allows appending elements to its value
+if specified multiple times on the command-line. Both the [remove duplicates] normalization and the
+[count limit] constraint, if enabled, are applied after appendage.
+
+<Callout type="info">Mutually exclusive with [parse callback].</Callout>
+
+#### Element count limit
+
+The `limit` attribute, if present, indicates the maximum allowed number of elements. Any parameter
+sequence that causes the option value to _exceed_ the given limit (after normalization) will cause
+an error to be thrown.
+
+### Function option
+
+The **function** option is a non-niladic equivalent of the [flag] option. It exists solely for the
+purpose of being configured with an expected parameter count. It is the only option that can accept
+between zero and one parameter. It has the following sets of attributes:
+
+- [basic] attributes
+- [value] attributes
+- [environment] attributes
+- [parameter] attributes
+- the attribute described below
+
+#### Parameter count
+
+The `paramCount` attribute. If present, it specifies how many parameters the option expects. It can
+have either of the following values:
+
+- a positive **number**: the option expects exactly this amount (must be greater than one)
+- a numeric **range**: the option expects between a minimum and maximum count
+
+<Callout type="info">
+  Notice that a function option cannot have a [parameter separator]. The latter is only intended for
+  array-valued options, otherwise they would conflict with the semantics of the parameter count.
+</Callout>
+
+<Callout type="warning">
+  If the parameter comes from an environment [data source], then the parameter received by the
+  [parse callback] will contain a single element, which may be _less_ than the expected count. You
+  can inspect the `index` property of the [argument sequence], which will be `NaN{:ts}` in this case.
+</Callout>
+
+{/* option types */}
 [help]: #help-option
 [version]: #version-option
-[function]: #function-option
 [command]: #command-option
 [flag]: #flag-option
-[boolean]: #boolean-option
-[string]: #string-option
-[number]: #number-option
-[strings]: #strings-option
-[numbers]: #numbers-option
-[enumeration]: #enumeration
-[separator]: #separator
-[appended]: #append-values
-[positional]: #positional--marker
-[append]: #append-values
-[append values]: #append-values
-[format]: #help-format
-[truth names]: #truth--falsity-names
-[falsity names]: #truth--falsity-names
-[truth and falsity]: #truth--falsity-names
-[flag option]: #flag-option
-[string option]: #string-option
-[number option]: #number-option
-[nested command]: #command-option
-[boolean option]: #boolean-option
-[function option]: #function-option
+[single]: #single-option
+[array]: #array-option
+[function]: #function-option
+
+{/* attribute classes */}
+[basic]: #basic-attributes
+[message]: #message-attributes
+[value]: #value-attributes
+[environment]: #break-attributes
+[parameter]: #parameter-attributes
+[selection]: #selection-attributes
+
+{/* basic attributes */}
+[option names]: #option-names
+[preferred name]: #preferred-name
+[option synopsis]: #option-synopsis
+[deprecation notice]: #deprecation-notice
+[group or hide]: #group--hide
+[display styles]: #display-styles
+[hyperlink]: #hyperlink
+
+{/* message attributes */}
+[save message]: #save-message
+
+{/* value attributes */}
+[cluster letters]: #cluster-letters
 [always required]: #always-required
+[forward requirements]: #forward-requirements
+[conditional requirements]: #conditional-requirements
 [default value]: #default-value
 [default callback]: #default-callback
-[conditional requirements]: #conditional-requirements
-[environment variable]: #environment-variable
-[always required]: #always-required
-[parameter name]: #parameter-name
-[example value]: #example-value
-[preferred name]: #names--preferred-name
-[regular expression]: #regular-expression
-[numeric range]: #numeric-range
 [parse callback]: #parse-callback
-[count limit]: #count-limit
-[environment variable]: #environment-variable
-[remove duplicates]: #remove-duplicates
-[resolve callback]: #resolve-callback
-[version info]: #version-info
-[basic attributes]: #basic-attributes
-[value attributes]: #value-attributes
-[miscellaneous attributes]: #miscellaneous-attributes
-[parameter attributes]: #parameter-attributes
-[known value attributes]: #known-value-attributes
-[string attributes]: #string-attributes
-[number attributes]: #number-attributes
-[array attributes]: #array-attributes
-[cluster letters]: #cluster-letters
-[fallback value]: #fallback-value
-[parameter count]: #parameter-count
+
+{/* environment attributes */}
+[accept input]: #accept-input
+[data source]: #data-sources
+[data sources]: #data-sources
+[break loop]: #break-loop
+
+{/* parameter attributes */}
+[example value]: #example-value
+[parameter name]: #parameter-name
+[positional or marker]: #positional--marker
+[inline constraint]: #inline-constraint
+[regular expression]: #regular-expression
+[complete callback]: #complete-callback
+
+{/* selection attributes */}
+[choices or mapping]: #choices--mapping
+
+{/* help attributes */}
+[help config]: #help-config
+[help sections]: #help-sections
+[help formats]: #help-formats
+[enable nested]: #enable-nested
 [enable format]: #enable-format
 [enable filter]: #enable-filter
+
+{/* version attributes */}
+[version info]: #version-info
+[resolve callback]: #resolve-callback
+
+{/* command attributes */}
+[nested options]: #nested-options--callback
+[cluster prefix]: #cluster-prefix
+
+{/* flag attributes */}
 [skip count]: #skip-count
-[formatter]: formatter
-[commands guide]: ../guides/commands
-[recursive commands]: ../guides/commands#advanced-features
-[styling]: styles#styling-attributes
+
+{/* single attributes */}
+
+{/* array attributes */}
+[remove duplicates]: #remove-duplicates
+[element count limit]: #element-count-limit
+[parameter separator]: #parameter-separator
+[append values]: #append-values
+
+{/* function attributes */}
+[parameter count]: #parameter-count
+
+{/* parser references */}
 [resulting object]: parser#option-values
-[text formatting]: styles#text-splitting
-[warning message]: styles#warning-message
 [word completion]: parser#word-completion
 [completion algorithm]: parser#completion-algorithm
-[formatter configuration]: formatter#formatter-configuration
+[custom callback]: parser#custom-callbacks
+[argument sequence]: parser#sequence-information
+[`parseInto`]: parser#using-your-own-object
+[`clusterPrefix`]: parser#cluster-prefix
+[inline parameters]: parser#inline-parameters
+
+{/* formatter references */}
+[formatter]: formatter
+[help items]: formatter#help-items
+[help item]: formatter#help-items
 [help format]: formatter#help-format
 [help sections]: formatter#help-sections
 [usage section]: formatter#usage-section
 [groups section]: formatter#groups-section
 [option filter]: formatter#option-filter
-[custom callback]: parser#custom-callbacks
-[argument sequence]: parser#sequence-information
+[formatter configuration]: formatter#formatter-configuration
+
+{/* styles references */}
+[styling]: styles#styling-attributes
+[text formatting]: styles#text-splitting
+[warning message]: styles#warning-message
 [completion message]: styles#completion-message
-[`parseInto`]: parser#using-your-own-object
-[`clusterPrefix`]: parser#cluster-prefix
+
+{/* validator references */}
 [constraints validation]: validator#constraints-validation
-[help items]: formatter#help-items
-[help item]: formatter#help-items
-[inline parameters]: parser#inline-parameters
+
+{/* guides references */}
+[commands guide]: ../guides/commands
+[recursive commands]: ../guides/commands#advanced-features
+
+{/* external references */}
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 [Math]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
 [`import.meta.resolve`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve
 [short-option]: https://www.linuxtopia.org/online_books/linux_tool_guides/tar_user_guide/Short-Options.html
 [discriminant]: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions
-
-[^1]: help and version options throw a message instead of having a value.
-[^2]: the return type of the function or command callback.
-[^3]: rather than accepting parameters, it starts a new parsing context with the remaining arguments.
-[^4]: we say that it is _delimited_, rather than _variadic_.

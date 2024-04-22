@@ -364,7 +364,7 @@ export type ResolveCallback = (specifier: string) => string;
 export type DefaultCallback = (values: OpaqueOptionValues) => unknown;
 
 /**
- * A callback for custom parsing or word completion.
+ * A callback for custom parsing or custom completion.
  * @template P The parameter data type
  * @template I The type of sequence information
  * @template R The return type
@@ -373,6 +373,20 @@ export type DefaultCallback = (values: OpaqueOptionValues) => unknown;
  * @returns The return value
  */
 export type CustomCallback<P, I, R> = (param: P, info: I) => R;
+
+/**
+ * A callback for custom parsing.
+ */
+export type ParseCallback<P, I> = CustomCallback<P, I, unknown>;
+
+/**
+ * A callback for custom completion.
+ */
+export type CompleteCallback = CustomCallback<
+  string,
+  WithValues & WithPrev,
+  Promissory<Array<string>>
+>;
 
 /**
  * A known value used in default values and parameter examples.
@@ -401,7 +415,7 @@ export type WithValues = {
 };
 
 /**
- * Information about word completion, to be used by custom callbacks.
+ * Information about word completion, to be used by custom parse callbacks.
  */
 export type WithComp = {
   /**
@@ -411,7 +425,7 @@ export type WithComp = {
 };
 
 /**
- * Information about word completion, to be used by a complete callbacks.
+ * Information about word completion, to be used by custom complete callbacks.
  */
 export type WithPrev = {
   /**
@@ -471,26 +485,35 @@ export type WithBasic = {
   readonly deprecated?: string;
   /**
    * The option group in the help message.
+   * Use null to hide it from the help message.
    */
-  readonly group?: string;
-  /**
-   * True if the option should be hidden from the help message.
-   */
-  readonly hide?: true;
+  readonly group?: string | null;
   /**
    * The option display styles.
    */
   readonly styles?: OptionStyles;
   /**
-   * A reference to an external resource.
+   * A hyperlink to an external resource.
    */
   readonly link?: URL;
 };
 
 /**
- * Defines attributes common to valued options.
+ * Defines attributes for options that throw messages.
  */
-export type WithValue = {
+export type WithMessage = {
+  /**
+   * Whether to save the message in the option value instead of throwing it.
+   */
+  readonly saveMessage?: true;
+};
+
+/**
+ * Defines attributes common to options that have values.
+ * @template P The type of parse parameter
+ * @template I The type of sequence information
+ */
+export type WithValue<P, I> = {
   /**
    * The letters used for clustering in short-option style (e.g., 'fF').
    */
@@ -515,31 +538,19 @@ export type WithValue = {
    * values and determine the default value based on those values.
    */
   readonly default?: KnownValue | DefaultCallback;
-};
-
-/**
- * Defines attributes for options that may have custom parsing.
- * @template P The type of parse parameter
- * @template T The type of ???
- */
-export type WithParse<P, T = WithComp> = {
   /**
    * A custom callback for parsing option parameter(s).
    */
-  readonly parse?: CustomCallback<P, WithValues & WithFormat & T, unknown>;
+  readonly parse?: ParseCallback<P, I>;
 };
 
 /**
- * Defines attributes for options that ???.
+ * Defines attributes for options that may read data from the environment.
  */
-export type WithBreak = {
-  /**
-   * True to break the parsing loop after parsing the option.
-   */
-  readonly break?: true;
+export type WithEnv = {
   /**
    * True to read data from the standard input, if the option is not specified in the command-line.
-   * This has precedence over {@link WithBreak.env}.
+   * This has precedence over {@link WithEnv.sources}.
    */
   readonly stdin?: true;
   /**
@@ -547,7 +558,11 @@ export type WithBreak = {
    * neither on the command-line nor in the standard input. A string means an environment variable,
    * while a URL means a local file.
    */
-  readonly env?: ReadonlyArray<string | URL>;
+  readonly sources?: ReadonlyArray<string | URL>;
+  /**
+   * True to break the parsing loop after parsing the option.
+   */
+  readonly break?: true;
 };
 
 /**
@@ -578,55 +593,23 @@ export type WithParam = {
    */
   readonly inline?: false | 'always';
   /**
+   * A custom callback for word completion.
+   */
+  readonly complete?: CompleteCallback;
+};
+
+/**
+ * Defines attributes for options that may have parameter constraints.
+ */
+export type WithSelection = {
+  /**
    * The regular expression that parameters should match.
    */
   readonly regex?: RegExp;
   /**
-   * A custom callback for word completion.
-   */
-  readonly complete?: CustomCallback<string, WithValues & WithPrev, Promissory<Array<string>>>;
-};
-
-/**
- * Defines attributes for options that may have parameter choices.
- */
-export type WithSelection = {
-  /**
    * The choices of parameter values, or a mapping of parameter values to option values.
    */
   readonly choices?: ReadonlyArray<string> | Readonly<Record<string, unknown>>;
-};
-
-/**
- * Defines attributes common to array-valued options.
- */
-export type WithArray = {
-  /**
-   * The parameter value separator.
-   */
-  readonly separator?: string | RegExp;
-  /**
-   * True if duplicate elements should be removed.
-   */
-  readonly unique?: true;
-  /**
-   * Allows appending elements if specified multiple times.
-   */
-  readonly append?: true;
-  /**
-   * The maximum allowed number of elements.
-   */
-  readonly limit?: number;
-};
-
-/**
- * Defines attributes common to the help and version options.
- */
-export type WithMessage = {
-  /**
-   * Whether to save the message in the option value instead of throwing it.
-   */
-  readonly saveMessage?: true;
 };
 
 /**
@@ -695,6 +678,44 @@ export type WithCommand = {
 };
 
 /**
+ * Defines attributes for the flag option.
+ */
+export type WithFlag = {
+  /**
+   * The number of remaining arguments to skip.
+   * You may change this value inside the callback. The parser does not alter this value.
+   */
+  skipCount?: number;
+};
+
+/**
+ * Defines attributes common to single-valued options.
+ */
+export type WithSingle = unknown;
+
+/**
+ * Defines attributes common to array-valued options.
+ */
+export type WithArray = {
+  /**
+   * The parameter value separator.
+   */
+  readonly separator?: string | RegExp;
+  /**
+   * True if duplicate elements should be removed.
+   */
+  readonly unique?: true;
+  /**
+   * Allows appending elements if specified multiple times.
+   */
+  readonly append?: true;
+  /**
+   * The maximum allowed number of elements.
+   */
+  readonly limit?: number;
+};
+
+/**
  * Defines attributes for the function option.
  */
 export type WithFunction = {
@@ -709,17 +730,6 @@ export type WithFunction = {
 };
 
 /**
- * Defines attributes for the flag option.
- */
-export type WithFlag = {
-  /**
-   * The number of remaining arguments to skip.
-   * You may change this value inside the callback. The parser does not alter this value.
-   */
-  skipCount?: number;
-};
-
-/**
  * An option that throws a help message.
  */
 export type HelpOption = WithType<'help'> & WithBasic & WithHelp & WithMessage;
@@ -728,8 +738,8 @@ export type HelpOption = WithType<'help'> & WithBasic & WithHelp & WithMessage;
  * An option that throws a version information.
  */
 export type VersionOption = WithType<'version'> &
-  WithBasic &
   WithVersion &
+  WithBasic &
   WithMessage &
   (WithVerInfo | WithResolve);
 
@@ -737,21 +747,19 @@ export type VersionOption = WithType<'version'> &
  * An option that executes a command.
  */
 export type CommandOption = WithType<'command'> &
-  WithBasic &
-  WithValue &
   WithCommand &
-  WithParse<OpaqueOptionValues, unknown> &
+  WithBasic &
+  WithValue<OpaqueOptionValues, WithValues & WithFormat> &
   (WithDefault | WithRequired);
 
 /**
  * An option that has a value, but is niladic.
  */
 export type FlagOption = WithType<'flag'> &
-  WithBasic &
-  WithValue &
   WithFlag &
-  WithParse<Array<string>> &
-  WithBreak &
+  WithBasic &
+  WithValue<Array<string>, WithValues & WithFormat & WithComp> &
+  WithEnv &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName);
 
@@ -759,10 +767,10 @@ export type FlagOption = WithType<'flag'> &
  * An option that has a single value and requires a single parameter.
  */
 export type SingleOption = WithType<'single'> &
+  WithSingle &
   WithBasic &
-  WithValue &
-  WithParse<string> &
-  WithBreak &
+  WithValue<string, WithValues & WithFormat & WithComp> &
+  WithEnv &
   WithParam &
   WithSelection &
   (WithDefault | WithRequired) &
@@ -773,13 +781,12 @@ export type SingleOption = WithType<'single'> &
  * An option that has an array value and accepts zero or more parameters.
  */
 export type ArrayOption = WithType<'array'> &
+  WithArray &
   WithBasic &
-  WithValue &
-  WithParse<string> &
-  WithBreak &
+  WithValue<string, WithValues & WithFormat & WithComp> &
+  WithEnv &
   WithParam &
   WithSelection &
-  WithArray &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
   (WithChoices | WithRegex);
@@ -788,11 +795,10 @@ export type ArrayOption = WithType<'array'> &
  * An option that has any value and can be configured with a parameter count.
  */
 export type FunctionOption = WithType<'function'> &
-  WithBasic &
-  WithValue &
   WithFunction &
-  WithParse<Array<string>> &
-  WithBreak &
+  WithBasic &
+  WithValue<Array<string>, WithValues & WithFormat & WithComp> &
+  WithEnv &
   WithParam &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName);
@@ -838,9 +844,12 @@ export type OpaqueOption = WithType<OptionType> &
   WithFlag &
   WithFunction &
   WithMessage &
-  WithValue &
-  (WithParse<string> | WithParse<Array<string>> | WithParse<OpaqueOptionValues, unknown>) &
-  WithBreak &
+  (
+    | WithValue<string, WithValues & WithFormat & WithComp>
+    | WithValue<Array<string>, WithValues & WithFormat & WithComp>
+    | WithValue<OpaqueOptionValues, WithValues & WithFormat>
+  ) &
+  WithEnv &
   WithParam &
   WithSelection &
   WithArray;

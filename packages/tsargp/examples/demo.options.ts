@@ -145,9 +145,9 @@ Report a bug: ${style(fg.brightBlack)}https://github.com/trulysimple/tsargp/issu
     1. and a list
     
     `,
-    env: ['BOOLEAN'],
-    default: false,
+    sources: ['BOOLEAN'],
     choices: { yes: true, no: false },
+    default: false,
     requires: req.one('stringEnum', req.all({ strings: ['a', 'b'] }, req.not({ numbers: [1, 2] }))),
   },
   /**

@@ -11,7 +11,7 @@ describe('ArgumentParser', () => {
         flag: {
           type: 'flag',
           names: ['-f'],
-          env: ['FLAG'],
+          sources: ['FLAG'],
           parse: vi.fn(() => true),
         },
       } as const satisfies Options;

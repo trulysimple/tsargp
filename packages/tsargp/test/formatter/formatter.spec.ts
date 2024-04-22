@@ -58,7 +58,7 @@ describe('AnsiFormatter', () => {
         single: {
           type: 'single',
           names: ['-s'],
-          env: ['SINGLE'],
+          sources: ['SINGLE'],
         },
       } as const satisfies Options;
       const registry = new OptionRegistry(options);
@@ -196,7 +196,7 @@ describe('AnsiFormatter', () => {
         flag: {
           type: 'flag',
           names: ['-f'],
-          env: ['VAR', new URL('file://path')],
+          sources: ['VAR', new URL('file://path')],
         },
       } as const satisfies Options;
       const registry = new OptionRegistry(options);
