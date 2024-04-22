@@ -170,10 +170,11 @@ parsing loop:
 - `name` -
   The option name as specified on the command-line, or the environment variable name.
   It will be the option's [preferred name] if the sequence comes from positional arguments.
-- `param` -
-  The option parameter(s), or the parameters preceding the word being completed, if any.
 - `comp` -
-  True if performing word completion, or the word being completed. Not available for the [command
+  True if performing word completion. Only available for the [parse callback], except that of a
+  nested [command].
+- `prev` -
+  The option parameters preceding the word being completed, if any. Only available to the [complete
   callback].
 
 ### Word completion

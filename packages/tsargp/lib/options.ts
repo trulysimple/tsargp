@@ -376,17 +376,16 @@ export type CustomCallback<P, I, R> = (param: P, info: I) => R;
 
 /**
  * A callback for custom parsing.
+ * @template P The parameter data type
+ * @template I The type of sequence information
  */
 export type ParseCallback<P, I> = CustomCallback<P, I, unknown>;
 
 /**
  * A callback for custom completion.
+ * @template I The type of sequence information
  */
-export type CompleteCallback = CustomCallback<
-  string,
-  WithValues & WithPrev,
-  Promissory<Array<string>>
->;
+export type CompleteCallback<I> = CustomCallback<string, I, Promissory<Array<string>>>;
 
 /**
  * A known value used in default values and parameter examples.
@@ -408,8 +407,9 @@ export type WithValues = {
    */
   index: number;
   /**
-   * The option name as specified on the command-line, or the environment variable name.
-   * It will be the option's preferred name if the sequence comes from positional arguments.
+   * The option name as specified on the command-line, or the environment data source.
+   * It will be the preferred name if the sequence comes from positional arguments.
+   * It will be the string '0' if the sequence comes from the standard input.
    */
   name: string;
 };
@@ -539,7 +539,7 @@ export type WithValue<P, I> = {
    */
   readonly default?: KnownValue | DefaultCallback;
   /**
-   * A custom callback for parsing option parameter(s).
+   * A custom callback for parsing the option parameter(s).
    */
   readonly parse?: ParseCallback<P, I>;
 };
@@ -567,8 +567,9 @@ export type WithEnv = {
 
 /**
  * Defines attributes for options that may have parameters.
+ * @template I The type of sequence information
  */
-export type WithParam = {
+export type WithParam<I> = {
   /**
    * The option example value. Replaces the option type in the help message parameter column.
    */
@@ -595,7 +596,7 @@ export type WithParam = {
   /**
    * A custom callback for word completion.
    */
-  readonly complete?: CompleteCallback;
+  readonly complete?: CompleteCallback<I>;
 };
 
 /**
@@ -771,7 +772,7 @@ export type SingleOption = WithType<'single'> &
   WithBasic &
   WithValue<string, WithValues & WithFormat & WithComp> &
   WithEnv &
-  WithParam &
+  WithParam<WithValues> &
   WithSelection &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
@@ -785,7 +786,7 @@ export type ArrayOption = WithType<'array'> &
   WithBasic &
   WithValue<string, WithValues & WithFormat & WithComp> &
   WithEnv &
-  WithParam &
+  WithParam<WithValues & WithPrev> &
   WithSelection &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName) &
@@ -799,7 +800,7 @@ export type FunctionOption = WithType<'function'> &
   WithBasic &
   WithValue<Array<string>, WithValues & WithFormat & WithComp> &
   WithEnv &
-  WithParam &
+  WithParam<WithValues & WithPrev> &
   (WithDefault | WithRequired) &
   (WithExample | WithParamName);
 
@@ -844,13 +845,9 @@ export type OpaqueOption = WithType<OptionType> &
   WithFlag &
   WithFunction &
   WithMessage &
-  (
-    | WithValue<string, WithValues & WithFormat & WithComp>
-    | WithValue<Array<string>, WithValues & WithFormat & WithComp>
-    | WithValue<OpaqueOptionValues, WithValues & WithFormat>
-  ) &
+  WithValue<string & Array<string> & OpaqueOptionValues, WithValues & WithFormat & WithComp> &
   WithEnv &
-  WithParam &
+  WithParam<WithValues & WithPrev> &
   WithSelection &
   WithArray;
 
