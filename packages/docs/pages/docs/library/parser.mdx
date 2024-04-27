@@ -63,7 +63,7 @@ The parser can be configured via a `ParserConfig` object, which can be provided 
 parameter to the parser constructor. It contains the same properties as the [message configuration],
 as well as the property described below.
 
-### Parsing errors
+### Error phrases
 
 The `phrases` property specifies [custom phrases] to use for error and warning messages. Its
 properties are optional and are indexed by the `ParsingError` enumeration, which lists the kinds of
@@ -84,6 +84,8 @@ errors and warnings that may be produced by the parser. They are summarized in t
 | `unsatisfiedCondRequirement` | An option's conditional requirement is not satisfied                                          | `'Option #0 is required if #1.'{:ts}`                                                                | `#0` = the specified option name; `#1` = the option's requirements                                                           |
 | `invalidClusterOption`       | Either a variadic option or a command option is specified in the middle of a cluster argument | `'Option letter #0 must be the last in a cluster.'{:ts}`                                             | `#0` = the specified cluster letter                                                                                          |
 | `missingInlineParameter`     | An option is specified with no inline parameter, despite it being required                    | `'Option #0 requires an inline parameter.'{:ts}`                                                     | `#0` = the specified option name                                                                                             |
+
+<Callout type="info">Phrases are formatted according to [text formatting] rules.</Callout>
 
 ## Parsing flags
 
@@ -319,41 +321,29 @@ they would pollute the output of process management utilities such as `ps`.
 [custom callbacks]: #custom-callbacks
 
 {/* options references */}
-[help]: options#help-option
-[data sources]: options#data-sources
 [parameter count]: options#parameter-count
 [parameter choices]: options#parameter-choices
 [command]: options#command-option
 [break loop]: options#break-loop
 [cluster letters]: options#cluster-letters
-[remove duplicates]: options#remove-duplicates
 [cluster inline parameters]: options#inline-parameters
 [preferred name]: options#names--preferred-name
-[truth and falsity]: options#truth--falsity-names
-[fallback value]: options#fallback-value
 [requirement callback]: options#requirement-callback
 [default callback]: options#default-callback
 [parse callback]: options#parse-callback
 [complete callback]: options#complete-callback
-[function callback]: options#function-callback
-[command callback]: options#command-callback
 [positional marker]: options#positional--marker
-[`break`]: options#break-loop
 
 {/* styles references */}
 [message]: styles#terminal-messages
-[message styles]: styles#message-styles
 [custom phrases]: styles#custom-phrases
+[message configuration]: styles#message-configuration
 [warning messages]: styles#warning-message
 [completion message]: styles#completion-message
 [terminal strings]: styles#terminal-strings
 
 {/* formatter references */}
-[help formatter]: formatter
 [usage section]: formatter#usage-section
-
-{/* validator references */}
-[validator configuration]: validator#validator-configuration
 
 {/* external references */}
 [Set]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set

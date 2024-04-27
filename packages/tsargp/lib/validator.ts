@@ -91,9 +91,13 @@ export type ValidatorConfig = PartialWithDepth<ValidateConfig>;
  */
 export type ValidationFlags = {
   /**
-   * Whether the naming inconsistencies validation should be disabled.
+   * Whether the validation procedure should skip detection of naming inconsistencies.
    */
-  readonly noWarnNamingIssues?: false;
+  readonly noNamingIssues?: boolean;
+  /**
+   * Whether the validation procedure should skip recursion into nested commands.
+   */
+  readonly noRecurse?: boolean;
 };
 
 /**
@@ -184,7 +188,7 @@ async function validate(context: ValidateContext) {
       positional = key;
     }
   }
-  if (!flags.noWarnNamingIssues) {
+  if (!flags.noNamingIssues) {
     detectNamingIssues(context, names);
   }
 }
@@ -294,7 +298,7 @@ async function validateOption(context: ValidateContext, key: string, option: Opa
   if (option.requiredIf) {
     validateRequirements(context, key, option.requiredIf);
   }
-  if (option.type === 'command') {
+  if (!flags.noRecurse && option.type === 'command') {
     if (option.options) {
       // do not destructure `options`, because the callback might need to use `this`
       const resolved =
