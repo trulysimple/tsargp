@@ -223,26 +223,6 @@ They are listed in the next sub-sections.
 
 #### Parsing errors
 
-- `unknownOption` -
-  when an option name is not found, with possible name suggestions
-- `unsatisfiedRequirement` -
-  when an option requirement is not satisfied
-- `missingRequiredOption` -
-  when an option that is [always required] was not specified
-- `missingParameter` -
-  when an option parameter is expected but was not specified
-- `missingPackageJson` -
-  when it fails to find a "package.json" file when resolving the version
-- `disallowedInlineParameter` -
-  when either a niladic option or a [positional marker] is specified with an [inline parameter]
-- `unsatisfiedCondRequirement` -
-  when an option's conditional requirement is not satisfied
-- `invalidClusterOption` -
-  when either a variadic option or a command option is specified in the middle of a [cluster
-  argument]
-- `missingInlineParameter` -
-  when an option is specified without an inline parameter, despite it being [required]
-
 #### Validation errors
 
 - `emptyPositionalMarker` -
@@ -295,9 +275,6 @@ They are listed in the next sub-sections.
   when a value fails to satisfy an array [limit] constraint
 
 #### Parsing warnings
-
-- `deprecatedOption` -
-  when a deprecated option is specified on the command-line
 
 #### Validation warnings
 

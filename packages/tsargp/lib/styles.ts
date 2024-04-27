@@ -15,7 +15,7 @@ import {
 } from './utils.js';
 
 export { sequence as seq, sgr as style, foreground as fg8, background as bg8, underline as ul8 };
-export { cs, fg, bg, tf, underlineStyle as ul, formatFunctions as fmt, defaultConfig as cfg };
+export { underlineStyle as ul, formatFunctions as fmt, defaultConfig as cfg };
 
 //--------------------------------------------------------------------------------------------------
 // Constants
