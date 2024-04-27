@@ -82,15 +82,13 @@ export interface HelpFormatter {
 
 /**
  * The constructor of a help formatter.
- * @param registry The registry instance
- * @param msgConfig The error configuration
- * @param fmtConfig The help configuration
+ * @param options The option definitions
+ * @param config The formatter configuration
  * @returns The formatter instance
  */
 export type HelpFormatterClass = new (
-  registry: OptionRegistry,
-  msgConfig: MessageConfig,
-  fmtConfig?: HelpConfig,
+  options: OpaqueOptions,
+  config?: PartialFormatterConfig,
 ) => HelpFormatter;
 
 /**
@@ -133,9 +131,9 @@ export type WithAbsolute = {
 };
 
 /**
- * The formatter configuration.
+ * The help configuration.
  */
-export type FormatterConfig = {
+export type HelpConfig = {
   /**
    * The settings for the names column.
    */
@@ -163,9 +161,19 @@ export type FormatterConfig = {
 };
 
 /**
+ * A partial help configuration.
+ */
+export type PartialHelpConfig = PartialWithDepth<HelpConfig>;
+
+/**
+ * A formatter configuration.
+ */
+export type FormatterConfig = MessageConfig & HelpConfig;
+
+/**
  * A partial formatter configuration.
  */
-export type HelpConfig = PartialWithDepth<FormatterConfig>;
+export type PartialFormatterConfig = PartialWithDepth<FormatterConfig>;
 
 /**
  * Defines attributes common to all help sections.
@@ -620,7 +628,7 @@ export type WithHelp = {
   /**
    * The formatter configuration.
    */
-  readonly config?: HelpConfig;
+  readonly config?: PartialHelpConfig;
   /**
    * The help sections to be rendered.
    */

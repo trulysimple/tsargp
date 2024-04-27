@@ -1,7 +1,6 @@
 import { describe, describe as on, expect, it as should } from 'vitest';
-import { type Options, OptionRegistry } from '../../lib/options';
+import type { Options } from '../../lib/options';
 import { AnsiFormatter } from '../../lib/formatter';
-import { cfg } from '../../lib/styles';
 
 process.env['FORCE_WIDTH'] = '0'; // omit styles
 
@@ -15,8 +14,7 @@ describe('AnsiFormatter', () => {
           inline: 'always',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -s  =<param>  Requires inline parameters.\n`);
     });
 
@@ -28,8 +26,7 @@ describe('AnsiFormatter', () => {
           inline: false,
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -s  <param>  Disallows inline parameters.\n`);
     });
 
@@ -42,8 +39,7 @@ describe('AnsiFormatter', () => {
           inline: 'always',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(
         `  -a  [=<param>]  Values can be delimited with ','. Requires inline parameters.\n`,
       );
@@ -58,8 +54,7 @@ describe('AnsiFormatter', () => {
           inline: 'always',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  [=<param>]  Requires inline parameters.\n`);
     });
 
@@ -71,8 +66,7 @@ describe('AnsiFormatter', () => {
           paramCount: 1,
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  <param>\n`);
     });
 
@@ -84,8 +78,7 @@ describe('AnsiFormatter', () => {
           paramCount: [0, 1],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  [<param>]\n`);
     });
 
@@ -97,8 +90,7 @@ describe('AnsiFormatter', () => {
           paramCount: 2,
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  <param>...  Accepts 2 parameters.\n`);
     });
 
@@ -110,8 +102,7 @@ describe('AnsiFormatter', () => {
           paramCount: [1, 2],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  <param>...  Accepts between 1 and 2 parameters.\n`);
     });
 
@@ -123,8 +114,7 @@ describe('AnsiFormatter', () => {
           paramCount: [1, Infinity],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  <param>...  Accepts multiple parameters.\n`);
     });
 
@@ -136,8 +126,7 @@ describe('AnsiFormatter', () => {
           paramCount: [2, Infinity],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  <param>...  Accepts at least 2 parameters.\n`);
     });
 
@@ -149,8 +138,7 @@ describe('AnsiFormatter', () => {
           paramCount: [0, 2],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  [<param>...]  Accepts at most 2 parameters.\n`);
     });
 
@@ -162,8 +150,7 @@ describe('AnsiFormatter', () => {
           paramCount: [0, Infinity],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -f  [<param>...]  Accepts multiple parameters.\n`);
     });
 
@@ -175,8 +162,7 @@ describe('AnsiFormatter', () => {
           paramName: 'my_param',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -s  <my_param>\n`);
     });
 
@@ -188,8 +174,7 @@ describe('AnsiFormatter', () => {
           paramName: '<token>=<value>',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -s  <token>=<value>\n`);
     });
 
@@ -201,8 +186,7 @@ describe('AnsiFormatter', () => {
           example: true,
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -s  true\n`);
     });
 
@@ -214,8 +198,7 @@ describe('AnsiFormatter', () => {
           example: '123',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -s  '123'\n`);
     });
 
@@ -227,8 +210,7 @@ describe('AnsiFormatter', () => {
           example: 123,
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -s  123\n`);
     });
 
@@ -240,8 +222,7 @@ describe('AnsiFormatter', () => {
           example: [true, false],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -a  true false...  Accepts multiple parameters.\n`);
     });
 
@@ -253,8 +234,7 @@ describe('AnsiFormatter', () => {
           example: ['one', 'two'],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -a  'one' 'two'...  Accepts multiple parameters.\n`);
     });
 
@@ -266,8 +246,7 @@ describe('AnsiFormatter', () => {
           example: [1, 2],
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(`  -a  1 2...  Accepts multiple parameters.\n`);
     });
 
@@ -281,8 +260,7 @@ describe('AnsiFormatter', () => {
           inline: 'always',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(
         `  -a  ='true,false'  Values can be delimited with ','. Requires inline parameters.\n`,
       );
@@ -297,8 +275,7 @@ describe('AnsiFormatter', () => {
           separator: ',',
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(
         `  -a  'one,two'...  Values can be delimited with ','. Accepts multiple parameters.\n`,
       );
@@ -313,8 +290,7 @@ describe('AnsiFormatter', () => {
           separator: /[,;]/s,
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).format();
+      const message = new AnsiFormatter(options).format();
       expect(message.wrap()).toEqual(
         `  -a  '1[,;]2'...  Values can be delimited with /[,;]/s. Accepts multiple parameters.\n`,
       );

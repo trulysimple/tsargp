@@ -3,9 +3,7 @@
 //--------------------------------------------------------------------------------------------------
 import type { FormattingFlags, HelpMessage, MessageConfig, Style } from './styles.js';
 import type {
-  FormatterConfig,
   WithColumn,
-  HelpConfig,
   HelpGroups,
   HelpSection,
   HelpUsage,
@@ -13,14 +11,23 @@ import type {
   HelpFormatter,
   OpaqueOption,
   OpaqueOptions,
-  OptionRegistry,
   Requires,
   RequiresCallback,
   RequiresEntry,
+  PartialFormatterConfig,
+  FormatterConfig,
 } from './options.js';
 
 import { ConnectiveWord, HelpItem, tf } from './enums.js';
-import { fmt, style, TerminalString, AnsiMessage, JsonMessage, TextMessage } from './styles.js';
+import {
+  fmt,
+  cfg,
+  style,
+  TerminalString,
+  AnsiMessage,
+  JsonMessage,
+  TextMessage,
+} from './styles.js';
 import { getParamCount, getOptionNames, visitRequirements } from './options.js';
 import {
   mergeValues,
@@ -55,7 +62,7 @@ type CsvHelpEntry = ReadonlyArray<string>;
 /**
  * Information about the current help message.
  */
-type HelpContext = [options: OpaqueOptions, msgConfig: MessageConfig, fmtConfig: FormatterConfig];
+type HelpContext = [options: OpaqueOptions, config: FormatterConfig];
 
 /**
  * A function to format a help item.
@@ -100,33 +107,34 @@ const defaultColumn: WithColumn = {
  * The default configuration used by the formatter.
  */
 const defaultConfig: FormatterConfig = {
+  ...cfg,
   names: defaultColumn,
   param: { ...defaultColumn, absolute: false },
   descr: { ...defaultColumn, absolute: false },
   phrases: {
     [HelpItem.synopsis]: '#0',
-    [HelpItem.cluster]: 'Can be clustered with #0.',
     [HelpItem.separator]: 'Values can be delimited with #0.',
     [HelpItem.paramCount]: 'Accepts (multiple|#0|at most #0|at least #0|between #0) parameters.',
     [HelpItem.positional]: 'Accepts positional arguments(| that may be preceded by #0).',
-    [HelpItem.inline]: '(Disallows|Requires) inline parameters.',
     [HelpItem.append]: 'Can be specified multiple times.',
     [HelpItem.choices]: 'Values must be one of #0.',
     [HelpItem.regex]: 'Values must match the regex #0.',
     [HelpItem.unique]: 'Duplicate values will be removed.',
     [HelpItem.limit]: 'Element count is limited to #0.',
-    [HelpItem.stdin]: 'Reads data from standard input.',
-    [HelpItem.sources]: 'Reads environment data from #0.',
     [HelpItem.requires]: 'Requires #0.',
     [HelpItem.required]: 'Always required.',
-    [HelpItem.requiredIf]: 'Required if #0.',
     [HelpItem.default]: 'Defaults to #0.',
+    [HelpItem.deprecated]: 'Deprecated for #0.',
+    [HelpItem.link]: 'Refer to #0 for details.',
+    [HelpItem.stdin]: 'Reads data from standard input.',
+    [HelpItem.sources]: 'Reads environment data from #0.',
+    [HelpItem.requiredIf]: 'Required if #0.',
+    [HelpItem.cluster]: 'Can be clustered with #0.',
     [HelpItem.useNested]: 'Uses the next argument as the name of a nested command.',
     [HelpItem.useFormat]: 'Uses the next argument as the name of a help format.',
     [HelpItem.useFilter]: 'Uses the remaining arguments as option filter.',
+    [HelpItem.inline]: '(Disallows|Requires) inline parameters.',
     [HelpItem.formats]: 'Available formats are #0.',
-    [HelpItem.deprecated]: 'Deprecated for #0.',
-    [HelpItem.link]: 'Refer to #0 for details.',
   },
   items: [
     HelpItem.synopsis,
@@ -447,12 +455,11 @@ abstract class BaseFormatter implements HelpFormatter {
 
   /**
    * Creates a help message formatter.
-   * @param registry The registry instance
-   * @param msgConfig The error configuration
-   * @param fmtConfig The help configuration
+   * @param options The option definitions
+   * @param config The formatter configuration
    */
-  constructor(registry: OptionRegistry, msgConfig: MessageConfig, fmtConfig: HelpConfig = {}) {
-    this.context = [registry.options, msgConfig, mergeValues(defaultConfig, fmtConfig)];
+  constructor(options: OpaqueOptions, config: PartialFormatterConfig = {}) {
+    this.context = [options, mergeValues(defaultConfig, config)];
   }
 
   /**
@@ -479,8 +486,8 @@ abstract class BaseFormatter implements HelpFormatter {
 export class AnsiFormatter extends BaseFormatter {
   protected readonly groups: EntriesByGroup<AnsiHelpEntry>;
 
-  constructor(registry: OptionRegistry, msgConfig: MessageConfig, fmtConfig?: HelpConfig) {
-    super(registry, msgConfig, fmtConfig);
+  constructor(options: OpaqueOptions, config?: PartialFormatterConfig) {
+    super(options, config);
     this.groups = buildAnsiEntries(this.context);
   }
 
@@ -503,8 +510,8 @@ export class AnsiFormatter extends BaseFormatter {
 export class JsonFormatter extends BaseFormatter {
   protected readonly groups: EntriesByGroup<object>;
 
-  constructor(registry: OptionRegistry, msgConfig: MessageConfig, fmtConfig?: HelpConfig) {
-    super(registry, msgConfig, fmtConfig);
+  constructor(options: OpaqueOptions, config?: PartialFormatterConfig) {
+    super(options, config);
     this.groups = buildEntries(this.context, (opt) => opt);
   }
 
@@ -527,13 +534,12 @@ export class CsvFormatter extends BaseFormatter {
   protected readonly fields: ReadonlyArray<keyof OpaqueOption>;
 
   constructor(
-    registry: OptionRegistry,
-    msgConfig: MessageConfig,
-    fmtConfig?: HelpConfig,
+    options: OpaqueOptions,
+    config?: PartialFormatterConfig,
     additionalFields: ReadonlyArray<keyof OpaqueOption> = ['type', 'group', 'names'],
   ) {
-    super(registry, msgConfig, fmtConfig);
-    this.fields = [...additionalFields, ...this.context[2].items.map((item) => fieldNames[item])];
+    super(options, config);
+    this.fields = [...additionalFields, ...this.context[1].items.map((item) => fieldNames[item])];
     this.groups = buildEntries(this.context, (opt) =>
       this.fields.map((field) => `${opt[field] ?? ''}`),
     );
@@ -557,8 +563,8 @@ export class CsvFormatter extends BaseFormatter {
 export class MdFormatter extends CsvFormatter {
   private readonly header: [CsvHelpEntry, CsvHelpEntry];
 
-  constructor(registry: OptionRegistry, msgConfig: MessageConfig, fmtConfig?: HelpConfig) {
-    super(registry, msgConfig, fmtConfig, ['type', 'names']);
+  constructor(options: OpaqueOptions, config?: PartialFormatterConfig) {
+    super(options, config, ['type', 'names']);
     this.header = [this.fields, this.fields.map((field) => '-'.repeat(field.length))];
   }
 
@@ -648,7 +654,7 @@ function buildEntries<T>(
       !option.sources?.find((name) => `${name}`.match(regexp))
     );
   }
-  const [options, , config] = context;
+  const [options, config] = context;
   const regexp =
     config.filter.length && RegExp(`(${config.filter.map(escapeRegExp).join('|')})`, 'i');
   const groups: Record<string, Array<T>> = {};
@@ -684,7 +690,7 @@ function buildAnsiEntries(context: HelpContext): EntriesByGroup<AnsiHelpEntry> {
   if (typeof nameWidths !== 'number') {
     nameWidths = nameWidths.length ? nameWidths.reduce((acc, len) => acc + len + 2, -2) : 0;
   }
-  const { names, param, descr } = context[2];
+  const { names, param, descr } = context[1];
   const namesIndent = max(0, names.indent);
   const paramIndent = param.absolute
     ? max(0, param.indent)
@@ -728,12 +734,12 @@ function formatNames(
   option: OpaqueOption,
   nameWidths: Array<number> | number,
 ): Array<TerminalString> {
-  const [, msgConfig, config] = context;
+  const [, config] = context;
   let { indent, breaks, align, hidden } = config.names;
   if (hidden || !option.names) {
     return [];
   }
-  const { styles, connectives } = msgConfig;
+  const { styles, connectives } = config;
   const style = option.styles?.names ?? styles.symbol;
   const sep = connectives[ConnectiveWord.optionSep];
   const slotted = typeof nameWidths !== 'number';
@@ -776,11 +782,11 @@ function formatNames(
  * @returns [the formatted string, the string length]
  */
 function formatParams(context: HelpContext, option: OpaqueOption): [TerminalString, number] {
-  const [, msgConfig, fmtConfig] = context;
-  const { hidden, breaks } = fmtConfig.param;
-  const result = new TerminalString(0, breaks, false, msgConfig.styles.text);
+  const [, config] = context;
+  const { hidden, breaks } = config.param;
+  const result = new TerminalString(0, breaks, false, config.styles.text);
   if (!hidden) {
-    formatParam(option, msgConfig, result);
+    formatParam(option, config, result);
   }
   const len = result.lengths.reduce((acc, len) => acc + (len ? len + 1 : 0), -1);
   if (len < 0) {
@@ -798,15 +804,15 @@ function formatParams(context: HelpContext, option: OpaqueOption): [TerminalStri
  * @returns The formatted string
  */
 function formatDescription(context: HelpContext, option: OpaqueOption): TerminalString {
-  const [, msgConfig, fmtConfig] = context;
-  const { descr, items } = fmtConfig;
+  const [, config] = context;
+  const { descr, items } = config;
   const { hidden, breaks, align } = descr;
-  const style = option.styles?.descr ?? msgConfig.styles.text;
+  const style = option.styles?.descr ?? config.styles.text;
   const result = new TerminalString(0, breaks, align === 'right', style);
   const count = result.count;
   if (!hidden) {
     for (const item of items) {
-      helpFunctions[item](option, fmtConfig.phrases[item], context, result);
+      helpFunctions[item](option, config.phrases[item], context, result);
     }
   }
   return (result.count === count ? result.pop(count) : result.clear()).break();
@@ -818,12 +824,12 @@ function formatDescription(context: HelpContext, option: OpaqueOption): Terminal
  * @returns The name slot widths, or the maximum combined width
  */
 function getNameWidths(context: HelpContext): Array<number> | number {
-  const [options, msgConfig, fmtConfig] = context;
-  const { hidden, align } = fmtConfig.names;
+  const [options, config] = context;
+  const { hidden, align } = config.names;
   if (hidden) {
     return 0;
   }
-  const sepLen = msgConfig.connectives[ConnectiveWord.optionSep].length + 1;
+  const sepLen = config.connectives[ConnectiveWord.optionSep].length + 1;
   const slotted = align === 'slot';
   const slotWidths: Array<number> = [];
   let maxWidth = 0;

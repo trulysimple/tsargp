@@ -1,14 +1,13 @@
 import { describe, describe as on, describe as when, expect, it as should } from 'vitest';
-import { type Options, type HelpSections, OptionRegistry } from '../../lib/options';
+import type { Options, HelpSections } from '../../lib/options';
 import { AnsiFormatter } from '../../lib/formatter';
-import { cfg } from '../../lib/styles';
 
 process.env['FORCE_WIDTH'] = '0'; // omit styles
 
 describe('AnsiFormatter', () => {
   on('sections', () => {
     should('handle no sections', () => {
-      const message = new AnsiFormatter(new OptionRegistry({}), cfg).sections([]);
+      const message = new AnsiFormatter({}).sections([]);
       expect(message.wrap()).toEqual('');
     });
 
@@ -24,8 +23,7 @@ describe('AnsiFormatter', () => {
         { type: 'usage', title: 'section  title', noWrap: true },
         { type: 'groups', title: 'section  title', noWrap: true },
       ];
-      const registry = new OptionRegistry(options);
-      const message = new AnsiFormatter(registry, cfg).sections(sections);
+      const message = new AnsiFormatter(options).sections(sections);
       expect(message.wrap()).toEqual(
         'section  title\n\nsection  text\n\nsection  title\n\n[-f]\n\nsection  title\n\n  -f',
       );
@@ -33,43 +31,37 @@ describe('AnsiFormatter', () => {
 
     when('rendering a text section', () => {
       should('skip a section with no content', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'text' }];
         expect(formatter.sections(sections).wrap()).toEqual('');
       });
 
       should('render the section content', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'text', text: 'text' }];
         expect(formatter.sections(sections).wrap()).toEqual('text');
       });
 
       should('indent the section content', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'text', text: 'text', indent: 2 }];
         expect(formatter.sections(sections).wrap()).toEqual('  text');
       });
 
       should('break the section content', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'text', text: 'text', breaks: 1 }];
         expect(formatter.sections(sections).wrap()).toEqual('\ntext');
       });
 
       should('render the section heading, but avoid indenting it', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'text', title: 'title', indent: 2 }];
         expect(formatter.sections(sections).wrap()).toEqual('title');
       });
 
       should('break the section heading', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'text', title: 'title', breaks: 1 }];
         expect(formatter.sections(sections).wrap()).toEqual('\ntitle');
       });
@@ -77,43 +69,37 @@ describe('AnsiFormatter', () => {
 
     when('rendering a usage section', () => {
       should('skip a section with no content', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'usage' }];
         expect(formatter.sections(sections).wrap()).toEqual('');
       });
 
       should('render the program name', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'usage' }];
         expect(formatter.sections(sections, 'prog').wrap()).toEqual('prog');
       });
 
       should('indent the program name', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'usage', indent: 2 }];
         expect(formatter.sections(sections, 'prog').wrap()).toEqual('  prog');
       });
 
       should('break the program name', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'usage', breaks: 1 }];
         expect(formatter.sections(sections, 'prog').wrap()).toEqual('\nprog');
       });
 
       should('render the section heading, but avoid indenting it', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'usage', title: 'title', indent: 2 }];
         expect(formatter.sections(sections).wrap()).toEqual('title');
       });
 
       should('break the section heading', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'usage', title: 'title', breaks: 1 }];
         expect(formatter.sections(sections).wrap()).toEqual('\ntitle');
       });
@@ -130,8 +116,7 @@ describe('AnsiFormatter', () => {
             required: true,
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections: HelpSections = [{ type: 'usage' }];
         expect(formatter.sections(sections).wrap()).toEqual('[-f1] (-f2|--flag)');
       });
@@ -159,8 +144,7 @@ describe('AnsiFormatter', () => {
             inline: 'always',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections: HelpSections = [{ type: 'usage' }];
         expect(formatter.sections(sections).wrap()).toEqual(
           '[-s1 <param>] -s2 <param> [[-s3] <param>] [-s4=true]',
@@ -190,8 +174,7 @@ describe('AnsiFormatter', () => {
             inline: 'always',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections: HelpSections = [{ type: 'usage' }];
         expect(formatter.sections(sections).wrap()).toEqual(
           '[-a1 [<param>...]] -a2 [<param>...] [[-a3] [<param>...]] [-a4=true]',
@@ -209,8 +192,7 @@ describe('AnsiFormatter', () => {
             names: ['-f2'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections1: HelpSections = [{ type: 'usage', filter: ['flag1'] }];
         const sections2: HelpSections = [{ type: 'usage', filter: ['flag1'], exclude: true }];
         const sections3: HelpSections = [{ type: 'usage', filter: ['flag1'], required: ['flag1'] }];
@@ -277,8 +259,7 @@ describe('AnsiFormatter', () => {
             requires: { flag1: 'flag2', flag3: 'flag1' },
           },
         ];
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         expect(formatter.sections(case0).wrap()).toEqual('[-f1] [-f2] [-f3]');
         expect(formatter.sections(case1).wrap()).toEqual('[[-f1] -f2] [-f3]');
         expect(formatter.sections(case2).wrap()).toEqual('[-f1 [-f2]] [-f3]');
@@ -351,8 +332,7 @@ describe('AnsiFormatter', () => {
             requires: { flag1: 'flag2', flag3: 'flag1' },
           },
         ];
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         expect(formatter.sections(case0).wrap()).toEqual('[-f1] [-f2] -f3');
         expect(formatter.sections(case1).wrap()).toEqual('[[-f1] -f2] -f3');
         expect(formatter.sections(case2).wrap()).toEqual('[-f1 [-f2]] -f3');
@@ -371,8 +351,7 @@ describe('AnsiFormatter', () => {
 
     when('rendering a groups section', () => {
       should('skip a section with no content', () => {
-        const registry = new OptionRegistry({});
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter({});
         const sections: HelpSections = [{ type: 'groups' }];
         expect(formatter.sections(sections).wrap()).toEqual('');
       });
@@ -384,8 +363,7 @@ describe('AnsiFormatter', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections: HelpSections = [{ type: 'groups' }];
         expect(formatter.sections(sections).wrap()).toEqual('  -f');
       });
@@ -397,8 +375,7 @@ describe('AnsiFormatter', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections: HelpSections = [{ type: 'groups', title: 'title' }];
         expect(formatter.sections(sections).wrap()).toEqual('title\n\n  -f');
       });
@@ -410,8 +387,7 @@ describe('AnsiFormatter', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections: HelpSections = [{ type: 'groups', breaks: 1 }];
         expect(formatter.sections(sections).wrap()).toEqual('\n  -f');
       });
@@ -423,8 +399,7 @@ describe('AnsiFormatter', () => {
             names: ['-f'],
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections: HelpSections = [{ type: 'groups', title: 'title', breaks: 1 }];
         expect(formatter.sections(sections).wrap()).toEqual('\ntitle\n\n  -f');
       });
@@ -442,8 +417,7 @@ describe('AnsiFormatter', () => {
             group: 'group2',
           },
         } as const satisfies Options;
-        const registry = new OptionRegistry(options);
-        const formatter = new AnsiFormatter(registry, cfg);
+        const formatter = new AnsiFormatter(options);
         const sections1: HelpSections = [{ type: 'groups', filter: ['group1'] }];
         const sections2: HelpSections = [{ type: 'groups', filter: ['group1'], exclude: true }];
         const sections3: HelpSections = [{ type: 'groups', filter: ['group2', 'group1'] }];

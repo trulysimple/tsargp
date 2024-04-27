@@ -867,7 +867,8 @@ async function handleHelp(
     }
     const formatterClass = format ? formats[format] : getValues(formats)[0];
     if (formatterClass) {
-      const helpFormatter = new formatterClass(registry, formatter.config, helpConfig);
+      const config = { ...formatter.config, ...helpConfig };
+      const helpFormatter = new formatterClass(registry.options, config);
       return helpFormatter.sections(option.sections ?? defaultSections, progName);
     }
   }

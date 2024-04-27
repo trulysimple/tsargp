@@ -1,8 +1,7 @@
 import { describe, describe as on, expect, it as should } from 'vitest';
-import type { Options, HelpSections, HelpConfig } from '../../lib/options';
-import { OptionRegistry } from '../../lib/options';
+import type { Options, HelpSections, PartialFormatterConfig } from '../../lib/options';
 import { JsonFormatter, CsvFormatter, MdFormatter } from '../../lib/formatter';
-import { style, cfg } from '../../lib/styles';
+import { style } from '../../lib/styles';
 import { HelpItem, tf } from '../../lib/enums';
 
 process.env['FORCE_WIDTH'] = '0'; // omit styles
@@ -10,8 +9,7 @@ process.env['FORCE_WIDTH'] = '0'; // omit styles
 describe('JsonFormatter', () => {
   on('format', () => {
     should('handle zero options', () => {
-      const registry = new OptionRegistry({});
-      const formatter = new JsonFormatter(registry, cfg);
+      const formatter = new JsonFormatter({});
       expect(formatter.format().message).toEqual('[]');
     });
 
@@ -24,9 +22,8 @@ describe('JsonFormatter', () => {
           default: () => true, // JSON.stringify does not render functions
         },
       } as const satisfies Options;
-      const registry = new OptionRegistry(options);
-      const formatter = new JsonFormatter(registry, cfg);
-      const expected = `[{"type":"flag","names":["-f"],"group":"group","preferredName":"-f"}]`;
+      const formatter = new JsonFormatter(options);
+      const expected = `[{"type":"flag","names":["-f"],"group":"group"}]`;
       expect(formatter.format('group').message).toEqual(expected);
       expect(formatter.format('group').message).toEqual(expected); // <<-- keep this
     });
@@ -46,13 +43,12 @@ describe('JsonFormatter', () => {
           names: ['-s', '--single'],
         },
       } as const satisfies Options;
-      const config: HelpConfig = { items: [HelpItem.synopsis, HelpItem.default] };
-      const registry = new OptionRegistry(options);
-      const formatter = new JsonFormatter(registry, cfg, config);
+      const config: PartialFormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const formatter = new JsonFormatter(options, config);
       const sections: HelpSections = [{ type: 'groups' }];
       const expected =
-        `[{"type":"flag","names":["-f"],"group":"group","preferredName":"-f"},` +
-        `{"type":"single","names":["-s","--single"],"preferredName":"-s"}]`;
+        `[{"type":"flag","names":["-f"],"group":"group"},` +
+        `{"type":"single","names":["-s","--single"]}]`;
       expect(formatter.sections(sections).message).toEqual(expected);
       expect(formatter.sections(sections).message).toEqual(expected); // <<-- keep this
     });
@@ -62,8 +58,7 @@ describe('JsonFormatter', () => {
 describe('CsvFormatter', () => {
   on('format', () => {
     should('handle zero options', () => {
-      const registry = new OptionRegistry({});
-      const formatter = new CsvFormatter(registry, cfg);
+      const formatter = new CsvFormatter({});
       expect(formatter.format().message).toEqual('');
     });
 
@@ -77,9 +72,8 @@ describe('CsvFormatter', () => {
           default: () => 1,
         },
       } as const satisfies Options;
-      const config: HelpConfig = { items: [HelpItem.synopsis, HelpItem.default] };
-      const registry = new OptionRegistry(options);
-      const formatter = new CsvFormatter(registry, cfg, config);
+      const config: PartialFormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const formatter = new CsvFormatter(options, config);
       const expected =
         `type\tgroup\tnames\tsynopsis\tdefault\n` +
         `single\tgroup\t-s,--single\tA number option\t() => 1`;
@@ -101,9 +95,8 @@ describe('CsvFormatter', () => {
           names: ['-s', '--single'],
         },
       } as const satisfies Options;
-      const config: HelpConfig = { items: [HelpItem.synopsis] };
-      const registry = new OptionRegistry(options);
-      const formatter = new CsvFormatter(registry, cfg, config);
+      const config: PartialFormatterConfig = { items: [HelpItem.synopsis] };
+      const formatter = new CsvFormatter(options, config);
       const sections: HelpSections = [{ type: 'groups' }];
       const expected = `type\tgroup\tnames\tsynopsis\nflag\tgroup\t-f\t\nsingle\t\t-s,--single\t`;
       expect(formatter.sections(sections).message).toEqual(expected);
@@ -115,8 +108,7 @@ describe('CsvFormatter', () => {
 describe('MdFormatter', () => {
   on('format', () => {
     should('handle zero options', () => {
-      const registry = new OptionRegistry({});
-      const formatter = new MdFormatter(registry, cfg);
+      const formatter = new MdFormatter({});
       expect(formatter.format().message).toEqual('');
     });
 
@@ -130,9 +122,8 @@ describe('MdFormatter', () => {
           default: () => 1,
         },
       } as const satisfies Options;
-      const config: HelpConfig = { items: [HelpItem.synopsis, HelpItem.default] };
-      const registry = new OptionRegistry(options);
-      const formatter = new MdFormatter(registry, cfg, config);
+      const config: PartialFormatterConfig = { items: [HelpItem.synopsis, HelpItem.default] };
+      const formatter = new MdFormatter(options, config);
       const expected =
         `| type | names | synopsis | default |\n` +
         `| ---- | ----- | -------- | ------- |\n` +
@@ -155,9 +146,8 @@ describe('MdFormatter', () => {
           group: 'group',
         },
       } as const satisfies Options;
-      const config: HelpConfig = { items: [HelpItem.synopsis] };
-      const registry = new OptionRegistry(options);
-      const formatter = new MdFormatter(registry, cfg, config);
+      const config: PartialFormatterConfig = { items: [HelpItem.synopsis] };
+      const formatter = new MdFormatter(options, config);
       const sections: HelpSections = [{ type: 'groups' }];
       const expected =
         `| type | names | synopsis |\n` +
