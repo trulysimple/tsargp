@@ -15,15 +15,15 @@ available types and describe them in detail.
 
 There are seven types of options, as summarized in the table below:
 
-| Type       | Attribute classes                                         |
-| ---------- | --------------------------------------------------------- |
-| [help]     | [basic], [message]                                        |
-| [version]  | [basic], [message]                                        |
-| [command]  | [basic], [value],                                         |
-| [flag]     | [basic], [value], [environment]                           |
-| [single]   | [basic], [value], [environment], [parameter], [selection] |
-| [array]    | [basic], [value], [environment], [parameter], [selection] |
-| [function] | [basic], [value], [environment], [parameter]              |
+| Type       | Parameters                                      | Attribute classes                                         |
+| ---------- | ----------------------------------------------- | --------------------------------------------------------- |
+| [help]     | niladic                                         | [basic], [message]                                        |
+| [version]  | niladic                                         | [basic], [message]                                        |
+| [command]  | niladic[^1]                                     | [basic], [value],                                         |
+| [flag]     | niladic                                         | [basic], [value], [environment]                           |
+| [single]   | positional, inline, monadic                     | [basic], [value], [environment], [parameter], [selection] |
+| [array]    | positional, inline, variadic, delimited, append | [basic], [value], [environment], [parameter], [selection] |
+| [function] | positional, inline, configurable                | [basic], [value], [environment], [parameter]              |
 
 The next sub-sections cover some concepts that may be used throughout this page.
 
@@ -43,7 +43,7 @@ Each type of option expects different number of parameters on the command line:
 - **delimited** - values can be delimited with a [parameter separator]
 - **append-able** - can be specified multiple times and [append values]
 - **configurable** - can be configured with a certain [parameter count]
-- **inline** - allows (or requires) parameters to be inlined with an option name
+- **inline-able** - allows parameters to be inlined with an option name
 
 <Callout type="info">
   When a single-valued option is specified multiple times on the command line, its value is replaced
@@ -89,8 +89,8 @@ The `names` attribute lists the option names as they may appear on the command l
 be used as option-parameter separator.
 
 <Callout type="default">
-  This attribute can be safely omitted, which is useful if the option can be specified through
-  either [positional] arguments, standard [input] or environment [data sources].
+  This attribute can be safely omitted if the option can be specified through either [positional]
+  arguments, standard [input] or environment [data sources].
 </Callout>
 
 #### Preferred name
@@ -281,15 +281,15 @@ req.all(
 
 If they were defined in the `requires` attribute, they would mean:
 
-> _If this option is specified (either on the command line or as an environment variable), then the
-> following must hold true: `option1` must be present AND (`option2` must be absent OR `option3`
+> _If this option is specified (either on the command line or an environment data source), then
+> the following must hold true: `option1` must be present AND (`option2` must be absent OR `option3`
 > must have a value different than `[2]`) AND `option1` must have the same value as `option3`._
 
 And if they were defined in the `requiredIf` attribute, they would mean:
 
 > _If `option1` is present AND (`option2` is absent OR `option3` has a value different than `[2]`)
 > AND `option1` has the same value as `option3`, then this option is considered required and must be
-> specified (either on the command line or as an environment variable)._
+> specified (either on the command line or an environment data source)._
 
 #### Default value
 
@@ -751,6 +751,8 @@ _not_ look for delimiters when trying to form an [argument sequence].
   sure, you can inspect the `index` property of the [argument sequence], which should be `NaN{:ts}`
   in this case.
 </Callout>
+
+[^1]: rather than accepting parameters, it starts a new parsing context with the remaining arguments.
 
 {/* option types */}
 [help]: #help-option
