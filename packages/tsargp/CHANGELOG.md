@@ -1,5 +1,11 @@
 # tsargp
 
+## 1.0.0-next.0
+
+### Major Changes
+
+- [#186](https://github.com/trulysimple/tsargp/pull/186) [`1be0768`](https://github.com/trulysimple/tsargp/commit/1be07689c628cefb04a077da6f9b743ea400778e) Thanks [@disog](https://github.com/disog)! - Some option types were removed or replaced in favor of more generic ones. The removed types are: `boolean`, `string`, `number`, `strings` and `numbers`. The new ones are: `single` and `array`.
+
 ## 0.8.0
 
 ### Minor Changes

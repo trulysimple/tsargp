@@ -1,5 +1,11 @@
 # @trulysimple/tsargp-docs
 
+## 0.4.7-next.0
+
+### Patch Changes
+
+- [#186](https://github.com/trulysimple/tsargp/pull/186) [`1be0768`](https://github.com/trulysimple/tsargp/commit/1be07689c628cefb04a077da6f9b743ea400778e) Thanks [@disog](https://github.com/disog)! - Updated all pages to document the code changes for the next major release.
+
 ## 0.4.6
 
 ### Patch Changes
