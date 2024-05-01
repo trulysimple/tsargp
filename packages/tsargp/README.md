@@ -58,7 +58,7 @@ Validate them in your test script:
 
 ```ts
 // <your_cli_name>.spec.ts
-import { OptionValidator } from 'tsargp/lib';
+import { OptionValidator } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
 describe('<your_cli_name>', () => {

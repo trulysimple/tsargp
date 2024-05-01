@@ -43,7 +43,6 @@ class PlayCommand extends Command<PlayProps> {
     const validator = new OptionValidator(options);
     const { warning } = await validator.validate();
     if (warning) {
-      console.log(this.state.width);
       this.println(warning.wrap(this.state.width));
     }
     this.parser = new ArgumentParser(options);
