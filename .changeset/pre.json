@@ -5,5 +5,5 @@
     "@trulysimple/tsargp-docs": "0.4.6",
     "tsargp": "0.8.0"
   },
-  "changesets": []
+  "changesets": ["friendly-mails-impress", "sweet-cooks-tie"]
 }
