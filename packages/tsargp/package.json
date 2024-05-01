@@ -18,22 +18,23 @@
     "tsargp": "dist/examples/demo.js"
   },
   "type": "module",
-  "types": "./dist/types/index.d.ts",
+  "types": "./dist/lib/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/types/index.d.ts",
+      "types": "./dist/lib/index.d.ts",
       "default": "./dist/index.min.js"
-    },
-    "./lib": {
-      "types": "./dist/types/index.d.ts",
-      "default": "./dist/lib/index.js"
     },
     "./enums": {
       "types": "./dist/enums/enums.d.ts",
       "default": "./dist/enums/enums.js"
     },
     "./examples": {
+      "types": "./dist/examples/index.d.ts",
       "default": "./dist/examples/index.js"
+    },
+    "./lib": {
+      "types": "./dist/lib/index.d.ts",
+      "default": "./dist/lib/index.js"
     }
   },
   "files": [
@@ -51,7 +52,7 @@
   },
   "scripts": {
     "prepare": "bun run dist",
-    "dist": "tsc -b examples && bun build dist/lib/index.js --outfile dist/index.min.js --minify && tsc lib/enums.ts -d -m ESNext --skipLibCheck --preserveConstEnums --removeComments --outDir dist/enums && sed -i 's/const enum/enum/g' dist/enums/*.d.ts"
+    "dist": "tsc -b && bun build dist/lib/index.js --outfile dist/index.min.js --minify && sed -i 's/const enum/enum/g' dist/enums/*.d.ts"
   },
   "browser": {
     "fs": false

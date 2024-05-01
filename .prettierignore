@@ -3,5 +3,6 @@
 .prettierignore
 *.lockb
 *.toml
+*.txt
 CODEOWNERS
 LICENSE

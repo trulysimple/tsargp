@@ -20,7 +20,7 @@ export default {
   help: {
     type: 'help',
     names: ['--help'],
-    desc: 'Prints this help message.',
+    synopsis: 'Prints this help message.',
   },
 } as const satisfies Options;
 ```
@@ -127,9 +127,9 @@ const cmd2Opts = {
 
 const helpOpts = {
   name: {
-    type: 'string',
-    desc: 'The name of the nested command.',
-    enums: ['cmd1', 'cmd2'], // the names of nested commands
+    type: 'single',
+    synopsis: 'The name of the nested command.',
+    choices: ['cmd1', 'cmd2'], // the names of nested commands
     preferredName: 'command name', // appears in error messages
     positional: true,
     required: true, // error if called without a command name
@@ -158,9 +158,9 @@ export default {
   help: {
     type: 'command',
     names: ['help'],
-    desc: 'Prints the help message of a nested command.',
+    synopsis: 'Prints the help message of a nested command.',
     options: helpOpts,
-    async exec({ param }) {
+    async parse(param) {
       const vals = param as OptionValues<typeof helpOpts>;
       const opts = vals.name === 'cmd1' ? cmd1Opts : cmd2Opts;
       // this will throw the help message

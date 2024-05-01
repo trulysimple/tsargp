@@ -2,7 +2,7 @@
 // Imports and Exports
 //--------------------------------------------------------------------------------------------------
 import React from 'react';
-import { ArgumentParser, ErrorMessage, AnsiMessage } from 'tsargp';
+import { ArgumentParser, OptionValidator, ErrorMessage, AnsiMessage } from 'tsargp';
 import { style, req, fg8, bg8, ul8, ul } from 'tsargp';
 import * as enums from 'tsargp/enums';
 import { type Props, Command } from './classes/command';
@@ -40,12 +40,12 @@ class PlayCommand extends Command<PlayProps> {
   private async init() {
     const source = this.props.callbacks.getSource();
     const options = Function('tsargp', `'use strict';${source}`)(tsargp);
-    const parser = new ArgumentParser(options);
-    const { warning } = await parser.validate({ detectNamingIssues: true });
+    const validator = new OptionValidator(options);
+    const { warning } = await validator.validate();
     if (warning) {
       this.println(warning.wrap(this.state.width));
     }
-    this.parser = parser;
+    this.parser = new ArgumentParser(options);
   }
 
   override async run(line: string, compIndex?: number) {

@@ -55,8 +55,8 @@ export const Demo = dynamic(() => import('@components/demo'), { ssr: false });
 
 - check if values get overridden when a string option is specified repeatedly (e.g., `-s 1 -s 2`)
 - check if values get overridden when a number option is specified repeatedly (e.g., `-n -1 -n -2`)
-- check if values get overridden when an array option is specified repeatedly (e.g., `one -- two`)
-- check if values get appended when an array option is specified repeatedly (e.g.,
+- check if values get overridden when an array-valued option is specified repeatedly (e.g., `one -- two`)
+- check if values get appended when an array-valued option is specified repeatedly (e.g.,
   `--numbersUnique 1 --numbersUnique 2`)
 
 ### Inline parameters

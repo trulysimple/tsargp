@@ -13,7 +13,8 @@ can be used to customize the display of text in terminals that support it.
 
 The `style` function accepts a list of styling attributes and creates a `Style` that can be used in
 any part of the API that expects this type, or it can be embedded directly in text attributes, such
-as the [synopsis and deprecation] notice, [help section] texts, [error phrases] and [help phrases].
+as the [option synopsis], [deprecation notice], [help section] texts, [error phrases] and [help
+phrases].
 
 Styles are cumulative, i.e., they can be combined with previous styles depending on the kind of
 styling attribute. For instance, if the style of an option's description is `tf.bold{:ts}` and the
@@ -32,57 +33,48 @@ In the next sections we present the various styling attributes available.
 
 The `tf` enumeration declares text type faces that can be combined together. They are listed below.
 
-#### Enabling attributes
-
-- `bold` - bold or increased intensity
-- `faint` - faint, decreased intensity, or dim
-- `italic` - italic
-- `underlined` - underlined
-- `slowlyBlinking` - slowly blinking
-- `rapidlyBlinking` - rapidly blinking
-- `inverse` - reverse video or inverse (flips foreground and background color)
-- `invisible` - invisible, concealed or hidden
-- `crossedOut` - crossed-out or strikethrough
-- `doublyUnderlined` - doubly underlined
-- `proportionalSpacing` - proportional spacing
-
-#### Font-changing attributes
-
-- `primaryFont` - primary font
-- `alternative[1-9]` - alternative font 1 through 9
-- `fraktur` - black-letter font
-
-#### Ideogram attributes
-
-- `ideogramUnderline` - ideogram underline or right side line
-- `ideogramDoubleUnderline` - ideogram double underline, or double line on the right side
-- `ideogramOverline` - ideogram overline or left side line
-- `ideogramDoubleOverline` - ideogram double overline, or double line on the left side
-- `ideogramStressMarking` - ideogram stress marking
-
-#### Miscellaneous attributes
-
-- `framed` - framed
-- `encircled` - encircled
-- `overlined` - overlined
-- `superscript` - superscript
-- `subscript` - subscript
-
-#### Resetting attributes
-
-- `clear` - resets any other preceding SGR attribute
-- `notBoldOrFaint` - normal intensity (neither bold nor faint)
-- `notItalicNorFraktur` - regular face (neither italic nor black-letter)
-- `notUnderlined` - not underlined
-- `notBlinking` - steady (not blinking)
-- `notInverse` - positive (not inverse)
-- `notInvisible` - visible (reveal, or not hidden)
-- `notCrossedOut` - not crossed out (no strikethrough)
-- `notProportionalSpacing` - disable proportional spacing
-- `notFramedOrEncircled` - neither framed nor encircled
-- `notOverlined` - not overlined
-- `noIdeogram` - no ideogram attributes
-- `notSuperscriptOrSubscript` - neither superscript nor subscript
+- Enabling attributes:
+  - `bold` - bold or increased intensity
+  - `faint` - faint, decreased intensity, or dim
+  - `italic` - italic
+  - `underlined` - underlined
+  - `slowlyBlinking` - slowly blinking
+  - `rapidlyBlinking` - rapidly blinking
+  - `inverse` - reverse video or inverse (flips foreground and background color)
+  - `invisible` - invisible, concealed or hidden
+  - `crossedOut` - crossed-out or strikethrough
+  - `doublyUnderlined` - doubly underlined
+  - `proportionalSpacing` - proportional spacing
+- Font-changing attributes:
+  - `primaryFont` - primary font
+  - `alternative[1-9]` - alternative font 1 through 9
+  - `fraktur` - black-letter font
+- Ideogram attributes:
+  - `ideogramUnderline` - ideogram underline or right side line
+  - `ideogramDoubleUnderline` - ideogram double underline, or double line on the right side
+  - `ideogramOverline` - ideogram overline or left side line
+  - `ideogramDoubleOverline` - ideogram double overline, or double line on the left side
+  - `ideogramStressMarking` - ideogram stress marking
+- Miscellaneous attributes:
+  - `framed` - framed
+  - `encircled` - encircled
+  - `overlined` - overlined
+  - `superscript` - superscript
+  - `subscript` - subscript
+- Resetting attributes:
+  - `clear` - resets any other preceding SGR attribute
+  - `notBoldOrFaint` - normal intensity (neither bold nor faint)
+  - `notItalicNorFraktur` - regular face (neither italic nor black-letter)
+  - `notUnderlined` - not underlined
+  - `notBlinking` - steady (not blinking)
+  - `notInverse` - positive (not inverse)
+  - `notInvisible` - visible (reveal, or not hidden)
+  - `notCrossedOut` - not crossed out (no strikethrough)
+  - `notProportionalSpacing` - disable proportional spacing
+  - `notFramedOrEncircled` - neither framed nor encircled
+  - `notOverlined` - not overlined
+  - `noIdeogram` - no ideogram attributes
+  - `notSuperscriptOrSubscript` - neither superscript nor subscript
 
 ### Predefined text colors
 
@@ -90,28 +82,24 @@ The `fg` and `bg` enumerations declare predefined foreground and background colo
 They both have the same colors, which are listed below.
 
 - `default` - the default color
-
-#### Standard colors
-
-- `black` - black
-- `red` - red
-- `green` - green
-- `yellow` - yellow
-- `blue` - blue
-- `magenta` - magenta
-- `cyan` - cyan
-- `white` - white
-
-#### High-intensity colors
-
-- `brightBlack` - bright black (gray)
-- `brightRed` - bright red
-- `brightGreen` - bright green
-- `brightYellow` - bright yellow
-- `brightBlue` - bright blue
-- `brightMagenta` - bright magenta
-- `brightCyan` - bright cyan
-- `brightWhite` - bright white
+- Standard colors:
+  - `black` - black
+  - `red` - red
+  - `green` - green
+  - `yellow` - yellow
+  - `blue` - blue
+  - `magenta` - magenta
+  - `cyan` - cyan
+  - `white` - white
+- High-intensity colors:
+  - `brightBlack` - bright black (gray)
+  - `brightRed` - bright red
+  - `brightGreen` - bright green
+  - `brightYellow` - bright yellow
+  - `brightBlue` - bright blue
+  - `brightMagenta` - bright magenta
+  - `brightCyan` - bright cyan
+  - `brightWhite` - bright white
 
 ### Extended text colors
 
@@ -166,11 +154,12 @@ are:
 - `s` - a string value
 - `n` - a number value
 - `r` - a regular expression
-- `o` - an option name
-- `v` - an unknown value (enclosed in angle brackets, like the [parameter column])
+- `m` - a symbol value (e.g., option name)
+- `t` - a terminal string
 - `u` - a URL hyperlink
-- `t` - a general text
-- `p` - a previously formatted string
+- `a` - an array value
+- `o` - an object value
+- `v` - an unknown value (enclosed in angle brackets, like the [parameter column])
 
 If a phrase supports values, the specifier can be used to indicate where in the phrase to place the
 value. If a phrase has multiple alternatives (depending on the context), different texts may be
@@ -337,16 +326,82 @@ The `TextMessage` class represents a list of text lines. It is used by the libra
 This message produces a string with lines separated by line feeds, and should be printed with
 `console.log{:ts}` or equivalent.
 
+### Message configuration
+
+Messages can be configured via a `MessageConfig` object that contains the properties described
+below.
+
+#### Message styles
+
+The `styles` property specifies the styles of text elements in ANSI messages, and has the following
+optional properties:
+
+| Property  | Used for            | Default               |
+| --------- | ------------------- | --------------------- |
+| `boolean` | Boolean values      | `fg.blue{:ts}`        |
+| `string`  | String values       | `fg.green{:ts}`       |
+| `number`  | Number values       | `fg.yellow{:ts}`      |
+| `regex`   | Regular expressions | `fg.red{:ts}`         |
+| `option`  | Option names        | `fg.magenta{:ts}`     |
+| `value`   | Unknown values      | `fg.brightBlack{:ts}` |
+| `url`     | URLs                | `fg.cyan{:ts}`        |
+| `text`    | General text        | `''{:ts}`             |
+
+<Callout type="default">
+  You can also set these styles to the empty string, if you want to disable text styling for your
+  application.
+</Callout>
+
+#### Connective words
+
+The `connectives` property specifies connective words that are used to format some text elements
+that cannot be customized using phrases, such as option requirements, array element separators and
+string quoting. It has the following optional properties, whose keys are enumerators from
+`ConnectiveWord`:
+
+| Property      | Description                                         | Default      |
+| ------------- | --------------------------------------------------- | ------------ |
+| `and`         | Connects two logical expressions in conjunction     | `'and'{:ts}` |
+| `or`          | Connects two logical expressions in disjunction     | `'or'{:ts}`  |
+| `not`         | Connects a logical expression in negation           | `'not'{:ts}` |
+| `no`          | Connects a logical expression in non-existence      | `'no'{:ts}`  |
+| `equals`      | Connects two expressions in equality comparison     | `'=='{:ts}`  |
+| `notEquals`   | Connects two expressions in non-equality comparison | `'!='{:ts}`  |
+| `optionAlt`   | Connects two option names in alternation            | `'\|'{:ts}`  |
+| `optionSep`   | Connects two option names in succession             | `','{:ts}`   |
+| `stringQuote` | Encloses a string value                             | `"'"{:ts}`   |
+| `arraySep`    | Connects two array elements in succession           | `','{:ts}`   |
+| `arrayOpen`   | Opening bracket of an array value                   | `'['{:ts}`   |
+| `arrayClose`  | Closing bracket of an array value                   | `']'{:ts}`   |
+| `objectSep`   | Connects two object entries in succession           | `','{:ts}`   |
+| `objectOpen`  | Opening bracket of an object value                  | `'{'{:ts}`   |
+| `objectClose` | Closing bracket of an object value                  | `'}'{:ts}`   |
+| `valueSep`    | Connects an object key with its value               | `':'{:ts}`   |
+| `valueOpen`   | Opening bracket of an unknown value                 | `'<'{:ts}`   |
+| `valueClose`  | Closing bracket of an unknown value                 | `'>'{:ts}`   |
+| `exprOpen`    | Opening bracket of an expression                    | `'('{:ts}`   |
+| `exprClose`   | Closing bracket of an expression                    | `')'{:ts}`   |
+
+{/* options references */}
+[option synopsis]: options#option-synopsis
+[deprecation notice]: options#deprecation-notice
+
+{/* parser references */}
 [parser]: parser
+[completion words]: parser#word-completion
+
+{/* validator references */}
 [validator]: validator
-[formatter]: formatter
-[help phrases]: formatter#help-phrases
 [error phrases]: validator#error-phrases
+
+{/* formatter references */}
+[formatter]: formatter
+[format]: formatter#help-format
+[help phrases]: formatter#help-phrases
 [help section]: formatter#help-sections
 [description column]: formatter#description-column
-[synopsis and deprecation]: options#synopsis--deprecated
 [parameter column]: formatter#parameter-column
-[completion words]: parser#word-completion
-[format]: formatter#help-format
+
+{/* styles references */}
 [bug report]: https://github.com/trulysimple/tsargp/issues/new?labels=bug
 [SGR]: https://www.wikiwand.com/en/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters

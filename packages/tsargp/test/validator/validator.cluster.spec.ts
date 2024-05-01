@@ -1,15 +1,16 @@
-import { describe, expect, it } from 'vitest';
-import { type Options, OptionValidator } from '../../lib';
-import '../utils.spec';
+import { describe, describe as on, expect, it as should } from 'vitest';
+import { type Options } from '../../lib/options';
+import { OptionValidator } from '../../lib/validator';
+
+process.env['FORCE_WIDTH'] = '0'; // omit styles
 
 describe('OptionValidator', () => {
-  describe('validate', () => {
-    it('should throw an error on option with invalid cluster letter', async () => {
+  on('validate', () => {
+    should('throw an error on option with invalid cluster letter (space)', async () => {
       const options = {
         flag: {
           type: 'flag',
-          names: ['-f'],
-          clusterLetters: 'a = b',
+          cluster: ' ',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -18,12 +19,24 @@ describe('OptionValidator', () => {
       );
     });
 
-    it('should throw an error on duplicate cluster letter in the same option', async () => {
+    should('throw an error on option with invalid cluster letter (equals sign)', async () => {
       const options = {
         flag: {
           type: 'flag',
-          names: ['-f'],
-          clusterLetters: 'aba',
+          cluster: '=',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      await expect(validator.validate()).rejects.toThrow(
+        `Option flag has invalid cluster letter '='.`,
+      );
+    });
+
+    should('throw an error on duplicate cluster letter in the same option', async () => {
+      const options = {
+        flag: {
+          type: 'flag',
+          cluster: 'aba',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -32,17 +45,15 @@ describe('OptionValidator', () => {
       );
     });
 
-    it('should throw an error on duplicate cluster letter across different options', async () => {
+    should('throw an error on duplicate cluster letter across different options', async () => {
       const options = {
         flag1: {
           type: 'flag',
-          names: ['-f1'],
-          clusterLetters: 'f',
+          cluster: 'f',
         },
         flag2: {
           type: 'flag',
-          names: ['-f2'],
-          clusterLetters: 'f',
+          cluster: 'f',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -51,63 +62,12 @@ describe('OptionValidator', () => {
       );
     });
 
-    it('should return a warning on string option with fallback value and cluster letters', async () => {
-      const options = {
-        string: {
-          type: 'string',
-          names: ['-s'],
-          fallback: '',
-          clusterLetters: 'a',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const { warning } = await validator.validate();
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `Variadic option string may only appear as the last option in a cluster.\n`,
-      );
-    });
-
-    it('should return a warning on variadic strings option with cluster letters', async () => {
-      const options = {
-        strings: {
-          type: 'strings',
-          names: ['-ss'],
-          clusterLetters: 'a',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const { warning } = await validator.validate();
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `Variadic option strings may only appear as the last option in a cluster.\n`,
-      );
-    });
-
-    it('should return a warning on variadic function option with cluster letters (1)', async () => {
+    should('return a warning on variadic function option with cluster letter', async () => {
       const options = {
         function: {
           type: 'function',
-          names: ['-f'],
-          paramCount: -1,
-          clusterLetters: 'a',
-        },
-      } as const satisfies Options;
-      const validator = new OptionValidator(options);
-      const { warning } = await validator.validate();
-      expect(warning).toHaveLength(1);
-      expect(warning?.message).toEqual(
-        `Variadic option function may only appear as the last option in a cluster.\n`,
-      );
-    });
-
-    it('should return a warning on variadic function option with cluster letters (2)', async () => {
-      const options = {
-        function: {
-          type: 'function',
-          names: ['-f'],
+          cluster: 'a',
           paramCount: [0, 1],
-          clusterLetters: 'a',
         },
       } as const satisfies Options;
       const validator = new OptionValidator(options);
@@ -115,6 +75,21 @@ describe('OptionValidator', () => {
       expect(warning).toHaveLength(1);
       expect(warning?.message).toEqual(
         `Variadic option function may only appear as the last option in a cluster.\n`,
+      );
+    });
+
+    should('return a warning on array-valued option with cluster letter', async () => {
+      const options = {
+        array: {
+          type: 'array',
+          cluster: 'a',
+        },
+      } as const satisfies Options;
+      const validator = new OptionValidator(options);
+      const { warning } = await validator.validate();
+      expect(warning).toHaveLength(1);
+      expect(warning?.message).toEqual(
+        `Variadic option array may only appear as the last option in a cluster.\n`,
       );
     });
   });

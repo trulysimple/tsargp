@@ -15,11 +15,10 @@ import { Tabs } from 'nextra/components';
 | Zero-dependency      | Word completion        | Help message formatting |
 | Fully declarative    | Option validation      | Text wrapping/alignment |
 | Type-checked         | Option requirements    | Paragraphs and lists    |
-| Browser-compatible   | Value normalization    | [SGR] colors and styles |
-| 35KB minified        | Name suggestions       | Custom phrasing         |
-| ESM-native           | Nested commands        | Option grouping/hiding  |
-| Online documentation | Asynchronous callbacks | Help sections and usage |
-|                      | GNU's _short-options_  | JSON, CSV and Markdown  |
+| Browser-compatible   | Name suggestions       | [SGR] colors and styles |
+| 32KB minified        | Nested commands        | Custom phrasing         |
+| ESM-native           | Asynchronous callbacks | Option grouping/hiding  |
+| Online documentation | GNU's _short-options_  | Help formats/sections   |
 
 ## Motivation
 
@@ -32,8 +31,8 @@ command-line options in a single `object`.
 
 Furthermore, by using TypeScript, it ensures that the values resulting from argument parsing have
 _accurate_ data types, i.e., they reflect the attributes specified in the options' definitions. In
-particular, an option's value will be a union literal if you declare an enumeration constraint in
-its definition. Even JSDoc comments are preserved in IntelliSense!
+particular, an option's value will be a union literal if you declare a choice mapping in its
+definition. Even JSDoc comments are preserved in IntelliSense!
 
 ## Installation
 
@@ -43,7 +42,7 @@ npm install tsargp
 
 ## Quick Start
 
-Define your command-line options. We recommend placing them in a separate file:
+Define your command-line options:
 
 ```ts copy filename="<your_cli_name>.options.ts" /<your_cli_name>/
 import { type Options, ... } from 'tsargp';
@@ -55,14 +54,13 @@ export default {
 
 Import them in your main script:
 
-```ts copy filename="<your_cli_name>.ts" {8-9} /<your_cli_name>/
+```ts copy filename="<your_cli_name>.ts" {7,8} /<your_cli_name>/
 #!/usr/bin/env node
 import { ArgumentParser } from 'tsargp';
 import options from './<your_cli_name>.options.js';
 
 try {
   const parser = new ArgumentParser(options);
-  await parser.validate(); // validate the option definitions (you can skip this in production)
   const values = await parser.parse(); // use this to get the options' values
   // await parser.parseInto(myValues); // use this to fill an existing object or class instance
 } catch (err) {
@@ -73,6 +71,21 @@ try {
     console.log(`${err}`); // help message, version or completion words
   }
 }
+```
+
+Validate them in your test script:
+
+```ts copy filename="<your_cli_name>.spec.ts" /<your_cli_name>/
+import { OptionValidator } from 'tsargp';
+import options from './<your_cli_name>.options.js';
+
+describe('<your_cli_name>', () => {
+  it('should have valid options', async () => {
+    const validator = new OptionValidator(options);
+    const { warning } = await validator.validate();
+    expect(warning).toBeUndefined(); // or check warnings that are important to your application
+  });
+});
 ```
 
 Optionally, enable word completion:
